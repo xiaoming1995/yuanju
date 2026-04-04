@@ -74,8 +74,9 @@ func main() {
 				adminAuth.GET("/stats", handler.AdminGetStats)
 				adminAuth.GET("/stats/ai", handler.AdminGetAIStats)
 
-				// 用户管理
+				// 用户与数据流水管理
 				adminAuth.GET("/users", handler.AdminGetUsers)
+				adminAuth.GET("/charts", handler.AdminListCharts)
 
 				// AI 调用日志
 				adminAuth.GET("/ai-logs", handler.AdminListAILogs)

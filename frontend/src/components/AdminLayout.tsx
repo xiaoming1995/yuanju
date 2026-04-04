@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
-import { Hexagon, LayoutDashboard, Bot, Users, ListX, FileText } from 'lucide-react'
+import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen } from 'lucide-react'
 import { useAdminAuth } from '../contexts/AdminAuthContext'
 import './AdminLayout.css'
 
@@ -29,7 +29,10 @@ export default function AdminLayout() {
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Bot size={18} /></span> LLM 管理
           </NavLink>
           <NavLink to="/admin/users" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
-            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Users size={18} /></span> 用户列表
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Users size={18} /></span> 用户管理
+          </NavLink>
+          <NavLink to="/admin/charts" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><BookOpen size={18} /></span> 起盘明细
           </NavLink>
           <NavLink to="/admin/ai-logs" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><FileText size={18} /></span> AI 调用日志

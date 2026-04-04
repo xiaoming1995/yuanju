@@ -34,32 +34,38 @@ func Calculate(c *gin.Context) {
 		input.Gender, input.IsEarlyZishi, input.Longitude)
 
 	var chartID string
-	// 如果上下文被 OptionalAuth 注入了 user_id，则顺手将命盘存入历史
+	var ptrUserID *string
+
+	// 如果上下文被 OptionalAuth 注入了 user_id，则绑定归属
 	if userID, exists := c.Get("user_id"); exists {
 		userIDStr, ok := userID.(string)
 		if ok && userIDStr != "" {
-			chart := &model.BaziChart{
-				UserID:     &userIDStr,
-				BirthYear:  input.Year,
-				BirthMonth: input.Month,
-				BirthDay:   input.Day,
-				BirthHour:  input.Hour,
-				Gender:     input.Gender,
-				YearGan:    result.YearGan, YearZhi: result.YearZhi,
-				MonthGan: result.MonthGan, MonthZhi: result.MonthZhi,
-				DayGan: result.DayGan, DayZhi: result.DayZhi,
-				HourGan: result.HourGan, HourZhi: result.HourZhi,
-				Wuxing:    result.Wuxing,
-				Dayun:     result.Dayun,
-				Yongshen:  result.Yongshen,
-				Jishen:    result.Jishen,
-				ChartHash: result.ChartHash,
-			}
-			// 静默落库，出错不影响游客排盘响应
-			if savedChart, err := repository.CreateChart(chart); err == nil && savedChart != nil {
-				chartID = savedChart.ID
-			}
+			ptrUserID = &userIDStr
 		}
+	}
+
+	// 无论是否登录（游客为 nil），均强制起盘落库，以便 Admin 观测真实流量
+	chart := &model.BaziChart{
+		UserID:     ptrUserID,
+		BirthYear:  input.Year,
+		BirthMonth: input.Month,
+		BirthDay:   input.Day,
+		BirthHour:  input.Hour,
+		Gender:     input.Gender,
+		YearGan:    result.YearGan, YearZhi: result.YearZhi,
+		MonthGan: result.MonthGan, MonthZhi: result.MonthZhi,
+		DayGan: result.DayGan, DayZhi: result.DayZhi,
+		HourGan: result.HourGan, HourZhi: result.HourZhi,
+		Wuxing:    result.Wuxing,
+		Dayun:     result.Dayun,
+		Yongshen:  result.Yongshen,
+		Jishen:    result.Jishen,
+		ChartHash: result.ChartHash,
+	}
+	
+	// 静默落库，出错不影响排盘响应
+	if savedChart, err := repository.CreateChart(chart); err == nil && savedChart != nil {
+		chartID = savedChart.ID
 	}
 
 	c.JSON(http.StatusOK, gin.H{

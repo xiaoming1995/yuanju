@@ -261,3 +261,62 @@ func GetAILogsSummary() ([]AILogDayStat, error) {
 	return stats, nil
 }
 
+// ====== Bazi Charts (Admin view) ======
+
+// ListBaziCharts 分页查询所有用户的排盘记录
+func ListBaziCharts(page, pageSize int) ([]model.AdminChartRecord, int, error) {
+	offset := (page - 1) * pageSize
+
+	// 统计总数
+	var total int
+	err := database.DB.QueryRow(`SELECT COUNT(*) FROM bazi_charts`).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if total == 0 {
+		return []model.AdminChartRecord{}, 0, nil
+	}
+
+	rows, err := database.DB.Query(`
+		SELECT 
+			c.id, c.user_id, u.email as user_email, 
+			c.birth_year, c.birth_month, c.birth_day, c.birth_hour, 
+			c.gender, c.year_gan, c.year_zhi, 
+			c.month_gan, c.month_zhi, c.day_gan, c.day_zhi, c.hour_gan, c.hour_zhi,
+			COALESCE(c.yongshen, '') as yongshen, 
+			COALESCE(c.jishen, '') as jishen, 
+			a.content as ai_result,
+			c.created_at
+		FROM bazi_charts c
+		LEFT JOIN users u ON c.user_id = u.id
+		LEFT JOIN ai_reports a ON c.id = a.chart_id
+		ORDER BY c.created_at DESC
+		LIMIT $1 OFFSET $2
+	`, pageSize, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var charts []model.AdminChartRecord
+	for rows.Next() {
+		var r model.AdminChartRecord
+		if err := rows.Scan(
+			&r.ID, &r.UserID, &r.UserEmail,
+			&r.BirthYear, &r.BirthMonth, &r.BirthDay, &r.BirthHour,
+			&r.Gender, &r.YearGan, &r.YearZhi,
+			&r.MonthGan, &r.MonthZhi, &r.DayGan, &r.DayZhi, &r.HourGan, &r.HourZhi,
+			&r.Yongshen, &r.Jishen,
+			&r.AIResult,
+			&r.CreatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		charts = append(charts, r)
+	}
+
+	return charts, total, nil
+}
+
+

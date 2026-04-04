@@ -47,6 +47,15 @@ export const adminStatsAPI = {
   ai: () => adminApi.get('/api/admin/stats/ai'),
   users: (page = 1, q = '') =>
     adminApi.get(`/api/admin/users?page=${page}&q=${encodeURIComponent(q)}`),
+  getAILogs: (page: number = 1, pageSize: number = 20) =>
+    adminApi.get(`/api/admin/ai-logs?page=${page}&pageSize=${pageSize}`),
+  clearAllCache: () => adminApi.delete('/api/admin/reports/cache'),
+  clearChartCache: (chartId: string) => adminApi.delete(`/api/admin/reports/cache/${chartId}`),
+}
+
+export const adminChartsAPI = {
+  list: (page: number = 1, pageSize: number = 20) =>
+    adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}`),
 }
 
 export const adminReportAPI = {

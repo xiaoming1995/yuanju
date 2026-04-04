@@ -38,6 +38,30 @@ type AIRequestLog struct {
 	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
 
+// AdminChartRecord 管理后台：起盘明细记录
+type AdminChartRecord struct {
+	ID         string    `db:"id" json:"id"`
+	UserID     *string   `db:"user_id" json:"user_id,omitempty"`
+	UserEmail  *string   `db:"user_email" json:"user_email,omitempty"`
+	BirthYear  int       `db:"birth_year" json:"birth_year"`
+	BirthMonth int       `db:"birth_month" json:"birth_month"`
+	BirthDay   int       `db:"birth_day" json:"birth_day"`
+	BirthHour  int       `db:"birth_hour" json:"birth_hour"`
+	Gender     string    `db:"gender" json:"gender"`
+	YearGan    string    `db:"year_gan" json:"year_gan"`
+	YearZhi    string    `db:"year_zhi" json:"year_zhi"`
+	MonthGan   string    `db:"month_gan" json:"month_gan"`
+	MonthZhi   string    `db:"month_zhi" json:"month_zhi"`
+	DayGan     string    `db:"day_gan" json:"day_gan"`
+	DayZhi     string    `db:"day_zhi" json:"day_zhi"`
+	HourGan    string    `db:"hour_gan" json:"hour_gan"`
+	HourZhi    string    `db:"hour_zhi" json:"hour_zhi"`
+	Yongshen   string    `db:"yongshen" json:"yongshen"`
+	Jishen     string    `db:"jishen" json:"jishen"`
+	AIResult   *string   `db:"ai_result" json:"ai_result"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+}
+
 // PredefinedProviders 预设的 Provider 类型（用于前端下拉）
 var PredefinedProviders = []map[string]string{
 	{"type": "deepseek", "name": "DeepSeek", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},

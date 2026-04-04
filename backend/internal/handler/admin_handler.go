@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 	"yuanju/configs"
 	"yuanju/internal/model"
@@ -322,7 +323,33 @@ func AdminGetAILogsSummary(c *gin.Context) {
 	if stats == nil {
 		stats = []repository.AILogDayStat{}
 	}
-	c.JSON(http.StatusOK, gin.H{"summary": stats})
+	c.JSON(http.StatusOK, gin.H{
+		"data": stats,
+	})
+}
+
+// AdminListCharts 获取全量用户的起盘日记流水
+func AdminListCharts(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	charts, total, err := repository.ListBaziCharts(page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取排盘历史失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  charts,
+		"total": total,
+		"page":  page,
+	})
 }
 
 // ====== Admin Report Cache ======
