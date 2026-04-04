@@ -1,0 +1,300 @@
+/* ============================================
+   缘聚命理 - 全局设计系统
+   金/木/水/火/土 五行配色 + 深色主题
+   ============================================ */
+
+:root {
+  /* 五行色彩系统 */
+  --wu-jin: #c9a84c;      /* 金 - 暖金 */
+  --wu-jin-light: #f0d080;
+  --wu-mu: #4caf7d;       /* 木 - 翠绿 */
+  --wu-mu-light: #a8e6c3;
+  --wu-shui: #5b9bd5;     /* 水 - 深蓝 */
+  --wu-shui-light: #aad4f5;
+  --wu-huo: #e05c4b;      /* 火 - 朱红 */
+  --wu-huo-light: #f5a99c;
+  --wu-tu: #c17f3e;       /* 土 - 赭石 */
+  --wu-tu-light: #e8c49a;
+
+  /* 深色主题基础色 */
+  --bg-base: #0d0f14;
+  --bg-surface: #141720;
+  --bg-card: #1a1f2e;
+  --bg-card-hover: #1f2638;
+  --bg-elevated: #242a3d;
+
+  /* 文字色阶 */
+  --text-primary: #e8e4d8;
+  --text-secondary: #9e9a8a;
+  --text-muted: #5e5c52;
+  --text-accent: #c9a84c;
+
+  /* 品牌主色 - 以金为主 */
+  --primary: #c9a84c;
+  --primary-hover: #d4b55e;
+  --primary-glow: rgba(201, 168, 76, 0.2);
+
+  /* 边框与分割线 */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.1);
+  --border-accent: rgba(201, 168, 76, 0.3);
+
+  /* 阴影 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 30px rgba(201, 168, 76, 0.15);
+
+  /* 字体 */
+  --font-serif: 'Noto Serif SC', 'SimSun', serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* 动画 */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+}
+
+/* ======= 基础重置 ======= */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 中文内容用衬线字体 */
+.serif { font-family: var(--font-serif); }
+
+/* ======= 布局工具 ======= */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.page {
+  min-height: 100vh;
+  padding-top: 80px;
+}
+
+/* ======= 通用卡片 ======= */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.card:hover {
+  border-color: var(--border-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.card-glass {
+  background: rgba(26, 31, 46, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+}
+
+/* ======= 按钮 ======= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--wu-jin), #a8872a);
+  color: #0d0f14;
+  box-shadow: 0 4px 15px rgba(201, 168, 76, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(201, 168, 76, 0.45);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+}
+
+.btn-secondary:hover {
+  border-color: var(--border-accent);
+  background: var(--bg-card-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 8px 16px;
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-lg { padding: 16px 40px; font-size: 17px; }
+.btn-sm { padding: 8px 20px; font-size: 13px; }
+
+/* ======= 表单 ======= */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.form-input,
+.form-select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  width: 100%;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none;
+  appearance: none;
+}
+
+.form-input:focus,
+.form-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-error {
+  font-size: 13px;
+  color: var(--wu-huo);
+  margin-top: 4px;
+}
+
+/* ======= 五行徽标 ======= */
+.wuxing-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-serif);
+}
+
+.wuxing-jin  { background: rgba(201,168,76,0.15); color: var(--wu-jin); border: 1px solid rgba(201,168,76,0.3); }
+.wuxing-mu   { background: rgba(76,175,125,0.15); color: var(--wu-mu);  border: 1px solid rgba(76,175,125,0.3); }
+.wuxing-shui { background: rgba(91,155,213,0.15); color: var(--wu-shui);border: 1px solid rgba(91,155,213,0.3); }
+.wuxing-huo  { background: rgba(224,92,75,0.15);  color: var(--wu-huo); border: 1px solid rgba(224,92,75,0.3); }
+.wuxing-tu   { background: rgba(193,127,62,0.15); color: var(--wu-tu);  border: 1px solid rgba(193,127,62,0.3); }
+.wuxing-unknown { background: rgba(255,255,255,0.08); color: var(--text-secondary); border: 1px dashed var(--border-default); }
+
+/* ======= 分割线 ======= */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 24px 0;
+}
+
+/* ======= 骨架屏 ======= */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-card-hover) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ======= 渐入动画 ======= */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(201,168,76,0.1); }
+  50% { box-shadow: 0 0 40px rgba(201,168,76,0.25); }
+}
+
+.animate-fade-up { animation: fadeUp 0.5s ease forwards; }
+.animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+
+/* ======= 滚动条 ======= */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
+
+/* ======= 响应式断点 ======= */
+@media (max-width: 768px) {
+  .container { padding: 0 16px; }
+  .card { padding: 20px; }
+  .btn-lg { padding: 14px 32px; font-size: 16px; }
+}

@@ -1,0 +1,16 @@
+/* App 全局背景装饰 */
+#root {
+  isolation: isolate;
+}
+
+/* 星空背景纹理 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(201,168,76,0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(91,155,213,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}

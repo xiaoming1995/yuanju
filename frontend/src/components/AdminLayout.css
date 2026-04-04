@@ -1,0 +1,395 @@
+/* Admin Dashboard 全局样式 */
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #0f1117;
+  color: #e8e8e8;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+}
+
+/* 侧边栏 */
+.admin-sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: #161b27;
+  border-right: 1px solid #2a2f3e;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px;
+  border-bottom: 1px solid #2a2f3e;
+}
+
+.admin-brand-icon {
+  font-size: 28px;
+}
+
+.admin-brand-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #c9a227;
+  letter-spacing: 0.5px;
+}
+
+.admin-brand-sub {
+  font-size: 11px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.admin-nav {
+  flex: 1;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #aaa;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.admin-nav-item:hover {
+  background: #1e2436;
+  color: #e8e8e8;
+}
+
+.admin-nav-item.active {
+  background: rgba(201, 162, 39, 0.15);
+  color: #c9a227;
+  font-weight: 600;
+}
+
+.admin-sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #2a2f3e;
+}
+
+.admin-user-info {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-logout-btn {
+  width: 100%;
+  padding: 8px;
+  background: transparent;
+  border: 1px solid #2a2f3e;
+  border-radius: 6px;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-logout-btn:hover {
+  border-color: #c9a227;
+  color: #c9a227;
+}
+
+/* 主内容区 */
+.admin-main {
+  flex: 1;
+  margin-left: 240px;
+  padding: 32px;
+  min-height: 100vh;
+}
+
+/* 通用卡片 */
+.admin-card {
+  background: #161b27;
+  border: 1px solid #2a2f3e;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.admin-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #e8e8e8;
+  margin-bottom: 24px;
+}
+
+/* 统计卡片网格 */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-stat-card {
+  background: #161b27;
+  border: 1px solid #2a2f3e;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.admin-stat-card:hover { border-color: #c9a227; }
+
+.admin-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #c9a227;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.admin-stat-label {
+  font-size: 12px;
+  color: #888;
+}
+
+.admin-stat-sub {
+  font-size: 11px;
+  color: #555;
+  margin-top: 4px;
+}
+
+/* 表格 */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th {
+  text-align: left;
+  padding: 10px 14px;
+  background: #1a1f2e;
+  font-size: 12px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #2a2f3e;
+}
+
+.admin-table td {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #1e2436;
+}
+
+.admin-table tr:hover td { background: #1a1f2e; }
+
+/* 状态徽章 */
+.badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.badge-inactive {
+  background: rgba(100, 100, 100, 0.15);
+  color: #666;
+}
+
+/* 按钮组 */
+.admin-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.admin-btn-primary {
+  background: #c9a227;
+  color: #0f1117;
+}
+
+.admin-btn-primary:hover { background: #e0b530; }
+
+.admin-btn-ghost {
+  background: transparent;
+  border: 1px solid #2a2f3e;
+  color: #888;
+}
+
+.admin-btn-ghost:hover { border-color: #c9a227; color: #c9a227; }
+
+.admin-btn-danger {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+}
+
+.admin-btn-danger:hover { background: rgba(239, 68, 68, 0.1); }
+
+/* 表单 */
+.admin-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-form-label {
+  font-size: 12px;
+  color: #888;
+  font-weight: 600;
+}
+
+.admin-form-input,
+.admin-form-select {
+  background: #0f1117;
+  border: 1px solid #2a2f3e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e8e8e8;
+  font-size: 14px;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+.admin-form-input:focus,
+.admin-form-select:focus {
+  outline: none;
+  border-color: #c9a227;
+}
+
+/* Loading */
+.admin-loading {
+  text-align: center;
+  color: #666;
+  padding: 40px;
+  font-size: 14px;
+}
+
+/* 搜索栏 */
+.admin-search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-search-input {
+  flex: 1;
+  background: #161b27;
+  border: 1px solid #2a2f3e;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #e8e8e8;
+  font-size: 14px;
+}
+
+.admin-search-input:focus {
+  outline: none;
+  border-color: #c9a227;
+}
+
+/* 模态框 */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.admin-modal {
+  background: #161b27;
+  border: 1px solid #2a2f3e;
+  border-radius: 16px;
+  padding: 32px;
+  width: 500px;
+  max-width: 95vw;
+}
+
+.admin-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #e8e8e8;
+}
+
+.admin-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* Admin Login 页面 */
+.admin-login-page {
+  min-height: 100vh;
+  background: #0f1117;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-login-box {
+  background: #161b27;
+  border: 1px solid #2a2f3e;
+  border-radius: 16px;
+  padding: 40px;
+  width: 380px;
+}
+
+.admin-login-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #c9a227;
+  margin-bottom: 8px;
+}
+
+.admin-login-sub {
+  text-align: center;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.admin-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 16px;
+}

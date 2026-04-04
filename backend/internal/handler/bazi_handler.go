@@ -1,0 +1,174 @@
+package handler
+
+import (
+	"net/http"
+	"strconv"
+	"yuanju/internal/model"
+	"yuanju/internal/repository"
+	"yuanju/internal/service"
+	"yuanju/pkg/bazi"
+
+	"github.com/gin-gonic/gin"
+)
+
+type CalculateInput struct {
+	Year         int     `json:"year" binding:"required,min=1900,max=2100"`
+	Month        int     `json:"month" binding:"required,min=1,max=12"`
+	Day          int     `json:"day" binding:"required,min=1,max=31"`
+	Hour         int     `json:"hour" binding:"min=0,max=23"`
+	Gender       string  `json:"gender" binding:"required,oneof=male female"`
+	IsEarlyZishi bool    `json:"is_early_zishi"`
+	Longitude    float64 `json:"longitude"` // 出生地经度，用于真太阳时修正，0 表示不修正
+}
+
+// Calculate 计算八字（无需登录，但若是已登录用户起盘，则自动落库保存历史）
+func Calculate(c *gin.Context) {
+	var input CalculateInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "请检查生辰信息：" + err.Error()})
+		return
+	}
+
+	result := bazi.Calculate(input.Year, input.Month, input.Day, input.Hour,
+		input.Gender, input.IsEarlyZishi, input.Longitude)
+
+	var chartID string
+	// 如果上下文被 OptionalAuth 注入了 user_id，则顺手将命盘存入历史
+	if userID, exists := c.Get("user_id"); exists {
+		userIDStr, ok := userID.(string)
+		if ok && userIDStr != "" {
+			chart := &model.BaziChart{
+				UserID:     &userIDStr,
+				BirthYear:  input.Year,
+				BirthMonth: input.Month,
+				BirthDay:   input.Day,
+				BirthHour:  input.Hour,
+				Gender:     input.Gender,
+				YearGan:    result.YearGan, YearZhi: result.YearZhi,
+				MonthGan: result.MonthGan, MonthZhi: result.MonthZhi,
+				DayGan: result.DayGan, DayZhi: result.DayZhi,
+				HourGan: result.HourGan, HourZhi: result.HourZhi,
+				Wuxing:    result.Wuxing,
+				Dayun:     result.Dayun,
+				Yongshen:  result.Yongshen,
+				Jishen:    result.Jishen,
+				ChartHash: result.ChartHash,
+			}
+			// 静默落库，出错不影响游客排盘响应
+			if savedChart, err := repository.CreateChart(chart); err == nil && savedChart != nil {
+				chartID = savedChart.ID
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"result":   result,
+		"chart_id": chartID,
+	})
+}
+
+// GenerateReport 生成 AI 报告（需登录）
+func GenerateReport(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+
+	// 1. 获取命盘并验证归属
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	userIDStr := userID.(string)
+
+	if chart.UserID == nil || *chart.UserID != userIDStr {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+
+	// 2. 将数据重构回溯至 BaziResult 提供给 AI Prompt （此时临时缺省早子与真太阳时间，但已够用）
+	result := bazi.Calculate(
+		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
+		chart.Gender, false, 0,
+	)
+
+	// 3. 生成 AI 报告（若针对此 chartID 曾跑过则 0s 内自动命中缓存）
+	report, err := service.GenerateAIReport(chart.ID, result)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 4. AI 分析后如果推断出了最新鲜的用神，则更新回溯
+	if result.Yongshen != "" {
+		chart.Yongshen = result.Yongshen
+		chart.Jishen = result.Jishen
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"chart":  chart,
+		"result": result,
+		"report": report,
+	})
+}
+
+// GetHistory 获取历史记录列表
+func GetHistory(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit := 20
+	offset := (page - 1) * limit
+
+	charts, err := repository.GetChartsByUserID(userID.(string), limit, offset)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取历史记录失败"})
+		return
+	}
+
+	if charts == nil {
+		charts = []*model.BaziChart{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"charts": charts,
+		"page":   page,
+		"limit":  limit,
+	})
+}
+
+// GetHistoryDetail 获取历史记录详情
+func GetHistoryDetail(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	chartID := c.Param("id")
+
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "记录不存在"})
+		return
+	}
+
+	// 越权访问检查
+	if chart.UserID == nil || *chart.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权访问此记录"})
+		return
+	}
+
+	report, _ := repository.GetReportByChartID(chartID)
+
+	// 重新计算完整 BaziResult（DB 仅存精简字段，result 含十神/藏干/纳音/神煞等）
+	// longitude 和 is_early_zishi 未持久化，使用默认值（0 和 false）
+	result := bazi.Calculate(
+		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
+		chart.Gender, false, 0,
+	)
+
+	c.JSON(http.StatusOK, gin.H{
+		"chart":  chart,
+		"result": result,
+		"report": report,
+	})
+}
