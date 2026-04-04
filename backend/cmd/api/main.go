@@ -85,6 +85,13 @@ func main() {
 				// 报告缓存管理
 				adminAuth.DELETE("/reports/cache", handler.AdminClearAllReports)
 				adminAuth.DELETE("/reports/cache/:chart_id", handler.AdminClearReportByChart)
+
+				// 名人录管理
+				adminAuth.GET("/celebrities", handler.AdminListCelebrities)
+				adminAuth.POST("/celebrities", handler.AdminCreateCelebrity)
+				adminAuth.PUT("/celebrities/:id", handler.AdminUpdateCelebrity)
+				adminAuth.DELETE("/celebrities/:id", handler.AdminDeleteCelebrity)
+				adminAuth.POST("/celebrities/ai-generate", handler.AdminAIGenerateCelebrities)
 			}
 		}
 	}

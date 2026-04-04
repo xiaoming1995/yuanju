@@ -14,6 +14,7 @@ import AdminLLMPage from './pages/admin/AdminLLMPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminAILogsPage from './pages/admin/AdminAILogsPage'
 import AdminChartsPage from './pages/admin/AdminChartsPage'
+import AdminCelebritiesPage from './pages/admin/AdminCelebritiesPage'
 import './index.css'
 import './App.css'
 
@@ -48,6 +49,7 @@ export default function App() {
               <Route path="dashboard" element={<AdminDashboardPage />} />
               <Route path="llm" element={<AdminLLMPage />} />
               <Route path="users" element={<AdminUsersPage />} />
+              <Route path="celebrities" element={<AdminCelebritiesPage />} />
               <Route path="charts" element={<AdminChartsPage />} />
               <Route path="ai-logs" element={<AdminAILogsPage />} />
             </Route>

@@ -107,6 +107,18 @@ func Migrate() {
 
 	CREATE INDEX IF NOT EXISTS idx_ai_requests_log_created ON ai_requests_log(created_at);
 	CREATE INDEX IF NOT EXISTS idx_ai_requests_log_provider ON ai_requests_log(provider_id);
+
+	CREATE TABLE IF NOT EXISTS celebrity_records (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		name VARCHAR(255) NOT NULL,
+		gender VARCHAR(10),
+		traits TEXT,
+		career VARCHAR(255),
+		active BOOLEAN NOT NULL DEFAULT true,
+		created_at TIMESTAMPTZ DEFAULT NOW(),
+		updated_at TIMESTAMPTZ DEFAULT NOW()
+	);
+	CREATE INDEX IF NOT EXISTS idx_celebrity_records_active ON celebrity_records(active);
 	`
 
 	if _, err := DB.Exec(schema); err != nil {

@@ -69,4 +69,16 @@ export const adminAILogsAPI = {
   summary: () => adminApi.get('/api/admin/ai-logs/summary'),
 }
 
+export const adminCelebritiesAPI = {
+  list: () => adminApi.get('/api/admin/celebrities'),
+  create: (data: { name: string; gender?: string; traits?: string; career?: string; active: boolean }) =>
+    adminApi.post('/api/admin/celebrities', data),
+  update: (id: string, data: { name: string; gender?: string; traits?: string; career?: string; active: boolean }) =>
+    adminApi.put(`/api/admin/celebrities/${id}`, data),
+  delete: (id: string) =>
+    adminApi.delete(`/api/admin/celebrities/${id}`),
+  generateAI: (data: { topic: string; count: number }) =>
+    adminApi.post('/api/admin/celebrities/ai-generate', data, { timeout: 120000 }), // 覆盖默认 15s 超时
+}
+
 export default adminApi

@@ -37,8 +37,8 @@ type structuredReport struct {
 	Chapters []reportChapter `json:"chapters"`
 }
 
-// buildBaziPrompt 构建八字报告 Prompt（增强版：推理链条可见，精简/专业双输出）
-func buildBaziPrompt(r *bazi.BaziResult) string {
+// buildBaziPrompt 构建八字报告 Prompt（增强版：推理链条可见，精简/专业双输出，附加名人匹配）
+func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string {
 	// 辅助：将 []string 以顿号连接，空时返回"无"
 	joinOrNone := func(ss []string) string {
 		if len(ss) == 0 {
@@ -99,6 +99,15 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		)
 	}
 
+	// ===名人参考库===
+	celebStr := ""
+	if len(celebs) > 0 {
+		celebStr = "\n===名人参考库===\n"
+		for _, c := range celebs {
+			celebStr += fmt.Sprintf("- %s（%s）: 特征=[%s]\n", c.Name, c.Career, c.Traits)
+		}
+	}
+
 	prompt := fmt.Sprintf(
 		`你是一位精通八字命理的专业命理师。以下命盘数据已由算法精确计算，请基于这些精算结果进行深度命理解读。
 
@@ -129,7 +138,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 年柱：%s | 月柱：%s | 日柱：%s | 时柱：%s
 
 ===大运序列===
-%s%s
+%s%s%s
 ===第一步：综合精算数据整合判断（请在心中完成，不要在报告中输出此步骤）===
 基于以上算法精算数据，在心中完成以下专业整合：
 1. 月令考察：月支=[%s%s]，主气十神=[%s]，结合日主星运=[%s]，综合评估日主得令/失令、得地/失地状况；
@@ -142,8 +151,8 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 - 紧跟一句通俗白话解释（如：「简单说就是...」）
 - 涵盖：日主强弱判断 + 用神忌神推理依据 + 格局定性 + 关键神煞点评
 
-===第三步：生成五章节报告===
-请按以下五个章节撰写报告，每章需提供两个版本：
+===第三步：生成六章节报告===
+请按以下六个章节撰写报告，每章需提供两个版本：
 - brief（约100字精简摘要，通俗易懂）
 - detail（约350字详细分析，每个结论先写术语依据，再跟一句白话解释）
 
@@ -153,6 +162,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 【事业财运】分析适合的职业方向、事业发展路径、财运状况和投资建议。
 【健康提示】根据五行强弱和藏干分析需要注意的健康领域，提供养生建议。
 【大运走势】结合起运年龄和各步大运干支十神，解读人生各阶段的整体运势节奏；重点分析当前大运和近1~2步大运。
+【命理分身】分析命理相似名人。若上下文中提供了“名人参考库”，请挑选一位五行或日主特征最相似的名人，分析相似之处，并给出寄语。若未匹配到合适名人请自行推演一位，但优先使用参考库。
 
 ===第四步：输出格式（非常重要）===
 你必须且只能以合法的 JSON 格式输出最终结果，不要输出任何额外的解释或说话头。结构必须严格如下：
@@ -188,6 +198,11 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
       "title": "大运走势",
       "brief": "...",
       "detail": "..."
+    },
+    {
+      "title": "命理分身",
+      "brief": "一句话提炼相似名人之特质",
+      "detail": "详细的相似度剖析与名人寄语..."
     }
   ]
 }`,
@@ -227,6 +242,8 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		dayunStr,
 		// 引擎初步推算（可能为空）
 		yongshenHint,
+		// 名人库（可能为空）
+		celebStr,
 		// 第一步月令参数
 		r.MonthGan, r.MonthZhi, firstShiShen(r.MonthZhiShiShen), r.MonthDiShi,
 	)
@@ -243,7 +260,8 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 	}
 
 	// 构建 Prompt 并调用 AI
-	prompt := buildBaziPrompt(result)
+	celebs, _ := repository.ListCelebrities(true)
+	prompt := buildBaziPrompt(result, celebs)
 	rawContent, modelName, providerID, durationMs, aiErr := callAI(prompt)
 
 	// 记录调用日志（无论成功失败）

@@ -62,6 +62,18 @@ type AdminChartRecord struct {
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
 
+// CelebrityRecord 名人八字信息记录
+type CelebrityRecord struct {
+	ID        string    `db:"id" json:"id"`
+	Name      string    `db:"name" json:"name"`
+	Gender    string    `db:"gender" json:"gender"`
+	Traits    string    `db:"traits" json:"traits"`
+	Career    string    `db:"career" json:"career"`
+	Active    bool      `db:"active" json:"active"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+}
+
 // PredefinedProviders 预设的 Provider 类型（用于前端下拉）
 var PredefinedProviders = []map[string]string{
 	{"type": "deepseek", "name": "DeepSeek", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},
