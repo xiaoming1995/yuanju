@@ -8,8 +8,8 @@ services:
       POSTGRES_USER: yuanju
       POSTGRES_PASSWORD: ${DB_PASSWORD:-yuanju123}
       POSTGRES_DB: yuanju
-    ports:
-      - "5432:5432"
+    # ports:
+    #   - "5432:5432"  # 无需暴露到宿主机，仅 Docker 内部通信
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -21,8 +21,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: yuanju_redis
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
