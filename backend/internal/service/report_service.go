@@ -212,6 +212,7 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		"参考：日主五行特质+格局名称+关键神煞，与名人参考库匹配，选最相近的一位名人。\n" +
 		"分析：相似之处剖析（侧重命理特质相通而非完全相同）、名人启示、一句有温度的结尾寄语。\n\n" +
 		"[第四步：输出JSON（必须严格遵守，不输出任何其他内容）]\n" +
+		"❗JSON格式规范：所有字符串字段中的换行必须用 \\n 表示，禁止使用真实换行符，否则JSON解析会失败。\n" +
 		"{\n" +
 		"  \"yongshen\": \"最终确认的喜用神五行（如：木火）\",\n" +
 		"  \"jishen\": \"最终确认的忌神五行（如：金水）\",\n" +
@@ -279,9 +280,17 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 	var contentStructured *json.RawMessage
 	briefContent := ""
 
-	// 尝试解析新结构化格式
-	if errParse := json.Unmarshal([]byte(strings.TrimSpace(cleanJSON)), &parsed); errParse == nil &&
-		len(parsed.Chapters) > 0 && parsed.Analysis.Logic != "" {
+	// 尝试解析新结构化格式（第一次：原始内容）
+	trimmedJSON := strings.TrimSpace(cleanJSON)
+	if errParse := json.Unmarshal([]byte(trimmedJSON), &parsed); errParse != nil {
+		// 第一次失败：用状态机修复字符串内的非法控制字符（如真实换行）
+		fixedJSON := fixJSONStrings(trimmedJSON)
+		if errFix := json.Unmarshal([]byte(fixedJSON), &parsed); errFix == nil {
+			cleanJSON = fixedJSON // 用修复后的版本继续
+		}
+		// 无论修复是否成功，继续走下面的条件判断
+	}
+	if len(parsed.Chapters) > 0 && parsed.Analysis.Logic != "" {
 		// 新格式解析成功：拼接 brief 作为兜底 content
 		parts := []string{}
 		if parsed.Analysis.Summary != "" {
@@ -358,3 +367,44 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 	return report, nil
 }
 
+// fixJSONStrings 用状态机扫描 JSON，将字符串字段内的真实控制字符（\n \r \t）
+// 转义为合法的 JSON 转义序列，修复 AI 输出中未转义换行导致的解析失败。
+func fixJSONStrings(s string) string {
+	var buf strings.Builder
+	buf.Grow(len(s))
+	inString := false
+	escaped := false
+	for _, c := range s {
+		if escaped {
+			buf.WriteRune(c)
+			escaped = false
+			continue
+		}
+		if c == '\\' {
+			escaped = true
+			buf.WriteRune(c)
+			continue
+		}
+		if c == '"' {
+			inString = !inString
+			buf.WriteRune(c)
+			continue
+		}
+		// 仅在字符串内替换控制字符
+		if inString {
+			switch c {
+			case '\n':
+				buf.WriteString(`\n`)
+			case '\r':
+				buf.WriteString(`\r`)
+			case '\t':
+				buf.WriteString(`\t`)
+			default:
+				buf.WriteRune(c)
+			}
+			continue
+		}
+		buf.WriteRune(c)
+	}
+	return buf.String()
+}
