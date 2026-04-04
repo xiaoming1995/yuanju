@@ -79,6 +79,31 @@ export default function ResultPage() {
   // AI 解读状态
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState('')
+  const [loadingStepIndex, setLoadingStepIndex] = useState(0)
+
+  const LOADING_STEPS = [
+    '☯️ 飞盘排签，提取四柱大运神煞...',
+    '🔍 校准星运，结合真太阳时精算...',
+    '📚 翻阅《子平真诠》推断月令格局...',
+    '🌙 对照《穷通宝鉴》抓取调候用神...',
+    '✒️ 宗师沉思，正在精排你专属的命局详析...'
+  ]
+
+  useEffect(() => {
+    let timer: number
+    if (reportLoading) {
+      setLoadingStepIndex(0)
+      timer = window.setInterval(() => {
+        setLoadingStepIndex(prev => {
+          if (prev < LOADING_STEPS.length - 1) return prev + 1
+          return prev
+        })
+      }, 4000)
+    } else {
+      setLoadingStepIndex(0)
+    }
+    return () => window.clearInterval(timer)
+  }, [reportLoading])
 
   // 确立目前针对的独立资源 id
   // 有三个来源可能带有 id：1. 历史页面跳入 URL 的 id；2. HomePage 计算后传入的 state.chartId; 3. 新建后 result 从后端捞出的 chart.id(这里为了简化统一用 route 的方式)
@@ -341,15 +366,15 @@ export default function ResultPage() {
 
           {/* 生成中 */}
           {reportLoading && (
-            <div className="report-loading-area">
-              <div className="skeleton" style={{ height: 20, marginBottom: 12 }} />
-              <div className="skeleton" style={{ height: 20, width: '80%', marginBottom: 12 }} />
-              <div className="skeleton" style={{ height: 20, width: '60%', marginBottom: 24 }} />
-              <div className="skeleton" style={{ height: 20, marginBottom: 12 }} />
-              <div className="skeleton" style={{ height: 20, width: '75%' }} />
-              <p style={{ textAlign: 'center', color: '#888', fontSize: 13, marginTop: 20 }}>
-                AI 正在分析命盘，通常需要 10~60 秒…
-              </p>
+            <div className="ai-loading-container animate-fade-in">
+              <div className="ai-loading-icon">
+                <div className="spinner"></div>
+              </div>
+              <div className="ai-loading-step">
+                <div key={loadingStepIndex} className="ai-loading-text">
+                  {LOADING_STEPS[loadingStepIndex]}
+                </div>
+              </div>
             </div>
           )}
 
