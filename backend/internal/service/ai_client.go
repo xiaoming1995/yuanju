@@ -106,7 +106,7 @@ func callOpenAICompatible(url, apiKey, modelName, prompt string) (string, error)
 			},
 			{Role: "user", Content: prompt},
 		},
-		MaxTokens:   4000,
+		MaxTokens:   6000,
 		Temperature: 1.0,
 	}
 
