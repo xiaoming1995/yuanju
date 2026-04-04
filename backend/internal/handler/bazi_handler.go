@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"yuanju/internal/model"
@@ -97,6 +98,7 @@ func GenerateReport(c *gin.Context) {
 	)
 
 	// 3. 生成 AI 报告（若针对此 chartID 曾跑过则 0s 内自动命中缓存）
+	log.Printf("[AI Report] 开始生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
 	report, err := service.GenerateAIReport(chart.ID, result)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

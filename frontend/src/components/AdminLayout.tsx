@@ -1,4 +1,5 @@
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
+import { Hexagon, LayoutDashboard, Bot, Users, ListX, FileText } from 'lucide-react'
 import { useAdminAuth } from '../contexts/AdminAuthContext'
 import './AdminLayout.css'
 
@@ -12,7 +13,9 @@ export default function AdminLayout() {
     <div className="admin-layout">
       <aside className="admin-sidebar">
         <div className="admin-brand">
-          <span className="admin-brand-icon">⚙</span>
+          <span className="admin-brand-icon" style={{ display: 'flex', alignItems: 'center' }}>
+            <Hexagon size={24} />
+          </span>
           <div>
             <div className="admin-brand-title">缘聚后台</div>
             <div className="admin-brand-sub">管理控制台</div>
@@ -20,16 +23,16 @@ export default function AdminLayout() {
         </div>
         <nav className="admin-nav">
           <NavLink to="/admin/dashboard" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
-            <span>📊</span> 数据概览
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><LayoutDashboard size={18} /></span> 数据概览
           </NavLink>
           <NavLink to="/admin/llm" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
-            <span>🤖</span> LLM 管理
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Bot size={18} /></span> LLM 管理
           </NavLink>
           <NavLink to="/admin/users" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
-            <span>👥</span> 用户列表
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Users size={18} /></span> 用户列表
           </NavLink>
           <NavLink to="/admin/ai-logs" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
-            <span>📋</span> AI 调用日志
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><FileText size={18} /></span> AI 调用日志
           </NavLink>
         </nav>
         <div className="admin-sidebar-footer">

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"log"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
@@ -131,11 +132,27 @@ func LLMProviderExists(id string) bool {
 // ====== AI Request Log Repository ======
 
 func CreateAIRequestLog(chartID, providerID, model string, durationMs int, status, errorMsg string) {
-	database.DB.Exec(
+	// 在 Go 层将空字符串转为 nil，避免 NULLIF($1,'') 返回 text 而非 uuid 导致的类型不匹配错误
+	var chartIDParam, providerIDParam interface{}
+	if chartID != "" {
+		chartIDParam = chartID
+	}
+	if providerID != "" {
+		providerIDParam = providerID
+	}
+	var errMsgParam interface{}
+	if errorMsg != "" {
+		errMsgParam = errorMsg
+	}
+
+	_, err := database.DB.Exec(
 		`INSERT INTO ai_requests_log (chart_id, provider_id, model, duration_ms, status, error_msg)
-		 VALUES (NULLIF($1,''), NULLIF($2,''), $3, $4, $5, NULLIF($6,''))`,
-		chartID, providerID, model, durationMs, status, errorMsg,
+		 VALUES ($1, $2, $3, $4, $5, $6)`,
+		chartIDParam, providerIDParam, model, durationMs, status, errMsgParam,
 	)
+	if err != nil {
+		log.Printf("[CreateAIRequestLog] 写入日志失败: %v", err)
+	}
 }
 
 // ListAIRequestLogs 分页查询 AI 调用日志，支持按 status 筛选

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Activity, CheckCircle, Clock, TrendingUp, List, XCircle } from 'lucide-react'
 import { adminAILogsAPI } from '../../lib/adminApi'
 
 interface AILog {
@@ -62,22 +63,24 @@ export default function AdminAILogsPage() {
 
   return (
     <div>
-      <h1 className="admin-page-title">📋 AI 调用日志</h1>
+      <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <List size={24} /> AI 调用日志
+      </h1>
 
       {/* 统计卡片 */}
       <div className="admin-stats-grid" style={{ marginBottom: 24 }}>
         <div className="admin-stat-card">
-          <div style={{ fontSize: 28, marginBottom: 8 }}>📊</div>
+          <div style={{ marginBottom: 12, display: 'flex' }}><Activity size={28} color="#a78bfa" /></div>
           <div className="admin-stat-value">{totalAll}</div>
           <div className="admin-stat-label">近7天总调用</div>
         </div>
         <div className="admin-stat-card">
-          <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
+          <div style={{ marginBottom: 12, display: 'flex' }}><CheckCircle size={28} color="#2ecc71" /></div>
           <div className="admin-stat-value">{successRate}%</div>
           <div className="admin-stat-label">近7天成功率</div>
         </div>
         <div className="admin-stat-card">
-          <div style={{ fontSize: 28, marginBottom: 8 }}>⏱️</div>
+          <div style={{ marginBottom: 12, display: 'flex' }}><Clock size={28} color="#e67e22" /></div>
           <div className="admin-stat-value">{avgDuration}ms</div>
           <div className="admin-stat-label">日均响应耗时</div>
         </div>
@@ -86,7 +89,9 @@ export default function AdminAILogsPage() {
       {/* 近7天趋势 */}
       {summary.length > 0 && (
         <div className="admin-card" style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc' }}>📈 近7天趋势</h2>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <TrendingUp size={18} /> 近7天趋势
+          </h2>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 80 }}>
             {summary.map(d => {
               const maxTotal = Math.max(...summary.map(s => s.total), 1)
@@ -125,11 +130,18 @@ export default function AdminAILogsPage() {
       {/* 筛选栏 */}
       <div className="admin-card">
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {[['', '全部'], ['success', '✅ 成功'], ['error', '❌ 失败']].map(([val, label]) => (
+          {[
+            { val: '', label: '全部', icon: null },
+            { val: 'success', label: '成功', icon: <CheckCircle size={14} /> },
+            { val: 'error', label: '失败', icon: <XCircle size={14} /> }
+          ].map(({ val, label, icon }) => (
             <button
               key={val}
               onClick={() => handleFilter(val)}
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
                 padding: '6px 16px',
                 borderRadius: 20,
                 border: 'none',
@@ -141,7 +153,7 @@ export default function AdminAILogsPage() {
                 transition: 'all 0.2s',
               }}
             >
-              {label}
+              {icon} {label}
             </button>
           ))}
           <span style={{ marginLeft: 'auto', fontSize: 13, color: '#666', lineHeight: '32px' }}>

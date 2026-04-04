@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Bot, CheckCircle } from 'lucide-react'
 import { adminLLMAPI } from '../../lib/adminApi'
 
 interface Provider {
@@ -10,7 +11,7 @@ const PROVIDER_TYPES = [
   { type: 'deepseek', name: 'DeepSeek', base_url: 'https://api.deepseek.com', model: 'deepseek-chat' },
   { type: 'openai', name: 'OpenAI', base_url: 'https://api.openai.com', model: 'gpt-4o-mini' },
   { type: 'kimi', name: 'Kimi K2.5（月之暗面）', base_url: 'https://api.moonshot.cn/v1', model: 'kimi-k2.5' },
-  { type: 'qwen', name: '阿里 Qwen', base_url: 'https://dashscope.aliyuncs.com/compatible-mode', model: 'qwen-plus' },
+  { type: 'qwen', name: '阿里 Qwen', base_url: 'https://dashscope.aliyuncs.com/compatible-mode', model: 'qwen3.6-plus' },
   { type: 'claude', name: 'Claude', base_url: 'https://api.anthropic.com', model: 'claude-3-5-sonnet-20241022' },
   { type: 'gemini', name: 'Gemini', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.0-flash' },
   { type: 'custom', name: '自定义', base_url: '', model: '' },
@@ -87,7 +88,9 @@ export default function AdminLLMPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 className="admin-page-title" style={{ margin: 0 }}>🤖 LLM 管理</h1>
+        <h1 className="admin-page-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Bot size={24} /> LLM 管理
+        </h1>
         <button id="btn-add-provider" className="admin-btn admin-btn-primary" onClick={openCreate}>+ 添加 Provider</button>
       </div>
 
@@ -112,8 +115,8 @@ export default function AdminLLMPage() {
                   <td style={{ color: '#aaa', fontSize: 13 }}>{p.model}</td>
                   <td><code style={{ fontSize: 12, color: '#666' }}>{p.api_key_masked || '已加密'}</code></td>
                   <td>
-                    <span className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`}>
-                      {p.active ? '✅ 激活' : '待机'}
+                    <span className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {p.active ? <><CheckCircle size={12} /> 激活</> : '待机'}
                     </span>
                   </td>
                   <td>

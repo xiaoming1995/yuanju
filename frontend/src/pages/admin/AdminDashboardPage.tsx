@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Users, Compass, Bot, Wrench, Trash2, LayoutDashboard } from 'lucide-react'
 import { adminStatsAPI, adminReportAPI } from '../../lib/adminApi'
 
 interface Stats {
@@ -34,21 +35,23 @@ export default function AdminDashboardPage() {
   }
 
   const cards = stats ? [
-    { label: '总用户数', value: stats.total_users, sub: `今日 +${stats.today_users}`, icon: '👥' },
-    { label: '总命盘数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: '☯' },
-    { label: 'AI 调用总数', value: stats.total_ai_requests, sub: `今日 +${stats.today_ai_requests}`, icon: '🤖' },
+    { label: '总用户数', value: stats.total_users, sub: `今日 +${stats.today_users}`, icon: <Users size={28} color="#a78bfa" /> },
+    { label: '总命盘数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: <Compass size={28} color="#a78bfa" /> },
+    { label: 'AI 调用总数', value: stats.total_ai_requests, sub: `今日 +${stats.today_ai_requests}`, icon: <Bot size={28} color="#a78bfa" /> },
   ] : []
 
   return (
     <div>
-      <h1 className="admin-page-title">📊 数据概览</h1>
+      <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <LayoutDashboard size={24} /> 数据概览
+      </h1>
       {loading ? (
         <div className="admin-loading">加载中...</div>
       ) : (
         <div className="admin-stats-grid">
           {cards.map(c => (
             <div key={c.label} className="admin-stat-card">
-              <div style={{ fontSize: 28, marginBottom: 8 }}>{c.icon}</div>
+              <div style={{ marginBottom: 12, display: 'flex' }}>{c.icon}</div>
               <div className="admin-stat-value">{c.value}</div>
               <div className="admin-stat-label">{c.label}</div>
               <div className="admin-stat-sub">{c.sub}</div>
@@ -59,7 +62,9 @@ export default function AdminDashboardPage() {
 
       {/* 系统操作区 */}
       <div className="admin-card" style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc' }}>🛠️ 系统操作</h2>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Wrench size={18} /> 系统操作
+        </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 14, color: '#aaa', marginBottom: 6 }}>AI 报告缓存</div>
@@ -81,7 +86,10 @@ export default function AdminDashboardPage() {
                 transition: 'all 0.2s',
               }}
             >
-              {clearing ? '清除中...' : '🗑️ 清空全部报告缓存'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                {clearing ? <Trash2 size={16} /> : <Trash2 size={16} />}
+                {clearing ? '清除中...' : '清空全部报告缓存'}
+              </div>
             </button>
           </div>
           {clearResult && (
@@ -92,8 +100,12 @@ export default function AdminDashboardPage() {
               borderRadius: 8,
               fontSize: 13,
               color: clearResult.type === 'success' ? '#2ecc71' : '#e74c3c',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
             }}>
-              {clearResult.msg}
+              <span className={`status-dot ${clearResult.type}`}></span>
+              {clearResult.msg.replace(/^[✅❌]\s*/, '')}
             </div>
           )}
         </div>
