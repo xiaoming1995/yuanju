@@ -28,6 +28,9 @@ export default function AdminLayout() {
           <NavLink to="/admin/users" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span>👥</span> 用户列表
           </NavLink>
+          <NavLink to="/admin/ai-logs" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
+            <span>📋</span> AI 调用日志
+          </NavLink>
         </nav>
         <div className="admin-sidebar-footer">
           <div className="admin-user-info">{admin?.email}</div>

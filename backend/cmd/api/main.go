@@ -77,6 +77,10 @@ func main() {
 				// 用户管理
 				adminAuth.GET("/users", handler.AdminGetUsers)
 
+				// AI 调用日志
+				adminAuth.GET("/ai-logs", handler.AdminListAILogs)
+				adminAuth.GET("/ai-logs/summary", handler.AdminGetAILogsSummary)
+
 				// 报告缓存管理
 				adminAuth.DELETE("/reports/cache", handler.AdminClearAllReports)
 				adminAuth.DELETE("/reports/cache/:chart_id", handler.AdminClearReportByChart)

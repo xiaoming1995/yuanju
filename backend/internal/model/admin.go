@@ -27,14 +27,15 @@ type LLMProvider struct {
 
 // AIRequestLog AI 调用日志记录
 type AIRequestLog struct {
-	ID         string    `db:"id" json:"id"`
-	ChartID    string    `db:"chart_id" json:"chart_id,omitempty"`
-	ProviderID string    `db:"provider_id" json:"provider_id,omitempty"`
-	Model      string    `db:"model" json:"model"`
-	DurationMs int       `db:"duration_ms" json:"duration_ms"`
-	Status     string    `db:"status" json:"status"` // "success" | "error"
-	ErrorMsg   string    `db:"error_msg" json:"error_msg,omitempty"`
-	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	ID           string    `db:"id" json:"id"`
+	ChartID      string    `db:"chart_id" json:"chart_id,omitempty"`
+	ProviderID   string    `db:"provider_id" json:"provider_id,omitempty"`
+	ProviderName string    `db:"-" json:"provider_name,omitempty"` // JOIN 查询填充
+	Model        string    `db:"model" json:"model"`
+	DurationMs   int       `db:"duration_ms" json:"duration_ms"`
+	Status       string    `db:"status" json:"status"` // "success" | "error"
+	ErrorMsg     string    `db:"error_msg" json:"error_msg,omitempty"`
+	CreatedAt    time.Time `db:"created_at" json:"created_at"`
 }
 
 // PredefinedProviders 预设的 Provider 类型（用于前端下拉）

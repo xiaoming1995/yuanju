@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 	"yuanju/configs"
@@ -282,6 +283,46 @@ func AdminGetUsers(c *gin.Context) {
 	database.DB.QueryRow(`SELECT COUNT(*) FROM users WHERE $1 = '' OR email ILIKE '%' || $1 || '%'`, q).Scan(&total)
 
 	c.JSON(http.StatusOK, gin.H{"users": users, "total": total})
+}
+
+// AdminListAILogs 分页查询 AI 调用日志明细
+func AdminListAILogs(c *gin.Context) {
+	page := 1
+	pageSize := 20
+	if p := c.Query("page"); p != "" {
+		if _, err := fmt.Sscanf(p, "%d", &page); err != nil || page < 1 {
+			page = 1
+		}
+	}
+	statusFilter := c.Query("status") // "success" | "error" | "" (all)
+
+	logs, total, err := repository.ListAIRequestLogs(page, pageSize, statusFilter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败: " + err.Error()})
+		return
+	}
+	if logs == nil {
+		logs = []model.AIRequestLog{}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"logs":      logs,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+	})
+}
+
+// AdminGetAILogsSummary 近 7 天 AI 调用统计摘要
+func AdminGetAILogsSummary(c *gin.Context) {
+	stats, err := repository.GetAILogsSummary()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败: " + err.Error()})
+		return
+	}
+	if stats == nil {
+		stats = []repository.AILogDayStat{}
+	}
+	c.JSON(http.StatusOK, gin.H{"summary": stats})
 }
 
 // ====== Admin Report Cache ======

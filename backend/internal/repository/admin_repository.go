@@ -137,3 +137,110 @@ func CreateAIRequestLog(chartID, providerID, model string, durationMs int, statu
 		chartID, providerID, model, durationMs, status, errorMsg,
 	)
 }
+
+// ListAIRequestLogs 分页查询 AI 调用日志，支持按 status 筛选
+func ListAIRequestLogs(page, pageSize int, statusFilter string) ([]model.AIRequestLog, int, error) {
+	offset := (page - 1) * pageSize
+
+	var rows *sql.Rows
+	var err error
+	var total int
+
+	if statusFilter != "" && statusFilter != "all" {
+		err = database.DB.QueryRow(
+			`SELECT COUNT(*) FROM ai_requests_log WHERE status = $1`, statusFilter,
+		).Scan(&total)
+		if err != nil {
+			return nil, 0, err
+		}
+		rows, err = database.DB.Query(
+			`SELECT l.id, COALESCE(l.chart_id::text,''), COALESCE(l.provider_id::text,''),
+			        COALESCE(p.name,''), l.model, l.duration_ms, l.status,
+			        COALESCE(l.error_msg,''), l.created_at
+			 FROM ai_requests_log l
+			 LEFT JOIN llm_providers p ON l.provider_id = p.id
+			 WHERE l.status = $1
+			 ORDER BY l.created_at DESC
+			 LIMIT $2 OFFSET $3`,
+			statusFilter, pageSize, offset,
+		)
+	} else {
+		err = database.DB.QueryRow(`SELECT COUNT(*) FROM ai_requests_log`).Scan(&total)
+		if err != nil {
+			return nil, 0, err
+		}
+		rows, err = database.DB.Query(
+			`SELECT l.id, COALESCE(l.chart_id::text,''), COALESCE(l.provider_id::text,''),
+			        COALESCE(p.name,''), l.model, l.duration_ms, l.status,
+			        COALESCE(l.error_msg,''), l.created_at
+			 FROM ai_requests_log l
+			 LEFT JOIN llm_providers p ON l.provider_id = p.id
+			 ORDER BY l.created_at DESC
+			 LIMIT $1 OFFSET $2`,
+			pageSize, offset,
+		)
+	}
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var logs []model.AIRequestLog
+	for rows.Next() {
+		var l model.AIRequestLog
+		if err := rows.Scan(
+			&l.ID, &l.ChartID, &l.ProviderID, &l.ProviderName,
+			&l.Model, &l.DurationMs, &l.Status, &l.ErrorMsg, &l.CreatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, total, nil
+}
+
+// AILogDayStat 近 7 天某一天的调用统计
+type AILogDayStat struct {
+	Date          string  `json:"date"`
+	Total         int     `json:"total"`
+	SuccessCount  int     `json:"success_count"`
+	ErrorCount    int     `json:"error_count"`
+	AvgDurationMs float64 `json:"avg_duration_ms"`
+}
+
+// GetAILogsSummary 返回近 7 天按天分组的 AI 调用统计（无数据日期补零）
+func GetAILogsSummary() ([]AILogDayStat, error) {
+	rows, err := database.DB.Query(`
+		SELECT
+			TO_CHAR(d.day, 'YYYY-MM-DD') AS date,
+			COUNT(l.id) AS total,
+			COUNT(CASE WHEN l.status = 'success' THEN 1 END) AS success_count,
+			COUNT(CASE WHEN l.status = 'error' THEN 1 END) AS error_count,
+			COALESCE(AVG(l.duration_ms), 0) AS avg_duration_ms
+		FROM (
+			SELECT generate_series(
+				CURRENT_DATE - INTERVAL '6 days',
+				CURRENT_DATE,
+				INTERVAL '1 day'
+			)::date AS day
+		) d
+		LEFT JOIN ai_requests_log l ON DATE(l.created_at) = d.day
+		GROUP BY d.day
+		ORDER BY d.day ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var stats []AILogDayStat
+	for rows.Next() {
+		var s AILogDayStat
+		if err := rows.Scan(&s.Date, &s.Total, &s.SuccessCount, &s.ErrorCount, &s.AvgDurationMs); err != nil {
+			return nil, err
+		}
+		stats = append(stats, s)
+	}
+	return stats, nil
+}
+

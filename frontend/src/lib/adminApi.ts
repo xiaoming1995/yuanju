@@ -54,4 +54,10 @@ export const adminReportAPI = {
   clearByChart: (chartId: string) => adminApi.delete(`/api/admin/reports/cache/${chartId}`),
 }
 
+export const adminAILogsAPI = {
+  list: (page = 1, status = '') =>
+    adminApi.get(`/api/admin/ai-logs?page=${page}${status ? `&status=${status}` : ''}`),
+  summary: () => adminApi.get('/api/admin/ai-logs/summary'),
+}
+
 export default adminApi
