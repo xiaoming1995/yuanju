@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 	"yuanju/internal/model"
 	"yuanju/internal/repository"
 	"yuanju/pkg/bazi"
@@ -37,19 +38,20 @@ type structuredReport struct {
 	Chapters []reportChapter `json:"chapters"`
 }
 
-// buildBaziPrompt 构建八字报告 Prompt（增强版：推理链条可见，精简/专业双输出，附加名人匹配）
+// buildBaziPrompt 构建八字报告 Prompt
+// v2 优化：现代解读风格、月令格局推断CoT（子平真诠）、调候用神注入（穷通宝鉴）、
+//
+//	章节数据锚点、大运时间定位（注入当前年份）
 func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string {
-	// 辅助：将 []string 以顿号连接，空时返回"无"
+	currentYear := time.Now().Year()
+
 	joinOrNone := func(ss []string) string {
 		if len(ss) == 0 {
 			return "无"
 		}
-		parts := make([]string, len(ss))
-		copy(parts, ss)
-		return strings.Join(parts, "、")
+		return strings.Join(ss, "、")
 	}
 
-	// 辅助：取地支主气十神（第一个元素）
 	firstShiShen := func(ss []string) string {
 		if len(ss) == 0 {
 			return "—"
@@ -57,7 +59,6 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		return ss[0]
 	}
 
-	// 辅助：藏干格式化
 	hideGanStr := func(hg []string) string {
 		if len(hg) == 0 {
 			return "无"
@@ -65,7 +66,6 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		return strings.TrimSpace(strings.Join(hg, " "))
 	}
 
-	// 性别文本
 	genderText := "女"
 	if r.Gender == "male" {
 		genderText = "男"
@@ -80,7 +80,7 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		if i >= 10 {
 			break
 		}
-		dayunStr += fmt.Sprintf("（%d）%d岁～%d岁（%d年起）：[%s%s] 干十神=%s 支十神=%s 长生=%s\n",
+		dayunStr += fmt.Sprintf("(%d) %d岁~%d岁（%d年起）：[%s%s] 干十神=%s 支十神=%s 长生=%s\n",
 			i+1, dy.StartAge, dy.StartAge+9, dy.StartYear,
 			dy.Gan, dy.Zhi,
 			dy.GanShiShen, dy.ZhiShiShen, dy.DiShi,
@@ -90,163 +90,144 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		dayunStr = "（暂无大运数据）\n"
 	}
 
-	// ===引擎初步推算===（可选，非空时才注入）
+	// ===引擎五行统计初步参考===
 	yongshenHint := ""
 	if r.Yongshen != "" {
 		yongshenHint = fmt.Sprintf(
-			"\n===引擎初步推算===\n引擎基于五行统计初步判断：用神=[%s]，忌神=[%s]\n（此为算法参考值，请结合十神全局格局确认或微调）\n",
+			"\n[引擎五行统计初步参考]\n"+
+				"引擎基于五行比例初步判断：用神=[%s]，忌神=[%s]\n"+
+				"（此为统计参考值，请结合格局与调候综合确认）\n",
 			r.Yongshen, r.Jishen,
+		)
+	}
+
+	// ===调候用神===
+	tiaohouStr := ""
+	if r.Tiaohou != "" {
+		tiaohouStr = fmt.Sprintf(
+			"\n[调候用神-穷通宝鉴]\n"+
+				"日主[%s]生于[%s月]，调候用神：%s\n",
+			r.DayGan, r.MonthZhi, r.Tiaohou,
 		)
 	}
 
 	// ===名人参考库===
 	celebStr := ""
 	if len(celebs) > 0 {
-		celebStr = "\n===名人参考库===\n"
+		celebStr = "\n[名人参考库]\n"
 		for _, c := range celebs {
 			celebStr += fmt.Sprintf("- %s（%s）: 特征=[%s]\n", c.Name, c.Career, c.Traits)
 		}
 	}
 
-	prompt := fmt.Sprintf(
-		`你是一位精通八字命理的专业命理师。以下命盘数据已由算法精确计算，请基于这些精算结果进行深度命理解读。
+	dayunYear := fmt.Sprintf("%d", currentYear)
 
-===八字命盘===
-年柱：%s%s（%s%s）| 藏干：%s
-月柱：%s%s（%s%s）| 藏干：%s
-日柱：%s%s（%s%s）| 藏干：%s ← 日干代表本人
-时柱：%s%s（%s%s）| 藏干：%s
-
-纳音：年柱「%s」月柱「%s」日柱「%s」时柱「%s」
-
-五行分布：
-木：%d个（%.0f%%）火：%d个（%.0f%%）土：%d个（%.0f%%）金：%d个（%.0f%%）水：%d个（%.0f%%）
-
-性别：%s
-
-===十神关系（算法精算）===
-天干十神：年干%s=[%s] | 月干%s=[%s] | 日干%s=[日主] | 时干%s=[%s]
-地支主气十神：年支%s=[%s] | 月支%s=[%s] | 日支%s=[%s] | 时支%s=[%s]
-
-===十二长生（日主对各柱星运）===
-年柱：[%s] | 月柱：[%s] | 日柱：[%s] | 时柱：[%s]
-
-===旬空（空亡）===
-年柱：[%s] | 月柱：[%s] | 日柱：[%s] | 时柱：[%s]
-
-===神煞===
-年柱：%s | 月柱：%s | 日柱：%s | 时柱：%s
-
-===大运序列===
-%s%s%s
-===第一步：综合精算数据整合判断（请在心中完成，不要在报告中输出此步骤）===
-基于以上算法精算数据，在心中完成以下专业整合：
-1. 月令考察：月支=[%s%s]，主气十神=[%s]，结合日主星运=[%s]，综合评估日主得令/失令、得地/失地状况；
-2. 用神确认：参考引擎初步推算，结合天干十神全局格局，确认或微调最终用神/忌神；
-3. 神煞特质：归纳此命局中最关键的1~3个神煞（如有），点出其对性格和运势的影响。
-
-===第二步：生成命局分析总览（analysis.logic）===
-写一段整体推理总览（300-600字），展示你的完整分析思路：
-- 先写专业术语版推导（如：「日主甲木，月令戌土为财星，月令失令...」）
-- 紧跟一句通俗白话解释（如：「简单说就是...」）
-- 涵盖：日主强弱判断 + 用神忌神推理依据 + 格局定性 + 关键神煞点评
-
-===第三步：生成六章节报告===
-请按以下六个章节撰写报告，每章需提供两个版本：
-- brief（约100字精简摘要，通俗易懂）
-- detail（约350字详细分析，每个结论先写术语依据，再跟一句白话解释）
-
-章节：
-【性格特质】分析性格特点、内在天赋和潜在挑战，结合日主五行、月令十神特性展开，可与神煞特质呼应。
-【感情运势】分析感情缘分、婚姻状况、伴侣特质，以及感情方面的注意事项。
-【事业财运】分析适合的职业方向、事业发展路径、财运状况和投资建议。
-【健康提示】根据五行强弱和藏干分析需要注意的健康领域，提供养生建议。
-【大运走势】结合起运年龄和各步大运干支十神，解读人生各阶段的整体运势节奏；重点分析当前大运和近1~2步大运。
-【命理分身】分析命理相似名人。若上下文中提供了“名人参考库”，请挑选一位五行或日主特征最相似的名人，分析相似之处，并给出寄语。若未匹配到合适名人请自行推演一位，但优先使用参考库。
-
-===第四步：输出格式（非常重要）===
-你必须且只能以合法的 JSON 格式输出最终结果，不要输出任何额外的解释或说话头。结构必须严格如下：
-{
-  "yongshen": "在此填入你推断的用神（喜用神）五行汉字，如：木火",
-  "jishen": "在此填入你推断的忌神五行汉字，如：金水",
-  "analysis": {
-    "logic": "在此填入第二步的命局分析总览全文（内容中的换行请使用 \n 转义符）",
-    "summary": "在此填入一句话命局核心特质（30字以内）"
-  },
-  "chapters": [
-    {
-      "title": "性格特质",
-      "brief": "在此填入性格特质精简摘要（约100字）",
-      "detail": "在此填入性格特质详细分析（约350字，含术语依据+白话解释，换行用 \n）"
-    },
-    {
-      "title": "感情运势",
-      "brief": "...",
-      "detail": "..."
-    },
-    {
-      "title": "事业财运",
-      "brief": "...",
-      "detail": "..."
-    },
-    {
-      "title": "健康提示",
-      "brief": "...",
-      "detail": "..."
-    },
-    {
-      "title": "大运走势",
-      "brief": "...",
-      "detail": "..."
-    },
-    {
-      "title": "命理分身",
-      "brief": "一句话提炼相似名人之特质",
-      "detail": "详细的相似度剖析与名人寄语..."
-    }
-  ]
-}`,
-		// 八字命盘
-		r.YearGan, r.YearZhi, r.YearGanWuxing, r.YearZhiWuxing, hideGanStr(r.YearHideGan),
-		r.MonthGan, r.MonthZhi, r.MonthGanWuxing, r.MonthZhiWuxing, hideGanStr(r.MonthHideGan),
-		r.DayGan, r.DayZhi, r.DayGanWuxing, r.DayZhiWuxing, hideGanStr(r.DayHideGan),
-		r.HourGan, r.HourZhi, r.HourGanWuxing, r.HourZhiWuxing, hideGanStr(r.HourHideGan),
-		// 纳音
-		r.YearNaYin, r.MonthNaYin, r.DayNaYin, r.HourNaYin,
-		// 五行分布
-		r.Wuxing.Mu, r.Wuxing.MuPct,
-		r.Wuxing.Huo, r.Wuxing.HuoPct,
-		r.Wuxing.Tu, r.Wuxing.TuPct,
-		r.Wuxing.Jin, r.Wuxing.JinPct,
-		r.Wuxing.Shui, r.Wuxing.ShuiPct,
-		// 性别
-		genderText,
-		// 天干十神
-		r.YearGan, r.YearGanShiShen,
-		r.MonthGan, r.MonthGanShiShen,
-		r.DayGan,
-		r.HourGan, r.HourGanShiShen,
-		// 地支主气十神
-		r.YearZhi, firstShiShen(r.YearZhiShiShen),
-		r.MonthZhi, firstShiShen(r.MonthZhiShiShen),
-		r.DayZhi, firstShiShen(r.DayZhiShiShen),
-		r.HourZhi, firstShiShen(r.HourZhiShiShen),
-		// 十二长生
-		r.YearDiShi, r.MonthDiShi, r.DayDiShi, r.HourDiShi,
-		// 旬空
-		r.YearXunKong, r.MonthXunKong, r.DayXunKong, r.HourXunKong,
-		// 神煞
-		joinOrNone(r.YearShenSha), joinOrNone(r.MonthShenSha),
-		joinOrNone(r.DayShenSha), joinOrNone(r.HourShenSha),
-		// 大运序列
-		dayunStr,
-		// 引擎初步推算（可能为空）
-		yongshenHint,
-		// 名人库（可能为空）
-		celebStr,
-		// 第一步月令参数
-		r.MonthGan, r.MonthZhi, firstShiShen(r.MonthZhiShiShen), r.MonthDiShi,
-	)
+	prompt := "以下命盘数据已由算法精确计算，请基于精算结果进行深度命理解读。\n\n" +
+		fmt.Sprintf("[八字命盘]\n"+
+			"年柱：%s%s（%s%s）| 藏干：%s\n"+
+			"月柱：%s%s（%s%s）| 藏干：%s\n"+
+			"日柱：%s%s（%s%s）| 藏干：%s <- 日干代表本人\n"+
+			"时柱：%s%s（%s%s）| 藏干：%s\n\n"+
+			"纳音：年柱[%s] 月柱[%s] 日柱[%s] 时柱[%s]\n\n"+
+			"五行分布：木%d个(%.0f%%) 火%d个(%.0f%%) 土%d个(%.0f%%) 金%d个(%.0f%%) 水%d个(%.0f%%)\n\n"+
+			"性别：%s\n\n",
+			r.YearGan, r.YearZhi, r.YearGanWuxing, r.YearZhiWuxing, hideGanStr(r.YearHideGan),
+			r.MonthGan, r.MonthZhi, r.MonthGanWuxing, r.MonthZhiWuxing, hideGanStr(r.MonthHideGan),
+			r.DayGan, r.DayZhi, r.DayGanWuxing, r.DayZhiWuxing, hideGanStr(r.DayHideGan),
+			r.HourGan, r.HourZhi, r.HourGanWuxing, r.HourZhiWuxing, hideGanStr(r.HourHideGan),
+			r.YearNaYin, r.MonthNaYin, r.DayNaYin, r.HourNaYin,
+			r.Wuxing.Mu, r.Wuxing.MuPct,
+			r.Wuxing.Huo, r.Wuxing.HuoPct,
+			r.Wuxing.Tu, r.Wuxing.TuPct,
+			r.Wuxing.Jin, r.Wuxing.JinPct,
+			r.Wuxing.Shui, r.Wuxing.ShuiPct,
+			genderText,
+		) +
+		fmt.Sprintf("[十神关系-算法精算]\n"+
+			"天干：年干%s=[%s] | 月干%s=[%s] | 日干%s=[日主] | 时干%s=[%s]\n"+
+			"地支主气：年支%s=[%s] | 月支%s=[%s] | 日支%s=[%s] | 时支%s=[%s]\n\n",
+			r.YearGan, r.YearGanShiShen,
+			r.MonthGan, r.MonthGanShiShen,
+			r.DayGan,
+			r.HourGan, r.HourGanShiShen,
+			r.YearZhi, firstShiShen(r.YearZhiShiShen),
+			r.MonthZhi, firstShiShen(r.MonthZhiShiShen),
+			r.DayZhi, firstShiShen(r.DayZhiShiShen),
+			r.HourZhi, firstShiShen(r.HourZhiShiShen),
+		) +
+		fmt.Sprintf("[十二长生]\n年柱[%s] | 月柱[%s] | 日柱[%s] | 时柱[%s]\n\n"+
+			"[旬空-空亡]\n年柱[%s] | 月柱[%s] | 日柱[%s] | 时柱[%s]\n\n"+
+			"[神煞]\n年柱：%s | 月柱：%s | 日柱：%s | 时柱：%s\n\n"+
+			"[大运序列]\n%s",
+			r.YearDiShi, r.MonthDiShi, r.DayDiShi, r.HourDiShi,
+			r.YearXunKong, r.MonthXunKong, r.DayXunKong, r.HourXunKong,
+			joinOrNone(r.YearShenSha), joinOrNone(r.MonthShenSha),
+			joinOrNone(r.DayShenSha), joinOrNone(r.HourShenSha),
+			dayunStr,
+		) +
+		yongshenHint +
+		tiaohouStr +
+		celebStr +
+		"\n" +
+		fmt.Sprintf("[第一步：在心中完成以下推断，不要在报告中输出此步骤]\n"+
+			"a. 月令格局判断（子平真诠）：\n"+
+			"   月支=%s%s，主气十神=%s；\n"+
+			"   判断月令主气十神是否透出天干（成格/破格）；\n"+
+			"   明确格局名称（正官格/七杀格/食神格/伤官格/正财格/偏财格/正印格/偏印格/建禄格/羊刃格等）；\n"+
+			"   确定格局顺用或逆用方向，得出格局用神。\n"+
+			"b. 调候整合（穷通宝鉴）：\n"+
+			"   结合[调候用神]区块数据，综合格局用神，确认最终喜用神与忌神。\n"+
+			"   格局用神与调候用神一致则更有力；有出入时以格局用神为主，调候为辅。\n"+
+			"c. 挑选1~2个最关键神煞，点出其对性格或运势的影响。\n\n",
+			r.MonthGan, r.MonthZhi, firstShiShen(r.MonthZhiShiShen),
+		) +
+		"[第二步：生成命局分析总览 analysis.logic]\n" +
+		"写一段整体分析（300-500字），现代叙事风格：\n" +
+		"- 开门见山说格局定性（如：这是一个正印格命局...）\n" +
+		"- 简述日主强弱依据（月令得令/失令）\n" +
+		"- 说明最终用神/忌神及简要推导\n" +
+		"- 点评1~2个关键神煞的个性影响\n" +
+		"- 全程口语化、有温度，有专业感\n\n" +
+		"[第三步：生成六章节报告]\n" +
+		"每章两个版本：\n" +
+		"- brief：约100字，通俗直接，结论先行\n" +
+		"- detail：约350字，有命盘数据支撑，不堆砌术语，用「也就是说」等方式解释专业概念\n\n" +
+		"章节与分析锚点：\n\n" +
+		"【性格特质】\n" +
+		"参考：日主五行天性特质、日支十二长生（内在潜质）、比劫/印绶十神力量（自我表达与驱动力）、关键神煞（天乙贵人/文昌等）。\n" +
+		"分析：性格优势、内在驱动力、潜在短板。\n\n" +
+		"【感情运势】\n" +
+		"参考：男命看财星（正财/偏财）位置与旺衰；女命看官杀（正官/七杀）位置与力量；日支星运（感情宫）；桃花/红鸾/天喜等感情神煞。\n" +
+		"分析：感情缘分特质、伴侣类型、婚姻稳定性与注意事项。\n\n" +
+		"【事业财运】\n" +
+		"参考：官杀（事业星）与食伤（才能星）天干透出情况；财星旺衰；天乙贵人/文昌/驿马等神煞。\n" +
+		"分析：适合职业方向、事业发展节奏、财运特质。\n\n" +
+		"【健康提示】\n" +
+		"参考：五行最旺（需泄耗）与最弱（需补益）的脏腑对应（木肝胆/火心肠/土脾胃/金肺肠/水肾膀胱）；旬空地支；凶煞影响。\n" +
+		"分析：体质倾向、易发健康问题、养生建议。\n\n" +
+		"【大运走势】\n" +
+		"参考：当前年份=" + dayunYear + "年，结合起运时间和大运序列，推算当前所处大运步次并明确说明；重点解读当前大运和下一步大运对事业感情的影响。\n" +
+		"分析：人生节奏、当前运势处境、近期方向与建议。\n\n" +
+		"【命理分身】\n" +
+		"参考：日主五行特质+格局名称+关键神煞，与名人参考库匹配，选最相近的一位名人。\n" +
+		"分析：相似之处剖析（侧重命理特质相通而非完全相同）、名人启示、一句有温度的结尾寄语。\n\n" +
+		"[第四步：输出JSON（必须严格遵守，不输出任何其他内容）]\n" +
+		"{\n" +
+		"  \"yongshen\": \"最终确认的喜用神五行（如：木火）\",\n" +
+		"  \"jishen\": \"最终确认的忌神五行（如：金水）\",\n" +
+		"  \"analysis\": {\n" +
+		"    \"logic\": \"第二步命局分析总览全文（换行用\\n）\",\n" +
+		"    \"summary\": \"一句话命局核心特质（30字以内）\"\n" +
+		"  },\n" +
+		"  \"chapters\": [\n" +
+		"    {\"title\": \"性格特质\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
+		"    {\"title\": \"感情运势\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
+		"    {\"title\": \"事业财运\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
+		"    {\"title\": \"健康提示\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
+		"    {\"title\": \"大运走势\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
+		"    {\"title\": \"命理分身\", \"brief\": \"一句话提炼相似名人特质\", \"detail\": \"相似度剖析与寄语...\"}\n" +
+		"  ]\n" +
+		"}"
 
 	return prompt
 }
@@ -376,3 +357,4 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 	}
 	return report, nil
 }
+

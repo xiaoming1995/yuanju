@@ -96,11 +96,18 @@ func callOpenAICompatible(url, apiKey, modelName, prompt string) (string, error)
 	reqBody := AIRequest{
 		Model: modelName,
 		Messages: []AIMessage{
-			{Role: "system", Content: "你是一位资深命理师，精通八字命理，善于用通俗易懂的现代语言解读命理，避免晦涩术语，让普通人也能看懂。"},
+			{
+				Role: "system",
+				Content: `你是一位精通八字命理的专业命理师。
+
+输出风格要求：现代解读风格——结论先行、语言通俗直接、术语作为点缀自然融入，让普通读者能看懂自己的命盘。避免大段术语堆砂，但关键判断（如格局定性、用神盘定）可适当展示专业推导过程。
+
+输出格式要求：你必须且只能以合法的 JSON 格式输出最终结果，不输出任何额外内容、开头语或 Markdown 代码块。`,
+			},
 			{Role: "user", Content: prompt},
 		},
-		MaxTokens:   4500,
-		Temperature: 1,
+		MaxTokens:   6000,
+		Temperature: 0.75,
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)

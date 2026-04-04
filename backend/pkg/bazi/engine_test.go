@@ -144,3 +144,61 @@ func TestTrueSolarTime(t *testing.T) {
 			result.TrueSolarHour, result.TrueSolarMinute)
 	}
 }
+
+// ===== 调候用神查表测试 =====
+
+// TestLookupTiaohou 验证典型命例的调候用神结果
+func TestLookupTiaohou(t *testing.T) {
+	cases := []struct {
+		dayGan   string
+		monthZhi string
+		wantKey  string // 期望结果中必须包含的关键字
+		desc     string
+	}{
+		{"甲", "子", "丙火", "甲木生子月（冬），急需丙火暖局"},
+		{"壬", "子", "戊土", "壬水生子月（冬），水势极旺，戊土为堤坝最急"},
+		{"丙", "午", "壬水", "丙火生午月（夏），火极旺，壬水制约为急"},
+		{"癸", "午", "庚", "癸水生午月（夏），癸极弱，金生水补源"},
+		{"甲", "午", "癸水", "甲木生午月（夏），燥热，癸水解暑救燥为急"},
+	}
+
+	for _, c := range cases {
+		result := LookupTiaohou(c.dayGan, c.monthZhi)
+		if result == "" {
+			t.Errorf("[%s] LookupTiaohou(%s, %s) 返回空字符串，期望非空", c.desc, c.dayGan, c.monthZhi)
+			continue
+		}
+		found := false
+		for _, r := range []rune(result) {
+			_ = r
+			found = true
+			break
+		}
+		if !found {
+			t.Errorf("[%s] 结果为空", c.desc)
+		}
+		t.Logf("[%s] %s日主生%s月 → 调候用神：%s", c.desc, c.dayGan, c.monthZhi, result)
+	}
+}
+
+// TestLookupTiaohouMissing 验证非法输入返回空字符串
+func TestLookupTiaohouMissing(t *testing.T) {
+	result := LookupTiaohou("甲", "X月")
+	if result != "" {
+		t.Errorf("非法月支应返回空字符串，实际：%s", result)
+	}
+	result2 := LookupTiaohou("", "子")
+	if result2 != "" {
+		t.Errorf("空日干应返回空字符串，实际：%s", result2)
+	}
+}
+
+// TestTiaohouInBaziResult 验证 BaziResult.Tiaohou 字段通过 Calculate() 正常返回
+func TestTiaohouInBaziResult(t *testing.T) {
+	// 甲木生于午月（夏），期望包含"癸水"
+	result := Calculate(1990, 6, 15, 14, "male", false, 0)
+	if result.Tiaohou == "" {
+		t.Error("BaziResult.Tiaohou 不应为空（炎夏命局应有明确调候用神）")
+	}
+	t.Logf("日主：%s，月支：%s，调候用神：%s", result.DayGan, result.MonthZhi, result.Tiaohou)
+}

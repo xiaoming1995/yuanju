@@ -93,6 +93,9 @@ type BaziResult struct {
 	Yongshen string `json:"yongshen"`
 	Jishen   string `json:"jishen"`
 
+	// 调候用神（基于《穷通宝鉴》查表精算）
+	Tiaohou string `json:"tiaohou"`
+
 	Dayun  []DayunItem `json:"dayun"`
 	StartYunSolar string `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
 	Gender string      `json:"gender"`
@@ -360,6 +363,9 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		// 后续依然保留由大模型（LLM）进行深度推敲并覆盖该结论的能力架构
 		Yongshen: yongshen,
 		Jishen:   jishen,
+
+		// 调候用神：基于《穷通宝鉴》精算，日主天干 × 出生月支 → 查表结果
+		Tiaohou: LookupTiaohou(dayGan, monthZhi),
 
 		StartYunSolar: startYunStr,
 		Dayun:  dayunItems,
