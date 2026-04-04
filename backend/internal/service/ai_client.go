@@ -107,7 +107,7 @@ func callOpenAICompatible(url, apiKey, modelName, prompt string) (string, error)
 			{Role: "user", Content: prompt},
 		},
 		MaxTokens:   6000,
-		Temperature: 0.75,
+		Temperature: 1.0,
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
