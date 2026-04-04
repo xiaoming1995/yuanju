@@ -6,7 +6,6 @@ services:
       - ./backend/.env
     environment:
       POSTGRES_USER: yuanju
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-yuanju123}
       POSTGRES_DB: yuanju
     # ports:
     #   - "5432:5432"  # 无需暴露到宿主机，仅 Docker 内部通信
