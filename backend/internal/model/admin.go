@@ -76,7 +76,8 @@ type CelebrityRecord struct {
 
 // PredefinedProviders 预设的 Provider 类型（用于前端下拉）
 var PredefinedProviders = []map[string]string{
-	{"type": "deepseek", "name": "DeepSeek", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},
+	{"type": "deepseek", "name": "DeepSeek Chat (V3)", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},
+	{"type": "deepseek-reasoner", "name": "DeepSeek Reasoner (R1)", "base_url": "https://api.deepseek.com", "model": "deepseek-reasoner"},
 	{"type": "openai", "name": "OpenAI", "base_url": "https://api.openai.com", "model": "gpt-4o-mini"},
 	{"type": "kimi", "name": "Kimi K2.5（月之暗面）", "base_url": "https://api.moonshot.cn/v1", "model": "kimi-k2.5"},
 	{"type": "qwen", "name": "阿里 Qwen", "base_url": "https://dashscope.aliyuncs.com/compatible-mode", "model": "qwen-plus"},

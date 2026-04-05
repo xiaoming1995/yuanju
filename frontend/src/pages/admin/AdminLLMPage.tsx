@@ -7,20 +7,15 @@ interface Provider {
   model: string; api_key_masked: string; active: boolean
 }
 
-const PROVIDER_TYPES = [
-  { type: 'deepseek', name: 'DeepSeek', base_url: 'https://api.deepseek.com', model: 'deepseek-chat' },
-  { type: 'openai', name: 'OpenAI', base_url: 'https://api.openai.com', model: 'gpt-4o-mini' },
-  { type: 'kimi', name: 'Kimi K2.5（月之暗面）', base_url: 'https://api.moonshot.cn/v1', model: 'kimi-k2.5' },
-  { type: 'qwen', name: '阿里 Qwen', base_url: 'https://dashscope.aliyuncs.com/compatible-mode', model: 'qwen3.6-plus' },
-  { type: 'claude', name: 'Claude', base_url: 'https://api.anthropic.com', model: 'claude-3-5-sonnet-20241022' },
-  { type: 'gemini', name: 'Gemini', base_url: 'https://generativelanguage.googleapis.com/v1beta/openai', model: 'gemini-2.0-flash' },
-  { type: 'custom', name: '自定义', base_url: '', model: '' },
-]
+interface PresetType {
+  type: string; name: string; base_url: string; model: string;
+}
 
 const initialForm = { name: '', type: 'deepseek', base_url: '', model: '', api_key: '' }
 
 export default function AdminLLMPage() {
   const [providers, setProviders] = useState<Provider[]>([])
+  const [presetTypes, setPresetTypes] = useState<PresetType[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Provider | null>(null)
@@ -31,6 +26,7 @@ export default function AdminLLMPage() {
   const load = () => {
     adminLLMAPI.list().then(r => {
       setProviders(r.data.providers || [])
+      setPresetTypes(r.data.predefined || [])
     }).finally(() => setLoading(false))
   }
 
@@ -50,9 +46,9 @@ export default function AdminLLMPage() {
     setShowModal(true)
   }
 
-  const handleTypeChange = (type: string) => {
-    const preset = PROVIDER_TYPES.find(t => t.type === type)
-    if (preset) setForm(f => ({ ...f, type, name: preset.name, base_url: preset.base_url, model: preset.model }))
+  const handleTypeChange = (presetName: string) => {
+    const preset = presetTypes.find(t => t.name === presetName)
+    if (preset) setForm(f => ({ ...f, type: preset.type, name: preset.name, base_url: preset.base_url, model: preset.model }))
   }
 
   const handleSave = async () => {
@@ -150,9 +146,9 @@ export default function AdminLLMPage() {
 
             <div className="admin-form-group" style={{ marginBottom: 16 }}>
               <label className="admin-form-label">Provider 类型</label>
-              <select className="admin-form-select" value={form.type}
+              <select className="admin-form-select" value={form.name}
                 onChange={e => handleTypeChange(e.target.value)} disabled={!!editing}>
-                {PROVIDER_TYPES.map(t => <option key={t.type} value={t.type}>{t.name}</option>)}
+                {presetTypes.map((t, idx) => <option key={idx} value={t.name}>{t.name}</option>)}
               </select>
             </div>
 
