@@ -31,6 +31,7 @@ type AIResponse struct {
 		Message struct {
 			Content string `json:"content"`
 		} `json:"message"`
+		FinishReason string `json:"finish_reason"` // "stop" = 正常, "length" = 被截断
 	} `json:"choices"`
 }
 
@@ -158,7 +159,7 @@ func callOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt strin
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
-		MaxTokens:   6000,
+		MaxTokens:   12000,
 		Temperature: 1.0,
 	}
 
@@ -188,6 +189,9 @@ func callOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt strin
 	}
 	if len(aiResp.Choices) == 0 {
 		return "", fmt.Errorf("AI 返回内容为空")
+	}
+	if aiResp.Choices[0].FinishReason == "length" {
+		return "", fmt.Errorf("AI 输出被截断（finish_reason=length），请检查 max_tokens 配置或缩短 Prompt")
 	}
 	return aiResp.Choices[0].Message.Content, nil
 }
