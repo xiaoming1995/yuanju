@@ -7,6 +7,10 @@ interface LiuNianItem {
   gan_zhi: string
   gan_shishen: string
   zhi_shishen: string
+  is_transition?: boolean
+  trans_month?: number
+  trans_day?: number
+  prev_dayun?: string
 }
 
 interface DayunItem {
@@ -156,7 +160,6 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan }: DayunTim
                 <div
                   key={ln.year}
                   onClick={() => {
-                    // 点击流年格弹出流月抽屉
                     setDrawerYear(ln.year)
                     setDrawerGanZhi(ln.gan_zhi)
                     setDrawerOpen(true)
@@ -165,14 +168,14 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan }: DayunTim
                     background: isLnCurrent ? 'rgba(201,168,76,0.1)' : 'var(--bg-elevated)',
                     border: `1px solid ${isLnCurrent ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
                     borderRadius: 'var(--radius-sm)',
-                    padding: '12px 8px',
+                    padding: ln.is_transition ? '0' : '12px 8px',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: 4,
                     position: 'relative',
                     cursor: 'pointer',
                     transition: 'all 0.15s',
+                    overflow: 'hidden',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.border = '1px solid var(--border-accent)'
@@ -183,14 +186,47 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan }: DayunTim
                     e.currentTarget.style.background = isLnCurrent ? 'rgba(201,168,76,0.1)' : 'var(--bg-elevated)'
                   }}
                 >
-                  {isDayunCurrent && isLnCurrent && <div style={{width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--wu-jin)', position: 'absolute', top: 6, right: 6}}></div>}
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ln.year} ({ln.age}岁)</div>
-                  <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{ln.gan_shishen}</div>
-                  <div style={{ fontFamily: 'Noto Serif SC, serif', fontWeight: 600, fontSize: '1.2rem', margin: '2px 0' }}>
-                    <span className={`wuxing-text-${lnWx}`}>{lnGan}</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{ln.gan_zhi.charAt(1)}</span>
-                  </div>
-                  <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{ln.zhi_shishen}</div>
+                  {isDayunCurrent && isLnCurrent && <div style={{width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--wu-jin)', position: 'absolute', top: 6, right: 6, zIndex: 10}}></div>}
+                  
+                  {ln.is_transition ? (
+                    <>
+                      {/* 旧运区域 (上半部分) */}
+                      <div style={{ width: '100%', padding: '8px 8px 6px', background: 'rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{ln.prev_dayun ? `[旧] ${ln.prev_dayun}` : '未起运'}</div>
+                      </div>
+                      
+                      {/* 分割与交脱提示 */}
+                      <div style={{ width: '100%', borderTop: '1px dashed var(--border-subtle)', position: 'relative', display: 'flex', justifyContent: 'center' }}>
+                        <div style={{ 
+                          position: 'absolute', top: -8, background: 'var(--bg-elevated)', padding: '0 4px', fontSize: 9, 
+                          color: 'var(--wu-jin)', display: 'flex', alignItems: 'center', gap: 2, borderRadius: 2
+                        }}>
+                          <span>⚡</span>{ln.trans_month}月{ln.trans_day}日交脱
+                        </div>
+                      </div>
+                      
+                      {/* 主体流年区域 (下半部分) */}
+                      <div style={{ width: '100%', padding: '12px 8px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ln.year} ({ln.age}岁)</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{ln.gan_shishen}</div>
+                        <div style={{ fontFamily: 'Noto Serif SC, serif', fontWeight: 600, fontSize: '1.2rem', margin: '2px 0' }}>
+                          <span className={`wuxing-text-${lnWx}`}>{lnGan}</span>
+                          <span style={{ color: 'var(--text-primary)' }}>{ln.gan_zhi.charAt(1)}</span>
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{ln.zhi_shishen}</div>
+                      </div>
+                    </>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ln.year} ({ln.age}岁)</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{ln.gan_shishen}</div>
+                      <div style={{ fontFamily: 'Noto Serif SC, serif', fontWeight: 600, fontSize: '1.2rem', margin: '2px 0' }}>
+                        <span className={`wuxing-text-${lnWx}`}>{lnGan}</span>
+                        <span style={{ color: 'var(--text-primary)' }}>{ln.gan_zhi.charAt(1)}</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{ln.zhi_shishen}</div>
+                    </div>
+                  )}
                 </div>
               )
             })}

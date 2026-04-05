@@ -77,6 +77,25 @@ func TestDayun(t *testing.T) {
 	for i, d := range result.Dayun {
 		t.Logf("第%d步大运：%s%s，%d岁起（%d-%d）",
 			i+1, d.Gan, d.Zhi, d.StartAge, d.StartYear, d.EndYear)
+			
+		// 校验交脱期标志
+		if len(d.LiuNian) > 0 {
+			firstLn := d.LiuNian[0]
+			if !firstLn.IsTransition {
+				t.Errorf("大运首年 %d 应被标记为交脱年", firstLn.Year)
+			}
+			if firstLn.TransMonth == 0 || firstLn.TransDay == 0 {
+				t.Errorf("大运首年应挂载非0的交脱月日，实际 %d-%d", firstLn.TransMonth, firstLn.TransDay)
+			}
+			if i > 0 && firstLn.PrevDayun == "" {
+				t.Errorf("非首运的流年交脱期中，上一运标识不应为空")
+			}
+			if len(d.LiuNian) > 1 {
+				if d.LiuNian[1].IsTransition {
+					t.Errorf("大运次年 %d 不应被标记为交脱年", d.LiuNian[1].Year)
+				}
+			}
+		}
 	}
 }
 

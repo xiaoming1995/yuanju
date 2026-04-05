@@ -128,11 +128,15 @@ type WuxingStats struct {
 }
 
 type LiuNianItem struct {
-	Year       int    `json:"year"`
-	Age        int    `json:"age"`
-	GanZhi     string `json:"gan_zhi"`
-	GanShiShen string `json:"gan_shishen"`
-	ZhiShiShen string `json:"zhi_shishen"`
+	Year         int    `json:"year"`
+	Age          int    `json:"age"`
+	GanZhi       string `json:"gan_zhi"`
+	GanShiShen   string `json:"gan_shishen"`
+	ZhiShiShen   string `json:"zhi_shishen"`
+	IsTransition bool   `json:"is_transition"`
+	TransMonth   int    `json:"trans_month,omitempty"`
+	TransDay     int    `json:"trans_day,omitempty"`
+	PrevDayun    string `json:"prev_dayun,omitempty"`
 }
 
 type DayunItem struct {
@@ -241,7 +245,13 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 	if gender == "female" {
 		genderCode = 0
 	}
-	yun := bz.GetYun(genderCode)
+	var yun *calendar.Yun
+	if genderCode == 1 || genderCode == 0 {
+		// 使用 Sect 2 (按3天等于1年，1天等于4个月的传统比例折算)，对主流排盘软件保持严格对齐
+		yun = bz.GetYunBySect(genderCode, 2)
+	} else {
+		yun = bz.GetYunBySect(1, 2) // fallback to male
+	}
 	startSolar := yun.GetStartSolar()
 	startYunStr := fmt.Sprintf("%d年%d月%d日 %02d:%02d交运", 
 		startSolar.GetYear(), startSolar.GetMonth(), startSolar.GetDay(), 
@@ -249,6 +259,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 
 	daYunArr := yun.GetDaYun()
 	dayunItems := make([]DayunItem, 0, len(daYunArr))
+	prevDayunGanzhi := ""
 	for _, dy := range daYunArr {
 		gz := dy.GetGanZhi()
 		if len([]rune(gz)) < 2 {
@@ -269,12 +280,27 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			lnr := []rune(lngz)
 			lnGan := string(lnr[0])
 			lnZhi := string(lnr[1])
+
+			isTrans := false
+			tm, td := 0, 0
+			pd := ""
+			if i == 0 {
+				isTrans = true
+				tm = startSolar.GetMonth()
+				td = startSolar.GetDay()
+				pd = prevDayunGanzhi
+			}
+
 			lnItems = append(lnItems, LiuNianItem{
-				Year:       ln.GetYear(),
-				Age:        ln.GetAge(),
-				GanZhi:     lngz,
-				GanShiShen: GetShiShen(dayGan, lnGan),
-				ZhiShiShen: GetZhiShiShen(dayGan, lnZhi),
+				Year:         ln.GetYear(),
+				Age:          ln.GetAge(),
+				GanZhi:       lngz,
+				GanShiShen:   GetShiShen(dayGan, lnGan),
+				ZhiShiShen:   GetZhiShiShen(dayGan, lnZhi),
+				IsTransition: isTrans,
+				TransMonth:   tm,
+				TransDay:     td,
+				PrevDayun:    pd,
 			})
 		}
 
@@ -290,6 +316,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			DiShi:      GetDiShi(dayGan, zhi),
 			LiuNian:    lnItems,
 		})
+		prevDayunGanzhi = gz
 	}
 
 	// Hash（基于原始输入，保持幂等性）
