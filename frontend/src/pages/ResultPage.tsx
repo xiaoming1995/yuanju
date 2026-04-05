@@ -84,27 +84,45 @@ export default function ResultPage() {
     if (!shareCardRef.current) return
     setSavingImage(true)
     try {
-      const dataUrl = await toPng(shareCardRef.current, { quality: 0.95, pixelRatio: 2 })
-      // 移动端（iOS）不支持 <a download>，改为打开新标签页让用户长按保存
+      // 等待字体加载完毕，确保截图时天干地支字体已就位
+      await document.fonts.ready
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      const dataUrl = await toPng(shareCardRef.current, {
+        quality: 0.98,
+        pixelRatio: isMobile ? 3 : 2,
+        cacheBust: true, // 避免缓存导致字体请求失败
+      })
       if (isMobile) {
+        // iOS 不支持 <a download>，换为新标签页展示图片让用户长按保存
         const newTab = window.open()
         if (newTab) {
-          newTab.document.write(`<img src="${dataUrl}" style="max-width:100%;" alt="命理分享卡" />`)
-          newTab.document.write('<p style="text-align:center;font-family:sans-serif;color:#888;font-size:13px">长按图片保存到相册</p>')
+          newTab.document.write(`
+            <!DOCTYPE html><html><head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width,initial-scale=1">
+            <title>缘聚命理报告</title>
+            <style>body{margin:0;background:#1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;min-height:100vh;}img{max-width:100%;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.3);}p{color:#aaa;font-size:13px;text-align:center;margin-top:16px;font-family:sans-serif;}</style>
+            </head><body>
+            <img src="${dataUrl}" alt="命理报告" />
+            <p>📱 长按图片保存到相册</p>
+            </body></html>`)
+          newTab.document.close()
         }
       } else {
         const link = document.createElement('a')
-        link.download = `缘聚命理-${result?.year_gan}${result?.year_zhi}.png`
+        link.download = `缘聚命理-${result?.year_gan ?? ''}年${result?.month_gan ?? ''}月.png`
         link.href = dataUrl
         link.click()
       }
-    } catch (e) {
+    } catch (_e) {
       alert('生成图片失败，请稍后重试')
     } finally {
       setSavingImage(false)
     }
   }
+
+  // 检测是否移动端（用于隐藏 PDF 按鈕）
+  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
   // AI 解读状态
   const [reportLoading, setReportLoading] = useState(false)
@@ -326,22 +344,25 @@ export default function ResultPage() {
           <div className="report-section-header">
             <h2 className="section-title serif">✦ AI 命理解读</h2>
             {report && (
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button
                   id="save-card-btn"
                   className="btn btn-ghost btn-sm"
                   onClick={handleSaveImage}
                   disabled={savingImage}
                 >
-                  {savingImage ? '生成中...' : '🖼️ 保存图片'}
+                  {savingImage ? '生成中...' : '🖼️ 保存分享图'}
                 </button>
-                <button
-                  id="export-report-btn"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => window.print()}
-                >
-                  📄 导出 PDF
-                </button>
+                {/* PDF 导出移动端不支持，仅桂面展示 */}
+                {!isMobileDevice && (
+                  <button
+                    id="export-report-btn"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => window.print()}
+                  >
+                    📄 导出 PDF
+                  </button>
+                )}
               </div>
             )}
           </div>
