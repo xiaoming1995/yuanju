@@ -124,6 +124,49 @@ func GenerateReport(c *gin.Context) {
 	})
 }
 
+// GenerateLiunianReport 生成 AI 流年精批报告（需登录）
+func GenerateLiunianReport(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+
+	var req struct {
+		TargetYear int `json:"target_year" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "需要 target_year 参数"})
+		return
+	}
+
+	// 1. 获取命盘并验证归属
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	userIDStr := userID.(string)
+
+	if chart.UserID == nil || *chart.UserID != userIDStr {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+
+	log.Printf("[AI Liunian Report] 开始生成流年报告 chart_id=%s year=%d", chart.ID, req.TargetYear)
+	report, err := service.GenerateLiunianReport(chart.ID, req.TargetYear)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"report": report,
+	})
+}
+
 // GetHistory 获取历史记录列表
 func GetHistory(c *gin.Context) {
 	userID, _ := c.Get("user_id")

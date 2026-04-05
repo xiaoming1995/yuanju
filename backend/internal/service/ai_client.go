@@ -34,8 +34,65 @@ type AIResponse struct {
 	} `json:"choices"`
 }
 
-// callAI 动态从 DB 读取激活的 Provider，失败时 fallback 到 .env 配置
+// defaultSystemPrompt 默认 System Prompt（当无数据库知识库时的 fallback）
+const defaultSystemPrompt = `你是一位精通八字命理的专业命理师。
+
+输出风格要求：现代解读风格——结论先行、语言通俗直接、术语作为点缀自然融入，让普通读者能看懂自己的命盘。避免大段术语堆砂，但关键判断（如格局定性、用神盘定）可适当展示专业推导过程。
+
+输出格式要求：你必须且只能以合法的 JSON 格式输出最终结果，不输出任何额外内容、开头语或 Markdown 代码块。`
+
+// buildKnowledgeBaseSystem 从数据库动态拼装所有 kb_* 模块作为 System Prompt
+func buildKnowledgeBaseSystem() string {
+	// 知识模块顺序与描述
+	kbModules := []struct {
+		module string
+		label  string
+	}{
+		{"kb_shishen", "【十神断事口诀】"},
+		{"kb_gejv", "【格局判断规则】"},
+		{"kb_tiaohou", "【调候用神表】"},
+		{"kb_yingqi", "【流年应期推算】"},
+	}
+
+	var parts []string
+	parts = append(parts, "你是一位精通八字命理的专业命理师，深入研习《子平真诠》（格局派）与《穷通宝鉴》（调候派）两大权威典籍。")
+	parts = append(parts, "")
+	parts = append(parts, "请严格遵循以下命理体系进行批断，不得自行臆造或混淆十神含义：")
+	parts = append(parts, "")
+
+	hasKB := false
+	for _, m := range kbModules {
+		prompt, err := repository.GetPromptByModule(m.module)
+		if err != nil || prompt == nil || prompt.Content == "" {
+			continue
+		}
+		parts = append(parts, m.label)
+		parts = append(parts, prompt.Content)
+		parts = append(parts, "")
+		hasKB = true
+	}
+
+	if !hasKB {
+		return defaultSystemPrompt
+	}
+
+	parts = append(parts, "输出格式要求：你必须且只能以合法的 JSON 格式输出最终结果，不输出任何额外内容、开头语或 Markdown 代码块。")
+	return strings.Join(parts, "\n")
+}
+
+// callAIWithSystem 使用动态知识库 System Prompt 调用 AI（用于流年精批等高精度场景）
+func callAIWithSystem(userPrompt string) (content, model, providerID string, durationMs int, err error) {
+	systemPrompt := buildKnowledgeBaseSystem()
+	return callAIInternal(systemPrompt, userPrompt)
+}
+
+// callAI 使用默认 System Prompt 调用 AI（用于原局报告、名人生成等通用场景）
 func callAI(prompt string) (content, model, providerID string, durationMs int, err error) {
+	return callAIInternal(defaultSystemPrompt, prompt)
+}
+
+// callAIInternal 核心调用逻辑
+func callAIInternal(systemPrompt, userPrompt string) (content, model, providerID string, durationMs int, err error) {
 	start := time.Now()
 
 	// 优先从 DB 读取激活 Provider
@@ -46,29 +103,30 @@ func callAI(prompt string) (content, model, providerID string, durationMs int, e
 			return "", "", provider.ID, 0, fmt.Errorf("Provider [%s] API Key 解密失败，请检查 ADMIN_ENCRYPTION_KEY 配置", provider.Name)
 		}
 
-		// 去除尾部 /v1 防止双重拼接（如 https://api.moonshot.cn/v1 + /v1/chat/completions）
+		// 去除尾部 /v1 防止双重拼接
 		baseURL := strings.TrimSuffix(strings.TrimSuffix(provider.BaseURL, "/v1"), "/")
 		result, callErr := callOpenAICompatible(
 			baseURL+"/v1/chat/completions",
 			apiKey,
 			provider.Model,
-			prompt,
+			systemPrompt,
+			userPrompt,
 		)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr != nil {
-			// 有激活 Provider 但调用失败 → 直接返回真实错误，不静默 fallback
 			return "", provider.Model, provider.ID, elapsed, fmt.Errorf("Provider [%s] 调用失败: %w", provider.Name, callErr)
 		}
 		return result, provider.Model, provider.ID, elapsed, nil
 	}
 
-	// 无激活 DB Provider → Fallback：读取 .env 中的旧配置（过渡期兼容）
+	// 无激活 DB Provider → Fallback：读取 .env 中的旧配置
 	if configs.AppConfig.DeepSeekAPIKey != "" {
 		result, callErr := callOpenAICompatible(
 			configs.AppConfig.AIBaseURL+"/v1/chat/completions",
 			configs.AppConfig.DeepSeekAPIKey,
 			"deepseek-chat",
-			prompt,
+			systemPrompt,
+			userPrompt,
 		)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
@@ -81,7 +139,8 @@ func callAI(prompt string) (content, model, providerID string, durationMs int, e
 			"https://api.openai.com/v1/chat/completions",
 			configs.AppConfig.OpenAIAPIKey,
 			"gpt-4o-mini",
-			prompt,
+			systemPrompt,
+			userPrompt,
 		)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
@@ -92,19 +151,12 @@ func callAI(prompt string) (content, model, providerID string, durationMs int, e
 	return "", "", "", 0, fmt.Errorf("未配置可用的 LLM Provider，请在 Admin 面板添加并激活一个 Provider")
 }
 
-func callOpenAICompatible(url, apiKey, modelName, prompt string) (string, error) {
+func callOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string) (string, error) {
 	reqBody := AIRequest{
 		Model: modelName,
 		Messages: []AIMessage{
-			{
-				Role: "system",
-				Content: `你是一位精通八字命理的专业命理师。
-
-输出风格要求：现代解读风格——结论先行、语言通俗直接、术语作为点缀自然融入，让普通读者能看懂自己的命盘。避免大段术语堆砂，但关键判断（如格局定性、用神盘定）可适当展示专业推导过程。
-
-输出格式要求：你必须且只能以合法的 JSON 格式输出最终结果，不输出任何额外内容、开头语或 Markdown 代码块。`,
-			},
-			{Role: "user", Content: prompt},
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
 		},
 		MaxTokens:   6000,
 		Temperature: 1.0,
@@ -146,3 +198,4 @@ func min(a, b int) int {
 	}
 	return b
 }
+

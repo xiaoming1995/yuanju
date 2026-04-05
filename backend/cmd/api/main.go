@@ -49,6 +49,7 @@ func main() {
 		{
 			bazi.POST("/calculate", middleware.OptionalAuth(), handler.Calculate)
 			bazi.POST("/report/:chart_id", middleware.Auth(), handler.GenerateReport)
+			bazi.POST("/liunian-report/:chart_id", middleware.Auth(), handler.GenerateLiunianReport)
 			bazi.GET("/history", middleware.Auth(), handler.GetHistory)
 			bazi.GET("/history/:id", middleware.Auth(), handler.GetHistoryDetail)
 			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
@@ -78,6 +79,7 @@ func main() {
 				// 用户与数据流水管理
 				adminAuth.GET("/users", handler.AdminGetUsers)
 				adminAuth.GET("/charts", handler.AdminListCharts)
+				adminAuth.GET("/charts/:chart_id/liunian", handler.AdminListLiunianReports)
 
 				// AI 调用日志
 				adminAuth.GET("/ai-logs", handler.AdminListAILogs)
@@ -86,6 +88,7 @@ func main() {
 				// 报告缓存管理
 				adminAuth.DELETE("/reports/cache", handler.AdminClearAllReports)
 				adminAuth.DELETE("/reports/cache/:chart_id", handler.AdminClearReportByChart)
+				adminAuth.DELETE("/liunian/:id", handler.AdminDeleteLiunianReport)
 
 				// 名人录管理
 				adminAuth.GET("/celebrities", handler.AdminListCelebrities)
@@ -93,6 +96,10 @@ func main() {
 				adminAuth.PUT("/celebrities/:id", handler.AdminUpdateCelebrity)
 				adminAuth.DELETE("/celebrities/:id", handler.AdminDeleteCelebrity)
 				adminAuth.POST("/celebrities/ai-generate", handler.AdminAIGenerateCelebrities)
+
+				// Prompt 管理
+				adminAuth.GET("/prompts", handler.GetPrompts)
+				adminAuth.PUT("/prompts/:module", handler.UpdatePrompt)
 			}
 		}
 	}

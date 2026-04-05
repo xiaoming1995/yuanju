@@ -1,10 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 	"yuanju/internal/model"
 	"yuanju/internal/repository"
@@ -244,7 +246,7 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 	// 构建 Prompt 并调用 AI
 	celebs, _ := repository.ListCelebrities(true)
 	prompt := buildBaziPrompt(result, celebs)
-	rawContent, modelName, providerID, durationMs, aiErr := callAI(prompt)
+	rawContent, modelName, providerID, durationMs, aiErr := callAIWithSystem(prompt)
 
 	// 记录调用日志（无论成功失败）
 	status, errMsg := "success", ""
@@ -407,4 +409,125 @@ func fixJSONStrings(s string) string {
 		buf.WriteRune(c)
 	}
 	return buf.String()
+}
+
+// GenerateLiunianReport 生成流年运势分析
+func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianReport, error) {
+	// 1. 检查缓存
+	cached, err := repository.GetLiunianReport(chartID, targetYear)
+	if err == nil && cached != nil {
+		return cached, nil
+	}
+
+	// 2. 读取排盘
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		return nil, fmt.Errorf("无此排盘记录")
+	}
+
+	// 读取原局分析文本（如果生成过原局报告）
+	natalLogic := "用户大运起伏与原局特质正在展开。"
+	natalReport, _ := repository.GetReportByChartID(chartID)
+	if natalReport != nil && natalReport.ContentStructured != nil {
+		var parsed structuredReport
+		if err := json.Unmarshal(*natalReport.ContentStructured, &parsed); err == nil && parsed.Analysis.Logic != "" {
+			natalLogic = parsed.Analysis.Logic
+		}
+	}
+
+	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour, chart.Gender, false, 0)
+
+	var currentDayun string
+	var currentDayunGSS string
+	var currentDayunZSS string
+	var lnGanZhi string
+	var lnGanShiShen string
+	var lnZhiShiShen string
+
+	// 从历遍中抓取流年
+	for _, dy := range result.Dayun {
+		for _, ln := range dy.LiuNian {
+			if ln.Year == targetYear {
+				currentDayun = dy.Gan + dy.Zhi
+				currentDayunGSS = dy.GanShiShen
+				currentDayunZSS = dy.ZhiShiShen
+				lnGanZhi = ln.GanZhi
+				lnGanShiShen = ln.GanShiShen
+				lnZhiShiShen = ln.ZhiShiShen
+				break
+			}
+		}
+		if lnGanZhi != "" {
+			break
+		}
+	}
+
+	// 构造模板数据
+	tplData := model.LiunianTemplateData{
+		NatalAnalysisLogic:     natalLogic,
+		CurrentDayunGanZhi:     currentDayun,
+		CurrentDayunGanShiShen: currentDayunGSS,
+		CurrentDayunZhiShiShen: currentDayunZSS,
+		TargetYear:             targetYear,
+		TargetYearGanZhi:       lnGanZhi,
+		TargetYearGanShiShen:   lnGanShiShen,
+		TargetYearZhiShiShen:   lnZhiShiShen,
+	}
+
+	// 3. 读取 Prompt 模板
+	promptConfig, err := repository.GetPromptByModule("liunian")
+	if err != nil || promptConfig == nil {
+		return nil, fmt.Errorf("未找到系统预设的流年Prompt")
+	}
+
+	tmpl, err := template.New("liunian").Parse(promptConfig.Content)
+	if err != nil {
+		return nil, fmt.Errorf("后台Prompt模板语法错误: %v", err)
+	}
+
+	var parsedPrompt bytes.Buffer
+	if err := tmpl.Execute(&parsedPrompt, tplData); err != nil {
+		return nil, fmt.Errorf("拼接Prompt上下文失败: %v", err)
+	}
+
+	// 4. 调用 AI（使用知识库增强的 System Prompt）
+	rawContent, modelName, providerID, durationMs, aiErr := callAIWithSystem(parsedPrompt.String())
+	status, errMsg := "success", ""
+	if aiErr != nil {
+		status, errMsg = "error", aiErr.Error()
+		repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+		return nil, aiErr
+	}
+	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+
+	// 解析 JSON
+	cleanJSON := strings.TrimSpace(rawContent)
+	if strings.HasPrefix(cleanJSON, "```json") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```json")
+		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
+	} else if strings.HasPrefix(cleanJSON, "```") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```")
+		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
+	}
+	firstBrace := strings.Index(cleanJSON, "{")
+	lastBrace := strings.LastIndex(cleanJSON, "}")
+	if firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace {
+		cleanJSON = cleanJSON[firstBrace : lastBrace+1]
+	}
+
+	// 由于是简单的 map结构，直接检查是否可用
+	var reportData map[string]interface{}
+	if err := json.Unmarshal([]byte(cleanJSON), &reportData); err != nil {
+		// 尝试修复换行符
+		fixedJSON := fixJSONStrings(cleanJSON)
+		if errFix := json.Unmarshal([]byte(fixedJSON), &reportData); errFix != nil {
+			return nil, fmt.Errorf("解析AI流年输出失败: %v", errFix)
+		}
+		cleanJSON = fixedJSON
+	}
+
+	rawMsg := json.RawMessage(cleanJSON)
+
+	// 5. 存入数据库
+	return repository.CreateLiunianReport(chartID, targetYear, currentDayun, &rawMsg, modelName)
 }

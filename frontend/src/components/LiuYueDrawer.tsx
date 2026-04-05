@@ -8,6 +8,7 @@ interface LiuYueDrawerProps {
   initialYear: number
   dayGan: string
   liuNianGanZhi: string // 例如 "丙午"，用于标题
+  chartId?: string
 }
 
 const GAN_WUXING: Record<string, string> = {
@@ -28,11 +29,17 @@ export default function LiuYueDrawer({
   initialYear,
   dayGan,
   liuNianGanZhi,
+  chartId,
 }: LiuYueDrawerProps) {
   const [year, setYear] = useState(initialYear)
   const [data, setData] = useState<LiuYueResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 流年 AI 报告状态
+  const [report, setReport] = useState<any>(null)
+  const [reportLoading, setReportLoading] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
 
   const fetchData = useCallback(async (y: number) => {
     setLoading(true)
@@ -57,7 +64,27 @@ export default function LiuYueDrawer({
 
   useEffect(() => {
     if (open) fetchData(year)
+    // 换年份时清空已有的报告
+    setReport(null)
+    setReportError(null)
   }, [year]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleGenerateReport = async () => {
+    if (!chartId) {
+      setReportError('需登录且在专属排盘页方可生成AI报告')
+      return
+    }
+    setReportLoading(true)
+    setReportError(null)
+    try {
+      const { data } = await baziAPI.generateLiunianReport(chartId, year)
+      setReport(data.report)
+    } catch (e: any) {
+      setReportError(e.message || '生成失败')
+    } finally {
+      setReportLoading(false)
+    }
+  }
 
   // 防止 body 滚动
   useEffect(() => {
@@ -177,6 +204,70 @@ export default function LiuYueDrawer({
 
         {/* 内容区 */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+
+          {/* AI 流年批断区域 */}
+          <div style={{
+            background: 'rgba(201, 168, 76, 0.05)',
+            border: '1px solid rgba(201, 168, 76, 0.2)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '20px',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ✨ {year}年运势精批
+            </h3>
+            
+            {!report && !reportLoading && (
+              <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>
+                  让 AI 结合你的原局喜忌，详细推演本年运势全景
+                </p>
+                <button
+                  onClick={handleGenerateReport}
+                  className="btn btn-primary btn-sm"
+                  style={{ width: '100%' }}
+                >
+                  生成流年分析
+                </button>
+              </div>
+            )}
+            
+            {reportLoading && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '20px 0' }}>
+                 <div className="spinner" style={{ width: 24, height: 24, borderColor: 'var(--color-primary) transparent var(--color-primary) transparent' }}></div>
+                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>正在结合原局深度测算中...</div>
+              </div>
+            )}
+            
+            {reportError && (
+              <div style={{ fontSize: '13px', color: '#ff4d4f', textAlign: 'center', marginTop: '10px' }}>
+                ⚠ {reportError}
+              </div>
+            )}
+
+            {report && report.content_structured && (
+              <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>事业财运</div>
+                  <div>{report.content_structured.career}</div>
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>感情桃花</div>
+                  <div>{report.content_structured.romance}</div>
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>健康风险</div>
+                  <div>{report.content_structured.health}</div>
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px', borderLeft: '3px solid var(--color-primary)' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--color-primary)', marginBottom: '2px', fontWeight: 'bold' }}>年度锦囊</div>
+                  <div style={{ fontStyle: 'italic' }}>{report.content_structured.advice}</div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* 加载中：骨架屏 */}
           {loading && (

@@ -56,6 +56,10 @@ export const adminStatsAPI = {
 export const adminChartsAPI = {
   list: (page: number = 1, pageSize: number = 20) =>
     adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}`),
+  getLiunianReports: (chartId: string) =>
+    adminApi.get(`/api/admin/charts/${chartId}/liunian`),
+  deleteLiunianReport: (id: string) =>
+    adminApi.delete(`/api/admin/liunian/${id}`),
 }
 
 export const adminReportAPI = {
@@ -79,6 +83,12 @@ export const adminCelebritiesAPI = {
     adminApi.delete(`/api/admin/celebrities/${id}`),
   generateAI: (data: { topic: string; count: number }) =>
     adminApi.post('/api/admin/celebrities/ai-generate', data, { timeout: 120000 }), // 覆盖默认 15s 超时
+}
+
+export const adminPromptsAPI = {
+  list: () => adminApi.get('/api/admin/prompts'),
+  update: (module: string, data: { content: string }) => 
+    adminApi.put(`/api/admin/prompts/${module}`, data)
 }
 
 export default adminApi

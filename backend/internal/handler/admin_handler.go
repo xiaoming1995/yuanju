@@ -384,3 +384,35 @@ func AdminClearReportByChart(c *gin.Context) {
 		"deleted": affected,
 	})
 }
+
+// AdminListLiunianReports 获取某命盘下所有的流年批断记录
+func AdminListLiunianReports(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少 chart_id 参数"})
+		return
+	}
+	reports, err := repository.GetLiunianReportsByChartID(chartID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取流年记录失败: " + err.Error()})
+		return
+	}
+	if reports == nil {
+		reports = []model.AILiunianReport{}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": reports})
+}
+
+// AdminDeleteLiunianReport 单独删除某一流年报告缓存
+func AdminDeleteLiunianReport(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少 id 参数"})
+		return
+	}
+	if err := repository.DeleteLiunianReportByID(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败: " + err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "已清除该流年记录缓存"})
+}

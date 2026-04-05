@@ -40,6 +40,9 @@ export default function AdminLayout() {
           <NavLink to="/admin/ai-logs" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><FileText size={18} /></span> AI 调用日志
           </NavLink>
+          <NavLink to="/admin/prompts" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Bot size={18} /></span> AI 指令设定
+          </NavLink>
         </nav>
         <div className="admin-sidebar-footer">
           <div className="admin-user-info">{admin?.email}</div>

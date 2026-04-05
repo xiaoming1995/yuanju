@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { BookOpen, User, Calendar, RefreshCw } from 'lucide-react'
+import { BookOpen, User, Calendar, RefreshCw, Trash2 } from 'lucide-react'
 import { adminChartsAPI } from '../../lib/adminApi'
 
 interface ChartRecord {
@@ -25,12 +25,24 @@ interface ChartRecord {
   created_at: string
 }
 
+interface AdminLiunianReport {
+  id: string
+  chart_id: string
+  target_year: number
+  dayun_ganzhi: string
+  content_structured: any
+  model: string
+  created_at: string
+}
+
 export default function AdminChartsPage() {
   const [charts, setCharts] = useState<ChartRecord[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [liunianReports, setLiunianReports] = useState<Record<string, AdminLiunianReport[]>>({})
+  const [liunianLoading, setLiunianLoading] = useState(false)
   const pageSize = 20
 
   const fetchCharts = async (pageNum: number) => {
@@ -50,7 +62,31 @@ export default function AdminChartsPage() {
     fetchCharts(page)
   }, [page])
 
+  useEffect(() => {
+    if (expandedId && !liunianReports[expandedId]) {
+      setLiunianLoading(true)
+      adminChartsAPI.getLiunianReports(expandedId)
+        .then(res => setLiunianReports(prev => ({ ...prev, [expandedId]: res.data?.data || [] })))
+        .catch(err => console.error(err))
+        .finally(() => setLiunianLoading(false))
+    }
+  }, [expandedId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const totalPages = Math.ceil((total || 0) / pageSize) || 1
+
+  const handleDeleteLiunian = async (id: string, chartId: string) => {
+    if (!window.confirm('确定要清除该年份的流年预测缓存吗？清除后前端用户将可以重新生成该年的运势。')) return;
+    try {
+      await adminChartsAPI.deleteLiunianReport(id);
+      // Remove it from the local state
+      setLiunianReports(prev => ({
+        ...prev,
+        [chartId]: (prev[chartId] || []).filter(r => r.id !== id)
+      }));
+    } catch (err: any) {
+      alert('清除失败: ' + (err.response?.data?.error || err.message));
+    }
+  }
 
   return (
     <div>
@@ -176,16 +212,58 @@ export default function AdminChartsPage() {
                             ) : null}
                             
                             {chart.ai_result ? (
-                              <div style={{ background: 'rgba(167, 139, 250, 0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(167, 139, 250, 0.2)' }}>
+                              <div style={{ background: 'rgba(167, 139, 250, 0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(167, 139, 250, 0.2)', marginBottom: 16 }}>
                                 <div style={{ fontSize: 13, color: '#ccc', whiteSpace: 'pre-wrap', lineHeight: 1.6, maxHeight: 200, overflowY: 'auto' }}>
                                   {chart.ai_result}
                                 </div>
                               </div>
                             ) : (
-                               <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #444', color: '#666', fontSize: 13 }}>
-                                 此命盘尚未生成 AI 报告。
+                               <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #444', color: '#666', fontSize: 13, marginBottom: 16 }}>
+                                 此命盘尚未生成 AI 原局报告。
                                </div>
                             )}
+
+                            {/* 流年历年报告库 */}
+                            <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>流年批断记录 (共 {(liunianReports[chart.id] || []).length} 条)：</div>
+                            {liunianLoading && <div style={{ fontSize: 12, color: '#666' }}>加载中...</div>}
+                            
+                            {!liunianLoading && (liunianReports[chart.id] || []).length === 0 && (
+                              <div style={{ fontSize: 12, color: '#666', fontStyle: 'italic' }}>无流年生成记录</div>
+                            )}
+
+                            {!liunianLoading && (liunianReports[chart.id] || []).map((lr) => (
+                              <div key={lr.id} style={{ background: '#222', border: '1px solid #333', borderRadius: 8, marginBottom: 12, overflow: 'hidden' }}>
+                                <div style={{ background: '#2a2a3a', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>{lr.target_year} 年</span>
+                                    <span style={{ fontSize: 12, color: '#a78bfa', background: 'rgba(167,139,250,0.1)', padding: '2px 6px', borderRadius: 4 }}>大运: {lr.dayun_ganzhi}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span style={{ fontSize: 11, color: '#888' }}>{lr.model}</span>
+                                    <span style={{ fontSize: 11, color: '#666' }}>{new Date(lr.created_at).toLocaleString('zh-CN')}</span>
+                                    <button 
+                                      onClick={() => handleDeleteLiunian(lr.id, lr.chart_id)}
+                                      title="清除此年流年报告缓存"
+                                      style={{ background: 'transparent', border: 'none', color: '#ff6b6b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div style={{ padding: 12, fontSize: 13, color: '#ccc', lineHeight: 1.5, maxHeight: 150, overflowY: 'auto' }}>
+                                  {lr.content_structured ? (
+                                    <>
+                                      <div style={{ marginBottom: 8 }}><strong style={{ color: '#888' }}>事业财运:</strong> {lr.content_structured.career}</div>
+                                      <div style={{ marginBottom: 8 }}><strong style={{ color: '#888' }}>感情桃花:</strong> {lr.content_structured.romance}</div>
+                                      <div style={{ marginBottom: 8 }}><strong style={{ color: '#888' }}>健康风险:</strong> {lr.content_structured.health}</div>
+                                      <div><strong style={{ color: '#a78bfa' }}>年度锦囊:</strong> {lr.content_structured.advice}</div>
+                                    </>
+                                  ) : (
+                                    <div style={{ color: '#ff6b6b' }}>数据异常 (无结构化内容)</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
 

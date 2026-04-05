@@ -31,6 +31,7 @@ interface DayunTimelineProps {
   birthYear: number
   startYunSolar: string
   dayGan: string // 命主日主天干，用于流月十神计算
+  chartId?: string
 }
 
 const GAN_WUXING: Record<string, string> = {
@@ -38,7 +39,7 @@ const GAN_WUXING: Record<string, string> = {
   己: 'tu', 庚: 'jin', 辛: 'jin', 壬: 'shui', 癸: 'shui',
 }
 
-export default function DayunTimeline({ dayun, startYunSolar, dayGan }: DayunTimelineProps) {
+export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }: DayunTimelineProps) {
   const currentYear = new Date().getFullYear()
   
   // 找出当前年份所在的大运索引
@@ -241,6 +242,7 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan }: DayunTim
         initialYear={drawerYear}
         dayGan={dayGan}
         liuNianGanZhi={drawerGanZhi}
+        chartId={chartId}
       />
     </div>
   )

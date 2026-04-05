@@ -83,6 +83,8 @@ export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   generateReport: (chartId: string) =>
     api.post(`/api/bazi/report/${chartId}`, {}, { timeout: 300000 }), // 推理模型最长 300s
+  generateLiunianReport: (chartId: string, targetYear: number) =>
+    api.post(`/api/bazi/liunian-report/${chartId}`, { target_year: targetYear }, { timeout: 300000 }),
   getHistory: (page = 1) => api.get(`/api/bazi/history?page=${page}`),
   getHistoryDetail: (id: string) => api.get(`/api/bazi/history/${id}`),
   fetchLiuYue: (liuNianYear: number, dayGan: string) =>
