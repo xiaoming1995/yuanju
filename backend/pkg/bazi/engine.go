@@ -94,7 +94,7 @@ type BaziResult struct {
 	Jishen   string `json:"jishen"`
 
 	// 调候用神（基于《穷通宝鉴》查表精算）
-	Tiaohou string `json:"tiaohou"`
+	Tiaohou *TiaohouResult `json:"tiaohou"`
 
 	Dayun  []DayunItem `json:"dayun"`
 	StartYunSolar string `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
@@ -137,6 +137,13 @@ type LiuNianItem struct {
 	TransMonth   int    `json:"trans_month,omitempty"`
 	TransDay     int    `json:"trans_day,omitempty"`
 	PrevDayun    string `json:"prev_dayun,omitempty"`
+}
+
+type TiaohouResult struct {
+	Expected []string `json:"expected"`
+	Tou      []string `json:"tou"`
+	Cang     []string `json:"cang"`
+	Text     string   `json:"text"`
 }
 
 type DayunItem struct {
@@ -325,7 +332,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 	// 调用自研的核心神煞引擎
 	shensha := GetPillarsShenSha(yearGan, yearZhi, monthGan, monthZhi, dayGan, dayZhi, hourGan, hourZhi)
 
-	return &BaziResult{
+	res := &BaziResult{
 		YearGan:  yearGan,
 		YearZhi:  yearZhi,
 		MonthGan: monthGan,
@@ -386,13 +393,8 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 
 		Wuxing: wuxing,
 
-		// 初始喜用神/忌神由本地极简统计算法预推理填充，供初盘展示。
-		// 后续依然保留由大模型（LLM）进行深度推敲并覆盖该结论的能力架构
 		Yongshen: yongshen,
 		Jishen:   jishen,
-
-		// 调候用神：基于《穷通宝鉴》精算，日主天干 × 出生月支 → 查表结果
-		Tiaohou: LookupTiaohou(dayGan, monthZhi),
 
 		StartYunSolar: startYunStr,
 		Dayun:  dayunItems,
@@ -408,6 +410,11 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 
 		ChartHash: hash,
 	}
+
+	// 计算调候用神
+	res.Tiaohou = calcTiaohou(res)
+
+	return res
 }
 
 // wuxingNameToKey 将五行名称映射为统计 key
@@ -495,4 +502,60 @@ func inferNativeYongshen(dayGanWx string, stats WuxingStats) (yongshen, jishen s
 	}
 	// 否则身弱，喜生/助
 	return helpElements, opposeElements
+}
+
+// calcTiaohou 计算八字原局的调候用神提取（透和藏）
+func calcTiaohou(bazi *BaziResult) *TiaohouResult {
+	rule := GetTiaohouRule(bazi.DayGan, bazi.MonthZhi)
+	if rule == nil {
+		return nil
+	}
+
+	var tou []string
+	var cang []string
+
+	touStems := []string{bazi.YearGan, bazi.MonthGan, bazi.HourGan} // 排除日干自身
+	for _, ys := range rule.Yongshen {
+		isTou := false
+		for _, s := range touStems {
+			if s == ys {
+				tou = append(tou, ys)
+				isTou = true
+				break // 该用神已经透出算一次
+			}
+		}
+
+		if !isTou {
+			// 在藏干中寻找
+			isCang := false
+			cangStems := [][]string{bazi.YearHideGan, bazi.MonthHideGan, bazi.DayHideGan, bazi.HourHideGan}
+			for _, branchCangs := range cangStems {
+				for _, s := range branchCangs {
+					if s == ys {
+						cang = append(cang, ys)
+						isCang = true
+						break
+					}
+				}
+				if isCang {
+					break
+				}
+			}
+		}
+	}
+
+	// Make sure we never return null arrays to frontend
+	if tou == nil {
+		tou = []string{}
+	}
+	if cang == nil {
+		cang = []string{}
+	}
+
+	return &TiaohouResult{
+		Expected: rule.Yongshen,
+		Tou:      tou,
+		Cang:     cang,
+		Text:     rule.Text,
+	}
 }

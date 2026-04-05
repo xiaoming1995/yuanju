@@ -216,8 +216,9 @@ func TestLookupTiaohouMissing(t *testing.T) {
 func TestTiaohouInBaziResult(t *testing.T) {
 	// 甲木生于午月（夏），期望包含"癸水"
 	result := Calculate(1990, 6, 15, 14, "male", false, 0)
-	if result.Tiaohou == "" {
+	if result.Tiaohou == nil {
 		t.Error("BaziResult.Tiaohou 不应为空（炎夏命局应有明确调候用神）")
+	} else {
+		t.Logf("日主：%s，月支：%s，调候用神期望：%v", result.DayGan, result.MonthZhi, result.Tiaohou.Expected)
 	}
-	t.Logf("日主：%s，月支：%s，调候用神：%s", result.DayGan, result.MonthZhi, result.Tiaohou)
 }

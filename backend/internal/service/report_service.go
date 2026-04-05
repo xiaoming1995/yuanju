@@ -105,11 +105,11 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 
 	// ===调候用神===
 	tiaohouStr := ""
-	if r.Tiaohou != "" {
+	if r.Tiaohou != nil {
 		tiaohouStr = fmt.Sprintf(
 			"\n[调候用神-穷通宝鉴]\n"+
-				"日主[%s]生于[%s月]，调候用神：%s\n",
-			r.DayGan, r.MonthZhi, r.Tiaohou,
+				"日主[%s]生于[%s月]，调候理论指出：%s\n",
+			r.DayGan, r.MonthZhi, r.Tiaohou.Text,
 		)
 	}
 

@@ -7,6 +7,7 @@ import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
 import MingpanAvatar from '../components/MingpanAvatar'
+import TiaohouCard from '../components/TiaohouCard'
 import ShareCard from '../components/ShareCard'
 import { toPng, toBlob } from 'html-to-image'
 import './ResultPage.css'
@@ -42,6 +43,12 @@ interface BaziResult {
   true_solar_hour: number; true_solar_minute: number
   wuxing: { mu: number; huo: number; tu: number; jin: number; shui: number }
   yongshen: string; jishen: string
+  tiaohou?: {
+    expected: string[]
+    tou: string[]
+    cang: string[]
+    text: string
+  }
   // 交运时间
   start_yun_solar: string;
   dayun: Array<{
@@ -350,6 +357,15 @@ export default function ResultPage() {
               <h2 className="section-title serif">命元特质</h2>
               <YongshenBadge yongshen={result.yongshen || ''} jishen={result.jishen || ''} />
             </div>
+
+            {/* 调候用神提示 */}
+            {result.tiaohou && (
+              <TiaohouCard 
+                dayGan={result.day_gan} 
+                monthZhi={result.month_zhi} 
+                tiaohou={result.tiaohou} 
+              />
+            )}
 
             {/* 命理专属头像 */}
             <div className="mingpan-avatar-section card">
