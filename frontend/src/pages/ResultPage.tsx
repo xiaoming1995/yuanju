@@ -8,7 +8,7 @@ import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
 import MingpanAvatar from '../components/MingpanAvatar'
 import ShareCard from '../components/ShareCard'
-import { toPng } from 'html-to-image'
+import { toPng, toBlob } from 'html-to-image'
 import './ResultPage.css'
 
 const WUXING_MAP: Record<string, string> = {
@@ -85,65 +85,67 @@ export default function ResultPage() {
     setSavingImage(true)
 
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-
-    // ⚠️ iOS Safari 关键：window.open() 必须在同步上下文调用，
-    // 一旦经过 await 就会被浏览器判定为非用户操作而弹窗拦截。
-    // 所以这里先同步开窗，写"生成中"占位，截图完成后再填入图片。
-    let mobileTab: Window | null = null
-    if (isMobile) {
-      mobileTab = window.open('', '_blank')
-      if (mobileTab) {
-        mobileTab.document.write(`<!DOCTYPE html><html><head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width,initial-scale=1">
-          <title>缘聚命理报告</title>
-          <style>
-            body{margin:0;background:#1a1a1a;display:flex;flex-direction:column;
-              align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}
-            .loading{color:#c9a96e;font-size:16px;letter-spacing:2px;}
-          </style>
-          </head><body><p class="loading">✦ 正在生成命理图片，请稍候…</p></body></html>`)
-        mobileTab.document.close()
-      }
-    }
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
     try {
       await document.fonts.ready
-      const dataUrl = await toPng(shareCardRef.current, {
-        quality: 0.98,
-        pixelRatio: isMobile ? 3 : 2,
-        cacheBust: true,
-      })
 
-      if (isMobile) {
-        if (mobileTab) {
-          // 截图就绪，用图片替换"生成中"占位页面
-          mobileTab.document.open()
-          mobileTab.document.write(`<!DOCTYPE html><html><head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width,initial-scale=1">
-            <title>缘聚命理报告</title>
-            <style>
-              body{margin:0;background:#1a1a1a;display:flex;flex-direction:column;
-                align-items:center;padding:20px;min-height:100vh;}
-              img{max-width:100%;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.3);}
-              p{color:#aaa;font-size:13px;text-align:center;margin-top:16px;}
-            </style>
-            </head><body>
-            <img src="${dataUrl}" alt="命理报告" />
-            <p>📱 长按图片 → 存储到照片</p>
-            </body></html>`)
-          mobileTab.document.close()
+      if (isIOS) {
+        // ✅ iOS 最佳方案：Web Share API + File Blob
+        // 调起系统原生分享面板，用户可直接选“存储图像”保存到相册
+        const blob = await toBlob(shareCardRef.current, {
+          quality: 0.98,
+          pixelRatio: 3,
+          cacheBust: true,
+        })
+        if (!blob) throw new Error('生成图片失败')
+
+        const fileName = `缘聚命理-${result?.year_gan ?? ''}年${result?.month_gan ?? ''}月.png`
+        const file = new File([blob], fileName, { type: 'image/png' })
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          // 支持 Web Share API（iOS 15+ Safari 全款支持）
+          await navigator.share({
+            files: [file],
+            title: `缘聚命理 · 八字命理报告`,
+            text: `我的八字命理：${result?.year_gan ?? ''}${result?.year_zhi ?? ''}年`,
+          })
+        } else {
+          // 退化到 Blob Object URL——比 base64 更靠谱
+          const objectUrl = URL.createObjectURL(blob)
+          Object.assign(document.createElement('a'), {
+            href: objectUrl, download: fileName,
+          }).click()
+          setTimeout(() => URL.revokeObjectURL(objectUrl), 5000)
         }
+      } else if (isMobile) {
+        // Android：直接下载
+        const blob = await toBlob(shareCardRef.current, {
+          quality: 0.98, pixelRatio: 3, cacheBust: true,
+        })
+        if (!blob) throw new Error('生成图片失败')
+        const objectUrl = URL.createObjectURL(blob)
+        const fileName = `缘聚命理-${result?.year_gan ?? ''}年${result?.month_gan ?? ''}月.png`
+        Object.assign(document.createElement('a'), {
+          href: objectUrl, download: fileName,
+        }).click()
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 5000)
       } else {
+        // 桌面端：toPng + 下载
+        const dataUrl = await toPng(shareCardRef.current, {
+          quality: 0.98, pixelRatio: 2, cacheBust: true,
+        })
         const link = document.createElement('a')
         link.download = `缘聚命理-${result?.year_gan ?? ''}年${result?.month_gan ?? ''}月.png`
         link.href = dataUrl
         link.click()
       }
-    } catch (_e) {
-      if (mobileTab) mobileTab.close()
-      alert('生成图片失败，请稍后重试')
+    } catch (err: unknown) {
+      // 用户主动取消分享不算错误
+      const msg = err instanceof Error ? err.message : ''
+      if (!msg.includes('AbortError') && !msg.includes('cancel')) {
+        alert('生成图片失败，请稍后重试')
+      }
     } finally {
       setSavingImage(false)
     }
