@@ -61,6 +61,7 @@ interface BaziResult {
     gan_shishen: string;
     zhi_shishen: string;
     di_shi: string;
+    jin_bu_huan?: { level: string; keyword: string; text: string } | null;
     liu_nian: Array<{
       year: number;
       age: number;

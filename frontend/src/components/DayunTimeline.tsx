@@ -13,6 +13,12 @@ interface LiuNianItem {
   prev_dayun?: string
 }
 
+interface JinBuHuanResult {
+  level: string
+  keyword: string
+  text: string
+}
+
 interface DayunItem {
   index: number
   gan: string
@@ -23,6 +29,7 @@ interface DayunItem {
   gan_shishen: string
   zhi_shishen: string
   di_shi: string
+  jin_bu_huan?: JinBuHuanResult | null
   liu_nian: LiuNianItem[]
 }
 
@@ -37,6 +44,14 @@ interface DayunTimelineProps {
 const GAN_WUXING: Record<string, string> = {
   甲: 'mu', 乙: 'mu', 丙: 'huo', 丁: 'huo', 戊: 'tu',
   己: 'tu', 庚: 'jin', 辛: 'jin', 壬: 'shui', 癸: 'shui',
+}
+
+const JBH_COLORS: Record<string, { bg: string; color: string }> = {
+  '大吉': { bg: 'rgba(76, 175, 80, 0.2)', color: '#66bb6a' },
+  '吉':   { bg: 'rgba(76, 175, 80, 0.12)', color: '#81c784' },
+  '平':   { bg: 'rgba(158, 158, 158, 0.12)', color: '#9e9e9e' },
+  '凶':   { bg: 'rgba(244, 67, 54, 0.12)', color: '#ef9a9a' },
+  '大凶': { bg: 'rgba(244, 67, 54, 0.2)', color: '#e57373' },
 }
 
 export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }: DayunTimelineProps) {
@@ -116,6 +131,23 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
                   <span style={{color: 'var(--wu-jin)'}}>{d.di_shi}</span>
                 </div>
                 
+                {/* 金不换评级 */}
+                {d.jin_bu_huan && (
+                  <div style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: 99,
+                    marginTop: 4,
+                    whiteSpace: 'nowrap',
+                    background: (JBH_COLORS[d.jin_bu_huan.level] || JBH_COLORS['平']).bg,
+                    color: (JBH_COLORS[d.jin_bu_huan.level] || JBH_COLORS['平']).color,
+                    letterSpacing: 1,
+                  }}>
+                    {d.jin_bu_huan.level} · {d.jin_bu_huan.keyword}
+                  </div>
+                )}
+
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, marginTop: 4 }}>
                   {d.start_year}<br/>—<br/>{d.end_year}
                 </div>

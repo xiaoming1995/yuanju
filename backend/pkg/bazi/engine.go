@@ -140,16 +140,17 @@ type LiuNianItem struct {
 }
 
 type DayunItem struct {
-	Index      int           `json:"index"`
-	Gan        string        `json:"gan"`
-	Zhi        string        `json:"zhi"`
-	StartAge   int           `json:"start_age"`
-	StartYear  int           `json:"start_year"`
-	EndYear    int           `json:"end_year"`
-	GanShiShen string        `json:"gan_shishen"`
-	ZhiShiShen string        `json:"zhi_shishen"`
-	DiShi      string        `json:"di_shi"`
-	LiuNian    []LiuNianItem `json:"liu_nian"`
+	Index      int              `json:"index"`
+	Gan        string           `json:"gan"`
+	Zhi        string           `json:"zhi"`
+	StartAge   int              `json:"start_age"`
+	StartYear  int              `json:"start_year"`
+	EndYear    int              `json:"end_year"`
+	GanShiShen string           `json:"gan_shishen"`
+	ZhiShiShen string           `json:"zhi_shishen"`
+	DiShi      string           `json:"di_shi"`
+	JinBuHuan  *JinBuHuanResult `json:"jin_bu_huan"`
+	LiuNian    []LiuNianItem    `json:"liu_nian"`
 }
 
 // Calculate 计算八字四柱
@@ -316,6 +317,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			GanShiShen: GetShiShen(dayGan, gan),
 			ZhiShiShen: GetZhiShiShen(dayGan, zhi),
 			DiShi:      GetDiShi(dayGan, zhi),
+			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, zhi),
 			LiuNian:    lnItems,
 		})
 		prevDayunGanzhi = gz
@@ -498,5 +500,3 @@ func inferNativeYongshen(dayGanWx string, stats WuxingStats) (yongshen, jishen s
 	// 否则身弱，喜生/助
 	return helpElements, opposeElements
 }
-
-
