@@ -61,7 +61,7 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan }: DayunTim
         </div>
       )}
       
-      <div style={{ overflowX: 'auto', paddingBottom: 16, scrollBehavior: 'smooth' }}>
+      <div style={{ overflowX: 'auto', paddingTop: 12, paddingBottom: 16, scrollBehavior: 'smooth' }}>
         <div style={{ display: 'flex', gap: 12, minWidth: 'max-content' }}>
           {dayun.map((d, i) => {
             const isCurrent = currentYear >= d.start_year && currentYear <= d.end_year
