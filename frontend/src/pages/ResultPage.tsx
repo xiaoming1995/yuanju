@@ -287,7 +287,7 @@ export default function ResultPage() {
             {/* 大运时间轴 */}
             <div className="dayun-section card">
               <h2 className="section-title serif">大运时间轴</h2>
-              <DayunTimeline dayun={result.dayun} birthYear={result.birth_year} startYunSolar={result.start_yun_solar} />
+              <DayunTimeline dayun={result.dayun} birthYear={result.birth_year} startYunSolar={result.start_yun_solar} dayGan={result.day_gan || ''} />
             </div>
           </div>
 

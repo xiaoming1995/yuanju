@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import LiuYueDrawer from './LiuYueDrawer'
 
 interface LiuNianItem {
   year: number
@@ -25,6 +26,7 @@ interface DayunTimelineProps {
   dayun: DayunItem[]
   birthYear: number
   startYunSolar: string
+  dayGan: string // 命主日主天干，用于流月十神计算
 }
 
 const GAN_WUXING: Record<string, string> = {
@@ -32,12 +34,17 @@ const GAN_WUXING: Record<string, string> = {
   己: 'tu', 庚: 'jin', 辛: 'jin', 壬: 'shui', 癸: 'shui',
 }
 
-export default function DayunTimeline({ dayun, startYunSolar }: DayunTimelineProps) {
+export default function DayunTimeline({ dayun, startYunSolar, dayGan }: DayunTimelineProps) {
   const currentYear = new Date().getFullYear()
   
   // 找出当前年份所在的大运索引
   const initialActiveIndex = dayun.findIndex(d => currentYear >= d.start_year && currentYear <= d.end_year)
   const [activeIndex, setActiveIndex] = useState(initialActiveIndex !== -1 ? initialActiveIndex : 0)
+
+  // 流月抽屉状态
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [drawerYear, setDrawerYear] = useState(currentYear)
+  const [drawerGanZhi, setDrawerGanZhi] = useState('')
 
   useEffect(() => {
     const idx = dayun.findIndex(d => currentYear >= d.start_year && currentYear <= d.end_year)
@@ -146,17 +153,36 @@ export default function DayunTimeline({ dayun, startYunSolar }: DayunTimelinePro
               const isDayunCurrent = currentYear >= activeDayun.start_year && currentYear <= activeDayun.end_year;
               
               return (
-                <div key={ln.year} style={{
-                  background: isLnCurrent ? 'rgba(201,168,76,0.1)' : 'var(--bg-elevated)',
-                  border: `1px solid ${isLnCurrent ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '12px 8px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
-                  position: 'relative'
-                }}>
+                <div
+                  key={ln.year}
+                  onClick={() => {
+                    // 点击流年格弹出流月抽屉
+                    setDrawerYear(ln.year)
+                    setDrawerGanZhi(ln.gan_zhi)
+                    setDrawerOpen(true)
+                  }}
+                  style={{
+                    background: isLnCurrent ? 'rgba(201,168,76,0.1)' : 'var(--bg-elevated)',
+                    border: `1px solid ${isLnCurrent ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '12px 8px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.border = '1px solid var(--border-accent)'
+                    e.currentTarget.style.background = 'var(--bg-card-hover)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.border = `1px solid ${isLnCurrent ? 'var(--border-accent)' : 'var(--border-subtle)'}`
+                    e.currentTarget.style.background = isLnCurrent ? 'rgba(201,168,76,0.1)' : 'var(--bg-elevated)'
+                  }}
+                >
                   {isDayunCurrent && isLnCurrent && <div style={{width: 6, height: 6, borderRadius: '50%', backgroundColor: 'var(--wu-jin)', position: 'absolute', top: 6, right: 6}}></div>}
                   <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{ln.year} ({ln.age}岁)</div>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{ln.gan_shishen}</div>
@@ -171,6 +197,15 @@ export default function DayunTimeline({ dayun, startYunSolar }: DayunTimelinePro
           </div>
         </div>
       )}
+
+      {/* 流月抽屉 */}
+      <LiuYueDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        initialYear={drawerYear}
+        dayGan={dayGan}
+        liuNianGanZhi={drawerGanZhi}
+      />
     </div>
   )
 }

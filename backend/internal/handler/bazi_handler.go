@@ -148,6 +148,32 @@ func GetHistory(c *gin.Context) {
 	})
 }
 
+// LiuYueInput 流月查询请求体
+type LiuYueInput struct {
+	LiuNianYear int    `json:"liu_nian_year" binding:"required,min=1900,max=2200"`
+	DayGan      string `json:"day_gan" binding:"required"`
+}
+
+// HandleLiuYue 查询指定流年的 12 个流月数据（无需登录）
+func HandleLiuYue(c *gin.Context) {
+	var input LiuYueInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误：" + err.Error()})
+		return
+	}
+
+	items, currentIndex, err := bazi.CalcLiuYue(input.LiuNianYear, input.DayGan)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"liu_yue":              items,
+		"current_month_index":  currentIndex,
+	})
+}
+
 // GetHistoryDetail 获取历史记录详情
 func GetHistoryDetail(c *gin.Context) {
 	userID, _ := c.Get("user_id")

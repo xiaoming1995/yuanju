@@ -85,6 +85,25 @@ export const baziAPI = {
     api.post(`/api/bazi/report/${chartId}`, {}, { timeout: 300000 }), // 推理模型最长 300s
   getHistory: (page = 1) => api.get(`/api/bazi/history?page=${page}`),
   getHistoryDetail: (id: string) => api.get(`/api/bazi/history/${id}`),
+  fetchLiuYue: (liuNianYear: number, dayGan: string) =>
+    api.post('/api/bazi/liu-yue', { liu_nian_year: liuNianYear, day_gan: dayGan }),
+}
+
+// ======= 流月类型 =======
+export interface LiuYueItem {
+  index: number
+  month_name: string
+  gan_zhi: string
+  gan_shishen: string
+  zhi_shishen: string
+  jie_qi_name: string
+  start_date: string // YYYY-MM-DD
+  end_date: string   // YYYY-MM-DD
+}
+
+export interface LiuYueResponse {
+  liu_yue: LiuYueItem[]
+  current_month_index: number // -1 表示不在该命理年内（无高亮）
 }
 
 export default api

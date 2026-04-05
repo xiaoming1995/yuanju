@@ -51,6 +51,7 @@ func main() {
 			bazi.POST("/report/:chart_id", middleware.Auth(), handler.GenerateReport)
 			bazi.GET("/history", middleware.Auth(), handler.GetHistory)
 			bazi.GET("/history/:id", middleware.Auth(), handler.GetHistoryDetail)
+			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
 		}
 
 		// Admin 路由组（独立鉴权）
