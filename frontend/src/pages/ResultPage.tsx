@@ -346,6 +346,15 @@ export default function ResultPage() {
               </div>
             </div>
 
+            {/* 调候用神提示 */}
+            {result.tiaohou && (
+              <TiaohouCard 
+                dayGan={result.day_gan} 
+                monthZhi={result.month_zhi} 
+                tiaohou={result.tiaohou} 
+              />
+            )}
+
             {/* 五行雷达图 */}
             <div className="wuxing-section card">
               <h2 className="section-title serif">五行分布</h2>
@@ -358,14 +367,6 @@ export default function ResultPage() {
               <YongshenBadge yongshen={result.yongshen || ''} jishen={result.jishen || ''} />
             </div>
 
-            {/* 调候用神提示 */}
-            {result.tiaohou && (
-              <TiaohouCard 
-                dayGan={result.day_gan} 
-                monthZhi={result.month_zhi} 
-                tiaohou={result.tiaohou} 
-              />
-            )}
 
             {/* 命理专属头像 */}
             <div className="mingpan-avatar-section card">

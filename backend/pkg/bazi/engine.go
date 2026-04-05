@@ -96,9 +96,9 @@ type BaziResult struct {
 	// 调候用神（基于《穷通宝鉴》查表精算）
 	Tiaohou *TiaohouResult `json:"tiaohou"`
 
-	Dayun  []DayunItem `json:"dayun"`
-	StartYunSolar string `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
-	Gender string      `json:"gender"`
+	Dayun         []DayunItem `json:"dayun"`
+	StartYunSolar string      `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
+	Gender        string      `json:"gender"`
 
 	BirthYear  int `json:"birth_year"`
 	BirthMonth int `json:"birth_month"`
@@ -137,13 +137,6 @@ type LiuNianItem struct {
 	TransMonth   int    `json:"trans_month,omitempty"`
 	TransDay     int    `json:"trans_day,omitempty"`
 	PrevDayun    string `json:"prev_dayun,omitempty"`
-}
-
-type TiaohouResult struct {
-	Expected []string `json:"expected"`
-	Tou      []string `json:"tou"`
-	Cang     []string `json:"cang"`
-	Text     string   `json:"text"`
 }
 
 type DayunItem struct {
@@ -260,8 +253,8 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		yun = bz.GetYunBySect(1, 2) // fallback to male
 	}
 	startSolar := yun.GetStartSolar()
-	startYunStr := fmt.Sprintf("%d年%d月%d日 %02d:%02d交运", 
-		startSolar.GetYear(), startSolar.GetMonth(), startSolar.GetDay(), 
+	startYunStr := fmt.Sprintf("%d年%d月%d日 %02d:%02d交运",
+		startSolar.GetYear(), startSolar.GetMonth(), startSolar.GetDay(),
 		startSolar.GetHour(), startSolar.GetMinute())
 
 	daYunArr := yun.GetDaYun()
@@ -283,7 +276,9 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 				break
 			}
 			lngz := ln.GetGanZhi()
-			if len([]rune(lngz)) < 2 { continue }
+			if len([]rune(lngz)) < 2 {
+				continue
+			}
 			lnr := []rune(lngz)
 			lnGan := string(lnr[0])
 			lnZhi := string(lnr[1])
@@ -397,8 +392,8 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		Jishen:   jishen,
 
 		StartYunSolar: startYunStr,
-		Dayun:  dayunItems,
-		Gender: gender,
+		Dayun:         dayunItems,
+		Gender:        gender,
 
 		BirthYear:  year,
 		BirthMonth: month,
@@ -504,58 +499,4 @@ func inferNativeYongshen(dayGanWx string, stats WuxingStats) (yongshen, jishen s
 	return helpElements, opposeElements
 }
 
-// calcTiaohou 计算八字原局的调候用神提取（透和藏）
-func calcTiaohou(bazi *BaziResult) *TiaohouResult {
-	rule := GetTiaohouRule(bazi.DayGan, bazi.MonthZhi)
-	if rule == nil {
-		return nil
-	}
 
-	var tou []string
-	var cang []string
-
-	touStems := []string{bazi.YearGan, bazi.MonthGan, bazi.HourGan} // 排除日干自身
-	for _, ys := range rule.Yongshen {
-		isTou := false
-		for _, s := range touStems {
-			if s == ys {
-				tou = append(tou, ys)
-				isTou = true
-				break // 该用神已经透出算一次
-			}
-		}
-
-		if !isTou {
-			// 在藏干中寻找
-			isCang := false
-			cangStems := [][]string{bazi.YearHideGan, bazi.MonthHideGan, bazi.DayHideGan, bazi.HourHideGan}
-			for _, branchCangs := range cangStems {
-				for _, s := range branchCangs {
-					if s == ys {
-						cang = append(cang, ys)
-						isCang = true
-						break
-					}
-				}
-				if isCang {
-					break
-				}
-			}
-		}
-	}
-
-	// Make sure we never return null arrays to frontend
-	if tou == nil {
-		tou = []string{}
-	}
-	if cang == nil {
-		cang = []string{}
-	}
-
-	return &TiaohouResult{
-		Expected: rule.Yongshen,
-		Tou:      tou,
-		Cang:     cang,
-		Text:     rule.Text,
-	}
-}

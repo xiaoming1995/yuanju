@@ -77,7 +77,7 @@ func TestDayun(t *testing.T) {
 	for i, d := range result.Dayun {
 		t.Logf("第%d步大运：%s%s，%d岁起（%d-%d）",
 			i+1, d.Gan, d.Zhi, d.StartAge, d.StartYear, d.EndYear)
-			
+
 		// 校验交脱期标志
 		if len(d.LiuNian) > 0 {
 			firstLn := d.LiuNian[0]

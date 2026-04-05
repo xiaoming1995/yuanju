@@ -74,7 +74,7 @@ func CalcLiuYue(year int, dayGan string) ([]LiuYueItem, int, error) {
 
 	// 计算流年天干（用于五虎遁月干推算）
 	// 甲子=1984: (1984-4)%10=0→甲; ((year-4)%10+10)%10 防负数
-	yearGanIndex := ((year - 4) % 10 + 10) % 10
+	yearGanIndex := ((year-4)%10 + 10) % 10
 	yearGan := Gan[yearGanIndex]
 	offset := wuHuDunOffset[yearGan]
 

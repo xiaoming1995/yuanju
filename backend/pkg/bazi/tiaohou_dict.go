@@ -6,6 +6,14 @@ type TiaohouRule struct {
 	Text     string   `json:"text"`     // 穷通宝鉴释义
 }
 
+// TiaohouResult 调候用神分析结果
+type TiaohouResult struct {
+	Expected []string `json:"expected"`
+	Tou      []string `json:"tou"`
+	Cang     []string `json:"cang"`
+	Text     string   `json:"text"`
+}
+
 // GetTiaohouRule 获取调候规则
 func GetTiaohouRule(dayGan, monthZhi string) *TiaohouRule {
 	key := dayGan + "_" + monthZhi
@@ -13,6 +21,61 @@ func GetTiaohouRule(dayGan, monthZhi string) *TiaohouRule {
 		return &rule
 	}
 	return nil
+}
+
+// calcTiaohou 计算八字原局的调候用神提取（透和藏）
+func calcTiaohou(bazi *BaziResult) *TiaohouResult {
+	rule := GetTiaohouRule(bazi.DayGan, bazi.MonthZhi)
+	if rule == nil {
+		return nil
+	}
+
+	var tou []string
+	var cang []string
+
+	touStems := []string{bazi.YearGan, bazi.MonthGan, bazi.HourGan} // 排除日干自身
+	for _, ys := range rule.Yongshen {
+		isTou := false
+		for _, s := range touStems {
+			if s == ys {
+				tou = append(tou, ys)
+				isTou = true
+				break
+			}
+		}
+
+		if !isTou {
+			// 在藏干中寻找
+			isCang := false
+			cangStems := [][]string{bazi.YearHideGan, bazi.MonthHideGan, bazi.DayHideGan, bazi.HourHideGan}
+			for _, branchCangs := range cangStems {
+				for _, s := range branchCangs {
+					if s == ys {
+						cang = append(cang, ys)
+						isCang = true
+						break
+					}
+				}
+				if isCang {
+					break
+				}
+			}
+		}
+	}
+
+	if tou == nil {
+		tou = []string{}
+	}
+	if cang == nil {
+		cang = []string{}
+	}
+
+	return &TiaohouResult{
+		Expected: rule.Yongshen,
+		Tou:      tou,
+		Cang:     cang,
+		Text:     rule.Text,
+	}
 }
 
 // tiaohouDict 穷通宝鉴 120 组调候用神字典

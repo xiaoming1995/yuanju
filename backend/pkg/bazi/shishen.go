@@ -30,7 +30,11 @@ func GetShiShen(dayGan, targetGan string) string {
 	sameYy := dayYy == targetYy
 
 	if dayWx == targetWx {
-		if sameYy { return "比肩" } else { return "劫财" }
+		if sameYy {
+			return "比肩"
+		} else {
+			return "劫财"
+		}
 	}
 
 	// 泄（我生）
@@ -39,7 +43,11 @@ func GetShiShen(dayGan, targetGan string) string {
 		(dayWx == "tu" && targetWx == "jin") ||
 		(dayWx == "jin" && targetWx == "shui") ||
 		(dayWx == "shui" && targetWx == "mu") {
-		if sameYy { return "食神" } else { return "伤官" }
+		if sameYy {
+			return "食神"
+		} else {
+			return "伤官"
+		}
 	}
 
 	// 耗（我克）
@@ -48,7 +56,11 @@ func GetShiShen(dayGan, targetGan string) string {
 		(dayWx == "tu" && targetWx == "shui") ||
 		(dayWx == "jin" && targetWx == "mu") ||
 		(dayWx == "shui" && targetWx == "huo") {
-		if sameYy { return "偏财" } else { return "正财" }
+		if sameYy {
+			return "偏财"
+		} else {
+			return "正财"
+		}
 	}
 
 	// 杀（克我）
@@ -57,7 +69,11 @@ func GetShiShen(dayGan, targetGan string) string {
 		(targetWx == "tu" && dayWx == "shui") ||
 		(targetWx == "jin" && dayWx == "mu") ||
 		(targetWx == "shui" && dayWx == "huo") {
-		if sameYy { return "七杀" } else { return "正官" }
+		if sameYy {
+			return "七杀"
+		} else {
+			return "正官"
+		}
 	}
 
 	// 生（生我）
@@ -66,7 +82,11 @@ func GetShiShen(dayGan, targetGan string) string {
 		(targetWx == "tu" && dayWx == "jin") ||
 		(targetWx == "jin" && dayWx == "shui") ||
 		(targetWx == "shui" && dayWx == "mu") {
-		if sameYy { return "偏印" } else { return "正印" }
+		if sameYy {
+			return "偏印"
+		} else {
+			return "正印"
+		}
 	}
 
 	return ""
