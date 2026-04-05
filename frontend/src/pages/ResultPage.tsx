@@ -83,30 +83,57 @@ export default function ResultPage() {
   const handleSaveImage = async () => {
     if (!shareCardRef.current) return
     setSavingImage(true)
+
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+    // ⚠️ iOS Safari 关键：window.open() 必须在同步上下文调用，
+    // 一旦经过 await 就会被浏览器判定为非用户操作而弹窗拦截。
+    // 所以这里先同步开窗，写"生成中"占位，截图完成后再填入图片。
+    let mobileTab: Window | null = null
+    if (isMobile) {
+      mobileTab = window.open('', '_blank')
+      if (mobileTab) {
+        mobileTab.document.write(`<!DOCTYPE html><html><head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>缘聚命理报告</title>
+          <style>
+            body{margin:0;background:#1a1a1a;display:flex;flex-direction:column;
+              align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;}
+            .loading{color:#c9a96e;font-size:16px;letter-spacing:2px;}
+          </style>
+          </head><body><p class="loading">✦ 正在生成命理图片，请稍候…</p></body></html>`)
+        mobileTab.document.close()
+      }
+    }
+
     try {
-      // 等待字体加载完毕，确保截图时天干地支字体已就位
       await document.fonts.ready
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       const dataUrl = await toPng(shareCardRef.current, {
         quality: 0.98,
         pixelRatio: isMobile ? 3 : 2,
-        cacheBust: true, // 避免缓存导致字体请求失败
+        cacheBust: true,
       })
+
       if (isMobile) {
-        // iOS 不支持 <a download>，换为新标签页展示图片让用户长按保存
-        const newTab = window.open()
-        if (newTab) {
-          newTab.document.write(`
-            <!DOCTYPE html><html><head>
+        if (mobileTab) {
+          // 截图就绪，用图片替换"生成中"占位页面
+          mobileTab.document.open()
+          mobileTab.document.write(`<!DOCTYPE html><html><head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width,initial-scale=1">
             <title>缘聚命理报告</title>
-            <style>body{margin:0;background:#1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;min-height:100vh;}img{max-width:100%;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.3);}p{color:#aaa;font-size:13px;text-align:center;margin-top:16px;font-family:sans-serif;}</style>
+            <style>
+              body{margin:0;background:#1a1a1a;display:flex;flex-direction:column;
+                align-items:center;padding:20px;min-height:100vh;}
+              img{max-width:100%;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.3);}
+              p{color:#aaa;font-size:13px;text-align:center;margin-top:16px;}
+            </style>
             </head><body>
             <img src="${dataUrl}" alt="命理报告" />
-            <p>📱 长按图片保存到相册</p>
+            <p>📱 长按图片 → 存储到照片</p>
             </body></html>`)
-          newTab.document.close()
+          mobileTab.document.close()
         }
       } else {
         const link = document.createElement('a')
@@ -115,6 +142,7 @@ export default function ResultPage() {
         link.click()
       }
     } catch (_e) {
+      if (mobileTab) mobileTab.close()
       alert('生成图片失败，请稍后重试')
     } finally {
       setSavingImage(false)
