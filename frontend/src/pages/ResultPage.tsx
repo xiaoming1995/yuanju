@@ -1,5 +1,5 @@
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI } from '../lib/api'
 import type { AIReport } from '../lib/api'
@@ -7,6 +7,8 @@ import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
 import MingpanAvatar from '../components/MingpanAvatar'
+import ShareCard from '../components/ShareCard'
+import { toPng } from 'html-to-image'
 import './ResultPage.css'
 
 const WUXING_MAP: Record<string, string> = {
@@ -75,6 +77,34 @@ export default function ResultPage() {
   const [isGuest] = useState(location.state?.isGuest ?? !user)
   const [loading, setLoading] = useState(!result && !!id)
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('brief')
+  const [savingImage, setSavingImage] = useState(false)
+  const shareCardRef = useRef<HTMLDivElement>(null)
+
+  const handleSaveImage = async () => {
+    if (!shareCardRef.current) return
+    setSavingImage(true)
+    try {
+      const dataUrl = await toPng(shareCardRef.current, { quality: 0.95, pixelRatio: 2 })
+      // 移动端（iOS）不支持 <a download>，改为打开新标签页让用户长按保存
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      if (isMobile) {
+        const newTab = window.open()
+        if (newTab) {
+          newTab.document.write(`<img src="${dataUrl}" style="max-width:100%;" alt="命理分享卡" />`)
+          newTab.document.write('<p style="text-align:center;font-family:sans-serif;color:#888;font-size:13px">长按图片保存到相册</p>')
+        }
+      } else {
+        const link = document.createElement('a')
+        link.download = `缘聚命理-${result?.year_gan}${result?.year_zhi}.png`
+        link.href = dataUrl
+        link.click()
+      }
+    } catch (e) {
+      alert('生成图片失败，请稍后重试')
+    } finally {
+      setSavingImage(false)
+    }
+  }
 
   // AI 解读状态
   const [reportLoading, setReportLoading] = useState(false)
@@ -296,13 +326,23 @@ export default function ResultPage() {
           <div className="report-section-header">
             <h2 className="section-title serif">✦ AI 命理解读</h2>
             {report && (
-              <button
-                id="export-report-btn"
-                className="btn btn-ghost btn-sm"
-                onClick={() => window.print()}
-              >
-                📄 导出报告
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  id="save-card-btn"
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleSaveImage}
+                  disabled={savingImage}
+                >
+                  {savingImage ? '生成中...' : '🖼️ 保存图片'}
+                </button>
+                <button
+                  id="export-report-btn"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => window.print()}
+                >
+                  📄 导出 PDF
+                </button>
+              </div>
             )}
           </div>
 
@@ -413,6 +453,29 @@ export default function ResultPage() {
           <button className="btn btn-ghost" onClick={() => navigate('/')}>← 重新起盘</button>
           {user && <a href="/history" className="btn btn-ghost">查看历史记录</a>}
         </div>
+      </div>
+
+      {/* 隐藏的分享卡片（用于生成图片，不可见） */}
+      <div style={{ position: 'fixed', top: -9999, left: -9999, zIndex: -1, pointerEvents: 'none' }}>
+        <ShareCard
+          ref={shareCardRef}
+          birthYear={result.birth_year}
+          birthMonth={result.birth_month}
+          birthDay={result.birth_day}
+          birthHour={result.birth_hour}
+          gender={result.gender}
+          yearGan={result.year_gan} yearZhi={result.year_zhi}
+          monthGan={result.month_gan} monthZhi={result.month_zhi}
+          dayGan={result.day_gan} dayZhi={result.day_zhi}
+          hourGan={result.hour_gan} hourZhi={result.hour_zhi}
+          yearGanWx={result.year_gan_wuxing} yearZhiWx={result.year_zhi_wuxing}
+          monthGanWx={result.month_gan_wuxing} monthZhiWx={result.month_zhi_wuxing}
+          dayGanWx={result.day_gan_wuxing} dayZhiWx={result.day_zhi_wuxing}
+          hourGanWx={result.hour_gan_wuxing} hourZhiWx={result.hour_zhi_wuxing}
+          yongshen={result.yongshen || ''}
+          jishen={result.jishen || ''}
+          structured={report?.content_structured ?? null}
+        />
       </div>
     </div>
   )
