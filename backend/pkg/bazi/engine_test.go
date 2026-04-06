@@ -6,7 +6,7 @@ import (
 
 // 测试年柱推算（1893年，立春后属癸巳年）
 func TestYearPillar1893(t *testing.T) {
-	result := Calculate(1893, 12, 26, 7, "male", false, 0)
+	result := Calculate(1893, 12, 26, 7, "male", false, 0, "solar", false)
 	if result.YearGan != "癸" {
 		t.Errorf("1893年冬年干期望'癸'，实际'%s'", result.YearGan)
 	}
@@ -24,9 +24,9 @@ func TestYearPillar1893(t *testing.T) {
 // 测试时辰边界：早子时与晚子时日柱应不同
 func TestHourBoundary(t *testing.T) {
 	// 早子时（23点，属前一天）
-	r1 := Calculate(1990, 6, 15, 23, "male", true, 0)
+	r1 := Calculate(1990, 6, 15, 23, "male", true, 0, "solar", false)
 	// 晚子时（23点，属当天）
-	r2 := Calculate(1990, 6, 15, 23, "male", false, 0)
+	r2 := Calculate(1990, 6, 15, 23, "male", false, 0, "solar", false)
 
 	t.Logf("早子时（属前一日）日干：%s%s", r1.DayGan, r1.DayZhi)
 	t.Logf("晚子时（属当日）日干：%s%s", r2.DayGan, r2.DayZhi)
@@ -47,7 +47,7 @@ func TestHourBoundary(t *testing.T) {
 
 // 测试五行统计总和必须等于8（四柱共8个字）
 func TestWuxingTotal(t *testing.T) {
-	result := Calculate(1990, 6, 15, 14, "female", false, 0)
+	result := Calculate(1990, 6, 15, 14, "female", false, 0, "solar", false)
 	total := result.Wuxing.Mu + result.Wuxing.Huo + result.Wuxing.Tu +
 		result.Wuxing.Jin + result.Wuxing.Shui
 	if total != 8 {
@@ -60,7 +60,7 @@ func TestWuxingTotal(t *testing.T) {
 
 // 测试五行百分比总和约等于100%
 func TestWuxingPercentage(t *testing.T) {
-	result := Calculate(1985, 3, 20, 10, "male", false, 0)
+	result := Calculate(1985, 3, 20, 10, "male", false, 0, "solar", false)
 	pctTotal := result.Wuxing.MuPct + result.Wuxing.HuoPct + result.Wuxing.TuPct +
 		result.Wuxing.JinPct + result.Wuxing.ShuiPct
 	if pctTotal < 99.9 || pctTotal > 100.1 {
@@ -70,7 +70,7 @@ func TestWuxingPercentage(t *testing.T) {
 
 // 测试大运推算结构
 func TestDayun(t *testing.T) {
-	result := Calculate(1990, 6, 15, 14, "male", false, 0)
+	result := Calculate(1990, 6, 15, 14, "male", false, 0, "solar", false)
 	if len(result.Dayun) == 0 {
 		t.Error("大运应返回至少1步")
 	}
@@ -101,10 +101,10 @@ func TestDayun(t *testing.T) {
 
 // 测试哈希唯一性和一致性
 func TestChartHash(t *testing.T) {
-	r1 := Calculate(1990, 6, 15, 14, "male", false, 0)
-	r2 := Calculate(1990, 6, 15, 14, "male", false, 0)
-	r3 := Calculate(1990, 6, 15, 14, "female", false, 0)
-	r4 := Calculate(1990, 6, 16, 14, "male", false, 0)
+	r1 := Calculate(1990, 6, 15, 14, "male", false, 0, "solar", false)
+	r2 := Calculate(1990, 6, 15, 14, "male", false, 0, "solar", false)
+	r3 := Calculate(1990, 6, 15, 14, "female", false, 0, "solar", false)
+	r4 := Calculate(1990, 6, 16, 14, "male", false, 0, "solar", false)
 
 	if r1.ChartHash != r2.ChartHash {
 		t.Error("相同输入应生成相同hash")
@@ -122,7 +122,7 @@ func TestValidGanZhi(t *testing.T) {
 	validGan := map[string]bool{"甲": true, "乙": true, "丙": true, "丁": true, "戊": true, "己": true, "庚": true, "辛": true, "壬": true, "癸": true}
 	validZhi := map[string]bool{"子": true, "丑": true, "寅": true, "卯": true, "辰": true, "巳": true, "午": true, "未": true, "申": true, "酉": true, "戌": true, "亥": true}
 
-	result := Calculate(2000, 1, 15, 12, "female", false, 0)
+	result := Calculate(2000, 1, 15, 12, "female", false, 0, "solar", false)
 	for name, val := range map[string]string{
 		"年干": result.YearGan, "月干": result.MonthGan,
 		"日干": result.DayGan, "时干": result.HourGan,
@@ -155,7 +155,7 @@ func TestValidGanZhi(t *testing.T) {
 // 测试真太阳时修正（新疆经度约 87.6°，比北京慢约 2.1 小时）
 func TestTrueSolarTime(t *testing.T) {
 	// 北京时间 14:00，新疆经度 87.6
-	result := Calculate(1990, 6, 15, 14, "male", false, 87.6)
+	result := Calculate(1990, 6, 15, 14, "male", false, 87.6, "solar", false)
 	t.Logf("北京时间14:00，新疆真太阳时：%d:%02d", result.TrueSolarHour, result.TrueSolarMinute)
 	// 真太阳时应该比14:00早约2小时
 	if result.TrueSolarHour >= 14 {
@@ -215,10 +215,23 @@ func TestLookupTiaohouMissing(t *testing.T) {
 // TestTiaohouInBaziResult 验证 BaziResult.Tiaohou 字段通过 Calculate() 正常返回
 func TestTiaohouInBaziResult(t *testing.T) {
 	// 甲木生于午月（夏），期望包含"癸水"
-	result := Calculate(1990, 6, 15, 14, "male", false, 0)
+	result := Calculate(1990, 6, 15, 14, "male", false, 0, "solar", false)
 	if result.Tiaohou == nil {
 		t.Error("BaziResult.Tiaohou 不应为空（炎夏命局应有明确调候用神）")
 	} else {
 		t.Logf("日主：%s，月支：%s，调候用神期望：%v", result.DayGan, result.MonthZhi, result.Tiaohou.Expected)
+	}
+}
+
+func TestCalculateLunarInput(t *testing.T) {
+	// 2020年闰4月15日中午12点
+	resLunar := Calculate(2020, 4, 15, 12, "male", false, 0, "lunar", true)
+	// 对应的公历是 2020年6月6日中午12点
+	resSolar := Calculate(2020, 6, 6, 12, "male", false, 0, "solar", false)
+
+	if resLunar.YearGan != resSolar.YearGan || resLunar.MonthGan != resSolar.MonthGan || resLunar.DayGan != resSolar.DayGan {
+		t.Errorf("Lunar calculation mismatch! \nLunar: %v %v %v\nSolar: %v %v %v",
+resLunar.YearGan, resLunar.MonthGan, resLunar.DayGan,
+resSolar.YearGan, resSolar.MonthGan, resSolar.DayGan)
 	}
 }

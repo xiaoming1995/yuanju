@@ -30,15 +30,15 @@ type AILiunianReport struct {
 type LiunianTemplateData struct {
 	// 原局分析总结
 	NatalAnalysisLogic string
-	
+
 	// 当前大运信息
-	CurrentDayunGanZhi      string
-	CurrentDayunGanShiShen  string
-	CurrentDayunZhiShiShen  string
-	
+	CurrentDayunGanZhi     string
+	CurrentDayunGanShiShen string
+	CurrentDayunZhiShiShen string
+
 	// 目标流年信息
-	TargetYear            int
-	TargetYearGanZhi      string
-	TargetYearGanShiShen  string
-	TargetYearZhiShiShen  string
+	TargetYear           int
+	TargetYearGanZhi     string
+	TargetYearGanShiShen string
+	TargetYearZhiShiShen string
 }

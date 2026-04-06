@@ -320,5 +320,3 @@ func ListBaziCharts(page, pageSize int) ([]model.AdminChartRecord, int, error) {
 
 	return charts, total, nil
 }
-
-

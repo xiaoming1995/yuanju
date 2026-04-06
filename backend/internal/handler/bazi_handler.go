@@ -19,7 +19,9 @@ type CalculateInput struct {
 	Hour         int     `json:"hour" binding:"min=0,max=23"`
 	Gender       string  `json:"gender" binding:"required,oneof=male female"`
 	IsEarlyZishi bool    `json:"is_early_zishi"`
-	Longitude    float64 `json:"longitude"` // 出生地经度，用于真太阳时修正，0 表示不修正
+	Longitude    float64 `json:"longitude"`                                           // 出生地经度，用于真太阳时修正，0 表示不修正
+	CalendarType string  `json:"calendar_type" binding:"omitempty,oneof=solar lunar"` // solar: 公历, lunar: 农历
+	IsLeapMonth  bool    `json:"is_leap_month"`                                       // 是否为闰月
 }
 
 // Calculate 计算八字（无需登录，但若是已登录用户起盘，则自动落库保存历史）
@@ -30,8 +32,12 @@ func Calculate(c *gin.Context) {
 		return
 	}
 
+	if input.CalendarType == "" {
+		input.CalendarType = "solar" // 默认兼容公历
+	}
+
 	result := bazi.Calculate(input.Year, input.Month, input.Day, input.Hour,
-		input.Gender, input.IsEarlyZishi, input.Longitude)
+		input.Gender, input.IsEarlyZishi, input.Longitude, input.CalendarType, input.IsLeapMonth)
 
 	var chartID string
 	var ptrUserID *string
@@ -62,7 +68,7 @@ func Calculate(c *gin.Context) {
 		Jishen:    result.Jishen,
 		ChartHash: result.ChartHash,
 	}
-	
+
 	// 静默落库，出错不影响排盘响应
 	if savedChart, err := repository.CreateChart(chart); err == nil && savedChart != nil {
 		chartID = savedChart.ID
@@ -100,8 +106,7 @@ func GenerateReport(c *gin.Context) {
 	// 2. 将数据重构回溯至 BaziResult 提供给 AI Prompt （此时临时缺省早子与真太阳时间，但已够用）
 	result := bazi.Calculate(
 		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0,
-	)
+		chart.Gender, false, 0, "solar", false)
 
 	// 3. 生成 AI 报告（若针对此 chartID 曾跑过则 0s 内自动命中缓存）
 	log.Printf("[AI Report] 开始生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
@@ -212,8 +217,8 @@ func HandleLiuYue(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"liu_yue":              items,
-		"current_month_index":  currentIndex,
+		"liu_yue":             items,
+		"current_month_index": currentIndex,
 	})
 }
 
@@ -240,8 +245,7 @@ func GetHistoryDetail(c *gin.Context) {
 	// longitude 和 is_early_zishi 未持久化，使用默认值（0 和 false）
 	result := bazi.Calculate(
 		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0,
-	)
+		chart.Gender, false, 0, "solar", false)
 
 	c.JSON(http.StatusOK, gin.H{
 		"chart":  chart,

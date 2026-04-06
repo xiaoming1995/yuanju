@@ -435,7 +435,7 @@ func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianRepo
 		}
 	}
 
-	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour, chart.Gender, false, 0)
+	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour, chart.Gender, false, 0, "solar", false)
 
 	var currentDayun string
 	var currentDayunGSS string

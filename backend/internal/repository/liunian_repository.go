@@ -16,7 +16,7 @@ func GetLiunianReport(chartID string, targetYear int) (*model.AILiunianReport, e
 		 WHERE chart_id = $1 AND target_year = $2`,
 		chartID, targetYear,
 	).Scan(&report.ID, &report.ChartID, &report.TargetYear, &report.DayunGanzhi, &report.ContentStructured, &report.Model, &report.CreatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -34,7 +34,7 @@ func CreateLiunianReport(chartID string, targetYear int, dayunGanzhi string, con
 		 RETURNING id, chart_id, target_year, dayun_ganzhi, content_structured, model, created_at`,
 		chartID, targetYear, dayunGanzhi, contentStructured, modelName,
 	).Scan(&report.ID, &report.ChartID, &report.TargetYear, &report.DayunGanzhi, &report.ContentStructured, &report.Model, &report.CreatedAt)
-	
+
 	return report, err
 }
 

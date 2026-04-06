@@ -13,7 +13,7 @@ func GetPromptByModule(module string) (*model.AIPrompt, error) {
 		`SELECT id, module, content, description, created_at, updated_at FROM ai_prompts WHERE module = $1`,
 		module,
 	).Scan(&prompt.ID, &prompt.Module, &prompt.Content, &prompt.Description, &prompt.CreatedAt, &prompt.UpdatedAt)
-	
+
 	if err == sql.ErrNoRows {
 		return nil, nil // Not found
 	}

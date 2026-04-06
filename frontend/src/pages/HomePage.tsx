@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI } from '../lib/api'
 import type { CalculateInput } from '../lib/api'
+import { LunarYear, LunarMonth } from 'lunar-javascript'
 import './HomePage.css'
 
 // 省份 → 中心经度映射（东8区标准为120°E）
@@ -49,6 +50,8 @@ export default function HomePage() {
     gender: 'male' as 'male' | 'female',
     is_early_zishi: false,
     province: '',  // 出生省份（可选，用于真太阳时修正）
+    calendarType: 'solar' as 'solar' | 'lunar',
+    isLeapMonth: false,
   })
 
   const handleChange = (field: string, value: string | number | boolean) => {
@@ -75,6 +78,8 @@ export default function HomePage() {
         gender: form.gender,
         is_early_zishi: isZishi ? form.is_early_zishi : false,
         longitude: PROVINCE_LONGITUDE[form.province] || 0,
+        calendar_type: form.calendarType,
+        is_leap_month: form.isLeapMonth,
       }
 
       // 统一调用算法排盘（快速），AI 解读由用户在结果页按钮触发
@@ -93,8 +98,52 @@ export default function HomePage() {
 
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 120 }, (_, i) => currentYear - i)
-  const months = Array.from({ length: 12 }, (_, i) => i + 1)
-  const days = Array.from({ length: getDaysInMonth(form.year, form.month) }, (_, i) => i + 1)
+  
+  // 动态生成月份列表
+  let monthOptions = []
+  if (form.calendarType === 'solar') {
+    monthOptions = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, isLeap: false, label: `${i + 1} 月` }))
+  } else {
+    const leapMonth = LunarYear.fromYear(form.year).getLeapMonth()
+    for (let i = 1; i <= 12; i++) {
+        monthOptions.push({ value: i, isLeap: false, label: `${i} 月` })
+        if (i === leapMonth) {
+            monthOptions.push({ value: i, isLeap: true, label: `闰 ${i} 月` })
+        }
+    }
+  }
+
+  // 动态生成天数列表
+  let maxDay = 31
+  if (form.calendarType === 'solar') {
+    maxDay = getDaysInMonth(form.year, form.month)
+  } else {
+    maxDay = LunarMonth.fromYm(form.year, form.isLeapMonth ? -form.month : form.month)?.getDayCount() || 30
+  }
+  const days = Array.from({ length: maxDay }, (_, i) => i + 1)
+
+  // 处理复杂的日期联动变更
+  const handleDateChange = (updates: { year?: number, month?: number, isLeapMonth?: boolean }) => {
+    setForm(prev => {
+      const newYear = updates.year ?? prev.year
+      const newMonth = updates.month ?? prev.month
+      let newIsLeap = updates.isLeapMonth ?? prev.isLeapMonth
+
+      let newMaxDay = 31
+      if (prev.calendarType === 'solar') {
+        newMaxDay = getDaysInMonth(newYear, newMonth)
+      } else {
+        const leapMonth = LunarYear.fromYear(newYear).getLeapMonth()
+        if (newIsLeap && newMonth !== leapMonth) {
+            newIsLeap = false // 切换年份/月份后，如果不再是闰月，则取消闰月标识
+        }
+        newMaxDay = LunarMonth.fromYm(newYear, newIsLeap ? -newMonth : newMonth)?.getDayCount() || 30
+      }
+
+      const newDay = prev.day > newMaxDay ? 1 : prev.day
+      return { ...prev, ...updates, isLeapMonth: newIsLeap, day: newDay }
+    })
+  }
 
   return (
     <div className="home-page page">
@@ -137,6 +186,31 @@ export default function HomePage() {
                 ))}
               </div>
 
+              {/* 历法类型 */}
+              <div className="gender-selector" style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
+                {(['solar', 'lunar'] as const).map(ct => (
+                  <button
+                    key={ct}
+                    type="button"
+                    className={`gender-btn ${form.calendarType === ct ? 'active' : ''}`}
+                    onClick={() => {
+                      setForm(prev => {
+                        let newMaxDay = 31
+                        if (ct === 'solar') {
+                          newMaxDay = getDaysInMonth(prev.year, prev.month)
+                        } else {
+                          newMaxDay = LunarMonth.fromYm(prev.year, prev.month)?.getDayCount() || 30
+                        }
+                        const newDay = prev.day > newMaxDay ? 1 : prev.day
+                        return { ...prev, calendarType: ct, isLeapMonth: false, day: newDay }
+                      })
+                    }}
+                  >
+                    {ct === 'solar' ? '📅 公历' : '🌙 农历'}
+                  </button>
+                ))}
+              </div>
+
               {/* 日期行 */}
               <div className="date-row">
                 <div className="form-group">
@@ -145,11 +219,7 @@ export default function HomePage() {
                     id="birth-year"
                     className="form-select"
                     value={form.year}
-                  onChange={e => {
-                    const newYear = Number(e.target.value)
-                    const maxDay = getDaysInMonth(newYear, form.month)
-                    setForm(prev => ({ ...prev, year: newYear, day: prev.day > maxDay ? 1 : prev.day }))
-                  }}
+                  onChange={e => handleDateChange({ year: Number(e.target.value) })}
                   >
                     {years.map(y => <option key={y} value={y}>{y} 年</option>)}
                   </select>
@@ -160,14 +230,15 @@ export default function HomePage() {
                   <select
                     id="birth-month"
                     className="form-select"
-                    value={form.month}
+                    value={`${form.month}-${form.isLeapMonth}`}
                   onChange={e => {
-                    const newMonth = Number(e.target.value)
-                    const maxDay = getDaysInMonth(form.year, newMonth)
-                    setForm(prev => ({ ...prev, month: newMonth, day: prev.day > maxDay ? 1 : prev.day }))
+                    const [valStr, isLeapStr] = e.target.value.split('-')
+                    handleDateChange({ month: Number(valStr), isLeapMonth: isLeapStr === 'true' })
                   }}
                   >
-                    {months.map(m => <option key={m} value={m}>{m} 月</option>)}
+                    {monthOptions.map(m => (
+                        <option key={`${m.value}-${m.isLeap}`} value={`${m.value}-${m.isLeap}`}>{m.label}</option>
+                    ))}
                   </select>
                 </div>
 

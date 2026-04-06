@@ -77,6 +77,8 @@ export interface CalculateInput {
   gender: 'male' | 'female'
   is_early_zishi?: boolean
   longitude?: number  // 出生地经度，用于真太阳时修正
+  calendar_type?: 'solar' | 'lunar'
+  is_leap_month?: boolean
 }
 
 export const baziAPI = {

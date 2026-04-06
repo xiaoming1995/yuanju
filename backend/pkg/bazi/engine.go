@@ -158,8 +158,22 @@ type DayunItem struct {
 // hour: 北京时间小时（0-23）
 // gender: "male" | "female"
 // isEarlyZishi: true=早子时（23:00 属前一天）
-// longitude: 出生地经度，用于真太阳时修正，0 表示不修正（按北京时间）
-func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, longitude float64) *BaziResult {
+// isLeapMonth: 当 calendarType 为 lunar 时，指定该月是否为闰月
+func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, longitude float64, calendarType string, isLeapMonth bool) *BaziResult {
+	// 历法预处理：若入参为农历，直接转化为对应的公历，后续排盘引擎无缝复用真太阳时与天体偏移计算
+	if calendarType == "lunar" {
+		lunarMonth := month
+		if isLeapMonth {
+			lunarMonth = -month // lunar-go 中闰月以负数表示
+		}
+		// 时间(时分秒)对于获取年月日无影响，填12时以策万全
+		lunar := calendar.NewLunar(year, lunarMonth, day, 12, 0, 0)
+		solarObj := lunar.GetSolar()
+		year = solarObj.GetYear()
+		month = solarObj.GetMonth()
+		day = solarObj.GetDay()
+	}
+
 	// 真太阳时修正：北京时间基于东经 120°，每差 1° 差 4 分钟
 	trueSolarMinuteOffset := 0
 	if longitude != 0 {

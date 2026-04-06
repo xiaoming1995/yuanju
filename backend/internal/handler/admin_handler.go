@@ -71,10 +71,10 @@ func AdminLogin(c *gin.Context) {
 
 func generateAdminToken(admin *model.Admin) (string, error) {
 	claims := jwt.MapClaims{
-		"sub":    admin.ID,
-		"email":  admin.Email,
-		"iss":    "yuanju-admin",
-		"exp":    time.Now().Add(24 * time.Hour).Unix(),
+		"sub":   admin.ID,
+		"email": admin.Email,
+		"iss":   "yuanju-admin",
+		"exp":   time.Now().Add(24 * time.Hour).Unix(),
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(configs.AppConfig.AdminJWTSecret))
 }
@@ -362,8 +362,8 @@ func AdminClearAllReports(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "已清除所有报告缓存",
-		"deleted":  affected,
+		"message": "已清除所有报告缓存",
+		"deleted": affected,
 	})
 }
 

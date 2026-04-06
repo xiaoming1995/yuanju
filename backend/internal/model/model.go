@@ -47,12 +47,12 @@ type AIReport struct {
 }
 
 type WuxingData struct {
-	Jin   int     `json:"jin"`
-	Mu    int     `json:"mu"`
-	Shui  int     `json:"shui"`
-	Huo   int     `json:"huo"`
-	Tu    int     `json:"tu"`
-	Total int     `json:"total"`
+	Jin     int     `json:"jin"`
+	Mu      int     `json:"mu"`
+	Shui    int     `json:"shui"`
+	Huo     int     `json:"huo"`
+	Tu      int     `json:"tu"`
+	Total   int     `json:"total"`
 	JinPct  float64 `json:"jin_pct"`
 	MuPct   float64 `json:"mu_pct"`
 	ShuiPct float64 `json:"shui_pct"`

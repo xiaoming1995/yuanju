@@ -21,8 +21,8 @@ type Config struct {
 	JWTSecret string
 
 	// Admin
-	AdminJWTSecret      string
-	AdminEncryptionKey  string
+	AdminJWTSecret     string
+	AdminEncryptionKey string
 
 	// AI
 	DeepSeekAPIKey string

@@ -2,10 +2,10 @@ package bazi
 
 // JinBuHuanRule 金不换大运歌规则
 type JinBuHuanRule struct {
-	Verse          string            `json:"verse"`           // 原诗
-	GoodDirections []string          `json:"good_directions"` // 喜行方向，如 "南方火"
-	BadDirections  []string          `json:"bad_directions"`  // 忌行方向，如 "西方金"
-	SpecificZhi    map[string]JBHEval `json:"specific_zhi"`   // 特定地支精确评价（可选）
+	Verse          string             `json:"verse"`           // 原诗
+	GoodDirections []string           `json:"good_directions"` // 喜行方向，如 "南方火"
+	BadDirections  []string           `json:"bad_directions"`  // 忌行方向，如 "西方金"
+	SpecificZhi    map[string]JBHEval `json:"specific_zhi"`    // 特定地支精确评价（可选）
 }
 
 // JBHEval 针对某个方位/地支的细粒度评分
