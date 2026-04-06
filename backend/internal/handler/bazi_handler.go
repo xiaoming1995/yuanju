@@ -62,11 +62,13 @@ func Calculate(c *gin.Context) {
 		MonthGan: result.MonthGan, MonthZhi: result.MonthZhi,
 		DayGan: result.DayGan, DayZhi: result.DayZhi,
 		HourGan: result.HourGan, HourZhi: result.HourZhi,
-		Wuxing:    result.Wuxing,
-		Dayun:     result.Dayun,
-		Yongshen:  result.Yongshen,
-		Jishen:    result.Jishen,
-		ChartHash: result.ChartHash,
+		Wuxing:       result.Wuxing,
+		Dayun:        result.Dayun,
+		Yongshen:     result.Yongshen,
+		Jishen:       result.Jishen,
+		ChartHash:    result.ChartHash,
+		CalendarType: input.CalendarType,
+		IsLeapMonth:  input.IsLeapMonth,
 	}
 
 	// 静默落库，出错不影响排盘响应
@@ -106,7 +108,7 @@ func GenerateReport(c *gin.Context) {
 	// 2. 将数据重构回溯至 BaziResult 提供给 AI Prompt （此时临时缺省早子与真太阳时间，但已够用）
 	result := bazi.Calculate(
 		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0, "solar", false)
+		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
 
 	// 3. 生成 AI 报告（若针对此 chartID 曾跑过则 0s 内自动命中缓存）
 	log.Printf("[AI Report] 开始生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
@@ -245,7 +247,7 @@ func GetHistoryDetail(c *gin.Context) {
 	// longitude 和 is_early_zishi 未持久化，使用默认值（0 和 false）
 	result := bazi.Calculate(
 		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0, "solar", false)
+		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
 
 	c.JSON(http.StatusOK, gin.H{
 		"chart":  chart,

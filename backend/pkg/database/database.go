@@ -308,5 +308,16 @@ func Migrate() {
 		}
 	}
 
+	// 增量迁移 (fix-lunar-calendar-persistence)：持久化历法类型与闰月标识，确保历史重排一致性
+	calendarMigrations := []string{
+		`ALTER TABLE bazi_charts ADD COLUMN IF NOT EXISTS calendar_type VARCHAR(10) NOT NULL DEFAULT 'solar';`,
+		`ALTER TABLE bazi_charts ADD COLUMN IF NOT EXISTS is_leap_month BOOLEAN NOT NULL DEFAULT false;`,
+	}
+	for _, migSQL := range calendarMigrations {
+		if _, err := DB.Exec(migSQL); err != nil {
+			log.Fatalf("增量迁移失败 (calendar persistence): %v\nSQL: %s", err, migSQL)
+		}
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }

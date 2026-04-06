@@ -33,8 +33,10 @@ type BaziChart struct {
 	Dayun      interface{} `json:"dayun"`
 	Yongshen   string      `json:"yongshen"`
 	Jishen     string      `json:"jishen"`
-	ChartHash  string      `json:"chart_hash"`
-	CreatedAt  time.Time   `json:"created_at"`
+	ChartHash    string      `json:"chart_hash"`
+	CalendarType string      `json:"calendar_type"` // "solar" 或 "lunar"
+	IsLeapMonth  bool        `json:"is_leap_month"` // 农历闰月标识
+	CreatedAt    time.Time   `json:"created_at"`
 }
 
 type AIReport struct {

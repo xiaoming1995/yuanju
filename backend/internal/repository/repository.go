@@ -58,13 +58,14 @@ func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 		INSERT INTO bazi_charts
 		(user_id, birth_year, birth_month, birth_day, birth_hour, gender,
 		 year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
-		 wuxing, dayun, yongshen, jishen, chart_hash)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+		 wuxing, dayun, yongshen, jishen, chart_hash, calendar_type, is_leap_month)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
 		RETURNING id, chart_hash, created_at`,
 		userID, chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour, chart.Gender,
 		chart.YearGan, chart.YearZhi, chart.MonthGan, chart.MonthZhi,
 		chart.DayGan, chart.DayZhi, chart.HourGan, chart.HourZhi,
 		wuxingJSON, dayunJSON, chart.Yongshen, chart.Jishen, chart.ChartHash,
+		chart.CalendarType, chart.IsLeapMonth,
 	).Scan(&result.ID, &result.ChartHash, &result.CreatedAt)
 
 	if err != nil {
@@ -87,6 +88,8 @@ func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 	result.BirthDay = chart.BirthDay
 	result.BirthHour = chart.BirthHour
 	result.Gender = chart.Gender
+	result.CalendarType = chart.CalendarType
+	result.IsLeapMonth = chart.IsLeapMonth
 	return result, nil
 }
 
@@ -114,7 +117,10 @@ func GetChartByID(id string) (*model.BaziChart, error) {
 	err := database.DB.QueryRow(`
 		SELECT id, user_id, birth_year, birth_month, birth_day, birth_hour, gender,
 		       year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
-		       wuxing, dayun, yongshen, jishen, chart_hash, created_at
+		       wuxing, dayun, yongshen, jishen, chart_hash,
+		       COALESCE(calendar_type, 'solar') AS calendar_type,
+		       COALESCE(is_leap_month, false) AS is_leap_month,
+		       created_at
 		FROM bazi_charts WHERE id=$1`, id,
 	).Scan(
 		&chart.ID, &userID,
@@ -122,7 +128,9 @@ func GetChartByID(id string) (*model.BaziChart, error) {
 		&chart.YearGan, &chart.YearZhi, &chart.MonthGan, &chart.MonthZhi,
 		&chart.DayGan, &chart.DayZhi, &chart.HourGan, &chart.HourZhi,
 		&wuxingJSON, &dayunJSON,
-		&chart.Yongshen, &chart.Jishen, &chart.ChartHash, &chart.CreatedAt,
+		&chart.Yongshen, &chart.Jishen, &chart.ChartHash,
+		&chart.CalendarType, &chart.IsLeapMonth,
+		&chart.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -142,7 +150,10 @@ func GetChartsByUserID(userID string, limit, offset int) ([]*model.BaziChart, er
 	rows, err := database.DB.Query(`
 		SELECT id, birth_year, birth_month, birth_day, birth_hour, gender,
 		       year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
-		       yongshen, jishen, chart_hash, created_at
+		       yongshen, jishen, chart_hash,
+		       COALESCE(calendar_type, 'solar') AS calendar_type,
+		       COALESCE(is_leap_month, false) AS is_leap_month,
+		       created_at
 		FROM bazi_charts WHERE user_id=$1
 		ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
 		userID, limit, offset,
@@ -159,7 +170,9 @@ func GetChartsByUserID(userID string, limit, offset int) ([]*model.BaziChart, er
 			&c.ID, &c.BirthYear, &c.BirthMonth, &c.BirthDay, &c.BirthHour, &c.Gender,
 			&c.YearGan, &c.YearZhi, &c.MonthGan, &c.MonthZhi,
 			&c.DayGan, &c.DayZhi, &c.HourGan, &c.HourZhi,
-			&c.Yongshen, &c.Jishen, &c.ChartHash, &c.CreatedAt,
+			&c.Yongshen, &c.Jishen, &c.ChartHash,
+			&c.CalendarType, &c.IsLeapMonth,
+			&c.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
