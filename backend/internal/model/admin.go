@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 // Admin 管理员账号（与普通用户完全隔离）
 type Admin struct {
@@ -58,8 +61,9 @@ type AdminChartRecord struct {
 	HourZhi    string    `db:"hour_zhi" json:"hour_zhi"`
 	Yongshen   string    `db:"yongshen" json:"yongshen"`
 	Jishen     string    `db:"jishen" json:"jishen"`
-	AIResult   *string   `db:"ai_result" json:"ai_result"`
-	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	AIResult             *string          `db:"ai_result" json:"ai_result"`
+	AIResultStructured   *json.RawMessage `db:"ai_result_structured" json:"ai_result_structured"`
+	CreatedAt            time.Time        `db:"created_at" json:"created_at"`
 }
 
 // CelebrityRecord 名人八字信息记录

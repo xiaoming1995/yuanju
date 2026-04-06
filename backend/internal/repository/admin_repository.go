@@ -278,6 +278,7 @@ func ListBaziCharts(page, pageSize int) ([]model.AdminChartRecord, int, error) {
 		return []model.AdminChartRecord{}, 0, nil
 	}
 
+	// 使用相关子查询替代 LEFT JOIN ai_reports，避免多条报告时产生重复行
 	rows, err := database.DB.Query(`
 		SELECT 
 			c.id, c.user_id, u.email as user_email, 
@@ -286,11 +287,11 @@ func ListBaziCharts(page, pageSize int) ([]model.AdminChartRecord, int, error) {
 			c.month_gan, c.month_zhi, c.day_gan, c.day_zhi, c.hour_gan, c.hour_zhi,
 			COALESCE(c.yongshen, '') as yongshen, 
 			COALESCE(c.jishen, '') as jishen, 
-			a.content as ai_result,
+			(SELECT content FROM ai_reports WHERE chart_id=c.id ORDER BY created_at DESC LIMIT 1) as ai_result,
+			(SELECT content_structured FROM ai_reports WHERE chart_id=c.id ORDER BY created_at DESC LIMIT 1) as ai_result_structured,
 			c.created_at
 		FROM bazi_charts c
 		LEFT JOIN users u ON c.user_id = u.id
-		LEFT JOIN ai_reports a ON c.id = a.chart_id
 		ORDER BY c.created_at DESC
 		LIMIT $1 OFFSET $2
 	`, pageSize, offset)
@@ -309,6 +310,7 @@ func ListBaziCharts(page, pageSize int) ([]model.AdminChartRecord, int, error) {
 			&r.MonthGan, &r.MonthZhi, &r.DayGan, &r.DayZhi, &r.HourGan, &r.HourZhi,
 			&r.Yongshen, &r.Jishen,
 			&r.AIResult,
+			&r.AIResultStructured,
 			&r.CreatedAt,
 		); err != nil {
 			return nil, 0, err

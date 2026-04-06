@@ -22,6 +22,12 @@ interface ChartRecord {
   yongshen: string
   jishen: string
   ai_result?: string
+  ai_result_structured?: {
+    personality?: string
+    career?: string
+    romance?: string
+    health?: string
+  }
   created_at: string
 }
 
@@ -35,6 +41,8 @@ interface AdminLiunianReport {
   created_at: string
 }
 
+const genderLabel = (g: string) => g === 'male' ? '男' : '女'
+
 export default function AdminChartsPage() {
   const [charts, setCharts] = useState<ChartRecord[]>([])
   const [total, setTotal] = useState(0)
@@ -42,7 +50,7 @@ export default function AdminChartsPage() {
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [liunianReports, setLiunianReports] = useState<Record<string, AdminLiunianReport[]>>({})
-  const [liunianLoading, setLiunianLoading] = useState(false)
+  const [liunianLoading, setLiunianLoading] = useState<Record<string, boolean>>({})
   const pageSize = 20
 
   const fetchCharts = async (pageNum: number) => {
@@ -64,11 +72,11 @@ export default function AdminChartsPage() {
 
   useEffect(() => {
     if (expandedId && !liunianReports[expandedId]) {
-      setLiunianLoading(true)
+      setLiunianLoading(prev => ({ ...prev, [expandedId]: true }))
       adminChartsAPI.getLiunianReports(expandedId)
         .then(res => setLiunianReports(prev => ({ ...prev, [expandedId]: res.data?.data || [] })))
         .catch(err => console.error(err))
-        .finally(() => setLiunianLoading(false))
+        .finally(() => setLiunianLoading(prev => ({ ...prev, [expandedId]: false })))
     }
   }, [expandedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -147,7 +155,7 @@ export default function AdminChartsPage() {
                       {new Date(chart.created_at).toLocaleString('zh-CN')}
                     </td>
                     <td>
-                      <div style={{ color: '#ccc', marginBottom: 4 }}>{chart.gender}命</div>
+                      <div style={{ color: '#ccc', marginBottom: 4 }}>{genderLabel(chart.gender)}命</div>
                       <div style={{ fontSize: 11, color: '#666', display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Calendar size={11} /> {chart.birth_year}年{chart.birth_month}月{chart.birth_day}日
                       </div>
@@ -211,11 +219,38 @@ export default function AdminChartsPage() {
                               </div>
                             ) : null}
                             
-                            {chart.ai_result ? (
-                              <div style={{ background: 'rgba(167, 139, 250, 0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(167, 139, 250, 0.2)', marginBottom: 16 }}>
-                                <div style={{ fontSize: 13, color: '#ccc', whiteSpace: 'pre-wrap', lineHeight: 1.6, maxHeight: 200, overflowY: 'auto' }}>
-                                  {chart.ai_result}
-                                </div>
+                            {chart.ai_result_structured ? (
+                               <div style={{ background: 'rgba(167, 139, 250, 0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(167, 139, 250, 0.2)', marginBottom: 16 }}>
+                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                   {chart.ai_result_structured.personality && (
+                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
+                                       <div style={{ fontSize: 11, color: '#a78bfa', marginBottom: 6, fontWeight: 600 }}>性格特质</div>
+                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.personality}</div>
+                                     </div>
+                                   )}
+                                   {chart.ai_result_structured.career && (
+                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
+                                       <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 6, fontWeight: 600 }}>事业财运</div>
+                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.career}</div>
+                                     </div>
+                                   )}
+                                   {chart.ai_result_structured.romance && (
+                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
+                                       <div style={{ fontSize: 11, color: '#f472b6', marginBottom: 6, fontWeight: 600 }}>感情婚姻</div>
+                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.romance}</div>
+                                     </div>
+                                   )}
+                                   {chart.ai_result_structured.health && (
+                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
+                                       <div style={{ fontSize: 11, color: '#34d399', marginBottom: 6, fontWeight: 600 }}>健康运势</div>
+                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.health}</div>
+                                     </div>
+                                   )}
+                                 </div>
+                               </div>
+                            ) : chart.ai_result ? (
+                              <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #555', color: '#888', fontSize: 12, marginBottom: 16, fontStyle: 'italic' }}>
+                                此命盘 AI 报告为旧格式，无结构化内容可展示。
                               </div>
                             ) : (
                                <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #444', color: '#666', fontSize: 13, marginBottom: 16 }}>
@@ -225,13 +260,13 @@ export default function AdminChartsPage() {
 
                             {/* 流年历年报告库 */}
                             <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>流年批断记录 (共 {(liunianReports[chart.id] || []).length} 条)：</div>
-                            {liunianLoading && <div style={{ fontSize: 12, color: '#666' }}>加载中...</div>}
+                            {liunianLoading[chart.id] && <div style={{ fontSize: 12, color: '#666' }}>加载中...</div>}
                             
-                            {!liunianLoading && (liunianReports[chart.id] || []).length === 0 && (
+                            {!liunianLoading[chart.id] && (liunianReports[chart.id] || []).length === 0 && (
                               <div style={{ fontSize: 12, color: '#666', fontStyle: 'italic' }}>无流年生成记录</div>
                             )}
 
-                            {!liunianLoading && (liunianReports[chart.id] || []).map((lr) => (
+                            {!liunianLoading[chart.id] && (liunianReports[chart.id] || []).map((lr) => (
                               <div key={lr.id} style={{ background: '#222', border: '1px solid #333', borderRadius: 8, marginBottom: 12, overflow: 'hidden' }}>
                                 <div style={{ background: '#2a2a3a', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #333' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

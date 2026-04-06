@@ -87,10 +87,14 @@ export default function HomePage() {
     }
   }
 
+  // 计算指定年月的实际天数（自动处理闰年）
+  // new Date(year, month, 0) = month 月第 0 天 = 上月最后一天
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate()
+
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 120 }, (_, i) => currentYear - i)
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
-  const days = Array.from({ length: 31 }, (_, i) => i + 1)
+  const days = Array.from({ length: getDaysInMonth(form.year, form.month) }, (_, i) => i + 1)
 
   return (
     <div className="home-page page">
@@ -141,7 +145,11 @@ export default function HomePage() {
                     id="birth-year"
                     className="form-select"
                     value={form.year}
-                    onChange={e => handleChange('year', Number(e.target.value))}
+                  onChange={e => {
+                    const newYear = Number(e.target.value)
+                    const maxDay = getDaysInMonth(newYear, form.month)
+                    setForm(prev => ({ ...prev, year: newYear, day: prev.day > maxDay ? 1 : prev.day }))
+                  }}
                   >
                     {years.map(y => <option key={y} value={y}>{y} 年</option>)}
                   </select>
@@ -153,7 +161,11 @@ export default function HomePage() {
                     id="birth-month"
                     className="form-select"
                     value={form.month}
-                    onChange={e => handleChange('month', Number(e.target.value))}
+                  onChange={e => {
+                    const newMonth = Number(e.target.value)
+                    const maxDay = getDaysInMonth(form.year, newMonth)
+                    setForm(prev => ({ ...prev, month: newMonth, day: prev.day > maxDay ? 1 : prev.day }))
+                  }}
                   >
                     {months.map(m => <option key={m} value={m}>{m} 月</option>)}
                   </select>
