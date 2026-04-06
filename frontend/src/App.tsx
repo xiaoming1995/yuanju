@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { AdminAuthProvider, useAdminAuth } from './contexts/AdminAuthContext'
 import Navbar from './components/Navbar'
+import BottomNav from './components/BottomNav'
 import AdminLayout from './components/AdminLayout'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
@@ -34,12 +35,12 @@ export default function App() {
         <AuthProvider>
           <Routes>
             {/* 普通用户路由 */}
-            <Route path="/" element={<><Navbar /><HomePage /></>} />
-            <Route path="/login" element={<><Navbar /><LoginPage /></>} />
-            <Route path="/register" element={<><Navbar /><RegisterPage /></>} />
-            <Route path="/result" element={<><Navbar /><ResultPage /></>} />
-            <Route path="/history" element={<><Navbar /><HistoryPage /></>} />
-            <Route path="/history/:id" element={<><Navbar /><ResultPage /></>} />
+            <Route path="/" element={<><Navbar /><BottomNav /><HomePage /></>} />
+            <Route path="/login" element={<><Navbar /><BottomNav /><LoginPage /></>} />
+            <Route path="/register" element={<><Navbar /><BottomNav /><RegisterPage /></>} />
+            <Route path="/result" element={<><Navbar /><BottomNav /><ResultPage /></>} />
+            <Route path="/history" element={<><Navbar /><BottomNav /><HistoryPage /></>} />
+            <Route path="/history/:id" element={<><Navbar /><BottomNav /><ResultPage /></>} />
 
             {/* Admin 路由（独立布局，无 Navbar）*/}
             <Route path="/admin/login" element={<AdminLoginPage />} />

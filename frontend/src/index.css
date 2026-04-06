@@ -292,9 +292,15 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
 
-/* ======= 响应式断点 ======= */
 @media (max-width: 768px) {
   .container { padding: 0 16px; }
   .card { padding: 20px; }
   .btn-lg { padding: 14px 32px; font-size: 16px; }
+}
+
+@media (max-width: 640px) {
+  .page {
+    /* 为底部的 BottomNav 留出空间，防止遮挡内容 */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+  }
 }
