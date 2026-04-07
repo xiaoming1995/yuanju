@@ -331,7 +331,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			GanShiShen: GetShiShen(dayGan, gan),
 			ZhiShiShen: GetZhiShiShen(dayGan, zhi),
 			DiShi:      GetDiShi(dayGan, zhi),
-			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, zhi),
+			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, gan, zhi),
 			LiuNian:    lnItems,
 		})
 		prevDayunGanzhi = gz

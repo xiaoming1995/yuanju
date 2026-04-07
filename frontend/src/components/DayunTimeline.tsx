@@ -14,9 +14,11 @@ interface LiuNianItem {
 }
 
 interface JinBuHuanResult {
-  level: string
-  keyword: string
-  text: string
+  qian_level: string
+  qian_desc: string
+  hou_level: string
+  hou_desc: string
+  verse: string
 }
 
 interface DayunItem {
@@ -131,20 +133,37 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
                   <span style={{color: 'var(--wu-jin)'}}>{d.di_shi}</span>
                 </div>
                 
-                {/* 金不换评级 */}
+                {/* 金不换前5年/后5年评级 */}
                 {d.jin_bu_huan && (
-                  <div style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: 99,
-                    marginTop: 4,
-                    whiteSpace: 'nowrap',
-                    background: (JBH_COLORS[d.jin_bu_huan.level] || JBH_COLORS['平']).bg,
-                    color: (JBH_COLORS[d.jin_bu_huan.level] || JBH_COLORS['平']).color,
-                    letterSpacing: 1,
-                  }}>
-                    {d.jin_bu_huan.level} · {d.jin_bu_huan.keyword}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4, width: '100%' }}>
+                    <div
+                      title={`前5年（天干）${d.jin_bu_huan.qian_desc}`}
+                      style={{
+                        fontSize: 10, fontWeight: 600,
+                        padding: '2px 6px', borderRadius: 6,
+                        whiteSpace: 'nowrap', letterSpacing: 0.5,
+                        cursor: 'help', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: (JBH_COLORS[d.jin_bu_huan.qian_level] || JBH_COLORS['平']).bg,
+                        color: (JBH_COLORS[d.jin_bu_huan.qian_level] || JBH_COLORS['平']).color,
+                      }}
+                    >
+                      <span style={{ opacity: 0.7, fontSize: 9 }}>前五年</span>
+                      <span>{d.jin_bu_huan.qian_level}</span>
+                    </div>
+                    <div
+                      title={`后5年（地支）${d.jin_bu_huan.hou_desc}`}
+                      style={{
+                        fontSize: 10, fontWeight: 600,
+                        padding: '2px 6px', borderRadius: 6,
+                        whiteSpace: 'nowrap', letterSpacing: 0.5,
+                        cursor: 'help', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: (JBH_COLORS[d.jin_bu_huan.hou_level] || JBH_COLORS['平']).bg,
+                        color: (JBH_COLORS[d.jin_bu_huan.hou_level] || JBH_COLORS['平']).color,
+                      }}
+                    >
+                      <span style={{ opacity: 0.7, fontSize: 9 }}>后五年</span>
+                      <span>{d.jin_bu_huan.hou_level}</span>
+                    </div>
                   </div>
                 )}
 
