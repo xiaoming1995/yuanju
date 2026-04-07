@@ -106,10 +106,47 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 	// ===调候用神===
 	tiaohouStr := ""
 	if r.Tiaohou != nil {
+		// 构建透出/藏干状态描述
+		touDesc := "无"
+		if len(r.Tiaohou.Tou) > 0 {
+			touDesc = strings.Join(r.Tiaohou.Tou, "、")
+		}
+		cangDesc := "无"
+		if len(r.Tiaohou.Cang) > 0 {
+			cangDesc = strings.Join(r.Tiaohou.Cang, "、")
+		}
+		expectedDesc := "无"
+		if len(r.Tiaohou.Expected) > 0 {
+			expectedDesc = strings.Join(r.Tiaohou.Expected, "、")
+		}
+
+		// 判断调候用神满足程度
+		satisfyNote := ""
+		touCount := len(r.Tiaohou.Tou)
+		cangCount := len(r.Tiaohou.Cang)
+		expectedCount := len(r.Tiaohou.Expected)
+		if touCount > 0 && touCount >= expectedCount {
+			satisfyNote = "→ 调候用神透干齐全，寒暖燥湿均衡，命局完整度高。"
+		} else if touCount > 0 {
+			satisfyNote = fmt.Sprintf("→ 调候用神部分透干（%d/%d），有一定调候基础。", touCount, expectedCount)
+		} else if cangCount > 0 {
+			satisfyNote = "→ 调候用神仅藏于地支，力量偏弱，需行运引出方能发挥。"
+		} else {
+			satisfyNote = "→ 调候用神完全缺失，寒暖失衡，命局存在明显短板，需大运补足。"
+		}
+
 		tiaohouStr = fmt.Sprintf(
-			"\n[调候用神-穷通宝鉴]\n"+
-				"日主[%s]生于[%s月]，调候理论指出：%s\n",
+			"\n[调候用神-穷通宝鉴精算]\n"+
+				"日主[%s]生于[%s月]，调候理论指出：%s\n"+
+				"理论调候用神：%s\n"+
+				"本命局透干：%s\n"+
+				"本命局藏干：%s\n"+
+				"%s\n",
 			r.DayGan, r.MonthZhi, r.Tiaohou.Text,
+			expectedDesc,
+			touDesc,
+			cangDesc,
+			satisfyNote,
 		)
 	}
 
@@ -171,23 +208,32 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		tiaohouStr +
 		celebStr +
 		"\n" +
-		fmt.Sprintf("[第一步：在心中完成以下推断，不要在报告中输出此步骤]\n"+
-			"a. 月令格局判断（子平真诠）：\n"+
-			"   月支=%s%s，主气十神=%s；\n"+
-			"   判断月令主气十神是否透出天干（成格/破格）；\n"+
-			"   明确格局名称（正官格/七杀格/食神格/伤官格/正财格/偏财格/正印格/偏印格/建禄格/羊刃格等）；\n"+
-			"   确定格局顺用或逆用方向，得出格局用神。\n"+
-			"b. 调候整合（穷通宝鉴）：\n"+
-			"   结合[调候用神]区块数据，综合格局用神，确认最终喜用神与忌神。\n"+
-			"   格局用神与调候用神一致则更有力；有出入时以格局用神为主，调候为辅。\n"+
-			"c. 挑选1~2个最关键神煞，点出其对性格或运势的影响。\n\n",
+		fmt.Sprintf("[第一步：三模块加权推断（在心中完成，不要在报告中输出计算过程）]\n"+
+			"⚠️ 必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
+			"a. 【调候用神评分 — 权重65票】\n"+
+			"   月支=%s%s，主气十神=%s\n"+
+			"   读取[调候用神-穷通宝鉴精算]区块的精算数据和大运征兆；\n"+
+			"   对每个五行/天干判断方向：喜→该五行 +65票，忌→该五行 -65票。\n\n"+
+			"b. 【格局评分 — 权重25票】\n"+
+			"   严格按 System Prompt 中的【格局判断规则】公式执行：\n"+
+			"   ①查月支藏干权重表，按权重顺序检查是否透出天干；\n"+
+			"   ②有透干者以透干十神定格，无透干者以月令本气定格（弱格）；\n"+
+			"   ③按知识库「格局高低」判断成格/破格；\n"+
+			"   ④按知识库「用神取法」确定格局喜用神；\n"+
+			"   对格局喜用神五行 +25票，忌神五行 -25票。\n\n"+
+			"c. 【神煞综合评分 — 权重10票】\n"+
+			"   扫描命盘全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
+			"   判断每个神煞对各五行的影响方向：利→ +10票，不利→ -10票，中性→ 0票。\n\n"+
+			"d. 【加权合并】\n"+
+			"   对每个五行汇总 a+b+c 的总票数；\n"+
+			"   总分为正 → 喜用神；总分为负 → 忌神；\n"+
+			"   若模块间方向矛盾，以票数高者为准，标注「[模块]与调候存在出入，以调候优先」。\n\n",
 			r.MonthGan, r.MonthZhi, firstShiShen(r.MonthZhiShiShen),
 		) +
 		"[第二步：生成命局分析总览 analysis.logic]\n" +
 		"写一段整体分析（300-500字），现代叙事风格：\n" +
-		"- 开门见山说格局定性（如：这是一个正印格命局...）\n" +
-		"- 简述日主强弱依据（月令得令/失令）\n" +
-		"- 说明最终用神/忌神及简要推导\n" +
+		"- 首段必须包含加权推断说明：格式为「本命三模块加权推断（调候65%·格局25%·神煞10%）：最终喜用神=[X]，忌神=[Y]。」若存在模块矛盾，附加说明「格局/神煞建议[Z]与调候有出入，以调候（权重最高）为准。」\n" +
+		"- 接续说明日主强弱依据（月令得令/失令）\n" +
 		"- 点评1~2个关键神煞的个性影响\n" +
 		"- 全程口语化、有温度，有专业感\n\n" +
 		"[第三步：生成六章节报告]\n" +
