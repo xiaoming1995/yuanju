@@ -286,6 +286,15 @@ body {
 .animate-fade-up { animation: fadeUp 0.5s ease forwards; }
 .animate-fade-in { animation: fadeIn 0.3s ease forwards; }
 
+/* ======= 标题几何图标修饰 ======= */
+.title-diamond-icon {
+  color: var(--primary);
+  filter: drop-shadow(0 0 4px var(--primary-glow));
+  margin-right: 6px;
+  stroke-width: 2.5;
+  flex-shrink: 0;
+}
+
 /* ======= 滚动条 ======= */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-base); }

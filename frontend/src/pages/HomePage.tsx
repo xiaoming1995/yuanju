@@ -206,7 +206,7 @@ export default function HomePage() {
                       })
                     }}
                   >
-                    {ct === 'solar' ? '📅 公历' : '🌙 农历'}
+                    {ct === 'solar' ? '公历' : '农历'}
                   </button>
                 ))}
               </div>
@@ -336,7 +336,7 @@ export default function HomePage() {
         <div className="container">
           <div className="features-grid">
             {[
-              { icon: '☯', title: '传统算法', desc: '基于 lunar-go 天文历法库，精确到秒级节气与真太阳时' },
+              { icon: '◉', title: '传统算法', desc: '基于 lunar-go 天文历法库，精确到秒级节气与真太阳时' },
               { icon: '✦', title: 'AI 智能解读', desc: '大模型结合命理知识，生成通俗易懂的个性报告' },
               { icon: '◈', title: '五行分析', desc: '可视化五行分布，直观了解命局特点' },
             ].map((f, i) => (

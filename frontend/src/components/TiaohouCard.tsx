@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Diamond } from 'lucide-react'
 import './TiaohouCard.css'
 
 interface TiaohouCardProps {
@@ -26,7 +27,7 @@ const TiaohouCard: React.FC<TiaohouCardProps> = ({ dayGan, monthZhi, tiaohou }) 
     <div className="tiaohou-card-container">
       <div className="tiaohou-header-section">
         <div className="tiaohou-expected-row">
-          <span className="tiaohou-label">调候用神提示 <span className="tiaohou-question-mark">?</span></span>
+          <span className="tiaohou-label"><Diamond size={14} className="title-diamond-icon" />调候用神提示 <span className="tiaohou-question-mark">?</span></span>
           <span className="tiaohou-expected-values">
             {tiaohou.expected.map((ys, idx) => (
               <span key={`expected-${idx}`} className={isMatched(ys) ? 'matched-text' : 'unmatched-text'}>

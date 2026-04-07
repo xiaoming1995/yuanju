@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { Compass, History, User } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import './BottomNav.css'
 
@@ -12,7 +13,7 @@ export default function BottomNav() {
         to="/" 
         className={`bottom-nav-item ${location.pathname === '/' ? 'active' : ''}`}
       >
-        <span className="bottom-nav-icon">☯</span>
+        <Compass size={20} className="bottom-nav-icon" />
         <span>测算</span>
       </Link>
       
@@ -21,7 +22,7 @@ export default function BottomNav() {
           to="/history" 
           className={`bottom-nav-item ${location.pathname.startsWith('/history') ? 'active' : ''}`}
         >
-          <span className="bottom-nav-icon">📜</span>
+          <History size={20} className="bottom-nav-icon" />
           <span>历史</span>
         </Link>
       ) : (
@@ -29,7 +30,7 @@ export default function BottomNav() {
           to="/login" 
           className={`bottom-nav-item ${location.pathname === '/login' ? 'active' : ''}`}
         >
-          <span className="bottom-nav-icon">👤</span>
+          <User size={20} className="bottom-nav-icon" />
           <span>我的</span>
         </Link>
       )}

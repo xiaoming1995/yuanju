@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { Compass } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import './Navbar.css'
 
@@ -15,7 +16,7 @@ export default function Navbar() {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to="/" className="navbar-logo">
-          <span className="navbar-logo-icon">☯</span>
+          <Compass size={24} className="navbar-logo-icon" />
           <span className="serif">缘聚命理</span>
         </Link>
 

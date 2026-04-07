@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { Compass } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI } from '../lib/api'
 import './HistoryPage.css'
@@ -47,7 +48,7 @@ export default function HistoryPage() {
 
         {charts.length === 0 ? (
           <div className="history-empty card animate-fade-up">
-            <div className="empty-icon">☯</div>
+            <div className="empty-icon"><Compass size={48} style={{ opacity: 0.5 }} /></div>
             <p className="empty-title serif">还没有命盘记录</p>
             <p className="empty-desc">起盘后登录即可自动保存</p>
             <Link to="/" className="btn btn-primary">立即起盘</Link>

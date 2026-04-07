@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Hexagon, Diamond } from 'lucide-react'
 import { WUXING_MAP, parseWuxingList, mergeLuckyNumbers, mergeLuckyDirections, mergeLuckySeasons } from '../lib/wuxingColorSystem'
 import type { WuxingKey } from '../lib/wuxingColorSystem'
 import './YongshenBadge.css'
@@ -28,8 +29,8 @@ function WuxingTag({ wx }: WuxingTagProps) {
         aria-expanded={expanded}
       >
         <span className="wuxing-tag-dot" style={{ background: profile.color }} />
-        <span className="wuxing-tag-emoji">{profile.emoji}</span>
-        <span className="wuxing-tag-char">{wx}</span>
+        <Hexagon size={14} fill="currentColor" stroke="none" style={{ color: profile.color, marginRight: 2 }} />
+        <span className="wuxing-tag-char" style={{ color: profile.color }}>{wx}</span>
         <span className="wuxing-tag-chevron">{expanded ? '▴' : '▾'}</span>
       </button>
       {expanded && (
@@ -55,7 +56,9 @@ export default function YongshenBadge({ yongshen, jishen }: YongshenBadgeProps) 
     return (
       <div className="yongshen-badge yongshen-badge--empty card">
         <div className="yongshen-badge-lock">
-          <span className="yongshen-badge-lock-icon">🔮</span>
+          <span className="yongshen-badge-lock-icon">
+            <Diamond size={24} className="title-diamond-icon" />
+          </span>
           <p className="yongshen-badge-lock-text">生成 AI 报告后可解锁命元特质</p>
         </div>
       </div>

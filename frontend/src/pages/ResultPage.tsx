@@ -1,5 +1,6 @@
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
+import { Diamond } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI } from '../lib/api'
 import type { AIReport } from '../lib/api'
@@ -11,6 +12,9 @@ import TiaohouCard from '../components/TiaohouCard'
 import ShareCard from '../components/ShareCard'
 import { toPng, toBlob } from 'html-to-image'
 import './ResultPage.css'
+
+// 💡 特性开关 (Feature Flags)
+const ENABLE_MINGPAN_AVATAR = false // 暂时隐藏专属命理头像模块
 
 const WUXING_MAP: Record<string, string> = {
   '木': 'mu', '火': 'huo', '土': 'tu', '金': 'jin', '水': 'shui'
@@ -168,11 +172,11 @@ export default function ResultPage() {
   const [loadingStepIndex, setLoadingStepIndex] = useState(0)
 
   const LOADING_STEPS = [
-    '☯️ 飞盘排签，提取四柱大运神煞...',
-    '🔍 校准星运，结合真太阳时精算...',
-    '📚 翻阅《子平真诠》推断月令格局...',
-    '🌙 对照《穷通宝鉴》抓取调候用神...',
-    '✒️ 宗师沉思，正在精排你专属的命局详析...'
+    '提取四柱大运神煞...',
+    '结合真太阳时精确校准星运...',
+    '依据典籍推断月令与格局...',
+    '深度分析抓取全局调候用神...',
+    '正在汇总专属呈现命局详析...'
   ]
 
   useEffect(() => {
@@ -369,16 +373,18 @@ export default function ResultPage() {
             </div>
 
 
-            {/* 命理专属头像 */}
-            <div className="mingpan-avatar-section card">
-              <h2 className="section-title serif">✦ 专属命理头像</h2>
-              <p className="section-desc">根据你的喜用神五行，程序化生成专属命元图腾</p>
-              <MingpanAvatar
-                yongshen={result.yongshen || ''}
-                jishen={result.jishen || ''}
-                dayGan={result.day_gan || ''}
-              />
-            </div>
+            {/* 命理专属头像 (Feature Flag 控制) */}
+            {ENABLE_MINGPAN_AVATAR && (
+              <div className="mingpan-avatar-section card">
+                <h2 className="section-title serif">✦ 专属命理头像</h2>
+                <p className="section-desc">根据你的喜用神五行，程序化生成专属命元图腾</p>
+                <MingpanAvatar
+                  yongshen={result.yongshen || ''}
+                  jishen={result.jishen || ''}
+                  dayGan={result.day_gan || ''}
+                />
+              </div>
+            )}
 
             {/* 大运时间轴 */}
             <div className="dayun-section card">
@@ -399,7 +405,7 @@ export default function ResultPage() {
                   onClick={handleSaveImage}
                   disabled={savingImage}
                 >
-                  {savingImage ? '生成中...' : '🖼️ 保存分享图'}
+                  {savingImage ? '生成中...' : '保存分享图'}
                 </button>
                 {/* PDF 导出移动端不支持，仅桂面展示 */}
                 {!isMobileDevice && (
@@ -408,7 +414,7 @@ export default function ResultPage() {
                     className="btn btn-ghost btn-sm"
                     onClick={() => window.print()}
                   >
-                    📄 导出 PDF
+                    导出 PDF
                   </button>
                 )}
               </div>
@@ -437,7 +443,7 @@ export default function ResultPage() {
                 <>
                   {reportMode === 'detail' && structured.analysis?.logic && (
                     <div className="report-block report-analysis">
-                      <h3 className="report-block-title serif">🔍 命局分析总览</h3>
+                      <h3 className="report-block-title serif"><Diamond size={16} className="title-diamond-icon" /> 命局分析总览</h3>
                       <p className="report-block-content">{structured.analysis.logic}</p>
                     </div>
                   )}
@@ -505,12 +511,12 @@ export default function ResultPage() {
                     className="btn btn-primary"
                     onClick={handleGenerateReport}
                   >
-                    ✨ 生成 AI 命理解读
+                    生成 AI 命理解读
                   </button>
                 </div>
               ) : (
                 <div className="guest-banner">
-                  <span>💡 登录后可获得完整 AI 解读报告，并保存命盘记录</span>
+                  <span>登录后可获得完整 AI 解读报告，并保存命盘记录</span>
                   <a href="/register" className="btn btn-primary btn-sm">立即注册</a>
                 </div>
               )}
