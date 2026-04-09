@@ -40,6 +40,7 @@ var ShenShaPolarity = map[string]string{
 	"灾煞":   "xiong",
 	"流霞":   "xiong",
 	"吊客":   "xiong",
+	"墓门":   "xiong",
 	// ── 中性（需结合格局判断）───────────────────────────────────
 	"桃花": "zhong",
 	"驿马": "zhong",
@@ -153,19 +154,23 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 				(dg == "壬" && z == "亥") || (dg == "癸" && z == "子"),
 			"禄神")
 
-		// 羊刃（日干基准，禄前一位）
+		// 羊刃（日干基准）
+		// Fix v5: 乙→寅（阴干逆行帝旺系统: 乙逆行长生在午→...→帝旺在寅）
+		// 验证: 1996命盘 日干乙 月支寅 → 月柱羊刃 ✓ (问真截图)
+		// 保留其他阴干旧逻辑（丁己辛癸待更多测试命盘验证）
 		addIf(i,
-			(dg == "甲" && z == "卯") || (dg == "乙" && z == "辰") ||
+			(dg == "甲" && z == "卯") || (dg == "乙" && z == "寅") || // Fix: 乙→寅
 				(strings.Contains("丙戊", dg) && z == "午") || (strings.Contains("丁己", dg) && z == "未") ||
 				(dg == "庚" && z == "酉") || (dg == "辛" && z == "戌") ||
 				(dg == "壬" && z == "子") || (dg == "癸" && z == "丑"),
 			"羊刃")
 
-		// 飞刃（日干基准，羊刃对冲）
-		// Fix v5: 飞刃仅查日柱（问真1995命中日柱✓，1996时支=戌不标时柱✓）
+		// 飞刃（日干基准，羊刃对冲，仅查日柱）
+		// Fix v5: 乙飞刃→申（乙羊刃=寅对冲=申）
+		// Fix v5: 仅在日柱 i==2 时检查（问真不在时柱显示飞刃）
 		if i == 2 {
 			addIf(i,
-				(dg == "甲" && z == "酉") || (dg == "乙" && z == "戌") ||
+				(dg == "甲" && z == "酉") || (dg == "乙" && z == "申") || // Fix: 乙→申
 					(strings.Contains("丙戊", dg) && z == "子") || (strings.Contains("丁己", dg) && z == "丑") ||
 					(dg == "庚" && z == "卯") || (dg == "辛" && z == "辰") ||
 					(dg == "壬" && z == "午") || (dg == "癸" && z == "未"),
@@ -198,6 +203,43 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 		// Fix: 日干查全柱（dayGIZhi）+ 各柱本干自查（ownGIZhi），取 OR
 		ownGIZhi := guoYinMap[gans[i]]
 		addIf(i, z == dayGIZhi || z == ownGIZhi, "国印贵人")
+
+		// 墓门（天干五行 克 地支五行 = 天克地关系）
+		// 推导来源：1996命盘 庚(金)寅(木)→金克木 → 月柱墓门 ✓
+		//         1995命盘 丙(火)戌(土)→火生土 → 月柱无墓门 ✓
+		//         1996命盘 丙(火)子(水)→水克火(地克天,非天克地) → 年柱无墓门 ✓
+		ganWx := ""
+		switch {
+		case strings.Contains("甲乙", gans[i]):
+			ganWx = "木"
+		case strings.Contains("丙丁", gans[i]):
+			ganWx = "火"
+		case strings.Contains("戊己", gans[i]):
+			ganWx = "土"
+		case strings.Contains("庚辛", gans[i]):
+			ganWx = "金"
+		case strings.Contains("壬癸", gans[i]):
+			ganWx = "水"
+		}
+		zhiWx := ""
+		switch {
+		case strings.Contains("寅卯", z):
+			zhiWx = "木"
+		case strings.Contains("巳午", z):
+			zhiWx = "火"
+		case strings.Contains("辰戌丑未", z):
+			zhiWx = "土"
+		case strings.Contains("申酉", z):
+			zhiWx = "金"
+		case strings.Contains("亥子", z):
+			zhiWx = "水"
+		}
+		isMuMen := (ganWx == "金" && zhiWx == "木") ||
+			(ganWx == "木" && zhiWx == "土") ||
+			(ganWx == "土" && zhiWx == "水") ||
+			(ganWx == "水" && zhiWx == "火") ||
+			(ganWx == "火" && zhiWx == "金")
+		addIf(i, isMuMen, "墓门")
 	}
 
 	// ══════════════════════════════════════════════════════════
