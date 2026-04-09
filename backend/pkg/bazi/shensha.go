@@ -162,12 +162,15 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 			"羊刃")
 
 		// 飞刃（日干基准，羊刃对冲）
-		addIf(i,
-			(dg == "甲" && z == "酉") || (dg == "乙" && z == "戌") ||
-				(strings.Contains("丙戊", dg) && z == "子") || (strings.Contains("丁己", dg) && z == "丑") ||
-				(dg == "庚" && z == "卯") || (dg == "辛" && z == "辰") ||
-				(dg == "壬" && z == "午") || (dg == "癸" && z == "未"),
-			"飞刃")
+		// Fix v5: 飞刃仅查日柱（问真1995命中日柱✓，1996时支=戌不标时柱✓）
+		if i == 2 {
+			addIf(i,
+				(dg == "甲" && z == "酉") || (dg == "乙" && z == "戌") ||
+					(strings.Contains("丙戊", dg) && z == "子") || (strings.Contains("丁己", dg) && z == "丑") ||
+					(dg == "庚" && z == "卯") || (dg == "辛" && z == "辰") ||
+					(dg == "壬" && z == "午") || (dg == "癸" && z == "未"),
+				"飞刃")
+		}
 
 		// 金舆贵人（日干帝旺前一位）
 		addIf(i,
