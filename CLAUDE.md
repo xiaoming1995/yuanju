@@ -20,9 +20,10 @@ npm run preview  # Preview production build
 
 ### Backend (`cd backend`)
 ```bash
-go run ./cmd/api       # Run API server (port 9002 by default)
-go test ./...          # Run all tests
-go test ./pkg/bazi/... # Run bazi-specific tests
+go run ./cmd/api                           # Run API server (port 9002 by default)
+go test ./...                              # Run all tests
+go test ./pkg/bazi/...                     # Run bazi-specific tests
+go test ./pkg/bazi/... -run TestFuncName   # Run a single test
 ```
 
 ### Full Stack
@@ -55,6 +56,8 @@ backend (Go + Gin)
         engine.go, shishen.go, shensha.go, tiaohou.go, tiaohou_dict.go
         liuyue.go                    # 流月 (monthly luck) calculations
         jin_bu_huan_dict.go          # 进不换 lookup table (Tiaohou Gan/Zhi exact match)
+        algo_config.go               # Algorithmic configuration management (tunable params)
+        dayun_jixiong.go             # 大运吉凶 (luck period auspiciousness) calculations
       pkg/crypto/crypto.go           # AES-256-GCM for API key storage
       pkg/database/database.go       # PostgreSQL connection + DDL migrations
       pkg/seed/seed.go               # Seeds LLM providers from .env on startup
@@ -93,7 +96,7 @@ Per `ENGINEERING.md`: always scan existing code first.
 
 ### OpenSpec Change Management
 New features use the OpenSpec workflow:
-- `/opsx-propose` → propose change
-- `/opsx-apply` → implement tasks
-- `/opsx-archive` → archive after completion
+- `/opsx:propose` → propose change
+- `/opsx:apply` → implement tasks
+- `/opsx:archive` → archive after completion
 - Changes live in `openspec/changes/<change-name>/`
