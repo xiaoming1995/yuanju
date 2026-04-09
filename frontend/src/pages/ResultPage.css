@@ -208,9 +208,32 @@
   font-size: 10px;
   color: var(--text-accent);
   background: rgba(255, 255, 255, 0.06);
-  padding: 2px 4px;
+  padding: 2px 5px;
   border-radius: 4px;
   white-space: nowrap;
+  cursor: default;
+  transition: opacity 0.15s;
+}
+
+/* 吉神：金色调 */
+.shensha-tag--ji {
+  color: var(--wu-jin, #C9A84C);
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+}
+
+/* 凶煞：红色调 */
+.shensha-tag--xiong {
+  color: var(--wu-huo, #e05c5c);
+  background: rgba(224, 92, 92, 0.10);
+  border: 1px solid rgba(224, 92, 92, 0.22);
+}
+
+/* 中性：默认淡色 */
+.shensha-tag--zhong {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 /* 五行颜色 */

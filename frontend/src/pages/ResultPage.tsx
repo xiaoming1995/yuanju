@@ -20,6 +20,22 @@ const WUXING_MAP: Record<string, string> = {
   '木': 'mu', '火': 'huo', '土': 'tu', '金': 'jin', '水': 'shui'
 }
 
+// 神煞极性表（与后端 ShenShaPolarity 保持同步）
+// ji = 吉神（金色），xiong = 凶煞（红色），zhong = 中性（灰色）
+const SHENSHA_POLARITY: Record<string, string> = {
+  // 吉神
+  '天乙贵人': 'ji', '太极贵人': 'ji', '文昌贵人': 'ji', '禄神': 'ji',
+  '天德贵人': 'ji', '月德贵人': 'ji', '天德合': 'ji', '月德合': 'ji',
+  '金舆贵人': 'ji', '天喜星': 'ji', '天厨贵人': 'ji', '国印贵人': 'ji',
+  '三奇贵人': 'ji', '日德': 'ji', '将星': 'ji', '福星贵人': 'ji', '天医': 'ji',
+  // 凶煞
+  '羊刃': 'xiong', '飞刃': 'xiong', '劫煞': 'xiong', '亡神': 'xiong',
+  '孤辰': 'xiong', '寡宿': 'xiong', '阴差阳错': 'xiong',
+  '魁罡': 'xiong', '十恶大败': 'xiong', '天罗': 'xiong', '地网': 'xiong',
+  // 中性
+  '桃花': 'zhong', '驿马': 'zhong', '华盖': 'zhong', '红艳': 'zhong',
+}
+
 interface BaziResult {
   year_gan: string; year_zhi: string
   month_gan: string; month_zhi: string
@@ -342,9 +358,16 @@ export default function ResultPage() {
                 <div className="grid-cell row-label shensha-label">神煞</div>
                 {pillars.map((p, i) => (
                   <div key={i} className="grid-cell shensha-cell">
-                    {p.shenSha.map((sh, idx) => (
-                      <span key={idx} className="shensha-tag">{sh}</span>
-                    ))}
+                    {p.shenSha.map((sh, idx) => {
+                      const polarity = SHENSHA_POLARITY[sh] || 'zhong'
+                      return (
+                        <span
+                          key={idx}
+                          className={`shensha-tag shensha-tag--${polarity}`}
+                          title={polarity === 'ji' ? '吉神' : polarity === 'xiong' ? '凶煞' : '中性'}
+                        >{sh}</span>
+                      )
+                    })}
                   </div>
                 ))}
 
