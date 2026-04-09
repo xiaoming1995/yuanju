@@ -34,8 +34,9 @@ var ShenShaPolarity = map[string]string{
 	"阴差阳错": "xiong",
 	"魁罡":   "xiong",
 	"十恶大败": "xiong",
-	"天罗":   "xiong",
+	"天罗地网": "xiong",
 	"地网":   "xiong",
+	"童子煞":  "xiong",
 	"灾煞":   "xiong",
 	// ── 中性（需结合格局判断）───────────────────────────────────
 	"桃花": "zhong",
@@ -90,8 +91,33 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 	}
 
 	// ══════════════════════════════════════════════════════════
-	// 第一组-B：日干 → 四柱地支（主要贵人/凶煞）
+	// 第一组-B：日干 + 年干 双基准 → 四柱地支（主要贵人/凶煞）
+	// Fix v4: 天乙/文昌/天厨 同时以年干和日干推算，解决年干来源的神煞漏标
 	// ══════════════════════════════════════════════════════════
+
+	// 天乙贵人检查函数（支持任意干基准）
+	tianYiCheck := func(stem, branch string) bool {
+		return (strings.Contains("甲戊庚", stem) && strings.Contains("丑未", branch)) ||
+			(strings.Contains("乙己", stem) && strings.Contains("子申", branch)) ||
+			(strings.Contains("丙丁", stem) && strings.Contains("亥酉", branch)) ||
+			(strings.Contains("壬癸", stem) && strings.Contains("卯巳", branch)) ||
+			(stem == "辛" && strings.Contains("午寅", branch))
+	}
+	// 文昌贵人检查函数（支持任意干基准）
+	wenChangCheck := func(stem, branch string) bool {
+		return (stem == "甲" && branch == "巳") || (stem == "乙" && branch == "午") ||
+			(strings.Contains("丙戊", stem) && branch == "申") || (strings.Contains("丁己", stem) && branch == "酉") ||
+			(stem == "庚" && branch == "亥") || (stem == "辛" && branch == "子") ||
+			(stem == "壬" && branch == "寅") || (stem == "癸" && branch == "卯")
+	}
+	// 天厨贵人检查函数（食神得禄法，支持任意干基准）
+	tianChuCheck := func(stem, branch string) bool {
+		return (strings.Contains("甲丙", stem) && branch == "巳") ||
+			(strings.Contains("乙丁", stem) && branch == "午") ||
+			(stem == "戊" && branch == "申") || (stem == "己" && branch == "酉") ||
+			(stem == "庚" && branch == "亥") || (stem == "辛" && branch == "子") ||
+			(stem == "壬" && branch == "寅") || (stem == "癸" && branch == "卯")
+	}
 
 	// 国印贵人检查表（在循环外预计算）
 	// Fix: 日干查全柱 + 各柱本干自查（双重），解决月柱漏标问题
@@ -103,24 +129,13 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 	dayGIZhi := guoYinMap[dg] // 日干对应的国印地支（空字符串则该干无国印）
 
 	for i, z := range zhis {
-		// 天乙贵人（甲戊庚牛羊，乙己鼠猴乡，丙丁猪鸡位，壬癸兔蛇藏，六辛逢马虎）
-		addIf(i,
-			(strings.Contains("甲戊庚", dg) && strings.Contains("丑未", z)) ||
-				(strings.Contains("乙己", dg) && strings.Contains("子申", z)) ||
-				(strings.Contains("丙丁", dg) && strings.Contains("亥酉", z)) ||
-				(strings.Contains("壬癸", dg) && strings.Contains("卯巳", z)) ||
-				(dg == "辛" && strings.Contains("午寅", z)),
-			"天乙贵人")
+		// 天乙贵人：日干 + 年干 双基准（年干乙→子申，可命中日柱等）
+		addIf(i, tianYiCheck(dg, z) || tianYiCheck(yg, z), "天乙贵人")
 
-		// 文昌贵人（甲巳 乙午 丙戊申 丁己酉 庚亥 辛子 壬寅 癸卯）
-		addIf(i,
-			(dg == "甲" && z == "巳") || (dg == "乙" && z == "午") ||
-				(strings.Contains("丙戊", dg) && z == "申") || (strings.Contains("丁己", dg) && z == "酉") ||
-				(dg == "庚" && z == "亥") || (dg == "辛" && z == "子") ||
-				(dg == "壬" && z == "寅") || (dg == "癸" && z == "卯"),
-			"文昌贵人")
+		// 文昌贵人：日干 + 年干 双基准（年干乙→午，可命中时柱等）
+		addIf(i, wenChangCheck(dg, z) || wenChangCheck(yg, z), "文昌贵人")
 
-		// 禄神（日干临官之地）
+		// 禄神（日干临官之地，仅日干基准）
 		addIf(i,
 			(dg == "甲" && z == "寅") || (dg == "乙" && z == "卯") ||
 				(strings.Contains("丙戊", dg) && z == "巳") || (strings.Contains("丁己", dg) && z == "午") ||
@@ -128,7 +143,7 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 				(dg == "壬" && z == "亥") || (dg == "癸" && z == "子"),
 			"禄神")
 
-		// 羊刃（禄前一位）
+		// 羊刃（日干基准，禄前一位）
 		addIf(i,
 			(dg == "甲" && z == "卯") || (dg == "乙" && z == "辰") ||
 				(strings.Contains("丙戊", dg) && z == "午") || (strings.Contains("丁己", dg) && z == "未") ||
@@ -136,7 +151,7 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 				(dg == "壬" && z == "子") || (dg == "癸" && z == "丑"),
 			"羊刃")
 
-		// 飞刃（羊刃对冲）
+		// 飞刃（日干基准，羊刃对冲）
 		addIf(i,
 			(dg == "甲" && z == "酉") || (dg == "乙" && z == "戌") ||
 				(strings.Contains("丙戊", dg) && z == "子") || (strings.Contains("丁己", dg) && z == "丑") ||
@@ -153,7 +168,7 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 				(dg == "壬" && z == "丑") || (dg == "癸" && z == "寅"),
 			"金舆贵人")
 
-		// 红艳（情感色彩）
+		// 红艳（日干基准，情感色彩）
 		addIf(i,
 			(strings.Contains("甲乙", dg) && z == "午") ||
 				(dg == "丙" && z == "寅") || (dg == "丁" && z == "未") ||
@@ -162,17 +177,9 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 				(dg == "壬" && z == "子") || (dg == "癸" && z == "申"),
 			"红艳")
 
-		// 天厨贵人（食神得禄法）
-		// Fix: 丙食神=戊→禄巳, 丁食神=己→禄午（原错误：丙→寅, 丁→酉）
-		// 甲→巳(食神丙禄), 乙/丁→午(食神己禄), 丙→巳(食神戊禄), 戊→申, 己→酉
-		// 庚→亥, 辛→子, 壬→寅, 癸→卯
-		addIf(i,
-			(strings.Contains("甲丙", dg) && z == "巳") ||
-				(strings.Contains("乙丁", dg) && z == "午") ||
-				(dg == "戊" && z == "申") || (dg == "己" && z == "酉") ||
-				(dg == "庚" && z == "亥") || (dg == "辛" && z == "子") ||
-				(dg == "壬" && z == "寅") || (dg == "癸" && z == "卯"),
-			"天厨贵人")
+		// 天厨贵人：日干 + 年干 双基准（食神得禄法）
+		// 年干乙→食神丁→禄午，可命中时支午等
+		addIf(i, tianChuCheck(dg, z) || tianChuCheck(yg, z), "天厨贵人")
 
 		// 国印贵人（双重检查）
 		// Fix: 日干查全柱（dayGIZhi）+ 各柱本干自查（ownGIZhi），取 OR
@@ -498,18 +505,26 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 	}
 
 	// ══════════════════════════════════════════════════════════
+	// 第七+1组：童子煞（日支在子午卯酉 → 日柱标注）
+	// ══════════════════════════════════════════════════════════
+	if strings.Contains("子午卯酉", dz) {
+		addIf(2, true, "童子煞")
+	}
+
+	// ══════════════════════════════════════════════════════════
 	// 第八组：天罗地网（全盘地支扫描）
-	// Fix: 戌亥均标天罗，辰巳均标地网（原只标戌/辰）
+	// Fix v4: 仅标主位 — 天罗只标戌（不标亥）, 地网只标辰（不标巳）
+	// 问真八字对标确认：天罗地网位在月柱戌，年柱亥不重复标注
 	// ══════════════════════════════════════════════════════════
 	allZhis := yz + mz + dz + hz
 	hasTianLuo := strings.Contains(allZhis, "戌") && strings.Contains(allZhis, "亥")
 	hasDiWang := strings.Contains(allZhis, "辰") && strings.Contains(allZhis, "巳")
 	for i, z := range zhis {
 		if hasTianLuo {
-			addIf(i, z == "戌" || z == "亥", "天罗")
+			addIf(i, z == "戌", "天罗地网") // 仅标戌，亥作为触发条件，不重复标
 		}
 		if hasDiWang {
-			addIf(i, z == "辰" || z == "巳", "地网")
+			addIf(i, z == "辰", "地网") // 仅标辰，巳作为触发条件，不重复标
 		}
 	}
 
