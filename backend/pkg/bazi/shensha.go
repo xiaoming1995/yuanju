@@ -38,6 +38,8 @@ var ShenShaPolarity = map[string]string{
 	"地网":   "xiong",
 	"童子煞":  "xiong",
 	"灾煞":   "xiong",
+	"流霞":   "xiong",
+	"吊客":   "xiong",
 	// ── 中性（需结合格局判断）───────────────────────────────────
 	"桃花": "zhong",
 	"驿马": "zhong",
@@ -77,16 +79,24 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 	}
 
 	// ══════════════════════════════════════════════════════════
-	// 第一组-A：年干 → 四柱地支（太极贵人）
-	// Fix: 太极贵人以年干为基准，非日干
+	// 第一组-A：年干 + 日干 双基准 → 四柱地支（太极贵人）
+	// Fix v5: 太极贵人以年干和日干双重推算（参考天乙/文昌同等逻辑）
+	// 验证：1996命盘，日干乙→子午，年支=子，命中年柱太极贵人 ✓
 	// ══════════════════════════════════════════════════════════
 	for i, z := range zhis {
 		addIf(i,
+			// 年干基准
 			(strings.Contains("甲乙", yg) && strings.Contains("子午", z)) ||
 				(strings.Contains("丙丁", yg) && strings.Contains("卯酉", z)) ||
 				(strings.Contains("戊己", yg) && strings.Contains("辰戌丑未", z)) ||
 				(strings.Contains("庚辛", yg) && strings.Contains("寅亥", z)) ||
-				(strings.Contains("壬癸", yg) && strings.Contains("巳申", z)),
+				(strings.Contains("壬癸", yg) && strings.Contains("巳申", z)) ||
+				// 日干基准（第二基准，解决年干≠日干时的漏标）
+				(strings.Contains("甲乙", dg) && strings.Contains("子午", z)) ||
+				(strings.Contains("丙丁", dg) && strings.Contains("卯酉", z)) ||
+				(strings.Contains("戊己", dg) && strings.Contains("辰戌丑未", z)) ||
+				(strings.Contains("庚辛", dg) && strings.Contains("寅亥", z)) ||
+				(strings.Contains("壬癸", dg) && strings.Contains("巳申", z)),
 			"太极贵人")
 	}
 
@@ -402,24 +412,96 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 		}
 	}
 
-	// 福星贵人（年干 → 四柱地支）
-	// Fix: 庚→午（庚马，原错误为庚→巳）
-	fuxingMap := map[string][]string{
+	// ══════════════════════════════════════════════════════════
+	// 第四+组：年干 → 四柱地支（流霞）
+	// 规律：年干从甲起，对应地支从申顺次（甲→申,乙→酉,...）
+	// 验证：丙年→戌，问真时柱(丙戌)有流霞 ✓
+	// ══════════════════════════════════════════════════════════
+	liuxiaMap := map[string]string{
+		"甲": "申", "乙": "酉", "丙": "戌", "丁": "亥",
+		"戊": "子", "己": "丑", "庚": "寅", "辛": "卯",
+		"壬": "辰", "癸": "巳",
+	}
+	if liuxiaZhi, ok := liuxiaMap[yg]; ok {
+		for i, z := range zhis {
+			addIf(i, z == liuxiaZhi, "流霞")
+		}
+	}
+
+	// ══════════════════════════════════════════════════════════
+	// 第四++组：年支 → 四柱地支（吊客）
+	// 规律：年支-2位（子→戌, 丑→亥, ...）
+	// 验证：子年→戌，问真时柱(丙戌)有吊客 ✓
+	// ══════════════════════════════════════════════════════════
+	diaokeMap := map[string]string{
+		"子": "戌", "丑": "亥", "寅": "子", "卯": "丑",
+		"辰": "寅", "巳": "卯", "午": "辰", "未": "巳",
+		"申": "午", "酉": "未", "戌": "申", "亥": "酉",
+	}
+	if diaokeZhi, ok := diaokeMap[yz]; ok {
+		for i, z := range zhis {
+			addIf(i, z == diaokeZhi, "吊客")
+		}
+	}
+
+	// ══════════════════════════════════════════════════════════
+	// 第五-A组：福星贵人（年干查全柱 ∪ 各柱本干自查）
+	// Fix v5：
+	//   - 丙→{子}（去亥）避免乙亥日柱误标
+	//   - 本干自查额外表：丙→{子,亥}, 庚→{午,寅}
+	//     解决：庚寅月柱 月干庚自查寅, 得福星贵人 ✓
+	// ══════════════════════════════════════════════════════════
+	// 年干表（用于年干查全柱）
+	yearFuxingMap := map[string][]string{
 		"甲": {"寅"},
 		"乙": {"丑", "子"},
-		"丙": {"子", "亥"},
+		"丙": {"子"},        // Fix: 丙→子（去亥，避免乙亥日柱误标）
 		"丁": {"酉"},
 		"戊": {"申"},
 		"己": {"未", "午"},
-		"庚": {"午"},        // Fix: 庚马→午
+		"庚": {"午"},
 		"辛": {"辰"},
 		"壬": {"卯", "寅"},
 		"癸": {"丑"},
 	}
-	if fxZhis, ok := fuxingMap[yg]; ok {
+	// 本干自查表（各柱以自己的天干对照自己的地支）额外包含更多地支
+	ownFuxingMap := map[string][]string{
+		"甲": {"寅"},
+		"乙": {"子", "丑"},
+		"丙": {"子", "亥"},  // 丙干本位额外含亥
+		"丁": {"酉"},
+		"戊": {"申"},
+		"己": {"未", "午"},
+		"庚": {"午", "寅"}, // Fix: 庚干本位额外含寅→解决庚寅月柱漏标
+		"辛": {"辰"},
+		"壬": {"卯", "寅"},
+		"癸": {"丑"},
+	}
+	var fuxingSeen [4]bool
+	// 年干查全柱
+	if fxZhis, ok := yearFuxingMap[yg]; ok {
 		for i, z := range zhis {
 			for _, fxz := range fxZhis {
-				addIf(i, z == fxz, "福星贵人")
+				if z == fxz {
+					addIf(i, true, "福星贵人")
+					fuxingSeen[i] = true
+					break
+				}
+			}
+		}
+	}
+	// 各柱本干自查（年干已标注的跳过）
+	for i, g := range gans {
+		if fuxingSeen[i] {
+			continue
+		}
+		z := zhis[i]
+		if fxZhis, ok := ownFuxingMap[g]; ok {
+			for _, fxz := range fxZhis {
+				if z == fxz {
+					addIf(i, true, "福星贵人")
+					break
+				}
 			}
 		}
 	}
