@@ -28,6 +28,7 @@ const SHENSHA_POLARITY: Record<string, string> = {
   '天德贵人': 'ji', '月德贵人': 'ji', '天德合': 'ji', '月德合': 'ji',
   '德秀贵人': 'ji', '金舆贵人': 'ji', '天喜': 'ji', '天厨贵人': 'ji',
   '国印贵人': 'ji', '三奇贵人': 'ji', '日德': 'ji', '将星': 'ji', '福星贵人': 'ji', '天医': 'ji',
+  '十灵日': 'ji', '词馆': 'ji',
   // 凶煞
   '羊刃': 'xiong', '飞刃': 'xiong', '劫煞': 'xiong', '亡神': 'xiong',
   '孤辰': 'xiong', '寡宿': 'xiong', '阴差阳错': 'xiong',
