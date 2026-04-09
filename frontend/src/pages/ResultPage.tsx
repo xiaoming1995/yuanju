@@ -1,9 +1,9 @@
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { Diamond } from 'lucide-react'
+import { Diamond, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { baziAPI } from '../lib/api'
-import type { AIReport } from '../lib/api'
+import { baziAPI, fetchShenshaAnnotations } from '../lib/api'
+import type { AIReport, ShenshaAnnotation } from '../lib/api'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
@@ -110,6 +110,21 @@ export default function ResultPage() {
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('brief')
   const [savingImage, setSavingImage] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
+
+  // 神煞注解状态
+  const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
+  const [activeAnnotation, setActiveAnnotation] = useState<ShenshaAnnotation | null>(null)
+
+  // 预加载神煞注解
+  useEffect(() => {
+    fetchShenshaAnnotations()
+      .then(list => {
+        const map = new Map<string, ShenshaAnnotation>()
+        list.forEach(a => map.set(a.name, a))
+        setShenshaMap(map)
+      })
+      .catch(() => { /* 注解加载失败不影响主功能 */ })
+  }, [])
 
   const handleSaveImage = async () => {
     if (!shareCardRef.current) return
@@ -363,11 +378,15 @@ export default function ResultPage() {
                   <div key={i} className="grid-cell shensha-cell">
                     {p.shenSha.map((sh, idx) => {
                       const polarity = SHENSHA_POLARITY[sh] || 'zhong'
+                      const hasAnnotation = shenshaMap.has(sh)
                       return (
                         <span
                           key={idx}
-                          className={`shensha-tag shensha-tag--${polarity}`}
-                          title={polarity === 'ji' ? '吉神' : polarity === 'xiong' ? '凶煞' : '中性'}
+                          className={`shensha-tag shensha-tag--${polarity}${hasAnnotation ? ' shensha-tag--clickable' : ''}`}
+                          onClick={() => {
+                            const ann = shenshaMap.get(sh)
+                            if (ann) setActiveAnnotation(ann)
+                          }}
                         >{sh}</span>
                       )
                     })}
@@ -578,6 +597,40 @@ export default function ResultPage() {
           structured={report?.content_structured ?? null}
         />
       </div>
+
+      {/* 神煞注解浮层卡片 */}
+      {activeAnnotation && (
+        <div
+          className="shensha-modal-overlay"
+          onClick={() => setActiveAnnotation(null)}
+        >
+          <div
+            className="shensha-modal-card"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="shensha-modal-header">
+              <div className="shensha-modal-title">
+                <span className={`shensha-modal-dot shensha-modal-dot--${activeAnnotation.polarity}`} />
+                <span className="shensha-modal-name">{activeAnnotation.name}</span>
+                <span className={`shensha-modal-badge shensha-modal-badge--${activeAnnotation.polarity}`}>
+                  {activeAnnotation.polarity === 'ji' ? '吉神' : activeAnnotation.polarity === 'xiong' ? '凶煞' : '中性'}
+                </span>
+              </div>
+              <button
+                className="shensha-modal-close"
+                onClick={() => setActiveAnnotation(null)}
+                aria-label="关闭"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="shensha-modal-divider" />
+            <div className="shensha-modal-body">
+              <p className="shensha-modal-description">{activeAnnotation.description}</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -61,6 +61,9 @@ func main() {
 			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
 		}
 
+		// 神煞注解（公开）
+		api.GET("/shensha/annotations", handler.GetShenshaAnnotations)
+
 		// Admin 路由组（独立鉴权）
 		admin := api.Group("/admin")
 		{
@@ -116,6 +119,9 @@ func main() {
 				adminAuth.GET("/algo-tiaohou", handler.AdminGetAlgoTiaohou)
 				adminAuth.PUT("/algo-tiaohou/:day_gan/:month_zhi", handler.AdminUpdateAlgoTiaohou)
 				adminAuth.DELETE("/algo-tiaohou/:day_gan/:month_zhi", handler.AdminDeleteAlgoTiaohou)
+
+				// 神煞注解管理（Admin）
+				adminAuth.PUT("/shensha-annotations/:name", handler.AdminUpdateShenshaAnnotation)
 			}
 		}
 	}

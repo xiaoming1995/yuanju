@@ -82,3 +82,12 @@ type DayunItem struct {
 	DiShi      string        `json:"di_shi"`
 	LiuNian    []LiuNianItem `json:"liu_nian"`
 }
+
+// ShenshaAnnotation 神煞注解（存储详细说明文案）
+type ShenshaAnnotation struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Polarity    string    `json:"polarity"`    // ji / xiong / zhong
+	Description string    `json:"description"` // 详细说明（命理书级别）
+	UpdatedAt   time.Time `json:"updated_at"`
+}

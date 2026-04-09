@@ -110,4 +110,17 @@ export interface LiuYueResponse {
   current_month_index: number // -1 表示不在该命理年内（无高亮）
 }
 
+// ======= 神煞注解类型 =======
+export interface ShenshaAnnotation {
+  id: string
+  name: string
+  polarity: 'ji' | 'xiong' | 'zhong'
+  description: string
+  updated_at: string
+}
+
+// 获取全部神煞注解（公开，无需鉴权）
+export const fetchShenshaAnnotations = (): Promise<ShenshaAnnotation[]> =>
+  api.get('/api/shensha/annotations').then(res => res.data.data ?? [])
+
 export default api
