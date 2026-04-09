@@ -87,8 +87,24 @@ export const adminCelebritiesAPI = {
 
 export const adminPromptsAPI = {
   list: () => adminApi.get('/api/admin/prompts'),
-  update: (module: string, data: { content: string }) => 
+  update: (module: string, data: { content: string }) =>
     adminApi.put(`/api/admin/prompts/${module}`, data)
+}
+
+export const adminAlgoConfigAPI = {
+  list: () => adminApi.get('/api/admin/algo-config'),
+  update: (key: string, data: { value: string; description?: string }) =>
+    adminApi.put(`/api/admin/algo-config/${key}`, data),
+  reload: () => adminApi.post('/api/admin/algo-config/reload'),
+}
+
+export const adminAlgoTiaohouAPI = {
+  list: (dayGan?: string) =>
+    adminApi.get('/api/admin/algo-tiaohou' + (dayGan ? `?day_gan=${dayGan}` : '')),
+  update: (dayGan: string, monthZhi: string, data: { xi_elements: string; text?: string }) =>
+    adminApi.put(`/api/admin/algo-tiaohou/${dayGan}/${monthZhi}`, data),
+  delete: (dayGan: string, monthZhi: string) =>
+    adminApi.delete(`/api/admin/algo-tiaohou/${dayGan}/${monthZhi}`),
 }
 
 export default adminApi

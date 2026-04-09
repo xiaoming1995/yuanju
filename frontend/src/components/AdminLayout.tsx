@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
-import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen } from 'lucide-react'
+import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen, SlidersHorizontal } from 'lucide-react'
 import { useAdminAuth } from '../contexts/AdminAuthContext'
 import './AdminLayout.css'
 
@@ -42,6 +42,9 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/prompts" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Bot size={18} /></span> AI 指令设定
+          </NavLink>
+          <NavLink to="/admin/algo-config" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><SlidersHorizontal size={18} /></span> 算法参数配置
           </NavLink>
         </nav>
         <div className="admin-sidebar-footer">

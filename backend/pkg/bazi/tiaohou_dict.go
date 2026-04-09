@@ -14,9 +14,18 @@ type TiaohouResult struct {
 	Text     string   `json:"text"`
 }
 
-// GetTiaohouRule 获取调候规则
+// GetDefaultTiaohouDict 返回硬编码调候用神字典（供 service 层 seed 使用）
+func GetDefaultTiaohouDict() map[string]TiaohouRule {
+	return tiaohouDict
+}
+
+// GetTiaohouRule 获取调候规则，优先使用 DB 覆盖（通过 AlgoConfig 缓存），fallback 到硬编码字典
 func GetTiaohouRule(dayGan, monthZhi string) *TiaohouRule {
 	key := dayGan + "_" + monthZhi
+	cfg := GetAlgoConfig()
+	if override, ok := cfg.TiaohouOverrides[key]; ok {
+		return &override
+	}
 	if rule, ok := tiaohouDict[key]; ok {
 		return &rule
 	}

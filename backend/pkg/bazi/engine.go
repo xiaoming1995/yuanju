@@ -150,6 +150,7 @@ type DayunItem struct {
 	ZhiShiShen string           `json:"zhi_shishen"`
 	DiShi      string           `json:"di_shi"`
 	JinBuHuan  *JinBuHuanResult `json:"jin_bu_huan"`
+	Jixiong    *DayunJixiong    `json:"jixiong"`
 	LiuNian    []LiuNianItem    `json:"liu_nian"`
 }
 
@@ -272,6 +273,10 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		startSolar.GetYear(), startSolar.GetMonth(), startSolar.GetDay(),
 		startSolar.GetHour(), startSolar.GetMinute())
 
+	// 顺/逆排（男阳年干或女阴年干为顺，反之为逆），用于金不换地支评级
+	yangGanSet := map[string]bool{"甲": true, "丙": true, "戊": true, "庚": true, "壬": true}
+	isShunXing := (gender == "male" && yangGanSet[yearGan]) || (gender == "female" && !yangGanSet[yearGan])
+
 	daYunArr := yun.GetDaYun()
 	dayunItems := make([]DayunItem, 0, len(daYunArr))
 	prevDayunGanzhi := ""
@@ -283,6 +288,8 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		runes := []rune(gz)
 		gan := string(runes[0])
 		zhi := string(runes[1])
+		dayunGanWx := LunarUtil.WU_XING_GAN[gan]
+		dayunZhiWx := LunarUtil.WU_XING_ZHI[zhi]
 
 		lns := dy.GetLiuNian()
 		lnItems := make([]LiuNianItem, 0, 10)
@@ -331,7 +338,8 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			GanShiShen: GetShiShen(dayGan, gan),
 			ZhiShiShen: GetZhiShiShen(dayGan, zhi),
 			DiShi:      GetDiShi(dayGan, zhi),
-			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, gan, zhi),
+			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, gan, zhi, isShunXing),
+			Jixiong:    CalcDayunJixiong(dayunGanWx, dayunZhiWx, dayGanWx, wuxing),
 			LiuNian:    lnItems,
 		})
 		prevDayunGanzhi = gz

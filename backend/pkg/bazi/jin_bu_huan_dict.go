@@ -38,7 +38,7 @@ func GetDayunRule(dayGan, monthZhi string) *DayunRule {
 	return nil
 }
 
-// contains 检查 slice 中是否包含指定字符串
+// contains 检查 slice 中是否包含指定字符串（用于天干精确匹配）
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
@@ -48,10 +48,46 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
+// 地支五行分组（用于方向性描述的展开匹配）
+var waterWoodZhi = map[string]bool{"亥": true, "子": true, "寅": true, "卯": true}
+var metalWaterZhi = map[string]bool{"申": true, "酉": true, "亥": true, "子": true}
+
+// matchesZhiItem 判断合表中单条地支条目是否命中大运地支。
+// 合表中除真实地支字符外，还存在方向性描述（如"逆行水木"、"顺运"），
+// 需结合命主顺/逆排信息（isShunXing）展开判断。
+func matchesZhiItem(item, dayunZhi string, isShunXing bool) bool {
+	switch item {
+	case "顺运", "顺行":
+		return isShunXing
+	case "逆运", "逆行":
+		return !isShunXing
+	case "逆行水木":
+		return !isShunXing && waterWoodZhi[dayunZhi]
+	case "逆行金水":
+		return !isShunXing && metalWaterZhi[dayunZhi]
+	case "不拘顺逆", "顺逆不拘", "不忌顺逆运":
+		// 无特殊方向喜忌，不触发吉/凶
+		return false
+	default:
+		return item == dayunZhi
+	}
+}
+
+// matchesZhiList 遍历 ZhiXi 或 ZhiJi，判断是否有任一条目命中大运地支
+func matchesZhiList(list []string, dayunZhi string, isShunXing bool) bool {
+	for _, item := range list {
+		if matchesZhiItem(item, dayunZhi, isShunXing) {
+			return true
+		}
+	}
+	return false
+}
+
 // CalcJinBuHuanDayun 计算某柱大运的金不换评价
 // 前5年：大运天干 vs 合表调候喜忌天干
-// 后5年：大运地支 vs 合表金不换喜忌地支
-func CalcJinBuHuanDayun(dayGan, monthZhi, dayunGan, dayunZhi string) *JinBuHuanResult {
+// 后5年：大运地支 vs 合表金不换喜忌地支（含方向性描述展开）
+// isShunXing：命主是否顺排（男阳年/女阴年为顺）
+func CalcJinBuHuanDayun(dayGan, monthZhi, dayunGan, dayunZhi string, isShunXing bool) *JinBuHuanResult {
 	rule := GetDayunRule(dayGan, monthZhi)
 	if rule == nil {
 		return nil
@@ -75,10 +111,10 @@ func CalcJinBuHuanDayun(dayGan, monthZhi, dayunGan, dayunZhi string) *JinBuHuanR
 	houLevel := "平"
 	houDesc := ""
 
-	if contains(rule.ZhiXi, dayunZhi) {
+	if matchesZhiList(rule.ZhiXi, dayunZhi, isShunXing) {
 		houLevel = "吉"
 		houDesc = dayunZhi + "为金不换喜用地支，后5年大运亨通。"
-	} else if contains(rule.ZhiJi, dayunZhi) {
+	} else if matchesZhiList(rule.ZhiJi, dayunZhi, isShunXing) {
 		houLevel = "凶"
 		houDesc = dayunZhi + "为金不换忌神地支，后5年运势不利。"
 	} else {

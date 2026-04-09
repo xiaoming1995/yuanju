@@ -5,6 +5,7 @@ import (
 	"yuanju/configs"
 	"yuanju/internal/handler"
 	"yuanju/internal/middleware"
+	"yuanju/internal/service"
 	"yuanju/pkg/database"
 	"yuanju/pkg/seed"
 
@@ -21,6 +22,11 @@ func main() {
 
 	// 种子数据：将 .env 中已有的 API Key 写入 llm_providers
 	seed.SeedLLMProviders()
+
+	// 加载算法配置（含调候用神 seed）
+	if err := service.LoadAlgoConfig(); err != nil {
+		log.Printf("算法配置加载失败（使用默认值）: %v", err)
+	}
 
 	// 初始化路由
 	r := gin.Default()
@@ -100,6 +106,16 @@ func main() {
 				// Prompt 管理
 				adminAuth.GET("/prompts", handler.GetPrompts)
 				adminAuth.PUT("/prompts/:module", handler.UpdatePrompt)
+
+				// 算法参数管理
+				adminAuth.GET("/algo-config", handler.AdminGetAlgoConfig)
+				adminAuth.PUT("/algo-config/:key", handler.AdminUpdateAlgoConfig)
+				adminAuth.POST("/algo-config/reload", handler.AdminReloadAlgoConfig)
+
+				// 调候用神规则管理
+				adminAuth.GET("/algo-tiaohou", handler.AdminGetAlgoTiaohou)
+				adminAuth.PUT("/algo-tiaohou/:day_gan/:month_zhi", handler.AdminUpdateAlgoTiaohou)
+				adminAuth.DELETE("/algo-tiaohou/:day_gan/:month_zhi", handler.AdminDeleteAlgoTiaohou)
 			}
 		}
 	}

@@ -140,6 +140,22 @@ func Migrate() {
 		UNIQUE(chart_id, target_year)
 	);
 	CREATE INDEX IF NOT EXISTS idx_ai_liunian_reports_chart_id ON ai_liunian_reports(chart_id);
+
+	CREATE TABLE IF NOT EXISTS algo_config (
+		key VARCHAR(100) PRIMARY KEY,
+		value TEXT NOT NULL,
+		description TEXT,
+		updated_at TIMESTAMPTZ DEFAULT NOW()
+	);
+
+	CREATE TABLE IF NOT EXISTS algo_tiaohou (
+		day_gan VARCHAR(10) NOT NULL,
+		month_zhi VARCHAR(10) NOT NULL,
+		xi_elements TEXT NOT NULL,
+		text TEXT NOT NULL DEFAULT '',
+		updated_at TIMESTAMPTZ DEFAULT NOW(),
+		PRIMARY KEY (day_gan, month_zhi)
+	);
 	`
 
 	if _, err := DB.Exec(schema); err != nil {

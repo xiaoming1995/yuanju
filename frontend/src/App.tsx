@@ -17,6 +17,7 @@ import AdminAILogsPage from './pages/admin/AdminAILogsPage'
 import AdminChartsPage from './pages/admin/AdminChartsPage'
 import AdminCelebritiesPage from './pages/admin/AdminCelebritiesPage'
 import PromptSettings from './pages/admin/PromptSettings'
+import AlgoConfigPage from './pages/admin/AlgoConfigPage'
 import './index.css'
 import './App.css'
 
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="charts" element={<AdminChartsPage />} />
               <Route path="ai-logs" element={<AdminAILogsPage />} />
               <Route path="prompts" element={<PromptSettings />} />
+              <Route path="algo-config" element={<AlgoConfigPage />} />
             </Route>
           </Routes>
         </AuthProvider>
