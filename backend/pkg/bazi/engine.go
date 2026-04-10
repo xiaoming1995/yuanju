@@ -241,8 +241,8 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		hourGanWx, hourZhiWx,
 	)
 
-	// 本地极强推理：推算初级喜用神
-	yongshen, jishen := inferNativeYongshen(dayGanWx, wuxing)
+	// 两层推算：调候急用优先，其次月令权重修正扶抑
+	yongshen, jishen := inferNativeYongshen(dayGanWx, monthZhiWx, monthZhi, wuxing)
 
 	// 藏干
 	yearHideGan := bz.GetYearHideGan()
@@ -339,7 +339,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			ZhiShiShen: GetZhiShiShen(dayGan, zhi),
 			DiShi:      GetDiShi(dayGan, zhi),
 			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, gan, zhi, isShunXing),
-			Jixiong:    CalcDayunJixiong(dayunGanWx, dayunZhiWx, dayGanWx, wuxing),
+			Jixiong:    CalcDayunJixiong(dayunGanWx, dayunZhiWx, dayGanWx, monthZhiWx, wuxing),
 			LiuNian:    lnItems,
 		})
 		prevDayunGanzhi = gz
@@ -487,38 +487,86 @@ func listToSlice(l *list.List) []string {
 	return res
 }
 
-// inferNativeYongshen 引擎层内联极简用神统计算法（无须 LLM 的极速版）
-// 它仅仅依赖基础常识：命中自身五行与生助自己的五行比例是否越界（>40% 为身强极性判定）
-func inferNativeYongshen(dayGanWx string, stats WuxingStats) (yongshen, jishen string) {
+// calcWeightedYongshen 月令权重修正扶抑法（内部核心）
+// 月支额外加权 +2（使月支总权重=3，其余各字权重=1），合计基准从8升为10。
+// 阈值改为严格大于（>）40%，避免恰好等于边界时误判。
+func calcWeightedYongshen(dayGanWx, monthZhiWx string, stats WuxingStats) (yongshen, jishen string) {
+	// 月支加权：原始计数+2，总权重=10
+	ws := stats
+	ws.Total = 10
+	switch monthZhiWx {
+	case "木":
+		ws.Mu += 2
+	case "火":
+		ws.Huo += 2
+	case "土":
+		ws.Tu += 2
+	case "金":
+		ws.Jin += 2
+	case "水":
+		ws.Shui += 2
+	}
+	t := float64(ws.Total)
+	ws.MuPct = float64(ws.Mu) / t * 100
+	ws.HuoPct = float64(ws.Huo) / t * 100
+	ws.TuPct = float64(ws.Tu) / t * 100
+	ws.JinPct = float64(ws.Jin) / t * 100
+	ws.ShuiPct = float64(ws.Shui) / t * 100
+
 	var helpPct float64
 	var helpElements, opposeElements string
 	switch dayGanWx {
 	case "木":
-		helpPct = stats.MuPct + stats.ShuiPct
+		helpPct = ws.MuPct + ws.ShuiPct
 		helpElements = "水木"
 		opposeElements = "金土火"
 	case "火":
-		helpPct = stats.HuoPct + stats.MuPct
+		helpPct = ws.HuoPct + ws.MuPct
 		helpElements = "木火"
 		opposeElements = "水金土"
 	case "土":
-		helpPct = stats.TuPct + stats.HuoPct
+		helpPct = ws.TuPct + ws.HuoPct
 		helpElements = "火土"
 		opposeElements = "木水金"
 	case "金":
-		helpPct = stats.JinPct + stats.TuPct
+		helpPct = ws.JinPct + ws.TuPct
 		helpElements = "土金"
 		opposeElements = "火木水"
 	case "水":
-		helpPct = stats.ShuiPct + stats.JinPct
+		helpPct = ws.ShuiPct + ws.JinPct
 		helpElements = "金水"
 		opposeElements = "土火木"
 	}
 
-	// 如果生助的属性超过 40%，按极简算法算作身强，喜克/泄/耗
-	if helpPct >= 40.0 {
+	// 帮扶比例严格大于 40% → 身强，喜克/泄/耗；否则身弱，喜生/助
+	if helpPct > 40.0 {
 		return opposeElements, helpElements
 	}
-	// 否则身弱，喜生/助
 	return helpElements, opposeElements
+}
+
+// inferNativeYongshen 两层推算引擎：调候急用优先，其次月令权重扶抑
+//
+// 层1 - 调候急用：三冬（亥子丑）命局无火 → 急需火调候；三夏（巳午未）命局无水 → 急需水调候。
+//         当调候极度缺失时，调候优先于扶抑，直接返回对应五行喜忌。
+//
+// 层2 - 月令权重扶抑：月支权重×3，其余字×1，总权重10，严格大于40%判身强。
+//
+// dayGanWx：日主五行名  monthZhiWx：月支五行名  monthZhi：月支地支字
+func inferNativeYongshen(dayGanWx, monthZhiWx, monthZhi string, stats WuxingStats) (yongshen, jishen string) {
+	// ── 层1：调候急用检测 ─────────────────────────────────────────────
+	coldMonths := map[string]bool{"亥": true, "子": true, "丑": true} // 三冬
+	hotMonths := map[string]bool{"巳": true, "午": true, "未": true}   // 三夏
+
+	if coldMonths[monthZhi] && stats.Huo == 0 {
+		// 极寒无火：火为急用，喜火木（火暖局，木生火），忌水金土（助寒伤火）
+		return "火木", "水金土"
+	}
+	if hotMonths[monthZhi] && stats.Shui == 0 {
+		// 极热无水：水为急用，喜水金（水降温，金生水），忌火木土（助热耗水）
+		return "水金", "火木土"
+	}
+
+	// ── 层2：月令权重修正扶抑 ─────────────────────────────────────────
+	return calcWeightedYongshen(dayGanWx, monthZhiWx, stats)
 }

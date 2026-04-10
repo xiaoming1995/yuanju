@@ -44,7 +44,7 @@ func mergeDayunWuxing(original WuxingStats, dayunGanWx, dayunZhiWx string) Wuxin
 //  2. 合局冷热适度 → 扶抑优先（身强则抑，身弱则扶）
 //
 // 注：刑冲克合应期判断需完整柱信息，暂由 LLM 层处理，待后续迭代实现。
-func CalcDayunJixiong(dayunGanWx, dayunZhiWx, dayGanWx string, originalWuxing WuxingStats) *DayunJixiong {
+func CalcDayunJixiong(dayunGanWx, dayunZhiWx, dayGanWx, monthZhiWx string, originalWuxing WuxingStats) *DayunJixiong {
 	// 合局：原局八字 + 大运天干 + 大运地支
 	merged := mergeDayunWuxing(originalWuxing, dayunGanWx, dayunZhiWx)
 
@@ -73,7 +73,7 @@ func CalcDayunJixiong(dayunGanWx, dayunZhiWx, dayGanWx string, originalWuxing Wu
 
 	// ── 规则二：合局冷热适度 → 扶抑优先 ─────────────────────────────
 	// 对合局重新推断用神/忌神（反映大运期间的实际强弱）
-	yongshen, jishen := inferNativeYongshen(dayGanWx, merged)
+	yongshen, jishen := calcWeightedYongshen(dayGanWx, monthZhiWx, merged)
 
 	score := 0
 	for _, wx := range []string{dayunGanWx, dayunZhiWx} {
