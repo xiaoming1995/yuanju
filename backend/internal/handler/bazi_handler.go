@@ -161,13 +161,17 @@ func GenerateReportStream(c *gin.Context) {
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("Transfer-Encoding", "chunked")
+	// 关闭 Nginx 的缓冲，使得流可以实时推送到浏览器
+	c.Header("X-Accel-Buffering", "no")
 
 	// 通知前端要开始推流了
 	c.Writer.Flush()
 
 	log.Printf("[AI Report Stream] 开始流式生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
 	err = service.GenerateAIReportStream(chart.ID, result, func(chunk string) error {
-		c.SSEvent("message", chunk)
+		// 为了防止 chunk 中的真实换行符将 SSE 的 data 块直接切断、造成前端解析错误，
+		// 我们将 chunk 包装到 JSON 中推送过去
+		c.SSEvent("message", gin.H{"chunk": chunk})
 		c.Writer.Flush()
 		return nil
 	})

@@ -117,7 +117,15 @@ export const baziAPI = {
               onDone()
               return
             } else {
-              onMessage(data)
+              try {
+                const parsed = JSON.parse(data)
+                if (parsed.chunk) {
+                  onMessage(parsed.chunk)
+                }
+              } catch (e) {
+                // 向后容错：万一不是 JSON 则直接作为字符串
+                onMessage(data)
+              }
             }
           } else if (line.startsWith('event: error')) {
             // Usually SSE format is event: error\ndata: MSG, but we send event manually as SSEvent("error", msg)
