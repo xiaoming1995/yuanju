@@ -31,6 +31,7 @@ interface DayunItem {
   gan_shishen: string
   zhi_shishen: string
   di_shi: string
+  shen_sha?: string[]
   jin_bu_huan?: JinBuHuanResult | null
   liu_nian: LiuNianItem[]
 }
@@ -48,8 +49,24 @@ const GAN_WUXING: Record<string, string> = {
   己: 'tu', 庚: 'jin', 辛: 'jin', 壬: 'shui', 癸: 'shui',
 }
 
-
-
+// 神煞极性配色
+const SS_POLARITY: Record<string, { bg: string; color: string }> = {
+  ji:    { bg: 'rgba(76,175,80,0.15)', color: '#66bb6a' },
+  xiong: { bg: 'rgba(244,67,54,0.15)', color: '#ef5350' },
+  zhong: { bg: 'rgba(255,193,7,0.12)', color: '#ffc107' },
+}
+const SS_POLARITY_MAP: Record<string, string> = {
+  天乙贵人: 'ji', 太极贵人: 'ji', 文昌贵人: 'ji', 禄神: 'ji',
+  天德贵人: 'ji', 月德贵人: 'ji', 天德合: 'ji', 月德合: 'ji',
+  德秀贵人: 'ji', 金舆贵人: 'ji', 天喜: 'ji', 天厨贵人: 'ji',
+  国印贵人: 'ji', 三奇贵人: 'ji', 日德: 'ji', 将星: 'ji',
+  十灵日: 'ji', 词馆: 'ji', 福星贵人: 'ji', 天医: 'ji',
+  羊刃: 'xiong', 飞刃: 'xiong', 劫煞: 'xiong', 亡神: 'xiong',
+  孤辰: 'xiong', 寡宿: 'xiong', 阴差阳错: 'xiong', 魁罡: 'xiong',
+  十恶大败: 'xiong', 天罗地网: 'xiong', 地网: 'xiong', 童子煞: 'xiong',
+  灾煞: 'xiong', 流霞: 'xiong', 吊客: 'xiong', 墓门: 'xiong',
+  桃花: 'zhong', 驿马: 'zhong', 华盖: 'zhong', 红艳: 'zhong',
+}
 
 export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }: DayunTimelineProps) {
   const currentYear = new Date().getFullYear()
@@ -129,7 +146,22 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
                 </div>
                 
 
-
+                {/* 大运神煞标签 */}
+                {d.shen_sha && d.shen_sha.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center', maxWidth: 90, marginTop: 2 }}>
+                    {d.shen_sha.map((ss, si) => {
+                      const pol = SS_POLARITY_MAP[ss] || 'zhong'
+                      const style = SS_POLARITY[pol] || SS_POLARITY.zhong
+                      return (
+                        <span key={si} style={{
+                          fontSize: 9, padding: '1px 4px', borderRadius: 3,
+                          background: style.bg, color: style.color,
+                          lineHeight: 1.4, whiteSpace: 'nowrap',
+                        }}>{ss}</span>
+                      )
+                    })}
+                  </div>
+                )}
 
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, marginTop: 4 }}>
                   {d.start_year}<br/>—<br/>{d.end_year}

@@ -149,6 +149,7 @@ type DayunItem struct {
 	GanShiShen string           `json:"gan_shishen"`
 	ZhiShiShen string           `json:"zhi_shishen"`
 	DiShi      string           `json:"di_shi"`
+	ShenSha    []string         `json:"shen_sha"`
 	JinBuHuan  *JinBuHuanResult `json:"jin_bu_huan"`
 	LiuNian    []LiuNianItem    `json:"liu_nian"`
 }
@@ -324,6 +325,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			})
 		}
 
+		dayunShenSha := GetDayunShenSha(yearGan, yearZhi, monthZhi, dayGan, dayZhi, gan, zhi)
 		dayunItems = append(dayunItems, DayunItem{
 			Index:      dy.GetIndex(),
 			Gan:        gan,
@@ -334,6 +336,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			GanShiShen: GetShiShen(dayGan, gan),
 			ZhiShiShen: GetZhiShiShen(dayGan, zhi),
 			DiShi:      GetDiShi(dayGan, zhi),
+			ShenSha:    dayunShenSha,
 			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, gan, zhi, isShunXing),
 			LiuNian:    lnItems,
 		})

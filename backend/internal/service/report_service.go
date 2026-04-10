@@ -82,10 +82,15 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		if i >= 10 {
 			break
 		}
-		dayunStr += fmt.Sprintf("(%d) %d岁~%d岁（%d年起）：[%s%s] 干十神=%s 支十神=%s 长生=%s\n",
+		shenshaStr := ""
+		if len(dy.ShenSha) > 0 {
+			shenshaStr = " 神煞=[" + strings.Join(dy.ShenSha, ",") + "]"
+		}
+		dayunStr += fmt.Sprintf("(%d) %d岁~%d岁（%d年起）：[%s%s] 干十神=%s 支十神=%s 长生=%s%s\n",
 			i+1, dy.StartAge, dy.StartAge+9, dy.StartYear,
 			dy.Gan, dy.Zhi,
 			dy.GanShiShen, dy.ZhiShiShen, dy.DiShi,
+			shenshaStr,
 		)
 	}
 	if dayunStr == "" {
