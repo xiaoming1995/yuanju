@@ -15,6 +15,7 @@ const KB_MODULES = [
   { module: 'kb_gejv',    label: '格局判断规则', icon: '🏛️', hint: '子平真诠格局定义、成格破格条件，是推断命局高下的核心逻辑层。' },
   { module: 'kb_tiaohou', label: '调候用神表',   icon: '🌡️', hint: '穷通宝鉴按月调候精华，使 AI 判断寒暖燥湿时有典籍依据。' },
   { module: 'kb_yingqi',  label: '流年应期推算', icon: '📅', hint: '冲合刑害应期推算规则，使 AI 能准确定位吉凶发生的月份。' },
+  { module: 'kb_tonality', label: '语调与立场', icon: '⚖️', hint: '控制 AI 分析的语气风格——中立理性 vs 温暖积极，修改后影响所有报告的文风。' },
 ]
 
 const INSTRUCTION_MODULES = [
@@ -222,7 +223,7 @@ const PromptSettings: React.FC = () => {
       {/* Tab 导航 */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid var(--color-border)' }}>
         {[
-          { key: 'kb' as const, label: '📚 命理知识库', desc: '4 个典籍模块' },
+          { key: 'kb' as const, label: '📚 命理知识库', desc: '5 个典籍模块' },
           { key: 'instruction' as const, label: '⚡ 批断指令', desc: '流年等模版' },
         ].map(tab => (
           <button
@@ -267,7 +268,7 @@ const PromptSettings: React.FC = () => {
                 fontSize: 13, color: '#a78bfa', lineHeight: 1.6,
               }}>
                 💡 <strong>知识库工作原理：</strong>
-                以下 4 个模块会在每次 AI 流年精批时自动被拼入 System Prompt，让 AI 先"精通典籍"再对命盘进行批断。
+                以下 5 个模块会在每次 AI 流年精批时自动被拼入 System Prompt，让 AI 先"精通典籍"再对命盘进行批断。
                 你可以随时修改并保存，清除旧流年缓存后立即生效。
               </div>
               {KB_MODULES.map(def => renderModuleCard(def, true))}

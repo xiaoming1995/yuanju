@@ -53,6 +53,7 @@ func buildKnowledgeBaseSystem() string {
 		{"kb_gejv", "【格局判断规则】"},
 		{"kb_tiaohou", "【调候用神表】"},
 		{"kb_yingqi", "【流年应期推算】"},
+		{"kb_tonality", "【语调与立场】"},
 	}
 
 	var parts []string
