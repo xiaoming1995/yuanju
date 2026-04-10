@@ -48,13 +48,8 @@ const GAN_WUXING: Record<string, string> = {
   己: 'tu', 庚: 'jin', 辛: 'jin', 壬: 'shui', 癸: 'shui',
 }
 
-const JBH_COLORS: Record<string, { bg: string; color: string }> = {
-  '大吉': { bg: 'rgba(76, 175, 80, 0.2)', color: '#66bb6a' },
-  '吉':   { bg: 'rgba(76, 175, 80, 0.12)', color: '#81c784' },
-  '平':   { bg: 'rgba(158, 158, 158, 0.12)', color: '#9e9e9e' },
-  '凶':   { bg: 'rgba(244, 67, 54, 0.12)', color: '#ef9a9a' },
-  '大凶': { bg: 'rgba(244, 67, 54, 0.2)', color: '#e57373' },
-}
+
+
 
 export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }: DayunTimelineProps) {
   const currentYear = new Date().getFullYear()
@@ -133,39 +128,8 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
                   <span style={{color: 'var(--wu-jin)'}}>{d.di_shi}</span>
                 </div>
                 
-                {/* 金不换前5年/后5年评级 */}
-                {d.jin_bu_huan && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 4, width: '100%' }}>
-                    <div
-                      title={`前5年（天干）${d.jin_bu_huan.qian_desc}`}
-                      style={{
-                        fontSize: 10, fontWeight: 600,
-                        padding: '2px 6px', borderRadius: 6,
-                        whiteSpace: 'nowrap', letterSpacing: 0.5,
-                        cursor: 'help', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        background: (JBH_COLORS[d.jin_bu_huan.qian_level] || JBH_COLORS['平']).bg,
-                        color: (JBH_COLORS[d.jin_bu_huan.qian_level] || JBH_COLORS['平']).color,
-                      }}
-                    >
-                      <span style={{ opacity: 0.7, fontSize: 9 }}>前五年</span>
-                      <span>{d.jin_bu_huan.qian_level}</span>
-                    </div>
-                    <div
-                      title={`后5年（地支）${d.jin_bu_huan.hou_desc}`}
-                      style={{
-                        fontSize: 10, fontWeight: 600,
-                        padding: '2px 6px', borderRadius: 6,
-                        whiteSpace: 'nowrap', letterSpacing: 0.5,
-                        cursor: 'help', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        background: (JBH_COLORS[d.jin_bu_huan.hou_level] || JBH_COLORS['平']).bg,
-                        color: (JBH_COLORS[d.jin_bu_huan.hou_level] || JBH_COLORS['平']).color,
-                      }}
-                    >
-                      <span style={{ opacity: 0.7, fontSize: 9 }}>后五年</span>
-                      <span>{d.jin_bu_huan.hou_level}</span>
-                    </div>
-                  </div>
-                )}
+
+
 
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, marginTop: 4 }}>
                   {d.start_year}<br/>—<br/>{d.end_year}
