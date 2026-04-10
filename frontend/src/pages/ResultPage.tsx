@@ -202,6 +202,8 @@ export default function ResultPage() {
 
   // AI 解读状态
   const [reportLoading, setReportLoading] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [streamingText, setStreamingText] = useState('')
   const [reportError, setReportError] = useState('')
   const [loadingStepIndex, setLoadingStepIndex] = useState(0)
 
@@ -254,19 +256,34 @@ export default function ResultPage() {
       return;
     }
     setReportLoading(true)
+    setIsStreaming(true)
+    setStreamingText('')
     setReportError('')
-    try {
-      const res = await baziAPI.generateReport(targetId)
-      setReport(res.data.report || null)
-      // 生成后后端可能已经提取了 yongshen / jishen，同步更新到界面
-      if (res.data.chart) {
-        setResult((prev: any) => ({ ...prev, ...res.data.chart }))
+
+    let currentText = ''
+    await baziAPI.generateReportStream(
+      targetId,
+      (text) => {
+        setReportLoading(false) // 有数据返回，关闭加载动画，展示打字机
+        currentText += text
+        setStreamingText(currentText)
+      },
+      (err) => {
+        setReportError(err)
+        setIsStreaming(false)
+        setReportLoading(false)
+      },
+      () => {
+        setIsStreaming(false)
+        // 流结束，拉取完整结构化数据
+        baziAPI.getHistoryDetail(targetId).then(res => {
+          setResult(res.data.result || res.data.chart || null)
+          setReport(res.data.report || null)
+        }).catch(err => {
+          console.error('Failed to fetch finished report', err)
+        })
       }
-    } catch (err: unknown) {
-      setReportError(err instanceof Error ? err.message : 'AI 生成失败，请重试')
-    } finally {
-      setReportLoading(false)
-    }
+    )
   }
 
   if (loading) return <LoadingSkeleton />
@@ -524,8 +541,18 @@ export default function ResultPage() {
             </div>
           )}
 
-          {/* 生成中 */}
-          {reportLoading && (
+          {/* 流式生成中 */}
+          {isStreaming && (
+            <div className="report-sections animate-fade-in">
+              <div className="report-content" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', lineHeight: 1.8 }}>
+                {streamingText}
+                <span className="cursor-blink">|</span>
+              </div>
+            </div>
+          )}
+
+          {/* 生成中等待动画 */}
+          {reportLoading && !isStreaming && (
             <div className="ai-loading-container animate-fade-in">
               <div className="ai-loading-icon">
                 <div className="spinner"></div>
@@ -539,12 +566,12 @@ export default function ResultPage() {
           )}
 
           {/* 报错 */}
-          {reportError && !reportLoading && (
+          {reportError && !reportLoading && !isStreaming && (
             <p className="form-error" style={{ margin: '12px 0' }}>⚠ {reportError}</p>
           )}
 
           {/* 未生成：显示按钮或引导 */}
-          {!report && !reportLoading && (
+          {!report && !reportLoading && !isStreaming && (
             <>
               {!isGuest ? (
                 <div className="report-cta">

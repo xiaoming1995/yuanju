@@ -85,6 +85,60 @@ export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   generateReport: (chartId: string) =>
     api.post(`/api/bazi/report/${chartId}`, {}, { timeout: 300000 }), // 推理模型最长 300s
+  generateReportStream: async (chartId: string, onMessage: (msg: string) => void, onError: (err: string) => void, onDone: () => void) => {
+    const token = localStorage.getItem('yj_token')
+    const baseURL = import.meta.env.VITE_API_URL || ''
+    try {
+      const response = await fetch(`${baseURL}/api/bazi/report-stream/${chartId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader available')
+
+      const decoder = new TextDecoder()
+      let buffer = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') {
+              onDone()
+              return
+            } else {
+              onMessage(data)
+            }
+          } else if (line.startsWith('event: error')) {
+            // Usually SSE format is event: error\ndata: MSG, but we send event manually as SSEvent("error", msg)
+            // Gin c.SSEvent("error", "message") -> event: error\ndata: message\n\n
+          }
+        }
+        // Handle gin SSE errors
+        if (lines.some(l => l.startsWith('event: error'))) {
+          const errLine = lines.find(l => l.startsWith('data: ') && lines.indexOf(l) > lines.findIndex(e => e.startsWith('event: error')))
+          if (errLine) onError(errLine.slice(6))
+        }
+        if (lines.some(l => l.startsWith('event: done'))) {
+           onDone()
+           return
+        }
+      }
+      onDone()
+    } catch (err: any) {
+      onError(err.message)
+    }
+  },
   generateLiunianReport: (chartId: string, targetYear: number) =>
     api.post(`/api/bazi/liunian-report/${chartId}`, { target_year: targetYear }, { timeout: 300000 }),
   getHistory: (page = 1) => api.get(`/api/bazi/history?page=${page}`),

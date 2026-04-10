@@ -131,6 +131,56 @@ func GenerateReport(c *gin.Context) {
 	})
 }
 
+// GenerateReportStream 流式生成 AI 报告（需登录）
+func GenerateReportStream(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	userIDStr := userID.(string)
+
+	if chart.UserID == nil || *chart.UserID != userIDStr {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+
+	result := bazi.Calculate(
+		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
+		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Transfer-Encoding", "chunked")
+
+	// 通知前端要开始推流了
+	c.Writer.Flush()
+
+	log.Printf("[AI Report Stream] 开始流式生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
+	err = service.GenerateAIReportStream(chart.ID, result, func(chunk string) error {
+		c.SSEvent("message", chunk)
+		c.Writer.Flush()
+		return nil
+	})
+
+	if err != nil {
+		c.SSEvent("error", err.Error())
+		c.Writer.Flush()
+	} else {
+		c.SSEvent("done", "[DONE]")
+		c.Writer.Flush()
+	}
+}
+
 // GenerateLiunianReport 生成 AI 流年精批报告（需登录）
 func GenerateLiunianReport(c *gin.Context) {
 	chartID := c.Param("chart_id")

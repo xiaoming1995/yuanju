@@ -701,3 +701,17 @@
     padding-top: 12px;
   }
 }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+  display: inline-block;
+  vertical-align: text-bottom;
+  width: 8px;
+  height: 1em;
+  background-color: var(--text-primary, #fff);
+  margin-left: 2px;
+}

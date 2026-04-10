@@ -242,47 +242,22 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		"- 接续说明日干强弱依据（月令得令、失令状态）\n" +
 		"- 提取1~2个最亮眼的特征或神煞进行个性点评\n" +
 		"- 若命局存在明显缺陷（如用神缺失、忌神过重、格局遭破），必须如实指出，不可回避或美化。\n\n" +
-		"[第三步：生成六章节报告]\n" +
-		"每章两个版本：\n" +
-		"- brief：约100字，通俗直接，结论先行\n" +
-		"- detail：约350字，有命盘数据支撑，不堆砌术语，用「也就是说」等方式解释专业概念\n\n" +
-		"章节与分析锚点：\n\n" +
-		"【性格特质】\n" +
-		"参考：日主五行天性特质、日支十二长生（内在潜质）、比劫/印绶十神力量（自我表达与驱动力）、关键神煞（天乙贵人/文昌等）。\n" +
-		"分析：性格优势、内在驱动力。同时必须指出性格短板与潜在问题（如固执、优柔、偏执等）。\n\n" +
-		"【感情运势】\n" +
-		"参考：男命看财星（正财/偏财）位置与旺衰；女命看官杀（正官/七杀）位置与力量；日支星运（感情宫）；桃花/红鸾/天喜等感情神煞。\n" +
-		"分析：感情缘分特质、伴侣类型、婚姻稳定性。若存在官杀混杂、桃花过旺、刑冲感情宫等不利因素，必须明确指出风险和需要警惕的问题。\n\n" +
-		"【事业财运】\n" +
-		"参考：官杀（事业星）与食伤（才能星）天干透出情况；财星旺衰；天乙贵人/文昌/驿马等神煞。\n" +
-		"分析：适合职业方向、事业发展节奏、财运特质。若存在财星被劫、官杀混杂、格局被破等不利格局，必须如实指出事业瓶颈与财运风险。\n\n" +
-		"【健康提示】\n" +
-		"参考：五行最旺（需泄耗）与最弱（需补益）的脏腑对应（木肝胆/火心肠/土脾胃/金肺肠/水肾膀胱）；旬空地支；凶煞影响。\n" +
-		"分析：体质倾向、易发健康问题、养生建议。\n\n" +
-		"【大运走势】\n" +
-		"参考：当前年份=" + dayunYear + "年，结合起运时间和大运序列，推算当前所处大运步次并明确说明；重点解读上一步大运（回顾）、当前大运（现状）和下一步大运（展望）对事业感情的影响。\n" +
-		"分析：人生节奏、过去十年得失回顾、当前运势处境、未来十年方向与建议。\n\n" +
-		"【命理分身】\n" +
-		"参考：日主五行特质+格局名称+关键神煞，与名人参考库匹配，选最相近的一位名人。\n" +
-		"分析：相似之处剖析（侧重命理特质相通而非完全相同）、名人启示、一句有温度的结尾寄语。\n\n" +
-		"[第四步：输出JSON（必须严格遵守，不输出任何其他内容）]\n" +
-		"❗JSON格式规范：所有字符串字段中的换行必须用 \\n 表示，禁止使用真实换行符，否则JSON解析会失败。\n" +
-		"{\n" +
-		"  \"yongshen\": \"最终确认的喜用神五行（如：木火）\",\n" +
-		"  \"jishen\": \"最终确认的忌神五行（如：金水）\",\n" +
-		"  \"analysis\": {\n" +
-		"    \"logic\": \"第二步命局分析总览全文（换行用\\n）\",\n" +
-		"    \"summary\": \"一句话命局核心特质（30字以内）\"\n" +
-		"  },\n" +
-		"  \"chapters\": [\n" +
-		"    {\"title\": \"性格特质\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
-		"    {\"title\": \"感情运势\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
-		"    {\"title\": \"事业财运\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
-		"    {\"title\": \"健康提示\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
-		"    {\"title\": \"大运走势\", \"brief\": \"...\", \"detail\": \"...\"},\n" +
-		"    {\"title\": \"命理分身\", \"brief\": \"一句话提炼相似名人特质\", \"detail\": \"相似度剖析与寄语...\"}\n" +
-		"  ]\n" +
-		"}"
+		"[第四步：严格输出 Markdown 格式]\n" +
+		"请必须使用以下严格的 Markdown 标题结构来输出最终结果。必须包含以下所有二级标题，并且标题名称必须一字不差，不要输出额外的多余信息或开头语：\n\n" +
+		"## 【喜用神】\n" +
+		"仅回答金、木、水、火、土中的一种或两种组合\n\n" +
+		"## 【忌神】\n" +
+		"仅回答金、木、水、火、土中的一种或两种组合\n\n" +
+		"## 【命理摘要】\n" +
+		"一句话命局核心特质（30字以内）\n\n" +
+		"## 【命局分析总览】\n" +
+		"第二步的命局分析总览全文\n\n" +
+		"## 【性格特质-精简版】\n\n## 【性格特质-专业版】\n\n" +
+		"## 【感情运势-精简版】\n\n## 【感情运势-专业版】\n\n" +
+		"## 【事业财运-精简版】\n\n## 【事业财运-专业版】\n\n" +
+		"## 【健康提示-精简版】\n\n## 【健康提示-专业版】\n\n" +
+		"## 【大运走势-精简版】\n\n## 【大运走势-专业版】\n\n" +
+		"## 【命理分身-精简版】\n一句话提炼相似名人核心特质\n\n## 【命理分身-专业版】\n相似度剖析与寄语\n"
 
 	return prompt
 }
@@ -419,6 +394,108 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 		return nil, err
 	}
 	return report, nil
+}
+
+// GenerateAIReportStream 流式生成 AI 报告
+func GenerateAIReportStream(chartID string, result *bazi.BaziResult, onData func(string) error) error {
+	// 检查缓存
+	cached, err := repository.GetReportByChartID(chartID)
+	if err == nil && cached != nil {
+		// 缓存命中：直接把全量内容模拟成一个数据块推下去
+		_ = onData(cached.Content)
+		return nil
+	}
+
+	// 构建 Prompt
+	celebs, _ := repository.ListCelebrities(true)
+	prompt := buildBaziPrompt(result, celebs)
+
+	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystem(prompt, onData)
+	
+	status, errMsg := "success", ""
+	if aiErr != nil {
+		status, errMsg = "error", aiErr.Error()
+	}
+	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+
+	if aiErr != nil {
+		return aiErr
+	}
+
+	// 流结束后，异步或同步将 rawContent 处理成 JSON 持久化，供分享和旧接口使用
+	parsed, briefContent := ParseMarkdownToStructured(rawContent)
+	var contentStructured *json.RawMessage
+	if parsed != nil && len(parsed.Chapters) > 0 {
+		raw, _ := json.Marshal(parsed)
+		rawMsg := json.RawMessage(raw)
+		contentStructured = &rawMsg
+
+		if chartID != "" && (parsed.Yongshen != "" || parsed.Jishen != "") {
+			repository.UpdateChartYongshenJishen(chartID, parsed.Yongshen, parsed.Jishen)
+		}
+	} else {
+		fmt.Println("[Stream] Markdown 解析为结构化 JSON 失败。尝试兜底策略")
+	}
+
+	if briefContent == "" {
+		briefContent = rawContent
+	}
+	content := briefContent + "\n\n---\n*本报告由 AI 辅助生成，内容仅供参考，不构成任何决策建议。*"
+	_, _ = repository.CreateReport(chartID, content, modelName, contentStructured)
+
+	return nil
+}
+
+func extractSection(md, header string) string {
+	idx := strings.Index(md, "## 【"+header+"】")
+	if idx == -1 {
+		return ""
+	}
+	sub := md[idx+len("## 【"+header+"】"):]
+	nextIdx := strings.Index(sub, "## 【")
+	if nextIdx != -1 {
+		sub = sub[:nextIdx]
+	}
+	return strings.TrimSpace(sub)
+}
+
+// ParseMarkdownToStructured 将 AI 生成的 Markdown 解析回 JSON 结构
+func ParseMarkdownToStructured(md string) (*structuredReport, string) {
+	var parsed structuredReport
+	parsed.Yongshen = extractSection(md, "喜用神")
+	parsed.Jishen = extractSection(md, "忌神")
+	parsed.Analysis.Summary = extractSection(md, "命理摘要")
+	parsed.Analysis.Logic = extractSection(md, "命局分析总览")
+
+	chapters := []string{"性格特质", "感情运势", "事业财运", "健康提示", "大运走势", "命理分身"}
+	for _, title := range chapters {
+		brief := extractSection(md, title+"-精简版")
+		detail := extractSection(md, title+"-专业版")
+		if brief != "" || detail != "" {
+			parsed.Chapters = append(parsed.Chapters, reportChapter{
+				Title:  title,
+				Brief:  brief,
+				Detail: detail,
+			})
+		}
+	}
+
+	// 拼装备用版 Markdown
+	var parts []string
+	if parsed.Analysis.Summary != "" {
+		parts = append(parts, "【命局概要】\n"+parsed.Analysis.Summary)
+	}
+	for _, ch := range parsed.Chapters {
+		if ch.Brief != "" {
+			parts = append(parts, "【"+ch.Title+"】\n"+ch.Brief)
+		} else if ch.Detail != "" {
+			parts = append(parts, "【"+ch.Title+"】\n"+ch.Detail)
+		}
+	}
+	
+	briefText := strings.Join(parts, "\n\n")
+
+	return &parsed, briefText
 }
 
 // fixJSONStrings 用状态机扫描 JSON，将字符串字段内的真实控制字符（\n \r \t）

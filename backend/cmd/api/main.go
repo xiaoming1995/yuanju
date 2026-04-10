@@ -55,6 +55,7 @@ func main() {
 		{
 			bazi.POST("/calculate", middleware.OptionalAuth(), handler.Calculate)
 			bazi.POST("/report/:chart_id", middleware.Auth(), handler.GenerateReport)
+			bazi.POST("/report-stream/:chart_id", middleware.Auth(), handler.GenerateReportStream)
 			bazi.POST("/liunian-report/:chart_id", middleware.Auth(), handler.GenerateLiunianReport)
 			bazi.GET("/history", middleware.Auth(), handler.GetHistory)
 			bazi.GET("/history/:id", middleware.Auth(), handler.GetHistoryDetail)
