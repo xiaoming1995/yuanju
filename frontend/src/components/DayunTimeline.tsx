@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import LiuYueDrawer from './LiuYueDrawer'
+import { fetchShenshaAnnotations, type ShenshaAnnotation } from '../lib/api'
 
 interface LiuNianItem {
   year: number
@@ -86,6 +87,23 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
   }, [dayun, currentYear])
 
   const activeDayun = dayun[activeIndex]
+  // 神煞注解数据
+  const [ssAnnotations, setSsAnnotations] = useState<Record<string, ShenshaAnnotation>>({})
+  const [ssModalOpen, setSsModalOpen] = useState(false)
+  const [ssModalName, setSsModalName] = useState('')
+
+  useEffect(() => {
+    fetchShenshaAnnotations().then(list => {
+      const map: Record<string, ShenshaAnnotation> = {}
+      for (const a of list) map[a.name] = a
+      setSsAnnotations(map)
+    }).catch(() => {})
+  }, [])
+
+  const handleSsClick = (name: string) => {
+    setSsModalName(name)
+    setSsModalOpen(true)
+  }
 
   return (
     <div className="dayun-timeline-container">
@@ -151,13 +169,21 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'center', maxWidth: 90, marginTop: 2 }}>
                     {d.shen_sha.map((ss, si) => {
                       const pol = SS_POLARITY_MAP[ss] || 'zhong'
-                      const style = SS_POLARITY[pol] || SS_POLARITY.zhong
+                      const sty = SS_POLARITY[pol] || SS_POLARITY.zhong
                       return (
-                        <span key={si} style={{
-                          fontSize: 9, padding: '1px 4px', borderRadius: 3,
-                          background: style.bg, color: style.color,
-                          lineHeight: 1.4, whiteSpace: 'nowrap',
-                        }}>{ss}</span>
+                        <span
+                          key={si}
+                          onClick={(e) => { e.stopPropagation(); handleSsClick(ss) }}
+                          style={{
+                            fontSize: 9, padding: '1px 4px', borderRadius: 3,
+                            background: sty.bg, color: sty.color,
+                            lineHeight: 1.4, whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                            transition: 'transform 0.15s',
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.15)')}
+                          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                        >{ss}</span>
                       )
                     })}
                   </div>
@@ -291,6 +317,75 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
         liuNianGanZhi={drawerGanZhi}
         chartId={chartId}
       />
+
+      {/* 神煞注解弹窗 */}
+      {ssModalOpen && (() => {
+        const ann = ssAnnotations[ssModalName]
+        const pol = SS_POLARITY_MAP[ssModalName] || 'zhong'
+        const sty = SS_POLARITY[pol] || SS_POLARITY.zhong
+        const polarityLabel = pol === 'ji' ? '吉神' : pol === 'xiong' ? '凶煞' : '中性'
+        return (
+          <div
+            onClick={() => setSsModalOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 9999,
+              background: 'rgba(0,0,0,0.65)',
+              backdropFilter: 'blur(6px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 20,
+              animation: 'fadeIn 0.2s ease',
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--bg-card, #1a1d2e)',
+                border: `1px solid ${sty.color}33`,
+                borderRadius: 16,
+                maxWidth: 440,
+                width: '100%',
+                maxHeight: '80vh',
+                overflow: 'auto',
+                padding: '28px 24px',
+                boxShadow: `0 20px 60px rgba(0,0,0,0.5), 0 0 30px ${sty.color}15`,
+                animation: 'slideUp 0.25s ease',
+              }}
+            >
+              {/* 头部 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <span style={{
+                  fontSize: 28, fontFamily: 'Noto Serif SC, serif', fontWeight: 700,
+                  color: sty.color,
+                }}>{ssModalName}</span>
+                <span style={{
+                  fontSize: 11, padding: '3px 10px', borderRadius: 99,
+                  background: sty.bg, color: sty.color, fontWeight: 600,
+                }}>{polarityLabel}</span>
+              </div>
+
+              {/* 正文 */}
+              <div style={{
+                fontSize: 14, lineHeight: 1.9, color: 'var(--text-secondary, #b0b3c0)',
+                whiteSpace: 'pre-wrap',
+              }}>
+                {ann?.description || '暂无此神煞的详细注解。'}
+              </div>
+
+              {/* 关闭按钮 */}
+              <div style={{ textAlign: 'center', marginTop: 20 }}>
+                <button
+                  onClick={() => setSsModalOpen(false)}
+                  style={{
+                    background: 'transparent', border: `1px solid var(--border-default, #333)`,
+                    color: 'var(--text-muted, #666)', padding: '8px 28px',
+                    borderRadius: 8, cursor: 'pointer', fontSize: 13,
+                  }}
+                >关闭</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
