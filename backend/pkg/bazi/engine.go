@@ -150,7 +150,6 @@ type DayunItem struct {
 	ZhiShiShen string           `json:"zhi_shishen"`
 	DiShi      string           `json:"di_shi"`
 	JinBuHuan  *JinBuHuanResult `json:"jin_bu_huan"`
-	Jixiong    *DayunJixiong    `json:"jixiong"`
 	LiuNian    []LiuNianItem    `json:"liu_nian"`
 }
 
@@ -288,9 +287,6 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		runes := []rune(gz)
 		gan := string(runes[0])
 		zhi := string(runes[1])
-		dayunGanWx := LunarUtil.WU_XING_GAN[gan]
-		dayunZhiWx := LunarUtil.WU_XING_ZHI[zhi]
-
 		lns := dy.GetLiuNian()
 		lnItems := make([]LiuNianItem, 0, 10)
 		for i, ln := range lns {
@@ -339,7 +335,6 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 			ZhiShiShen: GetZhiShiShen(dayGan, zhi),
 			DiShi:      GetDiShi(dayGan, zhi),
 			JinBuHuan:  CalcJinBuHuanDayun(dayGan, monthZhi, gan, zhi, isShunXing),
-			Jixiong:    CalcDayunJixiong(dayunGanWx, dayunZhiWx, dayGanWx, monthZhiWx, wuxing),
 			LiuNian:    lnItems,
 		})
 		prevDayunGanzhi = gz
