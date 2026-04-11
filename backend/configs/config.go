@@ -28,6 +28,9 @@ type Config struct {
 	DeepSeekAPIKey string
 	OpenAIAPIKey   string
 	AIBaseURL      string
+
+	// Debug
+	AIPromptLog bool
 }
 
 var AppConfig Config
@@ -47,6 +50,7 @@ func Load() {
 		DeepSeekAPIKey:     getEnv("DEEPSEEK_API_KEY", ""),
 		OpenAIAPIKey:       getEnv("OPENAI_API_KEY", ""),
 		AIBaseURL:          getEnv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+		AIPromptLog:        getEnv("AI_PROMPT_LOG", "") == "true",
 	}
 }
 

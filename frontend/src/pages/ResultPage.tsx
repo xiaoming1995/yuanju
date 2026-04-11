@@ -203,6 +203,8 @@ export default function ResultPage() {
   // AI 解读状态
   const [reportLoading, setReportLoading] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [isThinking, setIsThinking] = useState(false)
+  const [thinkingSeconds, setThinkingSeconds] = useState(0)
   const [streamingText, setStreamingText] = useState('')
   const [reportError, setReportError] = useState('')
   const [loadingStepIndex, setLoadingStepIndex] = useState(0)
@@ -231,6 +233,18 @@ export default function ResultPage() {
     return () => window.clearInterval(timer)
   }, [reportLoading])
 
+  // 推理计时器
+  useEffect(() => {
+    let timer: number
+    if (isThinking) {
+      setThinkingSeconds(0)
+      timer = window.setInterval(() => {
+        setThinkingSeconds(prev => prev + 1)
+      }, 1000)
+    }
+    return () => window.clearInterval(timer)
+  }, [isThinking])
+
   // 确立目前针对的独立资源 id
   // 有三个来源可能带有 id：1. 历史页面跳入 URL 的 id；2. HomePage 计算后传入的 state.chartId; 3. 新建后 result 从后端捞出的 chart.id(这里为了简化统一用 route 的方式)
   // 此页面核心判定是 targetId
@@ -256,32 +270,48 @@ export default function ResultPage() {
       return;
     }
     setReportLoading(true)
-    setIsStreaming(true)
+    setIsStreaming(false)
+    setIsThinking(false)
     setStreamingText('')
     setReportError('')
 
     let currentText = ''
+    let isFirstByte = true
     await baziAPI.generateReportStream(
       targetId,
       (text) => {
-        setReportLoading(false) // 有数据返回，关闭加载动画，展示打字机
+        if (isFirstByte) {
+          setReportLoading(false)
+          setIsThinking(false)
+          setIsStreaming(true)
+          isFirstByte = false
+        }
         currentText += text
         setStreamingText(currentText)
       },
       (err) => {
         setReportError(err)
         setIsStreaming(false)
+        setIsThinking(false)
         setReportLoading(false)
       },
       () => {
-        setIsStreaming(false)
-        // 流结束，拉取完整结构化数据
+        // 流结束：先保持 isStreaming=true 避免闪烁，等拉取完结构化数据后再统一切换
         baziAPI.getHistoryDetail(targetId).then(res => {
           setResult(res.data.result || res.data.chart || null)
           setReport(res.data.report || null)
         }).catch(err => {
           console.error('Failed to fetch finished report', err)
+        }).finally(() => {
+          setIsStreaming(false)
+          setIsThinking(false)
+          setReportLoading(false)
         })
+      },
+      () => {
+        // 推理模型进入思考阶段
+        setIsThinking(true)
+        setReportLoading(false) // 关闭普通 loading，显示 thinking UI
       }
     )
   }
@@ -551,8 +581,22 @@ export default function ResultPage() {
             </div>
           )}
 
-          {/* 生成中等待动画 */}
-          {reportLoading && !isStreaming && (
+          {/* 推理模型正在思考 */}
+          {isThinking && !isStreaming && (
+            <div className="ai-loading-container animate-fade-in">
+              <div className="ai-loading-icon">
+                <div className="spinner"></div>
+              </div>
+              <div className="ai-loading-step">
+                <div className="ai-loading-text">
+                  🧠 AI 正在深度推理中...  已思考 {thinkingSeconds} 秒
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 初始加载等待动画（SSE连接建立前） */}
+          {reportLoading && !isStreaming && !isThinking && (
             <div className="ai-loading-container animate-fade-in">
               <div className="ai-loading-icon">
                 <div className="spinner"></div>
@@ -571,7 +615,7 @@ export default function ResultPage() {
           )}
 
           {/* 未生成：显示按钮或引导 */}
-          {!report && !reportLoading && !isStreaming && (
+          {!report && !reportLoading && !isStreaming && !isThinking && (
             <>
               {!isGuest ? (
                 <div className="report-cta">

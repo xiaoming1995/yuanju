@@ -7,13 +7,95 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	"yuanju/configs"
 	"yuanju/internal/repository"
 	"yuanju/pkg/crypto"
 )
+
+// logAIPromptToFile 将每次 AI 请求的完整 Prompt 和响应写入本地文件
+// 文件路径: backend/logs/ai_prompts/YYYY-MM-DD_HH-MM-SS_<model>.md
+func logAIPromptToFile(modelName, systemPrompt, userPrompt, response string, durationMs int64, err error) {
+	if !configs.AppConfig.AIPromptLog {
+		return
+	}
+	// 获取可执行文件所在目录，向上找到 backend/ 目录
+	execPath, _ := os.Executable()
+	backendDir := filepath.Dir(execPath)
+	// go run 时临时目录在 /tmp 下，此时用 Cwd 更合理
+	if strings.Contains(backendDir, "go-build") || strings.Contains(backendDir, "/tmp") {
+		// go run 模式：使用当前工作目录
+		backendDir, _ = os.Getwd()
+	}
+	logDir := filepath.Join(backendDir, "logs", "ai_prompts")
+	if mkErr := os.MkdirAll(logDir, 0755); mkErr != nil {
+		log.Printf("[AI Log] 创建日志目录失败: %v", mkErr)
+		return
+	}
+
+	now := time.Now()
+	filename := fmt.Sprintf("%s_%s.md", now.Format("2006-01-02_15-04-05"), modelName)
+	filePath := filepath.Join(logDir, filename)
+
+	status := "✅ success"
+	errStr := ""
+	if err != nil {
+		status = "❌ error"
+		errStr = fmt.Sprintf("\n## Error\n\n```\n%s\n```\n", err.Error())
+	}
+
+	content := fmt.Sprintf(`# AI Prompt Log
+
+- **时间**: %s
+- **模型**: %s
+- **耗时**: %d ms (%.1f 秒)
+- **状态**: %s
+- **System Prompt 长度**: %d 字符
+- **User Prompt 长度**: %d 字符
+- **Response 长度**: %d 字符
+%s
+---
+
+## System Prompt
+
+%s
+
+---
+
+## User Prompt
+
+%s
+
+---
+
+## Response
+
+%s
+`,
+		now.Format("2006-01-02 15:04:05"),
+		modelName,
+		durationMs, float64(durationMs)/1000.0,
+		status,
+		len(systemPrompt),
+		len(userPrompt),
+		len(response),
+		errStr,
+		systemPrompt,
+		userPrompt,
+		response,
+	)
+
+	if wErr := os.WriteFile(filePath, []byte(content), 0644); wErr != nil {
+		log.Printf("[AI Log] 写入日志文件失败: %v", wErr)
+		return
+	}
+	log.Printf("[AI Log] 已保存 Prompt 日志 → %s", filePath)
+}
 
 type AIMessage struct {
 	Role    string `json:"role"`
@@ -106,7 +188,7 @@ func callAIInternal(systemPrompt, userPrompt string) (content, model, providerID
 
 		// 去除尾部 /v1 防止双重拼接
 		baseURL := strings.TrimSuffix(strings.TrimSuffix(provider.BaseURL, "/v1"), "/")
-		result, callErr := callOpenAICompatible(
+		result, callErr := callOpenAICompatibleWithLog(
 			baseURL+"/v1/chat/completions",
 			apiKey,
 			provider.Model,
@@ -122,7 +204,7 @@ func callAIInternal(systemPrompt, userPrompt string) (content, model, providerID
 
 	// 无激活 DB Provider → Fallback：读取 .env 中的旧配置
 	if configs.AppConfig.DeepSeekAPIKey != "" {
-		result, callErr := callOpenAICompatible(
+		result, callErr := callOpenAICompatibleWithLog(
 			configs.AppConfig.AIBaseURL+"/v1/chat/completions",
 			configs.AppConfig.DeepSeekAPIKey,
 			"deepseek-chat",
@@ -136,7 +218,7 @@ func callAIInternal(systemPrompt, userPrompt string) (content, model, providerID
 	}
 
 	if configs.AppConfig.OpenAIAPIKey != "" {
-		result, callErr := callOpenAICompatible(
+		result, callErr := callOpenAICompatibleWithLog(
 			"https://api.openai.com/v1/chat/completions",
 			configs.AppConfig.OpenAIAPIKey,
 			"gpt-4o-mini",
@@ -152,7 +234,7 @@ func callAIInternal(systemPrompt, userPrompt string) (content, model, providerID
 	return "", "", "", 0, fmt.Errorf("未配置可用的 LLM Provider，请在 Admin 面板添加并激活一个 Provider")
 }
 
-func StreamAIWithSystem(userPrompt string, callback func(string) error) (rawContent, model, providerID string, durationMs int, err error) {
+func StreamAIWithSystem(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, err error) {
 	systemPrompt := buildKnowledgeBaseSystem()
 	start := time.Now()
 
@@ -164,7 +246,7 @@ func StreamAIWithSystem(userPrompt string, callback func(string) error) (rawCont
 			return "", "", provider.ID, 0, fmt.Errorf("Provider [%s] API Key 解密失败，请检查 ADMIN_ENCRYPTION_KEY 配置", provider.Name)
 		}
 		baseURL := strings.TrimSuffix(strings.TrimSuffix(provider.BaseURL, "/v1"), "/")
-		result, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback)
+		result, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback, onThinking)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr != nil {
 			return result, provider.Model, provider.ID, elapsed, fmt.Errorf("Provider [%s] 调用失败: %w", provider.Name, callErr)
@@ -174,14 +256,14 @@ func StreamAIWithSystem(userPrompt string, callback func(string) error) (rawCont
 
 	// Fallback
 	if configs.AppConfig.DeepSeekAPIKey != "" {
-		result, callErr := streamOpenAICompatible(configs.AppConfig.AIBaseURL+"/v1/chat/completions", configs.AppConfig.DeepSeekAPIKey, "deepseek-chat", systemPrompt, userPrompt, callback)
+		result, callErr := streamOpenAICompatible(configs.AppConfig.AIBaseURL+"/v1/chat/completions", configs.AppConfig.DeepSeekAPIKey, "deepseek-chat", systemPrompt, userPrompt, callback, onThinking)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
 			return result, "deepseek-chat", "", elapsed, nil
 		}
 	}
 	if configs.AppConfig.OpenAIAPIKey != "" {
-		result, callErr := streamOpenAICompatible("https://api.openai.com/v1/chat/completions", configs.AppConfig.OpenAIAPIKey, "gpt-4o-mini", systemPrompt, userPrompt, callback)
+		result, callErr := streamOpenAICompatible("https://api.openai.com/v1/chat/completions", configs.AppConfig.OpenAIAPIKey, "gpt-4o-mini", systemPrompt, userPrompt, callback, onThinking)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
 			return result, "gpt-4o-mini", "", elapsed, nil
@@ -234,7 +316,18 @@ func callOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt strin
 	return aiResp.Choices[0].Message.Content, nil
 }
 
-func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string, callback func(string) error) (string, error) {
+// callOpenAICompatibleWithLog 包装 callOpenAICompatible 并记录日志
+func callOpenAICompatibleWithLog(url, apiKey, modelName, systemPrompt, userPrompt string) (string, error) {
+	t0 := time.Now()
+	result, err := callOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt)
+	logAIPromptToFile(modelName, systemPrompt, userPrompt, result, time.Since(t0).Milliseconds(), err)
+	return result, err
+}
+
+func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string, callback func(string) error, onThinking func() error) (string, error) {
+	t0 := time.Now()
+	log.Printf("[AIStream] 开始请求 model=%s url=%s", modelName, url)
+
 	reqBody := AIRequest{
 		Model: modelName,
 		Messages: []AIMessage{
@@ -257,6 +350,11 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 
 	client := &http.Client{Timeout: 300 * time.Second}
 	resp, err := client.Do(req)
+	statusCode := 0
+	if resp != nil {
+		statusCode = resp.StatusCode
+	}
+	log.Printf("[AIStream T+%dms] HTTP 响应到达, status=%d, err=%v", time.Since(t0).Milliseconds(), statusCode, err)
 	if err != nil {
 		return "", err
 	}
@@ -269,6 +367,8 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 
 	var contentBuilder strings.Builder
 	reader := bufio.NewReader(resp.Body)
+	chunkNum := 0
+	thinkingNotified := false
 	for {
 		line, err := reader.ReadString('\n')
 		if len(line) > 0 {
@@ -281,13 +381,25 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 				var event struct {
 					Choices []struct {
 						Delta struct {
-							Content string `json:"content"`
+							Content          string `json:"content"`
+							ReasoningContent string `json:"reasoning_content"`
 						} `json:"delta"`
 					} `json:"choices"`
 				}
 				if json.Unmarshal([]byte(dataStr), &event) == nil && len(event.Choices) > 0 {
+					// 推理模型的思考阶段：通知前端正在推理
+					if event.Choices[0].Delta.ReasoningContent != "" && !thinkingNotified && onThinking != nil {
+						log.Printf("[AIStream T+%dms] 🧠 推理模型开始思考阶段", time.Since(t0).Milliseconds())
+						_ = onThinking()
+						thinkingNotified = true
+					}
+					// 正式内容输出
 					chunk := event.Choices[0].Delta.Content
 					if chunk != "" {
+						chunkNum++
+						if chunkNum == 1 {
+							log.Printf("[AIStream T+%dms] ✅ 首个文字 chunk 到达: %q", time.Since(t0).Milliseconds(), chunk[:min(len(chunk), 20)])
+						}
 						contentBuilder.WriteString(chunk)
 						if cbErr := callback(chunk); cbErr != nil {
 							cancel()
@@ -304,6 +416,11 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 			return "", err
 		}
 	}
+
+	log.Printf("[AIStream T+%dms] 流结束, 共 %d 个 chunks, 总长度=%d", time.Since(t0).Milliseconds(), chunkNum, contentBuilder.Len())
+
+	// 记录完整 Prompt 日志到文件
+	logAIPromptToFile(modelName, systemPrompt, userPrompt, contentBuilder.String(), time.Since(t0).Milliseconds(), nil)
 
 	return contentBuilder.String(), nil
 }

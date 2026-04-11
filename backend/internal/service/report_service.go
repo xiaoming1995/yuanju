@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"text/template"
@@ -405,9 +406,12 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 }
 
 // GenerateAIReportStream 流式生成 AI 报告
-func GenerateAIReportStream(chartID string, result *bazi.BaziResult, onData func(string) error) error {
+func GenerateAIReportStream(chartID string, result *bazi.BaziResult, onData func(string) error, onThinking func() error) error {
+	t0 := time.Now()
+
 	// 检查缓存
 	cached, err := repository.GetReportByChartID(chartID)
+	log.Printf("[ReportStream T+%dms] 缓存检查完成, hit=%v", time.Since(t0).Milliseconds(), cached != nil)
 	if err == nil && cached != nil {
 		// 缓存命中：直接把全量内容模拟成一个数据块推下去
 		_ = onData(cached.Content)
@@ -417,8 +421,10 @@ func GenerateAIReportStream(chartID string, result *bazi.BaziResult, onData func
 	// 构建 Prompt
 	celebs, _ := repository.ListCelebrities(true)
 	prompt := buildBaziPrompt(result, celebs)
+	log.Printf("[ReportStream T+%dms] Prompt 构建完成 (长度=%d 字符)", time.Since(t0).Milliseconds(), len(prompt))
 
-	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystem(prompt, onData)
+	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystem(prompt, onData, onThinking)
+	log.Printf("[ReportStream T+%dms] AI 流式调用结束, model=%s, duration=%dms, err=%v", time.Since(t0).Milliseconds(), modelName, durationMs, aiErr)
 	
 	status, errMsg := "success", ""
 	if aiErr != nil {

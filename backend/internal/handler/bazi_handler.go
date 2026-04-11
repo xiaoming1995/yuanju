@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 	"yuanju/internal/model"
 	"yuanju/internal/repository"
 	"yuanju/internal/service"
@@ -133,11 +136,14 @@ func GenerateReport(c *gin.Context) {
 
 // GenerateReportStream 流式生成 AI 报告（需登录）
 func GenerateReportStream(c *gin.Context) {
+	t0 := time.Now()
 	chartID := c.Param("chart_id")
 	if chartID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
 		return
 	}
+
+	log.Printf("[Stream T+%dms] 开始处理 chart_id=%s", time.Since(t0).Milliseconds(), chartID)
 
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
@@ -153,34 +159,48 @@ func GenerateReportStream(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[Stream T+%dms] 开始计算八字", time.Since(t0).Milliseconds())
 	result := bazi.Calculate(
 		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
 		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+	log.Printf("[Stream T+%dms] 八字计算完成", time.Since(t0).Milliseconds())
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
 	c.Header("Transfer-Encoding", "chunked")
-	// 关闭 Nginx 的缓冲，使得流可以实时推送到浏览器
 	c.Header("X-Accel-Buffering", "no")
 
-	// 通知前端要开始推流了
 	c.Writer.Flush()
+	log.Printf("[Stream T+%dms] SSE headers 已发送，开始调用 AI", time.Since(t0).Milliseconds())
 
-	log.Printf("[AI Report Stream] 开始流式生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
+	chunkCount := 0
 	err = service.GenerateAIReportStream(chart.ID, result, func(chunk string) error {
-		// 为了防止 chunk 中的真实换行符将 SSE 的 data 块直接切断、造成前端解析错误，
-		// 我们将 chunk 包装到 JSON 中推送过去
-		c.SSEvent("message", gin.H{"chunk": chunk})
+		chunkCount++
+		if chunkCount == 1 {
+			log.Printf("[Stream T+%dms] ✅ 收到第 1 个 chunk (长度=%d)", time.Since(t0).Milliseconds(), len(chunk))
+		} else if chunkCount%50 == 0 {
+			log.Printf("[Stream T+%dms] 已接收 %d 个 chunks", time.Since(t0).Milliseconds(), chunkCount)
+		}
+		jsonBytes, _ := json.Marshal(map[string]string{"chunk": chunk})
+		fmt.Fprintf(c.Writer, "event: message\ndata: %s\n\n", string(jsonBytes))
+		c.Writer.Flush()
+		return nil
+	}, func() error {
+		// 推理模型进入思考阶段时通知前端
+		log.Printf("[Stream T+%dms] 🧠 发送 thinking 事件到前端", time.Since(t0).Milliseconds())
+		fmt.Fprintf(c.Writer, "event: thinking\ndata: {}\n\n")
 		c.Writer.Flush()
 		return nil
 	})
 
+	log.Printf("[Stream T+%dms] 流式生成结束，共 %d 个 chunks, err=%v", time.Since(t0).Milliseconds(), chunkCount, err)
+
 	if err != nil {
-		c.SSEvent("error", err.Error())
+		fmt.Fprintf(c.Writer, "event: error\ndata: %s\n\n", err.Error())
 		c.Writer.Flush()
 	} else {
-		c.SSEvent("done", "[DONE]")
+		fmt.Fprintf(c.Writer, "event: done\ndata: [DONE]\n\n")
 		c.Writer.Flush()
 	}
 }

@@ -85,9 +85,15 @@ export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   generateReport: (chartId: string) =>
     api.post(`/api/bazi/report/${chartId}`, {}, { timeout: 300000 }), // 推理模型最长 300s
-  generateReportStream: async (chartId: string, onMessage: (msg: string) => void, onError: (err: string) => void, onDone: () => void) => {
+  generateReportStream: async (chartId: string, onMessage: (msg: string) => void, onError: (err: string) => void, onDone: () => void, onThinking?: () => void) => {
     const token = localStorage.getItem('yj_token')
     const baseURL = import.meta.env.VITE_API_URL || ''
+    let isDone = false
+    const safeOnDone = () => {
+      if (isDone) return
+      isDone = true
+      onDone()
+    }
     try {
       const response = await fetch(`${baseURL}/api/bazi/report-stream/${chartId}`, {
         method: 'POST',
@@ -114,35 +120,39 @@ export const baziAPI = {
           if (line.startsWith('data: ')) {
             const data = line.slice(6)
             if (data === '[DONE]') {
-              onDone()
+              safeOnDone()
               return
             } else {
               try {
                 const parsed = JSON.parse(data)
-                if (parsed.chunk) {
+                if (parsed.chunk !== undefined) {
                   onMessage(parsed.chunk)
                 }
-              } catch (e) {
+              } catch {
                 // 向后容错：万一不是 JSON 则直接作为字符串
                 onMessage(data)
               }
             }
+          } else if (line.startsWith('event: thinking')) {
+            // 推理模型进入思考阶段
+            onThinking?.()
           } else if (line.startsWith('event: error')) {
-            // Usually SSE format is event: error\ndata: MSG, but we send event manually as SSEvent("error", msg)
-            // Gin c.SSEvent("error", "message") -> event: error\ndata: message\n\n
+            // 下一行 data: 将包含错误信息
+          } else if (line.startsWith('event: done')) {
+            // 由 data: [DONE] 来触发，这里无需处理
           }
         }
-        // Handle gin SSE errors
-        if (lines.some(l => l.startsWith('event: error'))) {
-          const errLine = lines.find(l => l.startsWith('data: ') && lines.indexOf(l) > lines.findIndex(e => e.startsWith('event: error')))
-          if (errLine) onError(errLine.slice(6))
-        }
-        if (lines.some(l => l.startsWith('event: done'))) {
-           onDone()
-           return
+        // 处理 error 事件
+        const errorIdx = lines.findIndex(l => l.startsWith('event: error'))
+        if (errorIdx !== -1) {
+          const errDataLine = lines[errorIdx + 1]
+          if (errDataLine?.startsWith('data: ')) {
+            onError(errDataLine.slice(6))
+            return
+          }
         }
       }
-      onDone()
+      safeOnDone()
     } catch (err: any) {
       onError(err.message)
     }
