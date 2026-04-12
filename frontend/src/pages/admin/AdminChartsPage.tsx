@@ -23,6 +23,12 @@ interface ChartRecord {
   jishen: string
   ai_result?: string
   ai_result_structured?: {
+    // 新版 chapters 格式
+    chapters?: Array<{ title: string; brief: string; detail?: string }>
+    analysis?: { logic?: string; summary?: string }
+    yongshen?: string
+    jishen?: string
+    // 旧版平铺格式（降级兼容）
     personality?: string
     career?: string
     romance?: string
@@ -219,44 +225,53 @@ export default function AdminChartsPage() {
                               </div>
                             ) : null}
                             
-                            {chart.ai_result_structured ? (
-                               <div style={{ background: 'rgba(167, 139, 250, 0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(167, 139, 250, 0.2)', marginBottom: 16 }}>
-                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                                   {chart.ai_result_structured.personality && (
-                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
-                                       <div style={{ fontSize: 11, color: '#a78bfa', marginBottom: 6, fontWeight: 600 }}>性格特质</div>
-                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.personality}</div>
-                                     </div>
-                                   )}
-                                   {chart.ai_result_structured.career && (
-                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
-                                       <div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 6, fontWeight: 600 }}>事业财运</div>
-                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.career}</div>
-                                     </div>
-                                   )}
-                                   {chart.ai_result_structured.romance && (
-                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
-                                       <div style={{ fontSize: 11, color: '#f472b6', marginBottom: 6, fontWeight: 600 }}>感情婚姻</div>
-                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.romance}</div>
-                                     </div>
-                                   )}
-                                   {chart.ai_result_structured.health && (
-                                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
-                                       <div style={{ fontSize: 11, color: '#34d399', marginBottom: 6, fontWeight: 600 }}>健康运势</div>
-                                       <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{chart.ai_result_structured.health}</div>
-                                     </div>
-                                   )}
-                                 </div>
-                               </div>
-                            ) : chart.ai_result ? (
-                              <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #555', color: '#888', fontSize: 12, marginBottom: 16, fontStyle: 'italic' }}>
-                                此命盘 AI 报告为旧格式，无结构化内容可展示。
-                              </div>
-                            ) : (
-                               <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #444', color: '#666', fontSize: 13, marginBottom: 16 }}>
-                                 此命盘尚未生成 AI 原局报告。
-                               </div>
-                            )}
+                            {(() => {
+                              const s = chart.ai_result_structured
+                              // 章节标题 → 颜色映射
+                              const titleColor: Record<string, string> = {
+                                '性格特质': '#a78bfa', '感情运势': '#f472b6', '感情婚姻': '#f472b6',
+                                '事业财运': '#fbbf24', '健康提示': '#34d399', '健康运势': '#34d399',
+                                '大运走势': '#60a5fa', '命理分身': '#fb923c',
+                              }
+                              // 新版 chapters 格式
+                              if (s?.chapters && s.chapters.length > 0) {
+                                return (
+                                  <div style={{ background: 'rgba(167, 139, 250, 0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(167, 139, 250, 0.2)', marginBottom: 16 }}>
+                                    {s.analysis?.summary && (
+                                      <div style={{ fontSize: 12, color: '#aaa', lineHeight: 1.7, marginBottom: 12, borderLeft: '3px solid #a78bfa', paddingLeft: 10 }}>
+                                        {s.analysis.summary}
+                                      </div>
+                                    )}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                      {s.chapters.map((ch, idx) => (
+                                        <div key={idx} style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}>
+                                          <div style={{ fontSize: 11, color: titleColor[ch.title] || '#a78bfa', marginBottom: 6, fontWeight: 600 }}>{ch.title}</div>
+                                          <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.8 }}>{ch.detail || ch.brief}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )
+                              }
+                              // 旧版平铺格式（兼容降级）
+                              if (s?.personality || s?.career || s?.romance || s?.health) {
+                                return (
+                                  <div style={{ background: 'rgba(167, 139, 250, 0.05)', padding: 16, borderRadius: 8, border: '1px solid rgba(167, 139, 250, 0.2)', marginBottom: 16 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                      {s.personality && <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}><div style={{ fontSize: 11, color: '#a78bfa', marginBottom: 6, fontWeight: 600 }}>性格特质</div><div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{s.personality}</div></div>}
+                                      {s.career && <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}><div style={{ fontSize: 11, color: '#fbbf24', marginBottom: 6, fontWeight: 600 }}>事业财运</div><div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{s.career}</div></div>}
+                                      {s.romance && <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}><div style={{ fontSize: 11, color: '#f472b6', marginBottom: 6, fontWeight: 600 }}>感情婚姻</div><div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{s.romance}</div></div>}
+                                      {s.health && <div style={{ background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: 6 }}><div style={{ fontSize: 11, color: '#34d399', marginBottom: 6, fontWeight: 600 }}>健康运势</div><div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.6 }}>{s.health}</div></div>}
+                                    </div>
+                                  </div>
+                                )
+                              }
+                              // 有报告但无结构化内容
+                              if (chart.ai_result) {
+                                return <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #555', color: '#888', fontSize: 12, marginBottom: 16, fontStyle: 'italic' }}>此命盘 AI 报告为旧格式，无结构化内容可展示。</div>
+                              }
+                              return <div style={{ background: '#222', padding: 16, borderRadius: 8, border: '1px dashed #444', color: '#666', fontSize: 13, marginBottom: 16 }}>此命盘尚未生成 AI 原局报告。</div>
+                            })()}
 
                             {/* 流年历年报告库 */}
                             <div style={{ fontSize: 13, color: '#888', marginBottom: 12 }}>流年批断记录 (共 {(liunianReports[chart.id] || []).length} 条)：</div>
