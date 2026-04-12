@@ -18,6 +18,7 @@ import AdminChartsPage from './pages/admin/AdminChartsPage'
 import AdminCelebritiesPage from './pages/admin/AdminCelebritiesPage'
 import PromptSettings from './pages/admin/PromptSettings'
 import AlgoConfigPage from './pages/admin/AlgoConfigPage'
+import ParticleBackground from './components/ParticleBackground'
 import './index.css'
 import './App.css'
 
@@ -32,6 +33,7 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <ParticleBackground />
       <AdminAuthProvider>
         <AuthProvider>
           <Routes>
