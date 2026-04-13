@@ -117,7 +117,8 @@
   background-color: var(--border-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  overflow-x: auto; /* 核心修复：防止内容被截断，允许滑动 */
+  -webkit-overflow-scrolling: touch;
 }
 
 .grid-cell {
@@ -436,6 +437,30 @@
   .pillars-grid { grid-template-columns: repeat(2, 1fr); }
   .pillar-gan, .pillar-zhi { font-size: 1.6rem; }
   .liunian-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  
+  /* 基本排盘极端窄屏适配（挤干水分） */
+  .bazi-data-grid {
+    grid-template-columns: 36px repeat(4, minmax(0, 1fr));
+  }
+  .grid-cell {
+    padding: 10px 4px;
+    min-height: 44px;
+  }
+  .grid-cell.row-label {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .grid-cell.col-header {
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .main-char { font-size: 22px; }
+  .hg-row { font-size: 11px; height: 18px; line-height: 18px; }
+  .text-muted { font-size: 11px; }
+  .shensha-tag {
+    font-size: 9px;
+    padding: 2px 3px;
+  }
 }
 
 .liunian-grid {
