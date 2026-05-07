@@ -159,6 +159,54 @@ export const baziAPI = {
   },
   generateLiunianReport: (chartId: string, targetYear: number) =>
     api.post(`/api/bazi/liunian-report/${chartId}`, { target_year: targetYear }, { timeout: 300000 }),
+  streamPastEvents: async (chartId: string, onMessage: (msg: string) => void, onError: (err: string) => void, onDone: () => void, onThinking?: () => void) => {
+    const token = localStorage.getItem('yj_token')
+    const baseURL = import.meta.env.VITE_API_URL || ''
+    let isDone = false
+    const safeOnDone = () => { if (!isDone) { isDone = true; onDone() } }
+    try {
+      const response = await fetch(`${baseURL}/api/bazi/past-events-stream/${chartId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      })
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('No reader available')
+      const decoder = new TextDecoder()
+      let buffer = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') { safeOnDone(); return }
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.chunk !== undefined) onMessage(parsed.chunk)
+            } catch { onMessage(data) }
+          } else if (line.startsWith('event: thinking')) {
+            onThinking?.()
+          } else if (line.startsWith('event: error')) {
+            // next line has the error
+          } else if (line.startsWith('event: done')) {
+            safeOnDone()
+          }
+        }
+        const errorIdx = lines.findIndex(l => l.startsWith('event: error'))
+        if (errorIdx !== -1) {
+          const errLine = lines[errorIdx + 1]
+          if (errLine?.startsWith('data: ')) { onError(errLine.slice(6)); return }
+        }
+      }
+      safeOnDone()
+    } catch (err: any) {
+      onError(err.message)
+    }
+  },
   getHistory: (page = 1) => api.get(`/api/bazi/history?page=${page}`),
   getHistoryDetail: (id: string) => api.get(`/api/bazi/history/${id}`),
   fetchLiuYue: (liuNianYear: number, dayGan: string) =>

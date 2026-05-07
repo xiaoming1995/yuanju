@@ -674,3 +674,119 @@ func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianRepo
 	// 5. 存入数据库
 	return repository.CreateLiunianReport(chartID, targetYear, currentDayun, &rawMsg, modelName)
 }
+
+// GeneratePastEventsStream 过往年份事件推算 SSE 流式生成
+// 若缓存命中则直接回调全量内容，否则算法扫描信号 → Prompt → AI 流式输出 → 存库
+func GeneratePastEventsStream(chartID string, onData func(string) error, onThinking func() error) error {
+	// 1. 缓存检查
+	cached, err := repository.GetPastEvents(chartID)
+	if err == nil && cached != nil && cached.ContentStructured != nil {
+		return onData(string(*cached.ContentStructured))
+	}
+
+	// 2. 读取排盘
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		return fmt.Errorf("未找到排盘记录")
+	}
+
+	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
+		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+
+	// 3. 算法扫描所有过往年份信号
+	currentYear := time.Now().Year()
+	// 从起运年龄开始（起运前无大运加持，信号意义有限）
+	minAge := 0
+	if len(result.Dayun) > 0 {
+		minAge = result.Dayun[0].StartAge
+	}
+	yearSignals := bazi.GetPastYearSignals(result, chart.Gender, currentYear, minAge)
+
+	yearsJSON, err := json.Marshal(yearSignals)
+	if err != nil {
+		return fmt.Errorf("序列化年份信号失败: %v", err)
+	}
+
+	// 4. 原局概要
+	natalSummary := fmt.Sprintf(
+		"年柱%s%s（%s/%s） 月柱%s%s（%s/%s） 日柱%s%s（%s/%s） 时柱%s%s（%s/%s）",
+		result.YearGan, result.YearZhi, result.YearGanShiShen, result.YearZhiShiShen,
+		result.MonthGan, result.MonthZhi, result.MonthGanShiShen, result.MonthZhiShiShen,
+		result.DayGan, result.DayZhi, "日元", result.DayZhiShiShen,
+		result.HourGan, result.HourZhi, result.HourGanShiShen, result.HourZhiShiShen,
+	)
+
+	// 5. 读取 Prompt 模板
+	promptConfig, err := repository.GetPromptByModule("past_events")
+	if err != nil || promptConfig == nil {
+		return fmt.Errorf("未找到 past_events Prompt 配置")
+	}
+
+	genderLabel := "男"
+	if chart.Gender == "female" {
+		genderLabel = "女"
+	}
+
+	// 构建大运列表描述，供 AI 撰写大运整体总结
+	var dayunLines []string
+	for _, dy := range result.Dayun {
+		if dy.StartYear >= currentYear {
+			break // 只包含已起运的过往/当下大运
+		}
+		dayunLines = append(dayunLines, fmt.Sprintf("大运 %s%s %d-%d岁（%d-%d年） [%s/%s]",
+			dy.Gan, dy.Zhi, dy.StartAge, dy.StartAge+9,
+			dy.StartYear, dy.EndYear,
+			dy.GanShiShen, dy.ZhiShiShen,
+		))
+	}
+
+	tplData := model.PastEventsTemplateData{
+		Gender:       genderLabel,
+		DayGan:       result.DayGan,
+		NatalSummary: natalSummary,
+		YearsData:    string(yearsJSON),
+		DayunList:    strings.Join(dayunLines, "\n"),
+	}
+
+	tmpl, err := template.New("past_events").Parse(promptConfig.Content)
+	if err != nil {
+		return fmt.Errorf("past_events Prompt 模板语法错误: %v", err)
+	}
+
+	var parsedPrompt bytes.Buffer
+	if err := tmpl.Execute(&parsedPrompt, tplData); err != nil {
+		return fmt.Errorf("Prompt模板渲染失败: %v", err)
+	}
+
+	// 6. SSE 流式 AI 调用
+	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystem(parsedPrompt.String(), onData, onThinking)
+	status, errMsg := "success", ""
+	if aiErr != nil {
+		status, errMsg = "error", aiErr.Error()
+	}
+	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+	if aiErr != nil {
+		return aiErr
+	}
+
+	// 7. 解析并存库
+	cleanJSON := strings.TrimSpace(rawContent)
+	if strings.HasPrefix(cleanJSON, "```json") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```json")
+		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
+	} else if strings.HasPrefix(cleanJSON, "```") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```")
+		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
+	}
+	if i := strings.Index(cleanJSON, "{"); i > 0 {
+		cleanJSON = cleanJSON[i:]
+	}
+	if i := strings.LastIndex(cleanJSON, "}"); i >= 0 && i < len(cleanJSON)-1 {
+		cleanJSON = cleanJSON[:i+1]
+	}
+
+	rawMsg := json.RawMessage(cleanJSON)
+	_, _ = repository.CreatePastEvents(chartID, &rawMsg, modelName)
+
+	return nil
+}

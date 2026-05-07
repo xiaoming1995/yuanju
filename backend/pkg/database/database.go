@@ -178,11 +178,67 @@ func Migrate() {
 }`
 
 	insertPromptSQL := `
-	INSERT INTO ai_prompts (module, content, description) 
-	VALUES ('liunian', $1, '流年运势分析（二分流年节点动态调用）') 
+	INSERT INTO ai_prompts (module, content, description)
+	VALUES ('liunian', $1, '流年运势分析（二分流年节点动态调用）')
 	ON CONFLICT (module) DO NOTHING;`
 	if _, err := DB.Exec(insertPromptSQL, defaultLiunianPrompt); err != nil {
 		log.Printf("初始化默认 Prompt 失败: %v", err)
+	}
+
+	// 插入默认的过往事件推算 Prompt
+	defaultPastEventsPrompt := `你是一位权威的八字命理批断师，擅长以流年干支与原局互动推断过往人生事件。
+
+命主信息：
+- 性别：{{.Gender}}
+- 日干：{{.DayGan}}
+- 原局四柱与十神概要：{{.NatalSummary}}
+
+命主过往大运列表：
+{{.DayunList}}
+
+以下是命主过往各流年的命理信号分析（JSON格式）：
+{{.YearsData}}
+
+输出要求：
+1. 为每一个年份撰写 2-3 句中文批断，必须结合该年份的命理信号（signals）及其证据（evidence）
+2. 无信号年份写"该年运势较为平稳，无明显重大变动"类似的简短描述
+3. 为每一段大运额外撰写一条整体总结，包含：
+   - themes：2-4 个概括该大运主题的短词（如"事业↑"、"感情动荡"、"贵人扶持"、"财运旺"等）
+   - summary：80-120 字，综合评述该大运10年的整体走势、主要变化方向和特点
+4. 语气权威客观，使用命理术语，不写鸡汤励志语句
+5. 直接输出以下 JSON 格式，不要包含多余 Markdown 标记：
+{
+  "years": [
+    {
+      "year": 年份数字,
+      "age": 虚岁数字,
+      "gan_zhi": "干支",
+      "dayun_gan_zhi": "大运干支",
+      "signals": ["信号类型列表"],
+      "narrative": "2-3句批断文字"
+    }
+  ],
+  "dayun_summaries": [
+    {
+      "gan_zhi": "大运干支",
+      "themes": ["主题词1", "主题词2"],
+      "summary": "80-120字大运整体总结"
+    }
+  ]
+}`
+
+	if _, err := DB.Exec(
+		`INSERT INTO ai_prompts (module, content, description) VALUES ($1, $2, $3) ON CONFLICT (module) DO NOTHING`,
+		"past_events", defaultPastEventsPrompt, "过往年份重大事件推算（算法信号+AI组织语言）",
+	); err != nil {
+		log.Printf("初始化 past_events Prompt 失败: %v", err)
+	}
+	// 将已有记录更新为含大运总结的新版模板（幂等，不覆盖用户通过 Admin UI 的自定义修改）
+	if _, err := DB.Exec(
+		`UPDATE ai_prompts SET content = $1 WHERE module = 'past_events' AND content NOT LIKE '%dayun_summaries%'`,
+		defaultPastEventsPrompt,
+	); err != nil {
+		log.Printf("升级 past_events Prompt 失败: %v", err)
 	}
 
 	// 初始化命理知识库模块（4 个 kb_* 模块，ON CONFLICT DO NOTHING 保留用户自定义修改）
@@ -493,6 +549,19 @@ func Migrate() {
 		}
 	}
 	log.Println("✅ 神煞注解 (shensha_annotations) 初始化完成")
+
+	// 增量迁移 (past-year-events)：过往年份事件推算报告缓存表
+	pastEventsMigration := `
+	CREATE TABLE IF NOT EXISTS ai_past_events (
+		id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		chart_id       UUID NOT NULL UNIQUE REFERENCES bazi_charts(id) ON DELETE CASCADE,
+		content_structured JSONB,
+		model          VARCHAR(50),
+		created_at     TIMESTAMPTZ DEFAULT NOW()
+	);`
+	if _, err := DB.Exec(pastEventsMigration); err != nil {
+		log.Fatalf("增量迁移失败 (ai_past_events): %v", err)
+	}
 
 	log.Println("✅ 数据库迁移完成")
 }

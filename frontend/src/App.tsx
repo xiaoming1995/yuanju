@@ -19,6 +19,7 @@ import AdminCelebritiesPage from './pages/admin/AdminCelebritiesPage'
 import PromptSettings from './pages/admin/PromptSettings'
 import AlgoConfigPage from './pages/admin/AlgoConfigPage'
 import ParticleBackground from './components/ParticleBackground'
+import PastEventsPage from './pages/PastEventsPage'
 import './index.css'
 import './App.css'
 
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/result" element={<><Navbar /><BottomNav /><ResultPage /></>} />
             <Route path="/history" element={<><Navbar /><BottomNav /><HistoryPage /></>} />
             <Route path="/history/:id" element={<><Navbar /><BottomNav /><ResultPage /></>} />
+            <Route path="/bazi/:chartId/past-events" element={<><Navbar /><BottomNav /><PastEventsPage /></>} />
 
             {/* Admin 路由（独立布局，无 Navbar）*/}
             <Route path="/admin/login" element={<AdminLoginPage />} />

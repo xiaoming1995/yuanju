@@ -91,3 +91,21 @@ type ShenshaAnnotation struct {
 	Description string    `json:"description"` // 详细说明（命理书级别）
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+// AIPastEvents 过往年份事件推算报告（命盘级缓存）
+type AIPastEvents struct {
+	ID                string           `json:"id"`
+	ChartID           string           `json:"chart_id"`
+	ContentStructured *json.RawMessage `json:"content_structured"`
+	Model             string           `json:"model"`
+	CreatedAt         time.Time        `json:"created_at"`
+}
+
+// PastEventsTemplateData past_events Prompt 模板所需的数据上下文
+type PastEventsTemplateData struct {
+	Gender       string // 性别（男/女）
+	DayGan       string // 日干
+	NatalSummary string // 原局概要
+	YearsData    string // JSON 格式的年份信号列表
+	DayunList    string // 大运列表文字描述（每行一条，含干支/十神/起止年龄）
+}

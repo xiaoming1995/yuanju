@@ -643,6 +643,13 @@ export default function ResultPage() {
         <div className="result-footer">
           <button className="btn btn-ghost" onClick={() => navigate('/')}>← 重新起盘</button>
           {user && <a href="/history" className="btn btn-ghost">查看历史记录</a>}
+          {user && targetId && (
+            <button
+              className="btn btn-ghost"
+              onClick={() => navigate(`/bazi/${targetId}/past-events`)}
+              style={{ borderColor: 'var(--wu-jin)', color: 'var(--wu-jin)' }}
+            >过往事件推算</button>
+          )}
         </div>
       </div>
 

@@ -329,3 +329,49 @@ func GetHistoryDetail(c *gin.Context) {
 		"report": report,
 	})
 }
+
+// HandlePastEventsStream 流式生成过往年份事件推算（需登录）
+func HandlePastEventsStream(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	if chart.UserID == nil || *chart.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Transfer-Encoding", "chunked")
+	c.Header("X-Accel-Buffering", "no")
+	c.Writer.Flush()
+
+	err = service.GeneratePastEventsStream(chartID, func(chunk string) error {
+		jsonBytes, _ := json.Marshal(map[string]string{"chunk": chunk})
+		fmt.Fprintf(c.Writer, "event: message\ndata: %s\n\n", string(jsonBytes))
+		c.Writer.Flush()
+		return nil
+	}, func() error {
+		fmt.Fprintf(c.Writer, "event: thinking\ndata: {}\n\n")
+		c.Writer.Flush()
+		return nil
+	})
+
+	if err != nil {
+		fmt.Fprintf(c.Writer, "event: error\ndata: %s\n\n", err.Error())
+	} else {
+		fmt.Fprintf(c.Writer, "event: done\ndata: [DONE]\n\n")
+	}
+	c.Writer.Flush()
+}
