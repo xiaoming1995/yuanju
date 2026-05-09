@@ -15,20 +15,21 @@ interface Chart {
 }
 
 export default function HistoryPage() {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const navigate = useNavigate()
   const [charts, setCharts] = useState<Chart[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (isLoading) return
     if (!user) { navigate('/login'); return }
     baziAPI.getHistory()
       .then(res => setCharts(res.data.charts || []))
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [user])
+  }, [user, isLoading, navigate])
 
-  if (loading) return (
+  if (loading || isLoading) return (
     <div className="history-page page">
       <div className="container">
         <div style={{ paddingTop: 40 }}>
@@ -44,6 +45,9 @@ export default function HistoryPage() {
         <div className="history-header animate-fade-up">
           <h1 className="history-title serif">命盘历史</h1>
           <p className="history-desc">共 {charts.length} 份记录</p>
+          <div style={{ marginTop: 10 }}>
+            <Link to="/compatibility/history" className="btn btn-ghost btn-sm">查看合盘历史</Link>
+          </div>
         </div>
 
         {charts.length === 0 ? (

@@ -66,6 +66,14 @@ func main() {
 			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
 		}
 
+		compatibility := api.Group("/compatibility", middleware.Auth())
+		{
+			compatibility.POST("/readings", handler.CreateCompatibilityReading)
+			compatibility.GET("/readings", handler.GetCompatibilityHistory)
+			compatibility.GET("/readings/:id", handler.GetCompatibilityDetail)
+			compatibility.POST("/readings/:id/report", handler.GenerateCompatibilityReport)
+		}
+
 		// 神煞注解（公开）
 		api.GET("/shensha/annotations", handler.GetShenshaAnnotations)
 

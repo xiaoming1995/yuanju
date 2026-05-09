@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Compass, History, User } from 'lucide-react'
+import { Compass, HeartHandshake, History, User } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import './BottomNav.css'
 
@@ -15,6 +15,14 @@ export default function BottomNav() {
       >
         <Compass size={20} className="bottom-nav-icon" />
         <span>测算</span>
+      </Link>
+
+      <Link
+        to="/compatibility"
+        className={`bottom-nav-item ${location.pathname.startsWith('/compatibility') ? 'active' : ''}`}
+      >
+        <HeartHandshake size={20} className="bottom-nav-icon" />
+        <span>合盘</span>
       </Link>
       
       {user ? (

@@ -68,6 +68,114 @@ export interface AIReport {
   created_at: string
 }
 
+export interface CompatibilityProfileInput {
+  year: number
+  month: number
+  day: number
+  hour: number
+  gender: 'male' | 'female'
+  calendar_type?: 'solar' | 'lunar'
+  is_leap_month?: boolean
+}
+
+export interface CompatibilityDimensionScores {
+  attraction: number
+  stability: number
+  communication: number
+  practicality: number
+}
+
+export interface CompatibilityEvidence {
+  id: string
+  reading_id: string
+  dimension: 'attraction' | 'stability' | 'communication' | 'practicality'
+  type: string
+  polarity: 'positive' | 'negative' | 'mixed' | 'neutral'
+  source: string
+  title: string
+  detail: string
+  weight: number
+  created_at: string
+}
+
+export interface CompatibilityChartSnapshot {
+  birth_year: number
+  birth_month: number
+  birth_day: number
+  birth_hour: number
+  gender: string
+  year_gan: string
+  year_zhi: string
+  month_gan: string
+  month_zhi: string
+  day_gan: string
+  day_zhi: string
+  hour_gan: string
+  hour_zhi: string
+  wuxing?: {
+    mu: number
+    huo: number
+    tu: number
+    jin: number
+    shui: number
+  }
+}
+
+export interface CompatibilityParticipant {
+  id: string
+  reading_id: string
+  role: 'self' | 'partner'
+  display_name: string
+  birth_profile: CompatibilityProfileInput
+  chart_hash: string
+  chart_snapshot?: CompatibilityChartSnapshot | null
+  created_at: string
+}
+
+export interface CompatibilityReading {
+  id: string
+  user_id: string
+  overall_level: 'high' | 'medium' | 'low'
+  dimension_scores: CompatibilityDimensionScores
+  summary_tags: string[]
+  analysis_version: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CompatibilityStructuredReport {
+  summary: string
+  dimensions: Array<{ key: string; title: string; content: string }>
+  risks: string[]
+  advice: string
+}
+
+export interface AICompatibilityReport {
+  id: string
+  reading_id: string
+  content: string
+  content_structured?: CompatibilityStructuredReport | null
+  model: string
+  created_at: string
+}
+
+export interface CompatibilityDetail {
+  reading: CompatibilityReading
+  participants: CompatibilityParticipant[]
+  evidences: CompatibilityEvidence[]
+  latest_report?: AICompatibilityReport | null
+}
+
+export interface CompatibilityHistoryItem {
+  id: string
+  overall_level: 'high' | 'medium' | 'low'
+  dimension_scores: CompatibilityDimensionScores
+  summary_tags: string[]
+  self_name: string
+  partner_name: string
+  created_at: string
+}
+
 // ======= Bazi API =======
 export interface CalculateInput {
   year: number
@@ -279,6 +387,17 @@ export const baziAPI = {
   getHistoryDetail: (id: string) => api.get(`/api/bazi/history/${id}`),
   fetchLiuYue: (liuNianYear: number, dayGan: string) =>
     api.post('/api/bazi/liu-yue', { liu_nian_year: liuNianYear, day_gan: dayGan }),
+}
+
+export const compatibilityAPI = {
+  createReading: (data: { self: CompatibilityProfileInput; partner: CompatibilityProfileInput }) =>
+    api.post('/api/compatibility/readings', data),
+  getHistory: () =>
+    api.get('/api/compatibility/readings'),
+  getDetail: (id: string) =>
+    api.get(`/api/compatibility/readings/${id}`),
+  generateReport: (id: string) =>
+    api.post(`/api/compatibility/readings/${id}/report`, {}, { timeout: 300000 }),
 }
 
 // ======= 流月类型 =======

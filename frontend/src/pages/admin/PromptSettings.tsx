@@ -20,6 +20,7 @@ const KB_MODULES = [
 
 const INSTRUCTION_MODULES = [
   { module: 'liunian', label: '流年运势批断', icon: '⚡', hint: '流年精批的 User Prompt 模版，支持 Go Template 占位变量注入命盘数据。' },
+  { module: 'compatibility', label: '婚恋合盘解读', icon: '💞', hint: '双人合盘分析的 User Prompt 模版，输入双方命盘摘要、四维分数与结构化证据。' },
 ]
 
 const PromptSettings: React.FC = () => {

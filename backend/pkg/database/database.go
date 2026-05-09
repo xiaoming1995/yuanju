@@ -252,6 +252,54 @@ func Migrate() {
 		log.Printf("升级 past_events Prompt 失败: %v", err)
 	}
 
+	defaultCompatibilityPrompt := `你是一位专业、克制、直断的八字合盘分析师。请根据双方命盘摘要、四维分数和结构化证据，输出一份关于婚恋/姻缘匹配的分析。
+
+人物标识：
+- A：{{.SelfLabel}}
+- B：{{.PartnerLabel}}
+
+A 命盘摘要：
+{{.SelfChartSummary}}
+
+B 命盘摘要：
+{{.PartnerChartSummary}}
+
+四维分数（JSON）：
+{{.ScoresJSON}}
+
+关系摘要标签：
+{{.SummaryTags}}
+
+结构化证据（JSON）：
+{{.EvidencesJSON}}
+
+要求：
+1. 必须围绕四个维度展开：吸引力、稳定度、沟通协同、现实磨合
+2. 必须引用结构化证据，不得脱离证据自由发挥
+3. 若证据同时有明显正负两面，需如实指出“强吸引但有拉扯”之类的矛盾结构
+4. 语气专业直接，不写鸡汤，不用“只要努力就一定会好”之类空话
+5. 输出严格为 JSON，不要带 Markdown 代码块
+
+输出格式：
+{
+  "summary": "100-160字总体判断",
+  "dimensions": [
+    { "key": "attraction", "title": "吸引力", "content": "80-120字" },
+    { "key": "stability", "title": "稳定度", "content": "80-120字" },
+    { "key": "communication", "title": "沟通协同", "content": "80-120字" },
+    { "key": "practicality", "title": "现实磨合", "content": "80-120字" }
+  ],
+  "risks": ["风险点1", "风险点2"],
+  "advice": "50-80字建议"
+}`
+
+	if _, err := DB.Exec(
+		`INSERT INTO ai_prompts (module, content, description) VALUES ($1, $2, $3) ON CONFLICT (module) DO NOTHING`,
+		"compatibility", defaultCompatibilityPrompt, "婚恋合盘解读（结构化证据 + AI 自然语言总结）",
+	); err != nil {
+		log.Printf("初始化 compatibility Prompt 失败: %v", err)
+	}
+
 	// 初始化命理知识库模块（4 个 kb_* 模块，ON CONFLICT DO NOTHING 保留用户自定义修改）
 	kbSeeds := []struct {
 		module      string
@@ -597,6 +645,79 @@ func Migrate() {
 		log.Fatalf("增量迁移失败 (ai_dayun_summaries): %v", err)
 	}
 
+	compatibilityReadingMigration := `
+	CREATE TABLE IF NOT EXISTS compatibility_readings (
+		id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		overall_level    VARCHAR(16) NOT NULL,
+		dimension_scores JSONB NOT NULL,
+		summary_tags     JSONB NOT NULL DEFAULT '[]'::jsonb,
+		analysis_version VARCHAR(32) NOT NULL DEFAULT 'v1',
+		created_at       TIMESTAMPTZ DEFAULT NOW(),
+		updated_at       TIMESTAMPTZ DEFAULT NOW()
+	);`
+	if _, err := DB.Exec(compatibilityReadingMigration); err != nil {
+		log.Fatalf("增量迁移失败 (compatibility_readings): %v", err)
+	}
+
+	compatibilityParticipantMigration := `
+	CREATE TABLE IF NOT EXISTS compatibility_participants (
+		id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		reading_id    UUID NOT NULL REFERENCES compatibility_readings(id) ON DELETE CASCADE,
+		role          VARCHAR(16) NOT NULL,
+		display_name  VARCHAR(64) NOT NULL,
+		birth_profile JSONB NOT NULL,
+		chart_hash    VARCHAR(64) NOT NULL,
+		chart_snapshot JSONB,
+		created_at    TIMESTAMPTZ DEFAULT NOW(),
+		UNIQUE (reading_id, role)
+	);`
+	if _, err := DB.Exec(compatibilityParticipantMigration); err != nil {
+		log.Fatalf("增量迁移失败 (compatibility_participants): %v", err)
+	}
+
+	compatibilityEvidenceMigration := `
+	CREATE TABLE IF NOT EXISTS compatibility_evidences (
+		id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		reading_id UUID NOT NULL REFERENCES compatibility_readings(id) ON DELETE CASCADE,
+		dimension  VARCHAR(32) NOT NULL,
+		type       VARCHAR(64) NOT NULL,
+		polarity   VARCHAR(16) NOT NULL,
+		source     VARCHAR(32) NOT NULL,
+		title      VARCHAR(64) NOT NULL,
+		detail     TEXT NOT NULL,
+		weight     INT NOT NULL DEFAULT 0,
+		created_at TIMESTAMPTZ DEFAULT NOW()
+	);`
+	if _, err := DB.Exec(compatibilityEvidenceMigration); err != nil {
+		log.Fatalf("增量迁移失败 (compatibility_evidences): %v", err)
+	}
+
+	compatibilityReportMigration := `
+	CREATE TABLE IF NOT EXISTS ai_compatibility_reports (
+		id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		reading_id         UUID NOT NULL REFERENCES compatibility_readings(id) ON DELETE CASCADE,
+		content            TEXT NOT NULL,
+		content_structured JSONB,
+		model              VARCHAR(50),
+		created_at         TIMESTAMPTZ DEFAULT NOW()
+	);`
+	if _, err := DB.Exec(compatibilityReportMigration); err != nil {
+		log.Fatalf("增量迁移失败 (ai_compatibility_reports): %v", err)
+	}
+
+	compatibilityIndexes := []string{
+		`CREATE INDEX IF NOT EXISTS idx_compatibility_readings_user_id ON compatibility_readings(user_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_compatibility_readings_created_at ON compatibility_readings(created_at DESC);`,
+		`CREATE INDEX IF NOT EXISTS idx_compatibility_participants_reading_id ON compatibility_participants(reading_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_compatibility_evidences_reading_id ON compatibility_evidences(reading_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_ai_compatibility_reports_reading_id ON ai_compatibility_reports(reading_id);`,
+	}
+	for _, stmt := range compatibilityIndexes {
+		if _, err := DB.Exec(stmt); err != nil {
+			log.Fatalf("增量迁移失败 (compatibility indexes): %v", err)
+		}
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }
-

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Compass } from 'lucide-react'
+import { Compass, HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import './Navbar.css'
 
@@ -22,6 +22,10 @@ export default function Navbar() {
 
         <div className="navbar-links">
           <Link to="/" className="navbar-link">测算</Link>
+          <Link to="/compatibility" className="navbar-link">
+            <HeartHandshake size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />
+            合盘
+          </Link>
           {user && <Link to="/history" className="navbar-link">历史</Link>}
         </div>
 

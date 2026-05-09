@@ -1,0 +1,232 @@
+.compatibility-hero-card {
+  padding: 28px;
+  margin-top: 28px;
+  margin-bottom: 20px;
+}
+
+.compatibility-hero-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.compatibility-hero-title {
+  font-size: 30px;
+  margin: 0;
+}
+
+.compatibility-hero-status-row {
+  margin-bottom: 12px;
+}
+
+.compatibility-hero-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--wu-jin);
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+}
+
+.compatibility-hero-summary {
+  margin: 0 0 14px;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.compatibility-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.compatibility-tag {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.compatibility-section {
+  margin-bottom: 20px;
+}
+
+.compatibility-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.compatibility-section-title {
+  font-size: 24px;
+  margin: 0;
+}
+
+.compatibility-section-desc {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.compatibility-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.compatibility-person-card {
+  padding: 20px;
+}
+
+.compatibility-person-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.compatibility-person-name {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.compatibility-person-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.compatibility-day-master {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 56px;
+}
+
+.compatibility-day-master-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.compatibility-day-master-value {
+  font-size: 28px;
+  color: var(--wu-jin);
+  line-height: 1;
+}
+
+.compatibility-pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.compatibility-pillar-cell {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+}
+
+.compatibility-pillar-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.compatibility-pillar-value {
+  font-size: 18px;
+}
+
+.compatibility-wuxing-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.compatibility-wuxing-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.compatibility-wuxing-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+}
+
+.compatibility-wuxing-value {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.compatibility-score-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-score-card {
+  padding: 18px;
+}
+
+.compatibility-score-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.compatibility-score-value {
+  font-size: 30px;
+}
+
+.compatibility-ai-card {
+  padding: 20px;
+  margin-top: 20px;
+}
+
+.compatibility-ai-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .compatibility-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-pillar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compatibility-wuxing-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .compatibility-score-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

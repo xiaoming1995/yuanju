@@ -20,6 +20,9 @@ import PromptSettings from './pages/admin/PromptSettings'
 import AlgoConfigPage from './pages/admin/AlgoConfigPage'
 import ParticleBackground from './components/ParticleBackground'
 import PastEventsPage from './pages/PastEventsPage'
+import CompatibilityPage from './pages/CompatibilityPage'
+import CompatibilityHistoryPage from './pages/CompatibilityHistoryPage'
+import CompatibilityResultPage from './pages/CompatibilityResultPage'
 import './index.css'
 import './App.css'
 
@@ -46,6 +49,9 @@ export default function App() {
             <Route path="/history" element={<><Navbar /><BottomNav /><HistoryPage /></>} />
             <Route path="/history/:id" element={<><Navbar /><BottomNav /><ResultPage /></>} />
             <Route path="/bazi/:chartId/past-events" element={<><Navbar /><BottomNav /><PastEventsPage /></>} />
+            <Route path="/compatibility" element={<><Navbar /><BottomNav /><CompatibilityPage /></>} />
+            <Route path="/compatibility/history" element={<><Navbar /><BottomNav /><CompatibilityHistoryPage /></>} />
+            <Route path="/compatibility/:id" element={<><Navbar /><BottomNav /><CompatibilityResultPage /></>} />
 
             {/* Admin 路由（独立布局，无 Navbar）*/}
             <Route path="/admin/login" element={<AdminLoginPage />} />

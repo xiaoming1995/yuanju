@@ -50,70 +50,6 @@
   color: var(--text-secondary);
 }
 
-/* 性别选择 */
-.gender-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.gender-btn {
-  padding: 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-size: 15px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  font-family: var(--font-sans);
-}
-
-.gender-btn.active {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: var(--primary-glow);
-}
-
-.gender-btn:hover:not(.active) {
-  border-color: var(--border-default);
-  color: var(--text-primary);
-  background: var(--bg-card-hover);
-}
-
-/* 日期行 */
-.date-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.form-group { margin-bottom: 20px; }
-
-.form-group:last-of-type { margin-bottom: 0; }
-
-/* 早子时提示 */
-.early-zishi-hint {
-  padding: 12px 16px;
-  background: rgba(91,155,213,0.08);
-  border: 1px solid rgba(91,155,213,0.2);
-  border-radius: var(--radius-md);
-  margin-bottom: 20px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--wu-shui);
-  cursor: pointer;
-}
-
-.checkbox-label input { accent-color: var(--wu-shui); }
-
 /* 提交按钮 */
 .submit-btn {
   width: 100%;
@@ -179,6 +115,5 @@
 }
 
 @media (max-width: 768px) {
-  .date-row { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }
 }

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI } from '../lib/api'
 import type { CalculateInput } from '../lib/api'
-import { LunarYear, LunarMonth } from 'lunar-javascript'
+import BirthProfileForm, { initialBirthProfile, type BirthProfileFormValue } from '../components/BirthProfileForm'
 import './HomePage.css'
 
 // 省份 → 中心经度映射（东8区标准为120°E）
@@ -20,43 +20,15 @@ const PROVINCE_LONGITUDE: Record<string, number> = {
   '香港': 114.2, '澳门': 113.5, '台湾': 121.5,
 }
 
-// 十二时辰选择器（value = 该时辰中间小时，防真太阳时偏移导致落入上一时辰）
-const SHICHEN = [
-  { value: 0,  label: '子时（23:00 - 00:59）' },
-  { value: 2,  label: '丑时（01:00 - 02:59）' },
-  { value: 4,  label: '寅时（03:00 - 04:59）' },
-  { value: 6,  label: '卯时（05:00 - 06:59）' },
-  { value: 8,  label: '辰时（07:00 - 08:59）' },
-  { value: 10, label: '巳时（09:00 - 10:59）' },
-  { value: 12, label: '午时（11:00 - 12:59）' },
-  { value: 14, label: '未时（13:00 - 14:59）' },
-  { value: 16, label: '申时（15:00 - 16:59）' },
-  { value: 18, label: '酉时（17:00 - 18:59）' },
-  { value: 20, label: '戌时（19:00 - 20:59）' },
-  { value: 22, label: '亥时（21:00 - 22:59）' },
-]
-
 export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const [form, setForm] = useState({
-    year: new Date().getFullYear() - 25,
-    month: 1,
-    day: 1,
-    hour: 12, // 默认午时中点
-    gender: 'male' as 'male' | 'female',
-    is_early_zishi: false,
-    province: '',  // 出生省份（可选，用于真太阳时修正）
-    calendarType: 'solar' as 'solar' | 'lunar',
-    isLeapMonth: false,
-  })
-
-  const handleChange = (field: string, value: string | number | boolean) => {
-    setForm(prev => ({ ...prev, [field]: value }))
-  }
+  const [birthProfile, setBirthProfile] = useState<BirthProfileFormValue>(initialBirthProfile('male'))
+  const [isEarlyZishi, setIsEarlyZishi] = useState(false)
+  const [province, setProvince] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,19 +39,19 @@ export default function HomePage() {
       // 子时现在的值是 0。
       // 若是早子时（即当天夜里 23点多），对后端而言需要传 hour=23 和 is_early_zishi=true 才能回退日柱。
       // 如果是晚子时，只需发 0。
-      const rawHour = Number(form.hour)
+      const rawHour = Number(birthProfile.hour)
       const isZishi = rawHour === 0
-      const finalHour = isZishi && form.is_early_zishi ? 23 : rawHour
+      const finalHour = isZishi && isEarlyZishi ? 23 : rawHour
       const input: CalculateInput = {
-        year: Number(form.year),
-        month: Number(form.month),
-        day: Number(form.day),
+        year: Number(birthProfile.year),
+        month: Number(birthProfile.month),
+        day: Number(birthProfile.day),
         hour: finalHour,
-        gender: form.gender,
-        is_early_zishi: isZishi ? form.is_early_zishi : false,
-        longitude: PROVINCE_LONGITUDE[form.province] || 0,
-        calendar_type: form.calendarType,
-        is_leap_month: form.isLeapMonth,
+        gender: birthProfile.gender,
+        is_early_zishi: isZishi ? isEarlyZishi : false,
+        longitude: PROVINCE_LONGITUDE[province] || 0,
+        calendar_type: birthProfile.calendarType,
+        is_leap_month: birthProfile.isLeapMonth,
       }
 
       // 统一调用算法排盘（快速），AI 解读由用户在结果页按钮触发
@@ -90,59 +62,6 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  // 计算指定年月的实际天数（自动处理闰年）
-  // new Date(year, month, 0) = month 月第 0 天 = 上月最后一天
-  const getDaysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate()
-
-  const currentYear = new Date().getFullYear()
-  const years = Array.from({ length: 120 }, (_, i) => currentYear - i)
-  
-  // 动态生成月份列表
-  let monthOptions = []
-  if (form.calendarType === 'solar') {
-    monthOptions = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, isLeap: false, label: `${i + 1} 月` }))
-  } else {
-    const leapMonth = LunarYear.fromYear(form.year).getLeapMonth()
-    for (let i = 1; i <= 12; i++) {
-        monthOptions.push({ value: i, isLeap: false, label: `${i} 月` })
-        if (i === leapMonth) {
-            monthOptions.push({ value: i, isLeap: true, label: `闰 ${i} 月` })
-        }
-    }
-  }
-
-  // 动态生成天数列表
-  let maxDay = 31
-  if (form.calendarType === 'solar') {
-    maxDay = getDaysInMonth(form.year, form.month)
-  } else {
-    maxDay = LunarMonth.fromYm(form.year, form.isLeapMonth ? -form.month : form.month)?.getDayCount() || 30
-  }
-  const days = Array.from({ length: maxDay }, (_, i) => i + 1)
-
-  // 处理复杂的日期联动变更
-  const handleDateChange = (updates: { year?: number, month?: number, isLeapMonth?: boolean }) => {
-    setForm(prev => {
-      const newYear = updates.year ?? prev.year
-      const newMonth = updates.month ?? prev.month
-      let newIsLeap = updates.isLeapMonth ?? prev.isLeapMonth
-
-      let newMaxDay = 31
-      if (prev.calendarType === 'solar') {
-        newMaxDay = getDaysInMonth(newYear, newMonth)
-      } else {
-        const leapMonth = LunarYear.fromYear(newYear).getLeapMonth()
-        if (newIsLeap && newMonth !== leapMonth) {
-            newIsLeap = false // 切换年份/月份后，如果不再是闰月，则取消闰月标识
-        }
-        newMaxDay = LunarMonth.fromYm(newYear, newIsLeap ? -newMonth : newMonth)?.getDayCount() || 30
-      }
-
-      const newDay = prev.day > newMaxDay ? 1 : prev.day
-      return { ...prev, ...updates, isLeapMonth: newIsLeap, day: newDay }
-    })
   }
 
   return (
@@ -172,112 +91,16 @@ export default function HomePage() {
             </div>
 
             <form onSubmit={handleSubmit} id="bazi-form">
-              {/* 性别 */}
-              <div className="gender-selector">
-                {(['male', 'female'] as const).map(g => (
-                  <button
-                    key={g}
-                    type="button"
-                    className={`gender-btn ${form.gender === g ? 'active' : ''}`}
-                    onClick={() => handleChange('gender', g)}
-                  >
-                    {g === 'male' ? '♂ 男命' : '♀ 女命'}
-                  </button>
-                ))}
-              </div>
-
-              {/* 历法类型 */}
-              <div className="gender-selector" style={{ marginBottom: '1.5rem', marginTop: '1rem' }}>
-                {(['solar', 'lunar'] as const).map(ct => (
-                  <button
-                    key={ct}
-                    type="button"
-                    className={`gender-btn ${form.calendarType === ct ? 'active' : ''}`}
-                    onClick={() => {
-                      setForm(prev => {
-                        let newMaxDay = 31
-                        if (ct === 'solar') {
-                          newMaxDay = getDaysInMonth(prev.year, prev.month)
-                        } else {
-                          newMaxDay = LunarMonth.fromYm(prev.year, prev.month)?.getDayCount() || 30
-                        }
-                        const newDay = prev.day > newMaxDay ? 1 : prev.day
-                        return { ...prev, calendarType: ct, isLeapMonth: false, day: newDay }
-                      })
-                    }}
-                  >
-                    {ct === 'solar' ? '公历' : '农历'}
-                  </button>
-                ))}
-              </div>
-
-              {/* 日期行 */}
-              <div className="date-row">
-                <div className="form-group">
-                  <label className="form-label">出生年份</label>
-                  <select
-                    id="birth-year"
-                    className="form-select"
-                    value={form.year}
-                  onChange={e => handleDateChange({ year: Number(e.target.value) })}
-                  >
-                    {years.map(y => <option key={y} value={y}>{y} 年</option>)}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">月</label>
-                  <select
-                    id="birth-month"
-                    className="form-select"
-                    value={`${form.month}-${form.isLeapMonth}`}
-                  onChange={e => {
-                    const [valStr, isLeapStr] = e.target.value.split('-')
-                    handleDateChange({ month: Number(valStr), isLeapMonth: isLeapStr === 'true' })
-                  }}
-                  >
-                    {monthOptions.map(m => (
-                        <option key={`${m.value}-${m.isLeap}`} value={`${m.value}-${m.isLeap}`}>{m.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">日</label>
-                  <select
-                    id="birth-day"
-                    className="form-select"
-                    value={form.day}
-                    onChange={e => handleChange('day', Number(e.target.value))}
-                  >
-                    {days.map(d => <option key={d} value={d}>{d} 日</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* 时辰（十二时辰）*/}
-              <div className="form-group">
-                <label className="form-label">出生时辰</label>
-                <select
-                  id="birth-hour"
-                  className="form-select"
-                  value={form.hour}
-                  onChange={e => handleChange('hour', Number(e.target.value))}
-                >
-                  {SHICHEN.map(h => (
-                    <option key={h.value} value={h.value}>{h.label}</option>
-                  ))}
-                </select>
-              </div>
+              <BirthProfileForm value={birthProfile} onChange={setBirthProfile} />
 
               {/* 早子时选项（仅子时显示）*/}
-              {form.hour === 0 && (
+              {birthProfile.hour === 0 && (
                 <div className="early-zishi-hint">
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
-                      checked={form.is_early_zishi}
-                      onChange={e => handleChange('is_early_zishi', e.target.checked)}
+                      checked={isEarlyZishi}
+                      onChange={e => setIsEarlyZishi(e.target.checked)}
                     />
                     <span>早子时（23:00 前，日柱按前一天算）</span>
                   </label>
@@ -293,8 +116,8 @@ export default function HomePage() {
                 <select
                   id="birth-province"
                   className="form-select"
-                  value={form.province}
-                  onChange={e => handleChange('province', e.target.value)}
+                  value={province}
+                  onChange={e => setProvince(e.target.value)}
                 >
                   <option value="">不选择（按北京时间）</option>
                   {Object.keys(PROVINCE_LONGITUDE).filter(k => k !== '').map(p => (
