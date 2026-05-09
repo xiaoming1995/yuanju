@@ -28,7 +28,7 @@ go test ./pkg/bazi/... -run TestFuncName   # Run a single test
 
 ### Full Stack
 ```bash
-docker-compose up -d   # Start PostgreSQL + Redis + Backend + Frontend
+./scripts/docker-compose-up.sh   # 首次自动生成 backend/.env.docker，再启动整套服务
 docker-compose down
 docker-compose logs -f
 ```
