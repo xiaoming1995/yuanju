@@ -101,11 +101,40 @@ type AIPastEvents struct {
 	CreatedAt         time.Time        `json:"created_at"`
 }
 
+// AIDayunSummary 单段大运 AI 总结（按 chart_id + dayun_index 缓存）
+type AIDayunSummary struct {
+	ID          string           `json:"id"`
+	ChartID     string           `json:"chart_id"`
+	DayunIndex  int              `json:"dayun_index"`
+	DayunGanZhi string           `json:"dayun_ganzhi"`
+	Themes      *json.RawMessage `json:"themes"`
+	Summary     string           `json:"summary"`
+	Model       string           `json:"model"`
+	CreatedAt   time.Time        `json:"created_at"`
+}
+
+// DayunSummaryTemplateData 单段大运 AI prompt 模板上下文
+type DayunSummaryTemplateData struct {
+	Gender         string
+	DayGan         string
+	NatalSummary   string
+	YongshenInfo   string
+	StrengthDetail string
+	DayunInfo      string // 当前大运："大运 戊戌 30-39岁（2025-2034年）[偏财/伤官]"
+	HuaheTag       string // 合化标签（若有）
+	YearsData      string // 仅这段大运 10 年的 signals JSON
+	LifeStageHint  string // 读书期/跨界期 prompt 提示（按 youngRatio 三档）
+}
+
 // PastEventsTemplateData past_events Prompt 模板所需的数据上下文
 type PastEventsTemplateData struct {
-	Gender       string // 性别（男/女）
-	DayGan       string // 日干
-	NatalSummary string // 原局概要
-	YearsData    string // JSON 格式的年份信号列表
-	DayunList    string // 大运列表文字描述（每行一条，含干支/十神/起止年龄）
+	Gender         string // 性别（男/女）
+	DayGan         string // 日干
+	NatalSummary   string // 原局概要
+	YearsData      string // JSON 格式的年份信号列表（每条信号含 polarity / source 字段）
+	DayunList      string // 大运列表文字描述（每行一条，含干支/十神/起止年龄）
+	YongshenInfo   string // 用神/忌神描述（如"用神：火、土 / 忌神：水、木"），缺失时为空串
+	GejuSummary    string // 原局格局描述（无格局信息时为空串）
+	DayunHuahe     string // 大运合化标签（多行换行拼接），无则为空串
+	StrengthDetail string // 加权身强弱评分明细（如"中和(评分2): 月令同气加分5"）
 }

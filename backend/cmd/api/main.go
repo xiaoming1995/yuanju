@@ -58,6 +58,9 @@ func main() {
 			bazi.POST("/report-stream/:chart_id", middleware.Auth(), handler.GenerateReportStream)
 			bazi.POST("/liunian-report/:chart_id", middleware.Auth(), handler.GenerateLiunianReport)
 			bazi.POST("/past-events-stream/:chart_id", middleware.Auth(), handler.HandlePastEventsStream)
+			// 思路 E：即时年份 + 流式大运总结
+			bazi.POST("/past-events/years/:chart_id", middleware.Auth(), handler.HandlePastEventsYears)
+			bazi.POST("/past-events/dayun-summary-stream/:chart_id", middleware.Auth(), handler.HandleDayunSummariesStream)
 			bazi.GET("/history", middleware.Auth(), handler.GetHistory)
 			bazi.GET("/history/:id", middleware.Auth(), handler.GetHistoryDetail)
 			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）

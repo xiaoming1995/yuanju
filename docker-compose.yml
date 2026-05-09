@@ -36,9 +36,12 @@ services:
       dockerfile: Dockerfile
     container_name: yuanju_backend
     ports:
-      - "8080:8080"
+      - "9002:9002"
     env_file:
       - ./backend/.env
+    environment:
+      DATABASE_URL: postgres://yuanju:yuanju123@postgres:5432/yuanju?sslmode=disable
+      REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
         condition: service_healthy

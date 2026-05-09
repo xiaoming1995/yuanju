@@ -192,21 +192,29 @@ func Migrate() {
 - 性别：{{.Gender}}
 - 日干：{{.DayGan}}
 - 原局四柱与十神概要：{{.NatalSummary}}
+- 用神/忌神：{{.YongshenInfo}}
+- 原局格局：{{.GejuSummary}}
+- 加权身强弱：{{.StrengthDetail}}
 
 命主过往大运列表：
 {{.DayunList}}
 
-以下是命主过往各流年的命理信号分析（JSON格式）：
+大运合化标签（仅列已构成天干五合的大运）：
+{{.DayunHuahe}}
+
+以下是命主过往各流年的命理信号分析（JSON格式，每条信号含 type / evidence / polarity / source）：
 {{.YearsData}}
 
-输出要求：
-1. 为每一个年份撰写 2-3 句中文批断，必须结合该年份的命理信号（signals）及其证据（evidence）
-2. 无信号年份写"该年运势较为平稳，无明显重大变动"类似的简短描述
-3. 为每一段大运额外撰写一条整体总结，包含：
-   - themes：2-4 个概括该大运主题的短词（如"事业↑"、"感情动荡"、"贵人扶持"、"财运旺"等）
-   - summary：80-120 字，综合评述该大运10年的整体走势、主要变化方向和特点
-4. 语气权威客观，使用命理术语，不写鸡汤励志语句
-5. 直接输出以下 JSON 格式，不要包含多余 Markdown 标记：
+撰写要求：
+1. **基底色优先**：每个流年若包含 type=用神基底 信号，应以其 polarity（吉/凶/中性）为整年定调；个别强 polarity 信号（如神煞、伏吟反吟）可在 narrative 中作为转折点叙述，但全年总体倾向必须遵循基底色
+2. **神煞强烈**：若信号 source=神煞，按神煞名直接在 narrative 中点出（如"天乙贵人临运""羊刃刃伤"），不要泛泛而谈
+3. **合化整段定向**：若大运被列入合化标签，撰写该段 dayun_summaries 时必须点出合化方向（如"丁壬合化木——日主性向偏木，整段大运转向文教/创意"）
+4. **加权身强弱**：在 dayun_summaries 与极强/极弱年份的 narrative 中，应结合命主身强弱明细（如"身弱财多，本年财来财去"或"身极强，宜泄不宜帮"）
+5. **冲突时**：若单条信号 polarity 与基底色冲突（如财星透干但财为忌神，basis=凶），narrative 必须用转折语点出（如"虽现财星，然为忌神，反主破耗"），避免直白写"财运提升"
+6. 每年 narrative 2-3 句中文，无信号年份写"该年运势较为平稳"
+7. dayun_summaries 包含：themes（2-4 个主题词）+ summary（80-120 字）
+8. 语气权威客观，使用命理术语，不写鸡汤励志语句
+9. 直接输出以下 JSON 格式，不要包含多余 Markdown 标记：
 {
   "years": [
     {
@@ -233,9 +241,12 @@ func Migrate() {
 	); err != nil {
 		log.Printf("初始化 past_events Prompt 失败: %v", err)
 	}
-	// 将已有记录更新为含大运总结的新版模板（幂等，不覆盖用户通过 Admin UI 的自定义修改）
+	// 升级旧版（含 dayun_summaries 但不含 YongshenInfo 的） → 新版模板。
+	// 已包含 YongshenInfo 的 prompt 不被覆盖（保护 admin 自定义）。
 	if _, err := DB.Exec(
-		`UPDATE ai_prompts SET content = $1 WHERE module = 'past_events' AND content NOT LIKE '%dayun_summaries%'`,
+		`UPDATE ai_prompts SET content = $1
+         WHERE module = 'past_events'
+           AND content NOT LIKE '%YongshenInfo%'`,
 		defaultPastEventsPrompt,
 	); err != nil {
 		log.Printf("升级 past_events Prompt 失败: %v", err)
@@ -479,6 +490,12 @@ func Migrate() {
 		}
 	}
 
+	// 增量迁移 (chart-result-snapshot)：持久化整个 BaziResult 快照，避免下游重复调用 lunar-go 与算法漂移
+	resultSnapshotMigration := `ALTER TABLE bazi_charts ADD COLUMN IF NOT EXISTS result_json JSONB;`
+	if _, err := DB.Exec(resultSnapshotMigration); err != nil {
+		log.Fatalf("增量迁移失败 (result_json snapshot): %v", err)
+	}
+
 	// 增量迁移 (shensha-annotations)：神煞注解表
 	shenshaAnnotationMigration := `
 	CREATE TABLE IF NOT EXISTS shensha_annotations (
@@ -561,6 +578,23 @@ func Migrate() {
 	);`
 	if _, err := DB.Exec(pastEventsMigration); err != nil {
 		log.Fatalf("增量迁移失败 (ai_past_events): %v", err)
+	}
+
+	// 增量迁移 (past-events-streaming-rewrite)：大运 summary 段独立缓存
+	dayunSummaryMigration := `
+	CREATE TABLE IF NOT EXISTS ai_dayun_summaries (
+		id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		chart_id     UUID NOT NULL REFERENCES bazi_charts(id) ON DELETE CASCADE,
+		dayun_index  INT NOT NULL,
+		dayun_ganzhi VARCHAR(8),
+		themes       JSONB,
+		summary      TEXT,
+		model        VARCHAR(50),
+		created_at   TIMESTAMPTZ DEFAULT NOW(),
+		UNIQUE (chart_id, dayun_index)
+	);`
+	if _, err := DB.Exec(dayunSummaryMigration); err != nil {
+		log.Fatalf("增量迁移失败 (ai_dayun_summaries): %v", err)
 	}
 
 	log.Println("✅ 数据库迁移完成")

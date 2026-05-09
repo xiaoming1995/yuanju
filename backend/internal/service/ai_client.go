@@ -108,6 +108,10 @@ type AIRequest struct {
 	MaxTokens   int         `json:"max_tokens"`
 	Temperature float64     `json:"temperature"`
 	Stream      bool        `json:"stream,omitempty"`
+	// EnableThinking 控制 Qwen3 等混合推理模型是否启用思考模式
+	// nil → 不发送字段（默认行为）；*false → 关闭推理；*true → 强制推理
+	// 仅 Dashscope (Qwen3) 等支持该字段，其他 provider 收到后通常忽略
+	EnableThinking *bool `json:"enable_thinking,omitempty"`
 }
 
 type AIResponse struct {
@@ -235,6 +239,18 @@ func callAIInternal(systemPrompt, userPrompt string) (content, model, providerID
 }
 
 func StreamAIWithSystem(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, err error) {
+	return streamAIWithSystemEx(userPrompt, callback, onThinking, nil)
+}
+
+// StreamAIWithSystemNoThink 调用激活 Provider 但显式关闭推理思考模式（适用于 Qwen3 等混合推理模型）
+// 同时在 user prompt 末尾追加 /no_think 兜底（即使 provider 不识别 enable_thinking 字段也能切非推理）
+func StreamAIWithSystemNoThink(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, err error) {
+	disabled := false
+	noThinkPrompt := userPrompt + "\n\n/no_think"
+	return streamAIWithSystemEx(noThinkPrompt, callback, onThinking, &disabled)
+}
+
+func streamAIWithSystemEx(userPrompt string, callback func(string) error, onThinking func() error, enableThinking *bool) (rawContent, model, providerID string, durationMs int, err error) {
 	systemPrompt := buildKnowledgeBaseSystem()
 	start := time.Now()
 
@@ -246,7 +262,7 @@ func StreamAIWithSystem(userPrompt string, callback func(string) error, onThinki
 			return "", "", provider.ID, 0, fmt.Errorf("Provider [%s] API Key 解密失败，请检查 ADMIN_ENCRYPTION_KEY 配置", provider.Name)
 		}
 		baseURL := strings.TrimSuffix(strings.TrimSuffix(provider.BaseURL, "/v1"), "/")
-		result, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback, onThinking)
+		result, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback, onThinking, enableThinking)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr != nil {
 			return result, provider.Model, provider.ID, elapsed, fmt.Errorf("Provider [%s] 调用失败: %w", provider.Name, callErr)
@@ -256,14 +272,14 @@ func StreamAIWithSystem(userPrompt string, callback func(string) error, onThinki
 
 	// Fallback
 	if configs.AppConfig.DeepSeekAPIKey != "" {
-		result, callErr := streamOpenAICompatible(configs.AppConfig.AIBaseURL+"/v1/chat/completions", configs.AppConfig.DeepSeekAPIKey, "deepseek-chat", systemPrompt, userPrompt, callback, onThinking)
+		result, callErr := streamOpenAICompatible(configs.AppConfig.AIBaseURL+"/v1/chat/completions", configs.AppConfig.DeepSeekAPIKey, "deepseek-chat", systemPrompt, userPrompt, callback, onThinking, enableThinking)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
 			return result, "deepseek-chat", "", elapsed, nil
 		}
 	}
 	if configs.AppConfig.OpenAIAPIKey != "" {
-		result, callErr := streamOpenAICompatible("https://api.openai.com/v1/chat/completions", configs.AppConfig.OpenAIAPIKey, "gpt-4o-mini", systemPrompt, userPrompt, callback, onThinking)
+		result, callErr := streamOpenAICompatible("https://api.openai.com/v1/chat/completions", configs.AppConfig.OpenAIAPIKey, "gpt-4o-mini", systemPrompt, userPrompt, callback, onThinking, enableThinking)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
 			return result, "gpt-4o-mini", "", elapsed, nil
@@ -324,9 +340,17 @@ func callOpenAICompatibleWithLog(url, apiKey, modelName, systemPrompt, userPromp
 	return result, err
 }
 
-func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string, callback func(string) error, onThinking func() error) (string, error) {
+func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string, callback func(string) error, onThinking func() error, enableThinking *bool) (string, error) {
 	t0 := time.Now()
-	log.Printf("[AIStream] 开始请求 model=%s url=%s", modelName, url)
+	thinkLabel := "default"
+	if enableThinking != nil {
+		if *enableThinking {
+			thinkLabel = "force-on"
+		} else {
+			thinkLabel = "force-off"
+		}
+	}
+	log.Printf("[AIStream] 开始请求 model=%s url=%s thinking=%s", modelName, url, thinkLabel)
 
 	reqBody := AIRequest{
 		Model: modelName,
@@ -334,13 +358,14 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
 		},
-		MaxTokens:   12000,
-		Temperature: 1.0,
-		Stream:      true,
+		MaxTokens:      12000,
+		Temperature:    1.0,
+		Stream:         true,
+		EnableThinking: enableThinking,
 	}
 
 	bodyBytes, _ := json.Marshal(reqBody)
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Second)
 	defer cancel()
 
 	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyBytes))
@@ -348,7 +373,7 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	req.Header.Set("Accept", "text/event-stream")
 
-	client := &http.Client{Timeout: 300 * time.Second}
+	client := &http.Client{} // SSE 流式连接不设全局 Timeout，由 context 控制取消
 	resp, err := client.Do(req)
 	statusCode := 0
 	if resp != nil {
