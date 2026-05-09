@@ -2,27 +2,29 @@ package bazi
 
 import "testing"
 
-// TestYongshenFix_JiTuInMao 验证 Bug 修复：1989年3月20日 己土卯月
-// 卯月木旺（七杀当令），己土失令，应判身弱，喜用神应为火土，忌神为木水金
+// TestYongshenFix_JiTuInMao 验证 t0 调候命中行为（己卯字典：癸甲；亥藏含甲）
+// 命主：己巳·丁卯·己卯·乙亥；调候字典 己_卯 = [癸,甲]；亥藏壬甲 → 甲命中
+// 旧扶抑算法返回 yongshen=火土；新算法走调候 → yongshen 含木（甲）
+// 注：此为算法迁移后预期变化，验证 t0 路径正常工作
 func TestYongshenFix_JiTuInMao(t *testing.T) {
-	// 1989年3月20日22时 → 己巳·丁卯·己卯·乙亥
 	result := Calculate(1989, 3, 20, 22, "male", false, 0, "solar", false)
 	t.Logf("四柱：%s%s·%s%s·%s%s·%s%s",
 		result.YearGan, result.YearZhi,
 		result.MonthGan, result.MonthZhi,
 		result.DayGan, result.DayZhi,
 		result.HourGan, result.HourZhi)
-	t.Logf("日主五行：%s，月支：%s", result.DayGanWuxing, result.MonthZhi)
-	t.Logf("五行分布：木%d 火%d 土%d 金%d 水%d",
-		result.Wuxing.Mu, result.Wuxing.Huo, result.Wuxing.Tu,
-		result.Wuxing.Jin, result.Wuxing.Shui)
-	t.Logf("喜用神：%s，忌神：%s", result.Yongshen, result.Jishen)
+	t.Logf("yongshen=%q jishen=%q status=%q hit=%v miss=%v",
+		result.Yongshen, result.Jishen, result.YongshenStatus,
+		result.YongshenGans, result.YongshenMissing)
 
-	if result.Yongshen != "火土" {
-		t.Errorf("己土卯月（失令身弱）喜用神应为「火土」，实际为「%s」", result.Yongshen)
+	if result.YongshenStatus != YongshenStatusTiaohouHit {
+		t.Errorf("status = %q, want tiaohou_hit (己_卯 字典 = 癸甲，亥藏含甲)", result.YongshenStatus)
 	}
-	if result.Jishen != "木水金" {
-		t.Errorf("己土卯月（失令身弱）忌神应为「木水金」，实际为「%s」", result.Jishen)
+	if !containsStrTest(result.YongshenGans, "甲") {
+		t.Errorf("YongshenGans = %v, expected to contain 甲", result.YongshenGans)
+	}
+	if result.Yongshen != "木" {
+		t.Errorf("yongshen = %q, want 木 (甲=木 单一命中)", result.Yongshen)
 	}
 }
 

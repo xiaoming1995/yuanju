@@ -89,9 +89,15 @@ type BaziResult struct {
 
 	Wuxing WuxingStats `json:"wuxing"`
 
-	// 用神/忌神由 LLM 推断，此处保留字段兼容性，值为空
+	// 用神/忌神（五行中文集合，兼容下游 strings.Contains 匹配）
 	Yongshen string `json:"yongshen"`
 	Jishen   string `json:"jishen"`
+
+	// yongshen 推算来源诊断字段（t0 调候优先，t1 扶抑 fallback）
+	YongshenStatus  string   `json:"yongshen_status"`             // tiaohou_hit / tiaohou_miss_fallback_fuyi / tiaohou_dict_missing / fuyi
+	YongshenGans    []string `json:"yongshen_gans,omitempty"`     // t0 命中的具体调候用神天干
+	JishenGans      []string `json:"jishen_gans,omitempty"`       // 与 YongshenGans 对应的克/泄天干集（暂留作后续扩展，本轮未填充）
+	YongshenMissing []string `json:"yongshen_missing,omitempty"`  // t0 缺位的调候用神天干
 
 	// 调候用神（基于《穷通宝鉴》查表精算）
 	Tiaohou *TiaohouResult `json:"tiaohou"`
@@ -241,14 +247,21 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		hourGanWx, hourZhiWx,
 	)
 
-	// 两层推算：调候急用优先，其次月令权重修正扶抑
-	yongshen, jishen := inferNativeYongshen(dayGanWx, monthZhiWx, monthZhi, wuxing)
-
-	// 藏干
+	// 藏干（yongshen 推算需要，先于 yongshen 计算）
 	yearHideGan := bz.GetYearHideGan()
 	monthHideGan := bz.GetMonthHideGan()
 	dayHideGan := bz.GetDayHideGan()
 	hourHideGan := bz.GetTimeHideGan()
+
+	// 用神/忌神：t0 调候字典优先，t1 月令权重扶抑 fallback
+	natalGans := collectNatalGans(yearGan, monthGan, dayGan, hourGan)
+	natalHideGans := collectNatalHideGans(yearHideGan, monthHideGan, dayHideGan, hourHideGan)
+	yongshen, jishen, yongshenStatus, yongshenHitGans, yongshenMissGans := inferYongshenWithTiaohouPriority(
+		dayGan, monthZhi,
+		natalGans, natalHideGans,
+		dayGanWx, monthZhiWx,
+		wuxing,
+	)
 
 	// 纳音
 	yearNaYin := bz.GetYearNaYin()
@@ -410,8 +423,11 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 
 		Wuxing: wuxing,
 
-		Yongshen: yongshen,
-		Jishen:   jishen,
+		Yongshen:        yongshen,
+		Jishen:          jishen,
+		YongshenStatus:  yongshenStatus,
+		YongshenGans:    yongshenHitGans,
+		YongshenMissing: yongshenMissGans,
 
 		StartYunSolar: startYunStr,
 		Dayun:         dayunItems,
@@ -541,30 +557,4 @@ func calcWeightedYongshen(dayGanWx, monthZhiWx string, stats WuxingStats) (yongs
 		return opposeElements, helpElements
 	}
 	return helpElements, opposeElements
-}
-
-// inferNativeYongshen 两层推算引擎：调候急用优先，其次月令权重扶抑
-//
-// 层1 - 调候急用：三冬（亥子丑）命局无火 → 急需火调候；三夏（巳午未）命局无水 → 急需水调候。
-//         当调候极度缺失时，调候优先于扶抑，直接返回对应五行喜忌。
-//
-// 层2 - 月令权重扶抑：月支权重×3，其余字×1，总权重10，严格大于40%判身强。
-//
-// dayGanWx：日主五行名  monthZhiWx：月支五行名  monthZhi：月支地支字
-func inferNativeYongshen(dayGanWx, monthZhiWx, monthZhi string, stats WuxingStats) (yongshen, jishen string) {
-	// ── 层1：调候急用检测 ─────────────────────────────────────────────
-	coldMonths := map[string]bool{"亥": true, "子": true, "丑": true} // 三冬
-	hotMonths := map[string]bool{"巳": true, "午": true, "未": true}   // 三夏
-
-	if coldMonths[monthZhi] && stats.Huo == 0 {
-		// 极寒无火：火为急用，喜火木（火暖局，木生火），忌水金土（助寒伤火）
-		return "火木", "水金土"
-	}
-	if hotMonths[monthZhi] && stats.Shui == 0 {
-		// 极热无水：水为急用，喜水金（水降温，金生水），忌火木土（助热耗水）
-		return "水金", "火木土"
-	}
-
-	// ── 层2：月令权重修正扶抑 ─────────────────────────────────────────
-	return calcWeightedYongshen(dayGanWx, monthZhiWx, stats)
 }

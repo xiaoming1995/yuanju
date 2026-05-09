@@ -21,6 +21,83 @@ type BaziReportInput struct {
 	Result  *bazi.BaziResult
 }
 
+// buildLifeStageHint 按"该段大运 age<18 的年份占比"生成 prompt 提示词
+// youngCount=0 → 空（成人期不附加）
+// youngCount=totalCount → 全段读书期
+// 0 < youngCount < totalCount → 跨界期（前 N 年读书、后 M 年入社会）
+func buildLifeStageHint(youngCount, totalCount int) string {
+	if totalCount <= 0 || youngCount <= 0 {
+		return ""
+	}
+	if youngCount == totalCount {
+		return "本段大运全部年份处于读书期，请以学业、性格塑造、同窗关系为主轴撰写 summary。"
+	}
+	adultCount := totalCount - youngCount
+	return fmt.Sprintf("本段大运跨越读书期与成人期（前 %d 年读书、后 %d 年入社会），summary 请分两段叙述：先讲读书期学业 / 性格，再讲成人期事业 / 婚恋。", youngCount, adultCount)
+}
+
+// LoadOrCalculateResult 加载或懒计算命盘的 BaziResult 快照
+//
+// 优先从 bazi_charts.result_json 反序列化（无 lunar-go 调用，毫秒级）；
+// 老命盘 result_json 为空时，调一次 bazi.Calculate 并回写 DB；
+// 之后所有下游（流年、大运、报告）都拿到一致的"原子化"原局，避免算法版本漂移。
+func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
+	if chart == nil {
+		return nil, fmt.Errorf("chart 为 nil")
+	}
+	raw, err := repository.GetChartResultJSON(chart.ID)
+	if err != nil {
+		return nil, fmt.Errorf("读取命盘快照失败: %v", err)
+	}
+	if len(raw) > 0 {
+		var cached bazi.BaziResult
+		if err := json.Unmarshal(raw, &cached); err == nil {
+			return &cached, nil
+		}
+		// 反序列化失败：日志告警后回退到重新计算（防止脏数据卡死）
+		log.Printf("[LoadOrCalculateResult] result_json 反序列化失败 chart_id=%s: %v；回退至 Calculate", chart.ID, err)
+	}
+	// 懒加载：调一次 lunar-go 算出 BaziResult，写回 DB
+	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
+		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+	if marshalled, mErr := json.Marshal(result); mErr == nil {
+		if sErr := repository.SaveChartResultJSON(chart.ID, marshalled); sErr != nil {
+			log.Printf("[LoadOrCalculateResult] 写回 result_json 失败 chart_id=%s: %v", chart.ID, sErr)
+		}
+	}
+	return result, nil
+}
+
+// formatYongshenInfo 将 BaziResult 的 yongshen 字段格式化为 prompt 可读的文案
+// 优先使用 t0 调候命中信息（含具体天干），fallback 至旧版"用神/忌神"五行格式
+func formatYongshenInfo(result *bazi.BaziResult) string {
+	if result == nil {
+		return ""
+	}
+	switch result.YongshenStatus {
+	case bazi.YongshenStatusTiaohouHit:
+		if len(result.YongshenGans) > 0 {
+			return fmt.Sprintf("调候用神：%s（%s）／ 忌神：%s",
+				strings.Join(result.YongshenGans, "、"), result.Yongshen, result.Jishen)
+		}
+	case bazi.YongshenStatusTiaohouMissFallback:
+		miss := strings.Join(result.YongshenMissing, "、")
+		if miss == "" {
+			return fmt.Sprintf("用神（扶抑回退）：%s ／ 忌神：%s", result.Yongshen, result.Jishen)
+		}
+		return fmt.Sprintf("用神（扶抑回退，调候缺：%s）：%s ／ 忌神：%s",
+			miss, result.Yongshen, result.Jishen)
+	}
+	if result.Yongshen != "" || result.Jishen != "" {
+		return fmt.Sprintf("用神：%s ／ 忌神：%s", result.Yongshen, result.Jishen)
+	}
+	if result.Tiaohou != nil && len(result.Tiaohou.Expected) > 0 {
+		return fmt.Sprintf("调候喜神：%s（综合用神信息缺失，以调候为参考）",
+			strings.Join(result.Tiaohou.Expected, "、"))
+	}
+	return ""
+}
+
 // ===== 结构化报告 JSON 类型 =====
 
 type reportAnalysis struct {
@@ -578,7 +655,10 @@ func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianRepo
 		}
 	}
 
-	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour, chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+	result, err := LoadOrCalculateResult(chart)
+	if err != nil {
+		return nil, err
+	}
 
 	var currentDayun string
 	var currentDayunGSS string
@@ -690,8 +770,10 @@ func GeneratePastEventsStream(chartID string, onData func(string) error, onThink
 		return fmt.Errorf("未找到排盘记录")
 	}
 
-	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+	result, err := LoadOrCalculateResult(chart)
+	if err != nil {
+		return err
+	}
 
 	// 3. 算法扫描所有过往年份信号
 	currentYear := time.Now().Year()
@@ -700,7 +782,7 @@ func GeneratePastEventsStream(chartID string, onData func(string) error, onThink
 	if len(result.Dayun) > 0 {
 		minAge = result.Dayun[0].StartAge
 	}
-	yearSignals := bazi.GetPastYearSignals(result, chart.Gender, currentYear, minAge)
+	yearSignals := bazi.GetAllYearSignals(result, chart.Gender, currentYear, minAge)
 
 	yearsJSON, err := json.Marshal(yearSignals)
 	if err != nil {
@@ -730,9 +812,6 @@ func GeneratePastEventsStream(chartID string, onData func(string) error, onThink
 	// 构建大运列表描述，供 AI 撰写大运整体总结
 	var dayunLines []string
 	for _, dy := range result.Dayun {
-		if dy.StartYear >= currentYear {
-			break // 只包含已起运的过往/当下大运
-		}
 		dayunLines = append(dayunLines, fmt.Sprintf("大运 %s%s %d-%d岁（%d-%d年） [%s/%s]",
 			dy.Gan, dy.Zhi, dy.StartAge, dy.StartAge+9,
 			dy.StartYear, dy.EndYear,
@@ -740,12 +819,32 @@ func GeneratePastEventsStream(chartID string, onData func(string) error, onThink
 		))
 	}
 
+	// 用神/忌神信息（t0 调候优先，fallback 至扶抑）
+	yongshenInfo := formatYongshenInfo(result)
+
+	// 大运合化标签（汇总所有合化大运）
+	dayunHuahe := strings.Join(bazi.CollectDayunHuaheLines(result), "\n")
+
+	// 加权身强弱评分明细
+	level, score, detail := bazi.GetStrengthDetail(result)
+	levelMap := map[string]string{
+		"vstrong": "极强", "strong": "强", "neutral": "中和", "weak": "弱", "vweak": "极弱",
+	}
+	strengthDetail := fmt.Sprintf("%s(评分%d): %s", levelMap[level], score, detail)
+
+	// 原局格局描述（暂无格局判定算法，留空字符串；后续 change 补足）
+	gejuSummary := ""
+
 	tplData := model.PastEventsTemplateData{
-		Gender:       genderLabel,
-		DayGan:       result.DayGan,
-		NatalSummary: natalSummary,
-		YearsData:    string(yearsJSON),
-		DayunList:    strings.Join(dayunLines, "\n"),
+		Gender:         genderLabel,
+		DayGan:         result.DayGan,
+		NatalSummary:   natalSummary,
+		YearsData:      string(yearsJSON),
+		DayunList:      strings.Join(dayunLines, "\n"),
+		YongshenInfo:   yongshenInfo,
+		GejuSummary:    gejuSummary,
+		DayunHuahe:     dayunHuahe,
+		StrengthDetail: strengthDetail,
 	}
 
 	tmpl, err := template.New("past_events").Parse(promptConfig.Content)
@@ -758,8 +857,8 @@ func GeneratePastEventsStream(chartID string, onData func(string) error, onThink
 		return fmt.Errorf("Prompt模板渲染失败: %v", err)
 	}
 
-	// 6. SSE 流式 AI 调用
-	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystem(parsedPrompt.String(), onData, onThinking)
+	// 6. SSE 流式 AI 调用（过往事件推算固定关闭推理思考模式，避免 Qwen3 等推理模型 3 分钟+思考阶段）
+	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystemNoThink(parsedPrompt.String(), onData, onThinking)
 	status, errMsg := "success", ""
 	if aiErr != nil {
 		status, errMsg = "error", aiErr.Error()
@@ -788,5 +887,283 @@ func GeneratePastEventsStream(chartID string, onData func(string) error, onThink
 	rawMsg := json.RawMessage(cleanJSON)
 	_, _ = repository.CreatePastEvents(chartID, &rawMsg, modelName)
 
+	return nil
+}
+
+// ─── 思路 E：模板化年份 + 分段大运 AI ─────────────────────────────────────────
+
+// PastEventsYearItem 单个年份的算法+模板叙述
+type PastEventsYearItem struct {
+	Year        int      `json:"year"`
+	Age         int      `json:"age"`
+	GanZhi      string   `json:"gan_zhi"`
+	DayunGanZhi string   `json:"dayun_gan_zhi"`
+	DayunIndex  int      `json:"dayun_index"`
+	Signals     []string `json:"signals"`
+	Narrative   string   `json:"narrative"`
+}
+
+// PastEventsYearsResponse 一次性返回所有年份的算法叙述（无 AI）
+type PastEventsYearsResponse struct {
+	Years      []PastEventsYearItem `json:"years"`
+	DayunMeta  []DayunMetaItem      `json:"dayun_meta"`
+	Generated  string               `json:"generated_by"`
+}
+
+type DayunMetaItem struct {
+	Index    int    `json:"index"`
+	GanZhi   string `json:"gan_zhi"`
+	StartAge int    `json:"start_age"`
+	EndAge   int    `json:"end_age"`
+	StartYr  int    `json:"start_year"`
+	EndYr    int    `json:"end_year"`
+}
+
+// GeneratePastEventsYears 根据算法 + 模板生成所有年份叙述（毫秒级，无 AI）
+func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		return nil, fmt.Errorf("未找到排盘记录")
+	}
+
+	result, err := LoadOrCalculateResult(chart)
+	if err != nil {
+		return nil, err
+	}
+
+	currentYear := time.Now().Year()
+	minAge := 0
+	if len(result.Dayun) > 0 {
+		minAge = result.Dayun[0].StartAge
+	}
+	yearSignals := bazi.GetAllYearSignals(result, chart.Gender, currentYear, minAge)
+
+	// 构造大运索引（dayunGanzhi → index）
+	dyIndex := map[string]int{}
+	dayunMeta := make([]DayunMetaItem, 0, len(result.Dayun))
+	for _, dy := range result.Dayun {
+		gz := dy.Gan + dy.Zhi
+		dyIndex[gz] = dy.Index
+		dayunMeta = append(dayunMeta, DayunMetaItem{
+			Index:    dy.Index,
+			GanZhi:   gz,
+			StartAge: dy.StartAge,
+			EndAge:   dy.StartAge + 9,
+			StartYr:  dy.StartYear,
+			EndYr:    dy.EndYear,
+		})
+	}
+
+	years := make([]PastEventsYearItem, 0, len(yearSignals))
+	for _, ys := range yearSignals {
+		years = append(years, PastEventsYearItem{
+			Year:        ys.Year,
+			Age:         ys.Age,
+			GanZhi:      ys.GanZhi,
+			DayunGanZhi: ys.DayunGanZhi,
+			DayunIndex:  dyIndex[ys.DayunGanZhi],
+			Signals:     bazi.ExtractYearSignalTypes(ys),
+			Narrative:   bazi.RenderYearNarrative(ys),
+		})
+	}
+
+	return &PastEventsYearsResponse{
+		Years:     years,
+		DayunMeta: dayunMeta,
+		Generated: "algo-template",
+	}, nil
+}
+
+// DayunSummaryStreamItem SSE 流式推送的单段大运 summary
+type DayunSummaryStreamItem struct {
+	DayunIndex int      `json:"dayun_index"`
+	GanZhi     string   `json:"gan_zhi"`
+	Themes     []string `json:"themes"`
+	Summary    string   `json:"summary"`
+	Cached     bool     `json:"cached"`
+	Error      string   `json:"error,omitempty"`
+}
+
+// GenerateDayunSummariesStream 按大运分段调 AI 生成 themes + summary，每段独立缓存与推送
+func GenerateDayunSummariesStream(chartID string, onItem func(item DayunSummaryStreamItem) error) error {
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		return fmt.Errorf("未找到排盘记录")
+	}
+
+	result, err := LoadOrCalculateResult(chart)
+	if err != nil {
+		return err
+	}
+
+	// 用神信息 / 身强弱明细 / 大运合化 标签缓存
+	yongshenInfo := formatYongshenInfo(result)
+	strengthLevel, strengthScore, strengthDtl := bazi.GetStrengthDetail(result)
+	levelMap := map[string]string{"vstrong": "极强", "strong": "强", "neutral": "中和", "weak": "弱", "vweak": "极弱"}
+	strengthDetail := fmt.Sprintf("%s(评分%d): %s", levelMap[strengthLevel], strengthScore, strengthDtl)
+
+	natalSummary := fmt.Sprintf(
+		"年柱%s%s 月柱%s%s 日柱%s%s 时柱%s%s",
+		result.YearGan, result.YearZhi,
+		result.MonthGan, result.MonthZhi,
+		result.DayGan, result.DayZhi,
+		result.HourGan, result.HourZhi,
+	)
+	genderLabel := "男"
+	if chart.Gender == "female" {
+		genderLabel = "女"
+	}
+
+	// 大运合化 map（gz → 描述）
+	huaheMap := bazi.CollectDayunHuaheMap(result)
+
+	// Prompt 模板（首次启动时已 seed，未 seed 时降级为内置）
+	promptTpl := `你是一位资深八字命理师。请只为下列单段大运撰写整体总结，禁止逐年罗列。
+
+命主：性别{{.Gender}} / 日干{{.DayGan}}
+原局：{{.NatalSummary}}
+{{if .YongshenInfo}}用忌神：{{.YongshenInfo}}{{end}}
+{{if .StrengthDetail}}身强弱：{{.StrengthDetail}}{{end}}
+
+当前大运：{{.DayunInfo}}
+{{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
+
+本段大运 10 年的算法信号摘要（JSON，每年含 type/evidence/polarity/source）：
+{{.YearsData}}
+{{if .LifeStageHint}}
+人生阶段提示：{{.LifeStageHint}}{{end}}
+
+输出要求：
+1. themes：2-4 个主题词（如"事业↑""感情动荡""贵人扶持"；读书期可用"学业突破""同窗情谊""叛逆"）
+2. summary：80-120 字，综合评述这 10 年整体走势、关键转折、注意事项
+3. 严格输出以下 JSON，不要 Markdown 围栏：
+{"themes":["主题1","主题2"],"summary":"..."}`
+
+	tmpl, terr := template.New("dayun_summary").Parse(promptTpl)
+	if terr != nil {
+		return fmt.Errorf("dayun_summary prompt 解析失败: %v", terr)
+	}
+
+	for _, dy := range result.Dayun {
+		gz := dy.Gan + dy.Zhi
+
+		// 1. 缓存命中 → 直接推送
+		cached, _ := repository.GetDayunSummary(chartID, dy.Index)
+		if cached != nil {
+			var themes []string
+			if cached.Themes != nil {
+				_ = json.Unmarshal(*cached.Themes, &themes)
+			}
+			_ = onItem(DayunSummaryStreamItem{
+				DayunIndex: dy.Index,
+				GanZhi:     gz,
+				Themes:     themes,
+				Summary:    cached.Summary,
+				Cached:     true,
+			})
+			continue
+		}
+
+		// 取该段大运的 10 年信号
+		var dySignals []bazi.YearSignals
+		for _, ln := range dy.LiuNian {
+			if ln.Age < 1 {
+				continue
+			}
+			lnRunes := []rune(ln.GanZhi)
+			if len(lnRunes) < 2 {
+				continue
+			}
+			sigs := bazi.GetYearEventSignals(result, string(lnRunes[0]), string(lnRunes[1]), gz, chart.Gender, ln.Age)
+			dySignals = append(dySignals, bazi.YearSignals{
+				Year: ln.Year, Age: ln.Age, GanZhi: ln.GanZhi, DayunGanZhi: gz, Signals: sigs,
+			})
+		}
+		dySigsJSON, _ := json.Marshal(dySignals)
+
+		dayunInfo := fmt.Sprintf("%s %d-%d岁（%d-%d年）[%s/%s]",
+			gz, dy.StartAge, dy.StartAge+9, dy.StartYear, dy.EndYear, dy.GanShiShen, dy.ZhiShiShen)
+
+		// 计算 youngRatio：本段大运中 age<18 的年份占比（起运前年份不计）
+		youngCount, totalCount := 0, 0
+		for _, ln := range dy.LiuNian {
+			if ln.Age < 1 {
+				continue
+			}
+			totalCount++
+			if ln.Age < bazi.YoungAgeCutoff {
+				youngCount++
+			}
+		}
+		lifeStageHint := buildLifeStageHint(youngCount, totalCount)
+
+		tplData := model.DayunSummaryTemplateData{
+			Gender:         genderLabel,
+			DayGan:         result.DayGan,
+			NatalSummary:   natalSummary,
+			YongshenInfo:   yongshenInfo,
+			StrengthDetail: strengthDetail,
+			DayunInfo:      dayunInfo,
+			HuaheTag:       huaheMap[gz],
+			YearsData:      string(dySigsJSON),
+			LifeStageHint:  lifeStageHint,
+		}
+		var pbuf bytes.Buffer
+		if err := tmpl.Execute(&pbuf, tplData); err != nil {
+			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: "prompt 渲染失败"})
+			continue
+		}
+
+		// 4. 调 AI（非推理模式）
+		var collect strings.Builder
+		_, modelName, providerID, durationMs, aiErr := StreamAIWithSystemNoThink(pbuf.String(), func(chunk string) error {
+			collect.WriteString(chunk)
+			return nil
+		}, nil)
+		status, errMsg := "success", ""
+		if aiErr != nil {
+			status, errMsg = "error", aiErr.Error()
+		}
+		repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+		if aiErr != nil {
+			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: aiErr.Error()})
+			continue
+		}
+
+		// 5. 解析 JSON
+		raw := strings.TrimSpace(collect.String())
+		raw = strings.TrimPrefix(raw, "```json")
+		raw = strings.TrimPrefix(raw, "```")
+		raw = strings.TrimSuffix(raw, "```")
+		raw = strings.TrimSpace(raw)
+		if i := strings.Index(raw, "{"); i > 0 {
+			raw = raw[i:]
+		}
+		if i := strings.LastIndex(raw, "}"); i >= 0 && i < len(raw)-1 {
+			raw = raw[:i+1]
+		}
+		var parsed struct {
+			Themes  []string `json:"themes"`
+			Summary string   `json:"summary"`
+		}
+		if jerr := json.Unmarshal([]byte(raw), &parsed); jerr != nil {
+			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: "解析 AI JSON 失败"})
+			continue
+		}
+
+		// 6. 写缓存
+		themesJSON, _ := json.Marshal(parsed.Themes)
+		themesRaw := json.RawMessage(themesJSON)
+		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, modelName)
+
+		// 7. 推送
+		_ = onItem(DayunSummaryStreamItem{
+			DayunIndex: dy.Index,
+			GanZhi:     gz,
+			Themes:     parsed.Themes,
+			Summary:    parsed.Summary,
+			Cached:     false,
+		})
+	}
 	return nil
 }

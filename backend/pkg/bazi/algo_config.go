@@ -9,8 +9,27 @@ type AlgoConfig struct {
 	JiReMin     int     // 极热：暖性元素（火+木）最低数量，默认 4
 	ShenQiangPct float64 // 身强判定阈值（生助比例%），默认 40.0
 
+	// 加权身强弱评分阈值（5 档）
+	ShenStrengthThresholds ShenStrengthThresholds
+
 	// 调候用神覆盖（DB 优先，key = "日干_月支"，如 "甲_子"）
 	TiaohouOverrides map[string]TiaohouRule
+}
+
+// ShenStrengthThresholds 加权身强弱评分阈值
+type ShenStrengthThresholds struct {
+	VStrong int // ≥ 此值 → 极强，默认 10
+	Strong  int // ≥ 此值 → 强，默认 5
+	Weak    int // ≤ 此值 → 弱，默认 -5
+	VWeak   int // ≤ 此值 → 极弱，默认 -10
+}
+
+// DefaultShenStrengthThresholds 加权身强弱默认阈值
+var DefaultShenStrengthThresholds = ShenStrengthThresholds{
+	VStrong: 10,
+	Strong:  5,
+	Weak:    -5,
+	VWeak:   -10,
 }
 
 // 默认值常量（DB 无配置时的 fallback）

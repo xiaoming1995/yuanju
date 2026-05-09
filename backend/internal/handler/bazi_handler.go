@@ -77,6 +77,10 @@ func Calculate(c *gin.Context) {
 	// 静默落库，出错不影响排盘响应
 	if savedChart, err := repository.CreateChart(chart); err == nil && savedChart != nil {
 		chartID = savedChart.ID
+		// 同步写入完整 BaziResult 快照，让下游全部跳过 lunar-go 重算
+		if resultJSON, mErr := json.Marshal(result); mErr == nil {
+			_ = repository.SaveChartResultJSON(chartID, resultJSON)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -108,10 +112,12 @@ func GenerateReport(c *gin.Context) {
 		return
 	}
 
-	// 2. 将数据重构回溯至 BaziResult 提供给 AI Prompt （此时临时缺省早子与真太阳时间，但已够用）
-	result := bazi.Calculate(
-		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+	// 2. 加载命盘 BaziResult 快照（result_json 优先；老命盘懒加载并写回 DB）
+	result, err := service.LoadOrCalculateResult(chart)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	// 3. 生成 AI 报告（若针对此 chartID 曾跑过则 0s 内自动命中缓存）
 	log.Printf("[AI Report] 开始生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
@@ -159,11 +165,13 @@ func GenerateReportStream(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[Stream T+%dms] 开始计算八字", time.Since(t0).Milliseconds())
-	result := bazi.Calculate(
-		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
-	log.Printf("[Stream T+%dms] 八字计算完成", time.Since(t0).Milliseconds())
+	log.Printf("[Stream T+%dms] 加载命盘快照（result_json 优先）", time.Since(t0).Milliseconds())
+	result, err := service.LoadOrCalculateResult(chart)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	log.Printf("[Stream T+%dms] 命盘加载完成", time.Since(t0).Milliseconds())
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -317,17 +325,82 @@ func GetHistoryDetail(c *gin.Context) {
 
 	report, _ := repository.GetReportByChartID(chartID)
 
-	// 重新计算完整 BaziResult（DB 仅存精简字段，result 含十神/藏干/纳音/神煞等）
-	// longitude 和 is_early_zishi 未持久化，使用默认值（0 和 false）
-	result := bazi.Calculate(
-		chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
-		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
+	// 加载完整 BaziResult 快照（result_json 优先，老命盘懒加载）
+	result, err := service.LoadOrCalculateResult(chart)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"chart":  chart,
 		"result": result,
 		"report": report,
 	})
+}
+
+// HandlePastEventsYears 即时返回算法+模板生成的所有年份叙述（无 AI，毫秒级）
+func HandlePastEventsYears(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return
+	}
+	userID, _ := c.Get("user_id")
+	if chart.UserID == nil || *chart.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+	resp, err := service.GeneratePastEventsYears(chartID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// HandleDayunSummariesStream 按大运分段流式生成 AI 总结（SSE，每段独立缓存）
+func HandleDayunSummariesStream(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return
+	}
+	userID, _ := c.Get("user_id")
+	if chart.UserID == nil || *chart.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Transfer-Encoding", "chunked")
+	c.Header("X-Accel-Buffering", "no")
+	c.Writer.Flush()
+
+	err = service.GenerateDayunSummariesStream(chartID, func(item service.DayunSummaryStreamItem) error {
+		bytes, _ := json.Marshal(item)
+		fmt.Fprintf(c.Writer, "event: dayun\ndata: %s\n\n", string(bytes))
+		c.Writer.Flush()
+		return nil
+	})
+	if err != nil {
+		fmt.Fprintf(c.Writer, "event: error\ndata: %s\n\n", err.Error())
+	} else {
+		fmt.Fprintf(c.Writer, "event: done\ndata: [DONE]\n\n")
+	}
+	c.Writer.Flush()
 }
 
 // HandlePastEventsStream 流式生成过往年份事件推算（需登录）

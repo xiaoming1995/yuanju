@@ -32,6 +32,18 @@ func GetTiaohouRule(dayGan, monthZhi string) *TiaohouRule {
 	return nil
 }
 
+// LookupTiaohouYongshen 返回某日干月支组合下《穷通宝鉴》调候用神天干列表的副本
+// 未命中字典时返回 nil；副本机制防止外部修改污染原字典
+func LookupTiaohouYongshen(dayGan, monthZhi string) []string {
+	rule := GetTiaohouRule(dayGan, monthZhi)
+	if rule == nil || len(rule.Yongshen) == 0 {
+		return nil
+	}
+	out := make([]string, len(rule.Yongshen))
+	copy(out, rule.Yongshen)
+	return out
+}
+
 // calcTiaohou 计算八字原局的调候用神提取（透和藏）
 func calcTiaohou(bazi *BaziResult) *TiaohouResult {
 	rule := GetTiaohouRule(bazi.DayGan, bazi.MonthZhi)

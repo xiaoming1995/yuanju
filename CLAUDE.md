@@ -43,32 +43,49 @@ frontend (React 19 + TS + Vite)
       src/contexts/                  # AuthContext, AdminAuthContext
       src/pages/                     # User pages + src/pages/admin/
       src/components/                # Shared UI components
+        DayunTimeline, LiuYueDrawer, TiaohouCard, WuxingRadar,
+        YongshenBadge, MingpanAvatar, BottomNav, ParticleBackground
 
 backend (Go + Gin)
   └── cmd/api/main.go                # Entry point, route registration
       configs/config.go              # Env config struct (reads .env)
-      internal/handler/              # HTTP handlers (auth, bazi, admin)
+      internal/handler/              # HTTP handlers
+        auth_handler.go, bazi_handler.go
+        admin_handler.go, admin_prompt.go
+        celebrity_handler.go, shensha_handler.go
+        algo_config_handler.go, algo_tiaohou_handler.go
       internal/middleware/           # JWT auth (user vs admin are separate)
       internal/model/                # Data structs
       internal/repository/           # All SQL — no SQL outside this layer
+        repository.go, admin_repository.go, prompt_repository.go
+        celebrity_repository.go, liunian_repository.go
+        shensha_repo.go, algo_config_repository.go, algo_tiaohou_repository.go
       internal/service/              # Business logic, AI client
+        ai_client.go, auth_service.go, report_service.go
+        celebrity_service.go, algo_config_service.go
       pkg/bazi/                      # Numerology algorithm engine
-        engine.go, shishen.go, shensha.go, tiaohou.go, tiaohou_dict.go
+        engine.go                    # Core 四柱 calculation (lunar-go)
+        shishen.go                   # 十神 (Ten Gods) classification
+        shensha.go, shensha_dayun.go # 神煞 (Spirit Stars)
+        tiaohou.go, tiaohou_dict.go  # 调候用神 (Seasonal Adjustment)
+        yongshen.go                  # 用神推算入口（t0 调候字典优先，t1 月令权重扶抑 fallback）
         liuyue.go                    # 流月 (monthly luck) calculations
-        jin_bu_huan_dict.go          # 进不换 lookup table (Tiaohou Gan/Zhi exact match)
-        algo_config.go               # Algorithmic configuration management (tunable params)
-        dayun_jixiong.go             # 大运吉凶 (luck period auspiciousness) calculations
+        jin_bu_huan_dict.go          # 进不换 lookup table
+        algo_config.go               # Algorithmic configuration management
+        event_signals.go             # 过往年份事件信号引擎（神煞/用神基底/三会三刑/伏吟反吟/空亡/大运合化/加权身强弱）
       pkg/crypto/crypto.go           # AES-256-GCM for API key storage
       pkg/database/database.go       # PostgreSQL connection + DDL migrations
       pkg/seed/seed.go               # Seeds LLM providers from .env on startup
 ```
 
-**Data flow (core feature):**
+**Data flow (core features):**
 1. User submits birth data → `POST /api/bazi/calculate` → `pkg/bazi/engine.go` (lunar-go)
 2. User requests AI report → `POST /api/bazi/report/:chart_id` → prompt template from DB → DeepSeek API → cached in `ai_reports` table
-3. Admin manages LLM providers via `/api/admin/llm-providers` — active provider is used by the AI client at runtime
+3. Streaming report → `POST /api/bazi/report-stream/:chart_id` → SSE (Server-Sent Events), handler in `bazi_handler.go:GenerateReportStream`
+4. Liunian (流年) report → `POST /api/bazi/liunian-report/:chart_id` → AI analysis for a specific year
+5. Admin manages LLM providers, prompts, algo config, and tiaohou rules via `/api/admin/` routes
 
-**Auth:** Two independent JWT systems — user token (`yj_token`) and admin token (`yj_admin_token`). They use separate secrets (`JWT_SECRET` vs `ADMIN_JWT_SECRET`) and separate middleware.
+**Auth:** Two independent JWT systems — user token (`yj_token`) and admin token (`yj_admin_token`). They use separate secrets (`JWT_SECRET` vs `ADMIN_JWT_SECRET`) and separate middleware. `OptionalAuth()` middleware allows unauthenticated access while passing user context when a token is present.
 
 ---
 
@@ -81,6 +98,8 @@ backend (Go + Gin)
 - **Config** is read exclusively via `configs/config.go` `Config` struct — no direct `os.Getenv` elsewhere.
 - Error response: `{"error": "message"}` — Success response: `{"data": ...}` or direct object.
 - **500-line file limit.** Split files that exceed this.
+- **Algo config** (`algo_config.go`) is loaded on startup via `service.LoadAlgoConfig()` and provides runtime-tunable algorithm parameters managed through the admin UI.
+- **流年信号语义按年龄分段** (`event_signals.go::YoungAgeCutoff = 18`)：起运 ~ 18 岁前自动启用读书期语义重映射，财/官/印/食伤/比劫/桃花/合冲日支 等事件输出 `学业_*` / `性格_*` Type；18 岁及以后回归原 财运/事业/婚恋 语义。`GenerateDayunSummariesStream` 按该段大运中 age<18 占比给 AI prompt 注入读书期/跨界期提示词。
 
 ### Frontend
 - **No UI frameworks.** Pure CSS Variables only — no Tailwind, Ant Design, MUI.

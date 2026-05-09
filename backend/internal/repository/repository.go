@@ -189,6 +189,34 @@ func UpdateChartYongshenJishen(chartID, yongshen, jishen string) error {
 	return err
 }
 
+// GetChartResultJSON 读取命盘的完整 BaziResult 快照（result_json）
+// 返回 nil 表示该命盘尚未存快照（旧命盘需懒加载补回）
+func GetChartResultJSON(chartID string) ([]byte, error) {
+	var raw sql.NullString
+	err := database.DB.QueryRow(
+		`SELECT result_json::text FROM bazi_charts WHERE id=$1`, chartID,
+	).Scan(&raw)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	if !raw.Valid || raw.String == "" || raw.String == "null" {
+		return nil, nil
+	}
+	return []byte(raw.String), nil
+}
+
+// SaveChartResultJSON 写入命盘的 BaziResult 快照（懒加载或新建命盘时调用）
+func SaveChartResultJSON(chartID string, resultJSON []byte) error {
+	_, err := database.DB.Exec(
+		`UPDATE bazi_charts SET result_json=$1 WHERE id=$2`,
+		string(resultJSON), chartID,
+	)
+	return err
+}
+
 // ---- AI 报告 ----
 
 func CreateReport(chartID, content, modelName string, contentStructured *json.RawMessage) (*model.AIReport, error) {

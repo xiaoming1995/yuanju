@@ -9,23 +9,49 @@ interface YearEvent {
   age: number
   gan_zhi: string
   dayun_gan_zhi: string
+  dayun_index: number
   signals: string[]
   narrative: string
 }
 
-interface DayunSummary {
+interface DayunMeta {
+  index: number
   gan_zhi: string
+  start_age: number
+  end_age: number
+  start_year: number
+  end_year: number
+}
+
+interface DayunSummary {
   themes: string[]
   summary: string
+  loading?: boolean
+  error?: string
 }
 
 const SIGNAL_LABEL: Record<string, { label: string; color: string }> = {
-  '婚恋':   { label: '婚恋', color: 'var(--wu-huo)' },
-  '事业':   { label: '事业', color: 'var(--wu-mu)' },
+  '婚恋_合': { label: '婚恋↑', color: 'var(--wu-huo)' },
+  '婚恋_冲': { label: '婚恋↓', color: '#e77' },
+  '婚恋_变': { label: '婚恋变', color: 'var(--wu-tu)' },
+  '事业':    { label: '事业', color: 'var(--wu-mu)' },
   '财运_得': { label: '财运↑', color: 'var(--wu-jin)' },
   '财运_损': { label: '财运↓', color: '#888' },
-  '健康':   { label: '健康', color: '#e77' },
-  '迁变':   { label: '迁变', color: 'var(--wu-shui)' },
+  '健康':    { label: '健康↓', color: '#e77' },
+  '迁变':    { label: '迁变', color: 'var(--wu-shui)' },
+  '伏吟':    { label: '伏吟', color: '#e77' },
+  '反吟':    { label: '反吟', color: '#e77' },
+  '大运合化': { label: '合化', color: 'var(--wu-tu)' },
+  '喜神临运': { label: '喜神', color: 'var(--wu-jin)' },
+  '综合变动': { label: '变动', color: 'var(--wu-shui)' },
+  // 读书期专属（age < 18 由后端自动重映射）
+  '学业_资源': { label: '学业↑', color: 'var(--wu-mu)' },
+  '学业_竞争': { label: '竞争', color: '#888' },
+  '学业_压力': { label: '压力↓', color: '#e77' },
+  '学业_贵人': { label: '贵人', color: 'var(--wu-mu)' },
+  '学业_才艺': { label: '才艺', color: 'var(--wu-mu)' },
+  '性格_情谊': { label: '情谊', color: 'var(--wu-tu)' },
+  '性格_叛逆': { label: '叛逆', color: '#e77' },
 }
 
 const WUXING_GAN: Record<string, string> = {
@@ -34,76 +60,92 @@ const WUXING_GAN: Record<string, string> = {
   '壬': 'shui', '癸': 'shui',
 }
 
+const currentYear = new Date().getFullYear()
+
 export default function PastEventsPage() {
   const { chartId } = useParams<{ chartId: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const { user, isLoading } = useAuth()
+  const [yearsLoaded, setYearsLoaded] = useState(false)
+  const [yearsError, setYearsError] = useState('')
   const [events, setEvents] = useState<YearEvent[]>([])
-  const [summaries, setSummaries] = useState<DayunSummary[]>([])
-  const [errorMsg, setErrorMsg] = useState('')
-  const [thinking, setThinking] = useState(false)
-  const rawRef = useRef('')
+  const [dayunMeta, setDayunMeta] = useState<DayunMeta[]>([])
+  const [summaries, setSummaries] = useState<Record<number, DayunSummary>>({})
+  const [streamDone, setStreamDone] = useState(false)
+  const [streamError, setStreamError] = useState('')
+  const inflightRef = useRef(false)
 
   useEffect(() => {
+    if (isLoading) return
     if (!user) {
       navigate('/login')
       return
     }
     if (!chartId) return
-    startStream()
-  }, [chartId])
+    loadAll()
+  }, [chartId, user, isLoading])
 
-  function startStream() {
-    rawRef.current = ''
-    setStatus('loading')
-    setEvents([])
-    setSummaries([])
-    setErrorMsg('')
-    setThinking(false)
+  async function loadAll() {
+    if (inflightRef.current) return
+    inflightRef.current = true
+    setYearsLoaded(false)
+    setYearsError('')
+    setStreamDone(false)
+    setStreamError('')
 
-    baziAPI.streamPastEvents(
+    // Stage 1: 即时拿所有年份（毫秒级）
+    try {
+      const resp = await baziAPI.fetchPastEventsYears(chartId!)
+      const data = resp.data
+      setEvents(data.years || [])
+      setDayunMeta(data.dayun_meta || [])
+      // 初始化各大运 summary 占位（含远期大运，全量 AI 生成）
+      const init: Record<number, DayunSummary> = {}
+      for (const dm of data.dayun_meta || []) {
+        init[dm.index] = { themes: [], summary: '', loading: true }
+      }
+      setSummaries(init)
+      setYearsLoaded(true)
+    } catch (e: any) {
+      setYearsError(e?.message || '年份加载失败')
+      inflightRef.current = false
+      return
+    }
+
+    // Stage 2: 后台流式拉大运 AI 总结
+    baziAPI.streamDayunSummaries(
       chartId!,
-      (chunk) => {
-        rawRef.current += chunk
-        setThinking(false)
+      (item) => {
+        setSummaries((prev) => {
+          const next = { ...prev }
+          if (item.error) {
+            next[item.dayun_index] = { themes: [], summary: '', error: item.error, loading: false }
+          } else {
+            next[item.dayun_index] = {
+              themes: item.themes || [],
+              summary: item.summary || '',
+              loading: false,
+            }
+          }
+          return next
+        })
       },
       (err) => {
-        setErrorMsg(err)
-        setStatus('error')
+        setStreamError(err)
+        inflightRef.current = false
       },
       () => {
-        parseAndSet(rawRef.current)
-        setStatus('done')
+        setStreamDone(true)
+        inflightRef.current = false
       },
-      () => setThinking(true),
     )
   }
 
-  function parseAndSet(raw: string) {
-    try {
-      const parsed = JSON.parse(raw.trim())
-      setEvents(parsed.years ?? [])
-      setSummaries(parsed.dayun_summaries ?? [])
-    } catch {
-      setErrorMsg('解析推算结果失败，请重试')
-      setStatus('error')
-    }
-  }
-
-  // 按大运分组
-  const grouped = events.reduce<Record<string, YearEvent[]>>((acc, y) => {
-    const key = y.dayun_gan_zhi || '起运前'
-    if (!acc[key]) acc[key] = []
-    acc[key].push(y)
-    return acc
-  }, {})
-
-  // 大运总结索引，key = gan_zhi
-  const summaryMap = summaries.reduce<Record<string, DayunSummary>>((acc, s) => {
-    acc[s.gan_zhi] = s
-    return acc
-  }, {})
+  // 按 dayun_index 分组（保持原顺序）
+  const grouped: Array<{ meta: DayunMeta; years: YearEvent[] }> = dayunMeta.map((dm) => ({
+    meta: dm,
+    years: events.filter((y) => y.dayun_index === dm.index),
+  })).filter((g) => g.years.length > 0)
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingBottom: 60 }}>
@@ -126,51 +168,52 @@ export default function PastEventsPage() {
             过往事件推算
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
-            基于命理算法 · AI 组织语言
+            {!yearsLoaded ? '正在加载年份时间轴……' :
+             streamDone ? '已完成，所有大运总结已生成' :
+             '年份已就绪 · 大运 AI 总结正在后台生成'}
           </div>
         </div>
       </div>
 
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px' }}>
-        {/* 加载中状态 */}
-        {status === 'loading' && (
+        {!yearsLoaded && !yearsError && (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
             <Loader2 size={32} style={{ color: 'var(--wu-jin)', animation: 'spin 1s linear infinite', marginBottom: 16 }} />
-            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              {thinking ? '🧠 深度推理中……' : '正在推算过往年份命理事件……'}
-            </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: 8 }}>
-              首次生成约需 20-40 秒，之后从缓存直接读取
-            </div>
+            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>正在加载……</div>
           </div>
         )}
 
-        {/* 错误状态 */}
-        {status === 'error' && (
+        {yearsError && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ color: '#e77', marginBottom: 16 }}>{errorMsg || '推算失败，请重试'}</div>
+            <div style={{ color: '#e77', marginBottom: 16 }}>{yearsError}</div>
             <button
-              onClick={startStream}
+              onClick={loadAll}
               style={{
                 background: 'var(--wu-jin)', color: '#000', border: 'none',
                 borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontWeight: 600,
               }}
-            >重新推算</button>
+            >重新加载</button>
           </div>
         )}
 
-        {/* 结果：按大运分组时间轴 */}
-        {status === 'done' && events.length > 0 && (
+        {yearsLoaded && events.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+            暂无过往年份数据
+          </div>
+        )}
+
+        {yearsLoaded && events.length > 0 && (
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 20, textAlign: 'center' }}>
-              共推算 {events.length} 个年份 · 点击年份卡片查看详情
+              共推算 {events.length} 个年份 · 算法即时生成 · 大运总结由 AI 后台生成
             </div>
-            {Object.entries(grouped).map(([dayunGz, years]) => {
-              const dyGan = dayunGz.length >= 1 ? dayunGz[0] : ''
+
+            {grouped.map(({ meta, years }) => {
+              const dyGan = meta.gan_zhi[0] || ''
               const dyWx = WUXING_GAN[dyGan] || 'tu'
-              const dySum = summaryMap[dayunGz]
+              const dySum = summaries[meta.index]
               return (
-                <div key={dayunGz} style={{ marginBottom: 32 }}>
+                <div key={meta.index} style={{ marginBottom: 32 }}>
                   {/* 大运标题 */}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8,
@@ -183,8 +226,10 @@ export default function PastEventsPage() {
                       fontSize: '1.1rem',
                       fontWeight: 700,
                       color: `var(--wu-${dyWx})`,
-                    }}>{dayunGz}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>大运</div>
+                    }}>{meta.gan_zhi}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      大运 {meta.start_age}-{meta.end_age}岁
+                    </div>
                   </div>
 
                   {/* 大运整体总结块 */}
@@ -196,34 +241,55 @@ export default function PastEventsPage() {
                       padding: '12px 14px',
                       marginBottom: 12,
                     }}>
-                      {/* 主题标签行 */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-                        {dySum.themes.map((theme) => {
-                          const meta = SIGNAL_LABEL[theme]
-                          const color = meta ? meta.color : 'var(--text-muted)'
-                          return (
-                            <span
-                              key={theme}
-                              style={{
-                                fontSize: '0.68rem',
-                                padding: '2px 7px',
-                                borderRadius: 4,
-                                border: `1px solid ${color}`,
-                                color,
-                                whiteSpace: 'nowrap',
-                              }}
-                            >{meta ? meta.label : theme}</span>
-                          )
-                        })}
-                      </div>
-                      {/* 叙述段 */}
-                      <div style={{
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.83rem',
-                        lineHeight: 1.75,
-                      }}>
-                        {dySum.summary}
-                      </div>
+                      {dySum.loading && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                          <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+                          AI 正在生成本段大运总结……
+                        </div>
+                      )}
+                      {dySum.error && (
+                        <div style={{ color: '#e77', fontSize: '0.78rem' }}>
+                          本段总结生成失败：{dySum.error}
+                        </div>
+                      )}
+                      {!dySum.loading && !dySum.error && dySum.themes.length > 0 && (
+                        <>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                            {dySum.themes.map((theme) => {
+                              const hasUp = theme.includes('↑')
+                              const hasDown = theme.includes('↓')
+                              const direction = hasUp ? '↑' : hasDown ? '↓' : null
+                              const text = direction ? theme.replace(direction, '').trim() : theme
+                              const dirColor = hasUp ? '#66bb6a' : hasDown ? '#ef5350' : null
+                              const borderColor = dirColor ?? `var(--wu-${dyWx})`
+                              return (
+                                <span
+                                  key={theme}
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 2,
+                                    fontSize: '0.68rem',
+                                    padding: '2px 7px',
+                                    borderRadius: 4,
+                                    border: `1px solid ${borderColor}`,
+                                    color: `var(--wu-${dyWx})`,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {text}
+                                  {direction && (
+                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: dirColor!, lineHeight: 1 }}>{direction}</span>
+                                  )}
+                                </span>
+                              )
+                            })}
+                          </div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.83rem', lineHeight: 1.75 }}>
+                            {dySum.summary}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
@@ -233,20 +299,36 @@ export default function PastEventsPage() {
                       const gan = y.gan_zhi?.[0] || ''
                       const wx = WUXING_GAN[gan] || 'tu'
                       const hasSignals = y.signals && y.signals.length > 0
+                      const isFuture = y.year > currentYear
                       return (
                         <div
                           key={y.year}
                           style={{
+                            position: 'relative',
                             background: 'var(--bg-card)',
                             borderRadius: 12,
                             padding: '14px 16px',
+                            opacity: isFuture ? 0.75 : 1,
                             border: hasSignals
-                              ? `1px solid color-mix(in srgb, var(--wu-${wx}) 40%, transparent)`
-                              : '1px solid var(--border-subtle)',
+                              ? `1px ${isFuture ? 'dashed' : 'solid'} color-mix(in srgb, var(--wu-${wx}) 40%, transparent)`
+                              : `1px ${isFuture ? 'dashed' : 'solid'} var(--border-subtle)`,
                           }}
                         >
-                          {/* 年份行 */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                          {isFuture && (
+                            <span style={{
+                              position: 'absolute',
+                              top: 8,
+                              right: 10,
+                              fontSize: '0.6rem',
+                              padding: '1px 5px',
+                              borderRadius: 3,
+                              background: 'color-mix(in srgb, var(--wu-shui) 15%, transparent)',
+                              border: '1px dashed var(--wu-shui)',
+                              color: 'var(--wu-shui)',
+                              letterSpacing: '0.05em',
+                            }}>未来</span>
+                          )}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
                             <span style={{
                               fontFamily: 'Noto Serif SC, serif',
                               fontWeight: 700,
@@ -256,7 +338,6 @@ export default function PastEventsPage() {
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                               {y.year}年 · {y.age}岁
                             </span>
-                            {/* 信号标签 */}
                             {y.signals?.map((sig) => {
                               const meta = SIGNAL_LABEL[sig]
                               if (!meta) return null
@@ -275,12 +356,7 @@ export default function PastEventsPage() {
                               )
                             })}
                           </div>
-                          {/* 叙述文字 */}
-                          <div style={{
-                            color: 'var(--text-secondary)',
-                            fontSize: '0.85rem',
-                            lineHeight: 1.7,
-                          }}>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
                             {y.narrative}
                           </div>
                         </div>
@@ -291,7 +367,28 @@ export default function PastEventsPage() {
               )
             })}
 
-            {/* 免责 */}
+            {streamError && (
+              <div style={{
+                marginTop: 16, padding: '10px 14px',
+                background: 'color-mix(in srgb, #e77 12%, transparent)',
+                border: '1px solid #e77',
+                borderRadius: 8,
+                fontSize: '0.78rem',
+                color: '#e77',
+              }}>
+                AI 大运总结流中断：{streamError}
+                <button
+                  onClick={loadAll}
+                  style={{
+                    marginLeft: 12,
+                    background: 'none', border: '1px solid #e77',
+                    borderRadius: 4, padding: '2px 10px',
+                    color: '#e77', cursor: 'pointer', fontSize: '0.72rem',
+                  }}
+                >重试</button>
+              </div>
+            )}
+
             <div style={{
               marginTop: 24, padding: '12px 16px',
               background: 'var(--bg-elevated)',
@@ -302,12 +399,6 @@ export default function PastEventsPage() {
             }}>
               本推算基于八字命理算法与 AI 语言生成，仅供参考，不构成任何决策建议。
             </div>
-          </div>
-        )}
-
-        {status === 'done' && events.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-            暂无过往年份数据
           </div>
         )}
       </div>
