@@ -40,7 +40,6 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: postgres://yuanju:yuanju123@postgres:5432/yuanju?sslmode=disable
       REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
