@@ -9,7 +9,7 @@ The system SHALL generate the compatibility report from the saved compatibility 
 - **AND** the system does not require the client to resubmit both birth profiles
 
 ### Requirement: Compatibility report uses a dedicated prompt module and structured output format
-The system SHALL use a dedicated prompt module for compatibility readings and SHALL return a structured report shape that covers overall judgment, per-dimension interpretation, risks, and advice.
+The system SHALL use a dedicated prompt module for compatibility readings and SHALL return a structured report shape that covers overall judgment, per-dimension interpretation, duration assessment, risks, and advice.
 
 #### Scenario: Prompt module is isolated from natal and liunian prompts
 - **WHEN** an administrator manages prompt templates
@@ -19,7 +19,20 @@ The system SHALL use a dedicated prompt module for compatibility readings and SH
 #### Scenario: Generated report includes required sections
 - **WHEN** a compatibility report is generated successfully
 - **THEN** the response contains an overall summary section
-- **AND** the response contains content for the four core dimensions plus explicit risks and advice
+- **AND** the response contains content for the four core dimensions plus duration assessment, explicit risks, and advice
+
+### Requirement: Compatibility report narrates duration assessment as staged relationship maintenance, not deterministic fate
+The system SHALL translate saved duration assessment signals into user-facing narrative that describes short-, medium-, and longer-term maintenance potential without claiming an exact breakup time.
+
+#### Scenario: Report references saved duration assessment
+- **WHEN** a compatibility report is generated for a reading that includes duration assessment
+- **THEN** the AI context includes the saved windowed duration result and its reasons
+- **AND** the generated report discusses relationship continuity in staged windows such as `3 months`, `1 year`, and `2 years+`
+
+#### Scenario: Report avoids exact-timing determinism
+- **WHEN** the generated report describes a lower long-term maintenance outlook
+- **THEN** it frames the result as probability, tendency, or stage pressure
+- **AND** it does not state an exact breakup month, date, or guaranteed relationship end point
 
 ### Requirement: Compatibility reports are cached per reading
 The system SHALL save generated compatibility reports under the compatibility reading resource so repeated viewing can reuse the latest generated result instead of creating duplicate reports by default.

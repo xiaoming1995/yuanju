@@ -31,6 +31,14 @@ const (
 	CompatibilityPracticality  CompatibilityDimension = "practicality"
 )
 
+type CompatibilityDurationLevel string
+
+const (
+	CompatibilityDurationHigh   CompatibilityDurationLevel = "high"
+	CompatibilityDurationMedium CompatibilityDurationLevel = "medium"
+	CompatibilityDurationLow    CompatibilityDurationLevel = "low"
+)
+
 type CompatibilityEvidence struct {
 	Dimension CompatibilityDimension `json:"dimension"`
 	Type      string                 `json:"type"`
@@ -48,11 +56,29 @@ type CompatibilityDimensionScores struct {
 	Practicality  int `json:"practicality"`
 }
 
+type CompatibilityDurationWindow struct {
+	Level CompatibilityDurationLevel `json:"level"`
+}
+
+type CompatibilityDurationWindows struct {
+	ThreeMonths  CompatibilityDurationWindow `json:"three_months"`
+	OneYear      CompatibilityDurationWindow `json:"one_year"`
+	TwoYearsPlus CompatibilityDurationWindow `json:"two_years_plus"`
+}
+
+type CompatibilityDurationAssessment struct {
+	OverallBand string                       `json:"overall_band"`
+	Windows     CompatibilityDurationWindows `json:"windows"`
+	Summary     string                       `json:"summary"`
+	Reasons     []string                     `json:"reasons"`
+}
+
 type CompatibilityAnalysis struct {
-	OverallLevel    CompatibilityLevel           `json:"overall_level"`
-	DimensionScores CompatibilityDimensionScores `json:"dimension_scores"`
-	Evidences       []CompatibilityEvidence      `json:"evidences"`
-	SummaryTags     []string                     `json:"summary_tags"`
+	OverallLevel       CompatibilityLevel              `json:"overall_level"`
+	DimensionScores    CompatibilityDimensionScores    `json:"dimension_scores"`
+	Evidences          []CompatibilityEvidence         `json:"evidences"`
+	SummaryTags        []string                        `json:"summary_tags"`
+	DurationAssessment CompatibilityDurationAssessment `json:"duration_assessment"`
 }
 
 func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
@@ -275,12 +301,53 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 	})
 
 	tags = buildCompatibilityTags(scores, evidences)
+	duration := buildDurationAssessment(scores, evidences)
 
 	return CompatibilityAnalysis{
-		OverallLevel:    aggregateCompatibilityLevel(scores, evidences),
-		DimensionScores: scores,
-		Evidences:       evidences,
-		SummaryTags:     tags,
+		OverallLevel:       aggregateCompatibilityLevel(scores, evidences),
+		DimensionScores:    scores,
+		Evidences:          evidences,
+		SummaryTags:        tags,
+		DurationAssessment: duration,
+	}
+}
+
+func buildDurationAssessment(scores CompatibilityDimensionScores, evidences []CompatibilityEvidence) CompatibilityDurationAssessment {
+	shortScore := scores.Attraction*2 + scores.Communication/2
+	midScore := scores.Attraction/2 + scores.Stability + scores.Communication/2 + scores.Practicality/2
+	longScore := scores.Stability + scores.Practicality*2
+
+	for _, item := range evidences {
+		switch item.Source {
+		case "spouse_palace":
+			shortScore += item.Weight / 3
+			midScore += item.Weight
+			longScore += item.Weight
+		case "spouse_star", "shensha":
+			shortScore += item.Weight
+			midScore += item.Weight / 2
+		case "ganzhi", "five_elements":
+			midScore += item.Weight / 2
+			longScore += item.Weight
+		case "day_master":
+			shortScore += item.Weight / 2
+			midScore += item.Weight / 2
+		}
+	}
+
+	shortScore = clampDurationScore(shortScore / 2)
+	midScore = clampDurationScore(midScore / 2)
+	longScore = clampDurationScore(longScore / 2)
+
+	return CompatibilityDurationAssessment{
+		OverallBand: durationBand(longScore),
+		Windows: CompatibilityDurationWindows{
+			ThreeMonths:  CompatibilityDurationWindow{Level: durationLevel(shortScore)},
+			OneYear:      CompatibilityDurationWindow{Level: durationLevel(midScore)},
+			TwoYearsPlus: CompatibilityDurationWindow{Level: durationLevel(longScore)},
+		},
+		Summary: durationSummary(shortScore, midScore, longScore),
+		Reasons: durationReasons(evidences),
 	}
 }
 
@@ -489,7 +556,71 @@ func buildCompatibilityTags(scores CompatibilityDimensionScores, evidences []Com
 	return tags
 }
 
+func durationLevel(score int) CompatibilityDurationLevel {
+	switch {
+	case score >= 68:
+		return CompatibilityDurationHigh
+	case score >= 52:
+		return CompatibilityDurationMedium
+	default:
+		return CompatibilityDurationLow
+	}
+}
+
+func durationBand(longScore int) string {
+	switch durationLevel(longScore) {
+	case CompatibilityDurationHigh:
+		return "long_term"
+	case CompatibilityDurationMedium:
+		return "medium_term"
+	default:
+		return "short_term"
+	}
+}
+
+func durationSummary(shortScore, midScore, longScore int) string {
+	shortLevel := durationLevel(shortScore)
+	longLevel := durationLevel(longScore)
+	switch {
+	case shortLevel == CompatibilityDurationHigh && longLevel == CompatibilityDurationLow:
+		return "前期吸引和推进感较强，但长期承压明显，关系更像先热后难。"
+	case shortLevel == CompatibilityDurationHigh && longLevel == CompatibilityDurationHigh:
+		return "从短期靠近到长期承接都相对顺，关系更有持续发展的空间。"
+	case longLevel == CompatibilityDurationHigh:
+		return "关系不只靠一时吸引，进入长期后仍有承接和稳定的支点。"
+	default:
+		return "这段关系的维持性更依赖阶段中的现实磨合，而不只是最初的感觉。"
+	}
+}
+
+func durationReasons(evidences []CompatibilityEvidence) []string {
+	reasons := make([]string, 0, 3)
+	for _, item := range evidences {
+		switch item.Type {
+		case "夫妻宫六合", "夫妻宫六冲", "夫妻宫刑害", "配偶星呼应", "五行互补", "五行失衡", "桃花助缘", "孤寡错位":
+			reasons = append(reasons, item.Title+"："+item.Detail)
+		}
+		if len(reasons) == 3 {
+			return reasons
+		}
+	}
+	if len(reasons) == 0 {
+		reasons = append(reasons, "当前盘面更适合结合四维分数综合判断阶段维持性。")
+	}
+	return reasons
+}
+
 func clampScore(v int) int {
+	if v < 0 {
+		return 0
+	}
+	if v > 100 {
+		return 100
+	}
+	return v
+}
+
+func clampDurationScore(v int) int {
 	if v < 0 {
 		return 0
 	}

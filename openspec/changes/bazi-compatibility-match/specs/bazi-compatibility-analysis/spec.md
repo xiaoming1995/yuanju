@@ -38,3 +38,22 @@ The system SHALL attach structured evidences to each compatibility reading so us
 - **WHEN** the analysis detects signals from areas such as day-master interaction, five-element complement, spouse-palace interaction, spouse-star interaction, GanZhi combinations/clashes, or helper shensha
 - **THEN** each evidence item records which source category produced it
 - **AND** the detail field explains the specific interaction in human-readable terms
+
+### Requirement: Compatibility analysis returns a duration assessment using time windows instead of exact breakup timing
+The system SHALL return a structured duration assessment for each compatibility reading that describes relationship maintenance likelihood in `3 months`, `1 year`, and `2 years+` windows. The result SHALL be expressed as windowed levels and explanations rather than an exact breakup month or date prediction.
+
+#### Scenario: Successful analysis returns duration windows
+- **WHEN** a compatibility reading is generated successfully
+- **THEN** the response contains a `duration_assessment` object
+- **AND** the object includes `three_months`, `one_year`, and `two_years_plus` window results
+- **AND** each window result can be rendered as a level such as `high`, `medium`, or `low`
+
+#### Scenario: Duration assessment preserves explanation
+- **WHEN** the system determines that a relationship has strong short-term attraction but weaker long-term maintenance potential
+- **THEN** the response includes a summary and reason list that explain the short-term and long-term difference
+- **AND** the reasons remain attributable to structured compatibility signals rather than pure free-form AI output
+
+#### Scenario: Exact breakup timing is not exposed
+- **WHEN** the compatibility result is returned to the frontend
+- **THEN** it does not contain an exact predicted breakup day, month, or mandatory numeric countdown
+- **AND** the frontend can present duration as staged maintenance potential instead of fate-like certainty

@@ -8,22 +8,24 @@ import (
 	"yuanju/pkg/database"
 )
 
-func CreateCompatibilityReading(userID, overallLevel string, scores model.CompatibilityDimensionScores, summaryTags []string, analysisVersion string) (*model.CompatibilityReading, error) {
+func CreateCompatibilityReading(userID, overallLevel string, scores model.CompatibilityDimensionScores, duration model.CompatibilityDurationAssessment, summaryTags []string, analysisVersion string) (*model.CompatibilityReading, error) {
 	scoresJSON, _ := json.Marshal(scores)
+	durationJSON, _ := json.Marshal(duration)
 	tagsJSON, _ := json.Marshal(summaryTags)
 
 	r := &model.CompatibilityReading{}
-	var rawScores, rawTags []byte
+	var rawScores, rawDuration, rawTags []byte
 	err := database.DB.QueryRow(
-		`INSERT INTO compatibility_readings (user_id, overall_level, dimension_scores, summary_tags, analysis_version)
-		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING id, user_id, overall_level, dimension_scores, summary_tags, analysis_version, created_at, updated_at`,
-		userID, overallLevel, scoresJSON, tagsJSON, analysisVersion,
-	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
+		`INSERT INTO compatibility_readings (user_id, overall_level, dimension_scores, duration_assessment, summary_tags, analysis_version)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 RETURNING id, user_id, overall_level, dimension_scores, duration_assessment, summary_tags, analysis_version, created_at, updated_at`,
+		userID, overallLevel, scoresJSON, durationJSON, tagsJSON, analysisVersion,
+	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawDuration, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 	_ = json.Unmarshal(rawScores, &r.DimensionScores)
+	_ = json.Unmarshal(rawDuration, &r.DurationAssessment)
 	_ = json.Unmarshal(rawTags, &r.SummaryTags)
 	return r, nil
 }
@@ -86,13 +88,13 @@ func GetLatestCompatibilityReport(readingID string) (*model.AICompatibilityRepor
 
 func GetCompatibilityReadingByID(readingID string) (*model.CompatibilityReading, error) {
 	r := &model.CompatibilityReading{}
-	var rawScores, rawTags []byte
+	var rawScores, rawDuration, rawTags []byte
 	err := database.DB.QueryRow(
-		`SELECT id, user_id, overall_level, dimension_scores, summary_tags, analysis_version, created_at, updated_at
+		`SELECT id, user_id, overall_level, dimension_scores, duration_assessment, summary_tags, analysis_version, created_at, updated_at
 		 FROM compatibility_readings
 		 WHERE id = $1`,
 		readingID,
-	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
+	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawDuration, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -100,6 +102,7 @@ func GetCompatibilityReadingByID(readingID string) (*model.CompatibilityReading,
 		return nil, err
 	}
 	_ = json.Unmarshal(rawScores, &r.DimensionScores)
+	_ = json.Unmarshal(rawDuration, &r.DurationAssessment)
 	_ = json.Unmarshal(rawTags, &r.SummaryTags)
 	return r, nil
 }

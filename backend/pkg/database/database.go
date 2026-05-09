@@ -651,6 +651,7 @@ B 命盘摘要：
 		user_id          UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 		overall_level    VARCHAR(16) NOT NULL,
 		dimension_scores JSONB NOT NULL,
+		duration_assessment JSONB NOT NULL DEFAULT '{}'::jsonb,
 		summary_tags     JSONB NOT NULL DEFAULT '[]'::jsonb,
 		analysis_version VARCHAR(32) NOT NULL DEFAULT 'v1',
 		created_at       TIMESTAMPTZ DEFAULT NOW(),
@@ -658,6 +659,9 @@ B 命盘摘要：
 	);`
 	if _, err := DB.Exec(compatibilityReadingMigration); err != nil {
 		log.Fatalf("增量迁移失败 (compatibility_readings): %v", err)
+	}
+	if _, err := DB.Exec(`ALTER TABLE compatibility_readings ADD COLUMN IF NOT EXISTS duration_assessment JSONB NOT NULL DEFAULT '{}'::jsonb;`); err != nil {
+		log.Fatalf("增量迁移失败 (compatibility_readings duration_assessment): %v", err)
 	}
 
 	compatibilityParticipantMigration := `

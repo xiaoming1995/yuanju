@@ -38,6 +38,12 @@ const polarityColor: Record<string, string> = {
   neutral: 'var(--text-muted)',
 }
 
+const durationLevelText: Record<string, string> = {
+  high: '偏高',
+  medium: '中等',
+  low: '偏低',
+}
+
 const wuxingLabel = [
   { key: 'mu', label: '木', className: 'wuxing-mu' },
   { key: 'huo', label: '火', className: 'wuxing-huo' },
@@ -221,6 +227,7 @@ export default function CompatibilityResultPage() {
   const selfP = detail.participants.find(p => p.role === 'self')
   const partnerP = detail.participants.find(p => p.role === 'partner')
   const heroSummary = detail.latest_report?.content_structured?.summary || levelSummaryText[reading.overall_level] || levelText[reading.overall_level]
+  const durationAssessment = detail.latest_report?.content_structured?.duration_assessment || reading.duration_assessment
 
   return (
     <div className="page">
@@ -272,6 +279,33 @@ export default function CompatibilityResultPage() {
             </div>
           ))}
         </div>
+        </div>
+
+        <div className="compatibility-section">
+          <div className="compatibility-section-header">
+            <h2 className="serif compatibility-section-title">缘分时长评估</h2>
+            <p className="compatibility-section-desc">不是断某一天结束，而是看这段关系在不同阶段的维持潜力。</p>
+          </div>
+          <div className="compatibility-duration-grid">
+            {[
+              ['3个月', durationAssessment.windows.three_months.level],
+              ['1年', durationAssessment.windows.one_year.level],
+              ['2年以上', durationAssessment.windows.two_years_plus.level],
+            ].map(([label, value]) => (
+              <div key={label} className="card compatibility-duration-card">
+                <div className="compatibility-duration-label">{label}</div>
+                <div className="serif compatibility-duration-value">{durationLevelText[value as string] || value}</div>
+              </div>
+            ))}
+          </div>
+          <p className="compatibility-duration-summary">{durationAssessment.summary}</p>
+          {durationAssessment.reasons.length > 0 && (
+            <div className="compatibility-duration-reasons">
+              {durationAssessment.reasons.map(reason => (
+                <div key={reason} className="compatibility-duration-reason">{reason}</div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="compatibility-section">

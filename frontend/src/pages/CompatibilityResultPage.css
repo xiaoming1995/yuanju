@@ -199,6 +199,48 @@
   font-size: 30px;
 }
 
+.compatibility-duration-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-duration-card {
+  padding: 18px;
+}
+
+.compatibility-duration-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.compatibility-duration-value {
+  font-size: 24px;
+}
+
+.compatibility-duration-summary {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.compatibility-duration-reasons {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.compatibility-duration-reason {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 13px;
+}
+
 .compatibility-ai-card {
   padding: 20px;
   margin-top: 20px;
@@ -228,5 +270,9 @@
 
   .compatibility-score-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .compatibility-duration-grid {
+    grid-template-columns: 1fr;
   }
 }

@@ -22,6 +22,23 @@ type CompatibilityDimensionScores struct {
 	Practicality  int `json:"practicality"`
 }
 
+type CompatibilityDurationWindow struct {
+	Level string `json:"level"`
+}
+
+type CompatibilityDurationWindows struct {
+	ThreeMonths  CompatibilityDurationWindow `json:"three_months"`
+	OneYear      CompatibilityDurationWindow `json:"one_year"`
+	TwoYearsPlus CompatibilityDurationWindow `json:"two_years_plus"`
+}
+
+type CompatibilityDurationAssessment struct {
+	OverallBand string                       `json:"overall_band"`
+	Windows     CompatibilityDurationWindows `json:"windows"`
+	Summary     string                       `json:"summary"`
+	Reasons     []string                     `json:"reasons"`
+}
+
 type CompatibilityEvidence struct {
 	ID        string    `json:"id"`
 	ReadingID string    `json:"reading_id"`
@@ -40,6 +57,7 @@ type CompatibilityReading struct {
 	UserID          string                       `json:"user_id"`
 	OverallLevel    string                       `json:"overall_level"`
 	DimensionScores CompatibilityDimensionScores `json:"dimension_scores"`
+	DurationAssessment CompatibilityDurationAssessment `json:"duration_assessment"`
 	SummaryTags     []string                     `json:"summary_tags"`
 	AnalysisVersion string                       `json:"analysis_version"`
 	CreatedAt       time.Time                    `json:"created_at"`
@@ -73,10 +91,11 @@ type CompatibilityDimensionNarrative struct {
 }
 
 type CompatibilityStructuredReport struct {
-	Summary    string                            `json:"summary"`
-	Dimensions []CompatibilityDimensionNarrative `json:"dimensions"`
-	Risks      []string                          `json:"risks"`
-	Advice     string                            `json:"advice"`
+	Summary            string                            `json:"summary"`
+	Dimensions         []CompatibilityDimensionNarrative `json:"dimensions"`
+	DurationAssessment CompatibilityDurationAssessment   `json:"duration_assessment"`
+	Risks              []string                          `json:"risks"`
+	Advice             string                            `json:"advice"`
 }
 
 type CompatibilityPromptData struct {
@@ -85,6 +104,7 @@ type CompatibilityPromptData struct {
 	SelfChartSummary    string
 	PartnerChartSummary string
 	ScoresJSON          string
+	DurationJSON        string
 	EvidencesJSON       string
 	SummaryTags         string
 }
