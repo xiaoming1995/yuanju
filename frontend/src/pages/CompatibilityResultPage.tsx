@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { compatibilityAPI, type CompatibilityChartSnapshot, type CompatibilityDetail, type CompatibilityEvidence, type CompatibilityParticipant } from '../lib/api'
+import {
+  compatibilityAPI,
+  type CompatibilityChartSnapshot,
+  type CompatibilityDetail,
+  type CompatibilityDurationAssessment,
+  type CompatibilityEvidence,
+  type CompatibilityParticipant,
+} from '../lib/api'
 import './CompatibilityResultPage.css'
 
 const levelText: Record<string, string> = {
@@ -82,6 +89,42 @@ function getWuxingItems(snapshot?: CompatibilityChartSnapshot | null) {
     ...item,
     value: snapshot?.wuxing?.[item.key] ?? 0,
   }))
+}
+
+function isDurationLevel(value: unknown): value is 'high' | 'medium' | 'low' {
+  return value === 'high' || value === 'medium' || value === 'low'
+}
+
+function normalizeDurationAssessment(
+  primary: CompatibilityDurationAssessment | null | undefined,
+  fallback: CompatibilityDurationAssessment
+): CompatibilityDurationAssessment {
+  const hasPrimaryValue = Boolean(primary && (
+    (typeof primary.summary === 'string' && primary.summary.trim()) ||
+    (Array.isArray(primary.reasons) && primary.reasons.length > 0) ||
+    isDurationLevel(primary.windows?.three_months?.level) ||
+    isDurationLevel(primary.windows?.one_year?.level) ||
+    isDurationLevel(primary.windows?.two_years_plus?.level)
+  ))
+
+  const source = hasPrimaryValue ? primary! : fallback
+
+  return {
+    overall_band: source.overall_band || fallback.overall_band,
+    summary: source.summary?.trim() || fallback.summary,
+    reasons: Array.isArray(source.reasons) ? source.reasons.filter(Boolean) : fallback.reasons,
+    windows: {
+      three_months: {
+        level: isDurationLevel(source.windows?.three_months?.level) ? source.windows.three_months.level : fallback.windows.three_months.level,
+      },
+      one_year: {
+        level: isDurationLevel(source.windows?.one_year?.level) ? source.windows.one_year.level : fallback.windows.one_year.level,
+      },
+      two_years_plus: {
+        level: isDurationLevel(source.windows?.two_years_plus?.level) ? source.windows.two_years_plus.level : fallback.windows.two_years_plus.level,
+      },
+    },
+  }
 }
 
 function EvidenceCard({ evidence }: { evidence: CompatibilityEvidence }) {
@@ -226,8 +269,12 @@ export default function CompatibilityResultPage() {
   const reading = detail.reading
   const selfP = detail.participants.find(p => p.role === 'self')
   const partnerP = detail.participants.find(p => p.role === 'partner')
-  const heroSummary = detail.latest_report?.content_structured?.summary || levelSummaryText[reading.overall_level] || levelText[reading.overall_level]
-  const durationAssessment = detail.latest_report?.content_structured?.duration_assessment || reading.duration_assessment
+  const structuredReport = detail.latest_report?.content_structured
+  const heroSummary = structuredReport?.summary || levelSummaryText[reading.overall_level] || levelText[reading.overall_level]
+  const durationAssessment = normalizeDurationAssessment(structuredReport?.duration_assessment, reading.duration_assessment)
+  const summaryTags = Array.isArray(reading.summary_tags) ? reading.summary_tags : []
+  const reportDimensions = Array.isArray(structuredReport?.dimensions) ? structuredReport.dimensions : []
+  const reportRisks = Array.isArray(structuredReport?.risks) ? structuredReport.risks.filter(Boolean) : []
 
   return (
     <div className="page">
@@ -244,7 +291,7 @@ export default function CompatibilityResultPage() {
           </div>
           <p className="compatibility-hero-summary">{heroSummary}</p>
           <div className="compatibility-tag-row">
-            {reading.summary_tags.map(tag => (
+            {summaryTags.map(tag => (
               <span key={tag} className="compatibility-tag">{tag}</span>
             ))}
           </div>
@@ -330,26 +377,26 @@ export default function CompatibilityResultPage() {
 
           {error && <p style={{ color: '#e77' }}>{error}</p>}
 
-          {detail.latest_report?.content_structured ? (
+          {structuredReport ? (
             <div style={{ display: 'grid', gap: 12 }}>
-              <p style={{ margin: 0, lineHeight: 1.8 }}>{detail.latest_report.content_structured.summary}</p>
-              {detail.latest_report.content_structured.dimensions.map(item => (
+              <p style={{ margin: 0, lineHeight: 1.8 }}>{structuredReport.summary}</p>
+              {reportDimensions.map(item => (
                 <div key={item.key}>
                   <div className="serif" style={{ fontSize: 18, marginBottom: 6 }}>{item.title}</div>
                   <div style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>{item.content}</div>
                 </div>
               ))}
-              {detail.latest_report.content_structured.risks.length > 0 && (
+              {reportRisks.length > 0 && (
                 <div>
                   <div className="serif" style={{ fontSize: 18, marginBottom: 6 }}>风险点</div>
                   <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-secondary)' }}>
-                    {detail.latest_report.content_structured.risks.map(risk => <li key={risk}>{risk}</li>)}
+                    {reportRisks.map(risk => <li key={risk}>{risk}</li>)}
                   </ul>
                 </div>
               )}
               <div>
                 <div className="serif" style={{ fontSize: 18, marginBottom: 6 }}>建议</div>
-                <div style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>{detail.latest_report.content_structured.advice}</div>
+                <div style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>{structuredReport.advice}</div>
               </div>
             </div>
           ) : detail.latest_report ? (
