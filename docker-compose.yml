@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: yuanju_postgres
     env_file:
-      - ./backend/.env
+      - ./backend/.env.docker
     environment:
       POSTGRES_USER: yuanju
       POSTGRES_DB: yuanju
@@ -38,8 +38,12 @@ services:
     ports:
       - "9002:9002"
     env_file:
-      - ./backend/.env
+      - ./backend/.env.docker
     environment:
+      # Compose 模式下必须使用 Docker 服务名：
+      # - Postgres: postgres
+      # - Redis: redis
+      # 不要在这里再覆盖 DATABASE_URL，否则容易与 env_file 中的密码漂移。
       REDIS_URL: redis://redis:6379
     depends_on:
       postgres:
