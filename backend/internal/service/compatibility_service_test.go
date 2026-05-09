@@ -70,3 +70,42 @@ func TestBuildCompatibilityPromptData_EmbedsDurationAssessment(t *testing.T) {
 		t.Fatalf("expected duration overall band in prompt data, got %s", got.DurationJSON)
 	}
 }
+
+func TestEnsureCompatibilityDurationAssessment_BackfillsMissingDuration(t *testing.T) {
+	detail := &model.CompatibilityDetail{
+		Reading: &model.CompatibilityReading{
+			DimensionScores: model.CompatibilityDimensionScores{
+				Attraction:    72,
+				Stability:     58,
+				Communication: 61,
+				Practicality:  55,
+			},
+		},
+		Participants: []model.CompatibilityParticipant{
+			{
+				Role:          "self",
+				DisplayName:   "我",
+				ChartSnapshot: makeCompatibilitySnapshot("我", "male"),
+			},
+			{
+				Role:          "partner",
+				DisplayName:   "对方",
+				ChartSnapshot: makeCompatibilitySnapshot("对方", "female"),
+			},
+		},
+	}
+
+	changed, err := ensureCompatibilityDurationAssessment(detail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected lazy duration backfill to report a change")
+	}
+	if detail.Reading.DurationAssessment.OverallBand == "" {
+		t.Fatal("expected duration overall band to be backfilled")
+	}
+	if detail.Reading.DurationAssessment.Windows.ThreeMonths.Level == "" {
+		t.Fatal("expected duration windows to be backfilled")
+	}
+}

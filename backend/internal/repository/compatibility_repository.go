@@ -182,6 +182,17 @@ func GetCompatibilityDetail(readingID string) (*model.CompatibilityDetail, error
 	}, nil
 }
 
+func UpdateCompatibilityDurationAssessment(readingID string, duration model.CompatibilityDurationAssessment) error {
+	durationJSON, _ := json.Marshal(duration)
+	_, err := database.DB.Exec(
+		`UPDATE compatibility_readings
+		 SET duration_assessment = $2, updated_at = NOW()
+		 WHERE id = $1`,
+		readingID, durationJSON,
+	)
+	return err
+}
+
 func GetCompatibilityReadingOwner(readingID string) (string, error) {
 	var userID string
 	err := database.DB.QueryRow(
