@@ -36,6 +36,16 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 			Communication: analysis.DimensionScores.Communication,
 			Practicality:  analysis.DimensionScores.Practicality,
 		},
+		model.CompatibilityDurationAssessment{
+			OverallBand: analysis.DurationAssessment.OverallBand,
+			Windows: model.CompatibilityDurationWindows{
+				ThreeMonths:  model.CompatibilityDurationWindow{Level: string(analysis.DurationAssessment.Windows.ThreeMonths.Level)},
+				OneYear:      model.CompatibilityDurationWindow{Level: string(analysis.DurationAssessment.Windows.OneYear.Level)},
+				TwoYearsPlus: model.CompatibilityDurationWindow{Level: string(analysis.DurationAssessment.Windows.TwoYearsPlus.Level)},
+			},
+			Summary: analysis.DurationAssessment.Summary,
+			Reasons: analysis.DurationAssessment.Reasons,
+		},
 		analysis.SummaryTags,
 		compatibilityAnalysisVersion,
 	)
@@ -181,6 +191,7 @@ func buildCompatibilityPromptData(detail *model.CompatibilityDetail) (*model.Com
 		return nil, err
 	}
 	scoresJSON, _ := json.Marshal(detail.Reading.DimensionScores)
+	durationJSON, _ := json.Marshal(detail.Reading.DurationAssessment)
 	evidencesJSON, _ := json.Marshal(detail.Evidences)
 
 	return &model.CompatibilityPromptData{
@@ -189,6 +200,7 @@ func buildCompatibilityPromptData(detail *model.CompatibilityDetail) (*model.Com
 		SelfChartSummary:    selfSummary,
 		PartnerChartSummary: partnerSummary,
 		ScoresJSON:          string(scoresJSON),
+		DurationJSON:        string(durationJSON),
 		EvidencesJSON:       string(evidencesJSON),
 		SummaryTags:         strings.Join(detail.Reading.SummaryTags, "、"),
 	}, nil
@@ -238,6 +250,9 @@ B 命盘摘要：
 四维分数（JSON）：
 {{.ScoresJSON}}
 
+缘分时长评估（JSON）：
+{{.DurationJSON}}
+
 关系摘要标签：
 {{.SummaryTags}}
 
@@ -253,6 +268,16 @@ B 命盘摘要：
     { "key": "communication", "title": "沟通协同", "content": "..." },
     { "key": "practicality", "title": "现实磨合", "content": "..." }
   ],
+  "duration_assessment": {
+    "overall_band": "medium_term",
+    "summary": "阶段性维持判断",
+    "reasons": ["...", "..."],
+    "windows": {
+      "three_months": { "level": "high" },
+      "one_year": { "level": "medium" },
+      "two_years_plus": { "level": "low" }
+    }
+  },
   "risks": ["...", "..."],
   "advice": "..."
 }`

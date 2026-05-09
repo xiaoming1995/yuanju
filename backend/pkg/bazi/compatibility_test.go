@@ -105,3 +105,40 @@ func TestAnalyzeCompatibility_SpouseStarResonanceBoostsAttraction(t *testing.T) 
 		t.Fatalf("expected spouse-star resonance to boost attraction above baseline, got %d", got.DimensionScores.Attraction)
 	}
 }
+
+func TestAnalyzeCompatibility_ReturnsDurationAssessmentShape(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
+	b := makeCompatNatal("己丑", "戊辰", "己丑", "庚申", "female")
+
+	got := AnalyzeCompatibility(a, b)
+
+	if got.DurationAssessment.OverallBand == "" {
+		t.Fatal("expected duration overall band")
+	}
+	if got.DurationAssessment.Windows.ThreeMonths.Level == "" {
+		t.Fatal("expected three-month window")
+	}
+	if got.DurationAssessment.Windows.OneYear.Level == "" {
+		t.Fatal("expected one-year window")
+	}
+	if got.DurationAssessment.Windows.TwoYearsPlus.Level == "" {
+		t.Fatal("expected two-years-plus window")
+	}
+	if len(got.DurationAssessment.Reasons) == 0 {
+		t.Fatal("expected duration reasons")
+	}
+}
+
+func TestAnalyzeCompatibility_DurationCanBeStrongShortTermButWeakLongTerm(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
+	b := makeCompatNatal("己午", "戊午", "己午", "戊申", "female")
+
+	got := AnalyzeCompatibility(a, b)
+
+	if got.DurationAssessment.Windows.ThreeMonths.Level == "" || got.DurationAssessment.Windows.TwoYearsPlus.Level == "" {
+		t.Fatal("expected both short and long windows")
+	}
+	if got.DurationAssessment.Windows.ThreeMonths.Level == got.DurationAssessment.Windows.TwoYearsPlus.Level {
+		t.Fatalf("expected staged difference, got %+v", got.DurationAssessment.Windows)
+	}
+}

@@ -85,6 +85,21 @@ export interface CompatibilityDimensionScores {
   practicality: number
 }
 
+export interface CompatibilityDurationWindow {
+  level: 'high' | 'medium' | 'low'
+}
+
+export interface CompatibilityDurationAssessment {
+  overall_band: 'short_term' | 'medium_term' | 'long_term'
+  summary: string
+  reasons: string[]
+  windows: {
+    three_months: CompatibilityDurationWindow
+    one_year: CompatibilityDurationWindow
+    two_years_plus: CompatibilityDurationWindow
+  }
+}
+
 export interface CompatibilityEvidence {
   id: string
   reading_id: string
@@ -137,6 +152,7 @@ export interface CompatibilityReading {
   user_id: string
   overall_level: 'high' | 'medium' | 'low'
   dimension_scores: CompatibilityDimensionScores
+  duration_assessment: CompatibilityDurationAssessment
   summary_tags: string[]
   analysis_version: string
   created_at: string
@@ -146,6 +162,7 @@ export interface CompatibilityReading {
 export interface CompatibilityStructuredReport {
   summary: string
   dimensions: Array<{ key: string; title: string; content: string }>
+  duration_assessment: CompatibilityDurationAssessment
   risks: string[]
   advice: string
 }

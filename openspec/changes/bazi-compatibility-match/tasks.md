@@ -21,6 +21,9 @@
 - [x] 3.5 实现 evidence 归一化结构（dimension/type/polarity/source/title/detail/weight）
 - [x] 3.6 实现总体等级 `overall_level` 的聚合规则（`high` / `medium` / `low`）
 - [x] 3.7 为合盘分析结果补充摘要标签或短结论字段，便于历史列表展示
+- [x] 3.8 设计并实现 `duration_assessment` 结构，覆盖 `3个月`、`1年`、`2年以上` 三个窗口
+- [x] 3.9 为时长评估定义内部权重与对外等级映射，避免直接暴露伪精确时长数值
+- [x] 3.10 为时长评估补充 reasons/summary 结构，支持“短期吸引强、长期承压”等阶段差异解释
 
 ## 4. 合盘服务与 AI 报告链路
 
@@ -29,6 +32,8 @@
 - [x] 4.3 在 service 层实现 compatibility AI 报告生成，输入为结构化分数与 evidences，而非原始表单
 - [x] 4.4 为 compatibility 报告定义 `content_structured` 结构（summary / dimensions / risks / advice）
 - [x] 4.5 实现 compatibility report 缓存复用逻辑，避免重复生成多条同 reading 报告
+- [x] 4.6 将 `duration_assessment` 纳入 compatibility detail 返回结构与持久化模型
+- [x] 4.7 将 `duration_assessment` 纳入 compatibility AI Prompt 上下文与 `content_structured` 输出
 
 ## 5. API 与鉴权
 
@@ -44,6 +49,8 @@
 - [x] 6.3 新增合盘结果页，展示总评、四维结果、关键证据与 AI 解读
 - [x] 6.4 新增合盘历史页与详情跳转入口
 - [x] 6.5 将合盘历史与普通命盘历史在导航和 UI 上明确区分，避免用户误解
+- [x] 6.6 在合盘结果页新增“缘分时长评估”区块，展示 `3个月`、`1年`、`2年以上` 窗口的维持概率等级
+- [x] 6.7 在 AI 合盘解读区域或摘要区整合阶段性说明，避免页面只显示静态四维分数
 
 ## 7. 测试与验收
 
@@ -52,6 +59,7 @@
 - [ ] 7.3 为前端核心页面补充交互测试，覆盖创建成功、历史进入详情、无报告/有报告状态
 - [ ] 7.4 手工验收：同一用户创建多条合盘记录，确认对象 B 不会出现在普通 `/history`
 - [ ] 7.5 手工验收：生成 compatibility 报告后再次打开详情，确认命中缓存且展示一致
+- [x] 7.6 为 `duration_assessment` 编写测试，覆盖“短期高、长期低”“三窗口整体偏稳”“静态高分但动态承压”等代表性场景
 
 ## 8. 文档与收尾
 
