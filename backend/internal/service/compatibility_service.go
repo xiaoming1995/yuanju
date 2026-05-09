@@ -93,7 +93,18 @@ func GetCompatibilityDetailForUser(readingID, userID string) (*model.Compatibili
 	if ownerID != userID {
 		return &model.CompatibilityDetail{}, fmt.Errorf("forbidden")
 	}
-	return repository.GetCompatibilityDetail(readingID)
+	detail, err := repository.GetCompatibilityDetail(readingID)
+	if err != nil || detail == nil {
+		return detail, err
+	}
+	if changed, err := ensureCompatibilityDurationAssessment(detail); err != nil {
+		return nil, err
+	} else if changed {
+		if err := repository.UpdateCompatibilityDurationAssessment(readingID, detail.Reading.DurationAssessment); err != nil {
+			return nil, err
+		}
+	}
+	return detail, nil
 }
 
 func GetCompatibilityHistoryForUser(userID string, limit, offset int) ([]model.CompatibilityHistoryItem, error) {
@@ -126,6 +137,13 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 	}
 	if detail == nil || detail.Reading == nil {
 		return nil, fmt.Errorf("未找到合盘记录")
+	}
+	if changed, err := ensureCompatibilityDurationAssessment(detail); err != nil {
+		return nil, err
+	} else if changed {
+		if err := repository.UpdateCompatibilityDurationAssessment(readingID, detail.Reading.DurationAssessment); err != nil {
+			return nil, err
+		}
 	}
 
 	promptConfig, err := repository.GetPromptByModule("compatibility")
@@ -166,6 +184,62 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 	}
 
 	return repository.CreateCompatibilityReport(readingID, rawContent, modelName, structuredRaw)
+}
+
+func ensureCompatibilityDurationAssessment(detail *model.CompatibilityDetail) (bool, error) {
+	if detail == nil || detail.Reading == nil {
+		return false, nil
+	}
+	if detail.Reading.DurationAssessment.OverallBand != "" {
+		return false, nil
+	}
+
+	var selfResult, partnerResult *bazi.BaziResult
+	for i := range detail.Participants {
+		p := &detail.Participants[i]
+		result, err := compatibilityParticipantResult(p)
+		if err != nil {
+			return false, err
+		}
+		if p.Role == "self" {
+			selfResult = result
+		} else if p.Role == "partner" {
+			partnerResult = result
+		}
+	}
+	if selfResult == nil || partnerResult == nil {
+		return false, fmt.Errorf("合盘参与者信息不完整")
+	}
+
+	analysis := bazi.AnalyzeCompatibility(selfResult, partnerResult)
+	detail.Reading.DurationAssessment = model.CompatibilityDurationAssessment{
+		OverallBand: analysis.DurationAssessment.OverallBand,
+		Windows: model.CompatibilityDurationWindows{
+			ThreeMonths:  model.CompatibilityDurationWindow{Level: string(analysis.DurationAssessment.Windows.ThreeMonths.Level)},
+			OneYear:      model.CompatibilityDurationWindow{Level: string(analysis.DurationAssessment.Windows.OneYear.Level)},
+			TwoYearsPlus: model.CompatibilityDurationWindow{Level: string(analysis.DurationAssessment.Windows.TwoYearsPlus.Level)},
+		},
+		Summary: analysis.DurationAssessment.Summary,
+		Reasons: analysis.DurationAssessment.Reasons,
+	}
+	return true, nil
+}
+
+func compatibilityParticipantResult(p *model.CompatibilityParticipant) (*bazi.BaziResult, error) {
+	if p.ChartSnapshot != nil {
+		var result bazi.BaziResult
+		if err := json.Unmarshal(*p.ChartSnapshot, &result); err != nil {
+			return nil, err
+		}
+		return &result, nil
+	}
+
+	profile := normalizeCompatibilityProfile(p.BirthProfile)
+	result := bazi.Calculate(
+		profile.Year, profile.Month, profile.Day, profile.Hour,
+		profile.Gender, false, 0, profile.CalendarType, profile.IsLeapMonth,
+	)
+	return result, nil
 }
 
 func buildCompatibilityPromptData(detail *model.CompatibilityDetail) (*model.CompatibilityPromptData, error) {
