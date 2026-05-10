@@ -1277,8 +1277,9 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 		dyZhi = string(dyRunes[1])
 	}
 
-	// ── 应期位置信号（Layer 0：刑冲克合穿破原局用神/忌神位）────────────────────
+	// ── 应期位置信号（Layer 0：刑冲克合穿破原局用神/忌神位 + 三合/三会局势力）──
 	layer0Sigs := collectYingqiSignals(natal, lnGan, lnZhi, dyGan, dyZhi)
+	layer0Sigs = append(layer0Sigs, collectJuShiSignals(natal, lnZhi, dyZhi)...)
 	layer0HasXiong := false
 	for _, s := range layer0Sigs {
 		if s.Polarity == PolarityXiong {
