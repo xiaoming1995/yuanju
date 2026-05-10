@@ -1,5 +1,7 @@
 package bazi
 
+import "fmt"
+
 // YongshenStatus 取值常量
 const (
 	YongshenStatusTiaohouHit          = "tiaohou_hit"
@@ -118,6 +120,139 @@ func wuxingSetToJishen(yongshenSet string) string {
 		}
 	}
 	return string(out)
+}
+
+// fuyiElementMap dayGanWx → (helpElements, opposeElements) 用于扶抑派生五行集
+var fuyiElementMap = map[string][2]string{
+	"mu":   {"水木", "金土火"},
+	"huo":  {"木火", "水金土"},
+	"tu":   {"火土", "木水金"},
+	"jin":  {"土金", "火木水"},
+	"shui": {"金水", "土火木"},
+}
+
+// calcFuyiStrength 基于位置规则判断日主强弱：有根→克泄强弱；无根→比劫多且印旺
+// 返回：isStrong=true 身强（用神取克泄），false 身弱（用神取生助）
+func calcFuyiStrength(
+	dayGan string,
+	yearGan, monthGan, hourGan string,
+	yearHG, monthHG, dayHG, hourHG []string,
+) (isStrong bool, reason string) {
+	dayGanWx := ganWuxing[dayGan]
+
+	// 按分支整理藏干（主气+中气），余气不计
+	type branchHG struct {
+		label string
+		gans  []string
+	}
+	branches := []branchHG{
+		{"日支", hideGanMainZhong(dayHG)},
+		{"年支", hideGanMainZhong(yearHG)},
+		{"月支", hideGanMainZhong(monthHG)},
+		{"时支", hideGanMainZhong(hourHG)},
+	}
+
+	// ── 1. 有根判断：藏干（主气+中气）含日主同五行 ──
+	hasRoot := false
+	rootDesc := ""
+	for _, b := range branches {
+		for _, hg := range b.gans {
+			if ganWuxing[hg] == dayGanWx {
+				hasRoot = true
+				pos := "引"
+				if b.label == "日支" {
+					pos = "坐"
+				}
+				rootDesc = fmt.Sprintf("%s藏%s(%s)", b.label, hg, pos)
+				break
+			}
+		}
+		if hasRoot {
+			break
+		}
+	}
+
+	// 汇总所有计数用天干（不含日干自身）
+	nonDayGans := []string{yearGan, monthGan, hourGan}
+
+	// 计数辅助：统计某一组十神在天干+藏干中出现的次数
+	countShishen := func(targets ...string) int {
+		targetSet := map[string]bool{}
+		for _, t := range targets {
+			targetSet[t] = true
+		}
+		cnt := 0
+		for _, g := range nonDayGans {
+			if targetSet[GetShiShen(dayGan, g)] {
+				cnt++
+			}
+		}
+		for _, b := range branches {
+			for _, hg := range b.gans {
+				if targetSet[GetShiShen(dayGan, hg)] {
+					cnt++
+				}
+			}
+		}
+		return cnt
+	}
+
+	if hasRoot {
+		// ── 2a. 有根：克泄强弱 ──
+		keXie := countShishen("正官", "七杀", "食神", "伤官")
+		if keXie < 3 {
+			return true, fmt.Sprintf("有根（%s），克泄数%d<3，身强", rootDesc, keXie)
+		}
+		return false, fmt.Sprintf("有根（%s），克泄数%d≥3过重，身弱", rootDesc, keXie)
+	}
+
+	// ── 2b. 无根：比劫多且印旺 ──
+	bijie := countShishen("比肩", "劫财")
+
+	// 印旺：地支主气/中气含印≥2，或天干1+地支1
+	yinInGan := 0
+	for _, g := range nonDayGans {
+		ss := GetShiShen(dayGan, g)
+		if ss == "正印" || ss == "偏印" {
+			yinInGan++
+		}
+	}
+	yinInZhi := 0
+	for _, b := range branches {
+		for _, hg := range b.gans {
+			ss := GetShiShen(dayGan, hg)
+			if ss == "正印" || ss == "偏印" {
+				yinInZhi++
+			}
+		}
+	}
+	yinWang := (yinInZhi >= 2) || (yinInGan >= 1 && yinInZhi >= 1)
+
+	if bijie >= 3 && yinWang {
+		return true, fmt.Sprintf("无根，比劫%d≥3且印旺（干%d支%d），身强", bijie, yinInGan, yinInZhi)
+	}
+	if bijie < 3 {
+		return false, fmt.Sprintf("无根，比劫%d<3，身弱", bijie)
+	}
+	return false, fmt.Sprintf("无根，比劫%d≥3但印不旺（干%d支%d），身弱", bijie, yinInGan, yinInZhi)
+}
+
+// calcFuyiYongshen 由 calcFuyiStrength 派生五行用神/忌神字符串（兼容下游 strings.Contains）
+func calcFuyiYongshen(
+	dayGan string,
+	yearGan, monthGan, hourGan string,
+	yearHG, monthHG, dayHG, hourHG []string,
+) (yongshen, jishen string) {
+	dayGanWx := ganWuxing[dayGan]
+	elems, ok := fuyiElementMap[dayGanWx]
+	if !ok {
+		return "", ""
+	}
+	isStrong, _ := calcFuyiStrength(dayGan, yearGan, monthGan, hourGan, yearHG, monthHG, dayHG, hourHG)
+	if isStrong {
+		return elems[1], elems[0] // 身强→用神=克泄，忌神=生助
+	}
+	return elems[0], elems[1] // 身弱→用神=生助，忌神=克泄
 }
 
 // inferYongshenWithTiaohouPriority 主入口：t0 调候字典优先，t1 月令权重扶抑 fallback

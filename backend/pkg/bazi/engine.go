@@ -253,7 +253,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 	dayHideGan := bz.GetDayHideGan()
 	hourHideGan := bz.GetTimeHideGan()
 
-	// 用神/忌神：t0 调候字典优先，t1 月令权重扶抑 fallback
+	// 用神/忌神：t0 调候字典优先，t1 位置扶抑法 fallback
 	natalGans := collectNatalGans(yearGan, monthGan, dayGan, hourGan)
 	natalHideGans := collectNatalHideGans(yearHideGan, monthHideGan, dayHideGan, hourHideGan)
 	yongshen, jishen, yongshenStatus, yongshenHitGans, yongshenMissGans := inferYongshenWithTiaohouPriority(
@@ -262,6 +262,13 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 		dayGanWx, monthZhiWx,
 		wuxing,
 	)
+	// t1 fallback：以位置扶抑法取代月令权重法
+	if yongshenStatus == YongshenStatusTiaohouMissFallback || yongshenStatus == YongshenStatusTiaohouDictMissing {
+		yongshen, jishen = calcFuyiYongshen(
+			dayGan, yearGan, monthGan, hourGan,
+			yearHideGan, monthHideGan, dayHideGan, hourHideGan,
+		)
+	}
 
 	// 纳音
 	yearNaYin := bz.GetYearNaYin()
