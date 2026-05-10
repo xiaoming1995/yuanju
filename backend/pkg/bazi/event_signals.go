@@ -40,6 +40,9 @@ const (
 	TypeXingGePanNi    = "性格_叛逆" // 冲日支 / 情绪波动
 )
 
+// TypeJuShiZhong 三合/三会忌神局极凶标星信号
+const TypeJuShiZhong = "局势_重"
+
 // EventSignal 单个事件信号
 type EventSignal struct {
 	Type     string `json:"type"`               // 婚恋_合/冲/变 | 事业 | 财运_得/损 | 健康 | 迁变 | 喜神临运 | 综合变动 | 用神基底 | 大运合化 | 伏吟 | 反吟
@@ -77,6 +80,26 @@ var sixHe = map[string]string{
 	"辰": "酉", "酉": "辰",
 	"巳": "申", "申": "巳",
 	"午": "未", "未": "午",
+}
+
+// 六害（穿破）：key 与 value 互害
+var sixHai = map[string]string{
+	"子": "未", "未": "子",
+	"丑": "午", "午": "丑",
+	"寅": "巳", "巳": "寅",
+	"卯": "辰", "辰": "卯",
+	"申": "亥", "亥": "申",
+	"酉": "戌", "戌": "酉",
+}
+
+// 地支六合化神（双向）：pair → 化出五行(pinyin)
+var zhiLiuheHua = map[[2]string]string{
+	{"子", "丑"}: "tu", {"丑", "子"}: "tu",
+	{"寅", "亥"}: "mu", {"亥", "寅"}: "mu",
+	{"卯", "戌"}: "huo", {"戌", "卯"}: "huo",
+	{"辰", "酉"}: "jin", {"酉", "辰"}: "jin",
+	{"巳", "申"}: "shui", {"申", "巳"}: "shui",
+	{"午", "未"}: "huo", {"未", "午"}: "huo",
 }
 
 // 地支相刑（单向）：key 刑 value
@@ -185,47 +208,572 @@ type shenshaMeta struct {
 	Polarity string
 	Type     string
 	Hint     string
+	IsHeavy  bool // 重煞标记：羊刃/白虎/岁破/丧门/吊客/灾煞/劫煞/亡神
 }
 
 var shenshaWhitelist = map[string]shenshaMeta{
-	"天乙贵人": {PolarityJi, "事业", "天乙贵人临运，主贵人扶持、化险为夷"},
-	"天德贵人": {PolarityJi, "事业", "天德贵人临运，主逢凶化吉、福德深厚"},
-	"月德贵人": {PolarityJi, "事业", "月德贵人临运，主性情温润、得长辈助力"},
-	"天德合":  {PolarityJi, "事业", "天德合临运，福德相合，吉中藏吉"},
-	"月德合":  {PolarityJi, "事业", "月德合临运，温和有助"},
-	"德秀贵人": {PolarityJi, "事业", "德秀贵人临运，文采才华彰显"},
-	"将星":   {PolarityJi, "事业", "将星临运，主统御能力增强、领导机会"},
-	"福星贵人": {PolarityJi, "事业", "福星贵人临运，主进财得福"},
-	"文昌贵人": {PolarityJi, "事业", "文昌贵人临运，主考试、文书、晋升顺遂"},
-	"国印贵人": {PolarityJi, "事业", "国印贵人临运，主权印职位"},
-	"金舆贵人": {PolarityJi, "事业", "金舆贵人临运，主人际财禄"},
-	"太极贵人": {PolarityJi, "事业", "太极贵人临运，主始终如一、完成大事"},
-	"天厨贵人": {PolarityJi, "财运_得", "天厨贵人临运，主衣食丰盈"},
-	"天医":   {PolarityJi, "健康", "天医临运，主疾病减损、医疗顺遂"},
-	"天喜":   {PolarityJi, "婚恋_合", "天喜临运，主喜庆之事"},
+	"天乙贵人": {PolarityJi, "事业", "天乙贵人临运，主贵人扶持、化险为夷", false},
+	"天德贵人": {PolarityJi, "事业", "天德贵人临运，主逢凶化吉、福德深厚", false},
+	"月德贵人": {PolarityJi, "事业", "月德贵人临运，主性情温润、得长辈助力", false},
+	"天德合":  {PolarityJi, "事业", "天德合临运，福德相合，吉中藏吉", false},
+	"月德合":  {PolarityJi, "事业", "月德合临运，温和有助", false},
+	"德秀贵人": {PolarityJi, "事业", "德秀贵人临运，文采才华彰显", false},
+	"将星":   {PolarityJi, "事业", "将星临运，主统御能力增强、领导机会", false},
+	"福星贵人": {PolarityJi, "事业", "福星贵人临运，主进财得福", false},
+	"文昌贵人": {PolarityJi, "事业", "文昌贵人临运，主考试、文书、晋升顺遂", false},
+	"国印贵人": {PolarityJi, "事业", "国印贵人临运，主权印职位", false},
+	"金舆贵人": {PolarityJi, "事业", "金舆贵人临运，主人际财禄", false},
+	"太极贵人": {PolarityJi, "事业", "太极贵人临运，主始终如一、完成大事", false},
+	"天厨贵人": {PolarityJi, "财运_得", "天厨贵人临运，主衣食丰盈", false},
+	"天医":   {PolarityJi, "健康", "天医临运，主疾病减损、医疗顺遂", false},
+	"天喜":   {PolarityJi, "婚恋_合", "天喜临运，主喜庆之事", false},
 
-	"羊刃": {PolarityXiong, "健康", "羊刃临运，宜防开刀、血光、车祸"},
-	"白虎": {PolarityXiong, "健康", "白虎临运，主孝服、突发伤痛或意外"},
-	"丧门": {PolarityXiong, "健康", "丧门临运，宜防家中长辈丧事或孝服"},
-	"吊客": {PolarityXiong, "健康", "吊客临运，主家事操心、孝服之忧"},
-	"勾绞": {PolarityXiong, "综合变动", "勾绞临运，主纷争口舌、官司缠绕"},
-	"亡神": {PolarityXiong, "综合变动", "亡神临运，宜防破耗、失去"},
-	"劫煞": {PolarityXiong, "综合变动", "劫煞临运，宜防意外破财或人事冲突"},
-	"灾煞": {PolarityXiong, "健康", "灾煞临运，宜防突发灾患"},
-	"流霞": {PolarityXiong, "健康", "流霞临运，女命防产厄、男命防伤灾"},
-	"墓门": {PolarityXiong, "综合变动", "墓门临运，主郁闷、消沉、收敛"},
+	"羊刃": {PolarityXiong, "健康", "羊刃临运，宜防开刀、血光、车祸", true},
+	"白虎": {PolarityXiong, "健康", "白虎临运，主孝服、突发伤痛或意外", true},
+	"丧门": {PolarityXiong, "健康", "丧门临运，宜防家中长辈丧事或孝服", true},
+	"吊客": {PolarityXiong, "健康", "吊客临运，主家事操心、孝服之忧", true},
+	"勾绞": {PolarityXiong, "综合变动", "勾绞临运，主纷争口舌、官司缠绕", false},
+	"亡神": {PolarityXiong, "综合变动", "亡神临运，宜防破耗、失去", true},
+	"劫煞": {PolarityXiong, "综合变动", "劫煞临运，宜防意外破财或人事冲突", true},
+	"灾煞": {PolarityXiong, "健康", "灾煞临运，宜防突发灾患", true},
+	"流霞": {PolarityXiong, "健康", "流霞临运，女命防产厄、男命防伤灾", false},
+	"墓门": {PolarityXiong, "综合变动", "墓门临运，主郁闷、消沉、收敛", false},
 
-	"红艳": {PolarityNeutral, "婚恋_合", "红艳临运，主桃花、感情绚烂"},
-	"桃花": {PolarityNeutral, "婚恋_合", "桃花临运，人缘异性缘旺"},
-	"驿马": {PolarityNeutral, "迁变", "驿马临运，主奔波、出行、变动"},
-	"华盖": {PolarityNeutral, "迁变", "华盖临运，主清高、宗教、艺术、孤独"},
-	"孤辰": {PolarityNeutral, "婚恋_合", "孤辰临运，宜防孤独情绪"},
-	"寡宿": {PolarityNeutral, "婚恋_合", "寡宿临运，宜防孤独情绪"},
-	"词馆": {PolarityJi, "事业", "词馆临运，主文笔、口才、学问"},
-	"禄神": {PolarityJi, "财运_得", "禄神临运，主稳定收入、职位之禄"},
+	"红艳": {PolarityNeutral, "婚恋_合", "红艳临运，主桃花、感情绚烂", false},
+	"桃花": {PolarityNeutral, "婚恋_合", "桃花临运，人缘异性缘旺", false},
+	"驿马": {PolarityNeutral, "迁变", "驿马临运，主奔波、出行、变动", false},
+	"华盖": {PolarityNeutral, "迁变", "华盖临运，主清高、宗教、艺术、孤独", false},
+	"孤辰": {PolarityNeutral, "婚恋_合", "孤辰临运，宜防孤独情绪", false},
+	"寡宿": {PolarityNeutral, "婚恋_合", "寡宿临运，宜防孤独情绪", false},
+	"词馆": {PolarityJi, "事业", "词馆临运，主文笔、口才、学问", false},
+	"禄神": {PolarityJi, "财运_得", "禄神临运，主稳定收入、职位之禄", false},
 }
 
 // ─── 辅助函数 ─────────────────────────────────────────────────────────────────
+
+// hideGanMainZhong 取藏干数组前两项（主气+中气），余气不计
+func hideGanMainZhong(hideGan []string) []string {
+	if len(hideGan) <= 2 {
+		return hideGan
+	}
+	return hideGan[:2]
+}
+
+// collectYongshenPositions 收集原局用神/忌神覆盖的干支位置列表
+// 地支匹配：本气五行 OR 藏干主气+中气五行，任一命中即计入
+func collectYongshenPositions(natal *BaziResult) (yongPos, jiPos []string) {
+	if natal == nil || (natal.Yongshen == "" && natal.Jishen == "") {
+		return nil, nil
+	}
+	cn2pin := map[string]string{"木": "mu", "火": "huo", "土": "tu", "金": "jin", "水": "shui"}
+	yongSet := map[string]bool{}
+	jiSet := map[string]bool{}
+	for _, ch := range natal.Yongshen {
+		if p, ok := cn2pin[string(ch)]; ok {
+			yongSet[p] = true
+		}
+	}
+	for _, ch := range natal.Jishen {
+		if p, ok := cn2pin[string(ch)]; ok {
+			jiSet[p] = true
+		}
+	}
+	for _, g := range []struct{ label, gan string }{
+		{"年干", natal.YearGan}, {"月干", natal.MonthGan},
+		{"日干", natal.DayGan}, {"时干", natal.HourGan},
+	} {
+		if g.gan == "" {
+			continue
+		}
+		wx := ganWuxing[g.gan]
+		if yongSet[wx] {
+			yongPos = append(yongPos, g.label)
+		}
+		if jiSet[wx] {
+			jiPos = append(jiPos, g.label)
+		}
+	}
+	for _, b := range []struct {
+		label   string
+		zhi     string
+		hideGan []string
+	}{
+		{"年支", natal.YearZhi, natal.YearHideGan},
+		{"月支", natal.MonthZhi, natal.MonthHideGan},
+		{"日支", natal.DayZhi, natal.DayHideGan},
+		{"时支", natal.HourZhi, natal.HourHideGan},
+	} {
+		if b.zhi == "" {
+			continue
+		}
+		yongHit, jiHit := yongSet[zhiWuxing[b.zhi]], jiSet[zhiWuxing[b.zhi]]
+		for _, hg := range hideGanMainZhong(b.hideGan) {
+			hgWx := ganWuxing[hg]
+			if yongSet[hgWx] {
+				yongHit = true
+			}
+			if jiSet[hgWx] {
+				jiHit = true
+			}
+		}
+		if yongHit {
+			yongPos = append(yongPos, b.label)
+		}
+		if jiHit {
+			jiPos = append(jiPos, b.label)
+		}
+	}
+	return yongPos, jiPos
+}
+
+// pillarWeightLabel 返回被冲克宫位的权重标注文字（日柱最重，月柱次之，其余不标）
+func pillarWeightLabel(pos string) string {
+	switch pos {
+	case "日干", "日支":
+		return "（日柱宫位，权重较重）"
+	case "月干", "月支":
+		return "（月柱宫位，权重次之）"
+	default:
+		return ""
+	}
+}
+
+// juGroup 三合/三会局组定义
+type juGroup struct {
+	branches [3]string
+	wx       string // 局五行（pinyin）
+	kind     string // "三合" 或 "三会"
+}
+
+// allJuGroups 所有三合/三会局
+var allJuGroups = []juGroup{
+	// 三合
+	{[3]string{"申", "子", "辰"}, "shui", "三合"},
+	{[3]string{"寅", "午", "戌"}, "huo", "三合"},
+	{[3]string{"亥", "卯", "未"}, "mu", "三合"},
+	{[3]string{"巳", "酉", "丑"}, "jin", "三合"},
+	// 三会
+	{[3]string{"寅", "卯", "辰"}, "mu", "三会"},
+	{[3]string{"巳", "午", "未"}, "huo", "三会"},
+	{[3]string{"申", "酉", "戌"}, "jin", "三会"},
+	{[3]string{"亥", "子", "丑"}, "shui", "三会"},
+}
+
+// collectJuShiSignals 检测流年地支（结合大运+原局）是否补全三合/三会局。
+// 三支全齐（matchCount=2）才算局成；局五行=用神且克忌神→吉；局五行=忌神→极凶（TypeJuShiZhong）。
+func collectJuShiSignals(natal *BaziResult, lnZhi, dyZhi string) []EventSignal {
+	if natal == nil || lnZhi == "" {
+		return nil
+	}
+	if natal.Yongshen == "" && natal.Jishen == "" {
+		return nil
+	}
+
+	existingZhi := []string{natal.YearZhi, natal.MonthZhi, natal.DayZhi, natal.HourZhi}
+	if dyZhi != "" {
+		existingZhi = append(existingZhi, dyZhi)
+	}
+
+	cn2pin := map[string]string{"木": "mu", "火": "huo", "土": "tu", "金": "jin", "水": "shui"}
+	yongSet := map[string]bool{}
+	jiSet := map[string]bool{}
+	for _, ch := range natal.Yongshen {
+		if p, ok := cn2pin[string(ch)]; ok {
+			yongSet[p] = true
+		}
+	}
+	for _, ch := range natal.Jishen {
+		if p, ok := cn2pin[string(ch)]; ok {
+			jiSet[p] = true
+		}
+	}
+
+	var sigs []EventSignal
+	for _, g := range allJuGroups {
+		// 确认 lnZhi 在该组中
+		lnIdx := -1
+		for i, z := range g.branches {
+			if z == lnZhi {
+				lnIdx = i
+				break
+			}
+		}
+		if lnIdx < 0 {
+			continue
+		}
+		// 另外两支必须都在 existingZhi 中（三支全齐）
+		other := make([]string, 0, 2)
+		for i, z := range g.branches {
+			if i != lnIdx {
+				other = append(other, z)
+			}
+		}
+		if !containsStr(existingZhi, other[0]) || !containsStr(existingZhi, other[1]) {
+			continue
+		}
+
+		localWx := g.wx
+		juName := string(g.branches[0]) + string(g.branches[1]) + string(g.branches[2])
+		localWxCN := wxPinyin2CN[localWx]
+
+		if yongSet[localWx] {
+			keTarget := wxKe[localWx]
+			if jiSet[keTarget] {
+				jiCN := wxPinyin2CN[keTarget]
+				sigs = append(sigs, EventSignal{
+					Type:     "综合变动",
+					Evidence: fmt.Sprintf("流年%s补全%s%s%s局，%s势力大增，克制忌神%s，用神赢，应期吉", lnZhi, juName, g.kind, localWxCN, localWxCN, jiCN),
+					Polarity: PolarityJi,
+					Source:   SourceZhuwei,
+				})
+			}
+		} else if jiSet[localWx] {
+			sigs = append(sigs, EventSignal{
+				Type:     TypeJuShiZhong,
+				Evidence: fmt.Sprintf("★流年%s补全%s%s%s局，忌神势力极强，用神承压，应期极凶", lnZhi, juName, g.kind, localWxCN),
+				Polarity: PolarityXiong,
+				Source:   SourceZhuwei,
+			})
+		}
+	}
+	return sigs
+}
+
+// yingqiTagged 内部用：带合并元数据的应期信号
+type yingqiTagged struct {
+	EventSignal
+	srcLabel string // "流年" 或 "大运"
+	hitPos   string // 被命中的原局位置，如"日支"
+	hitKind  string // 交互类型："冲"/"刑"/"穿"（仅这三类参与双冲合并）
+}
+
+// collectYingqiSignals 检测流年/大运干支与原局用神/忌神位置的刑冲克合穿五种交互
+// 每条命中独立输出 EventSignal，极性由交互类型与用神/忌神位置联合决定
+// 大运+流年同类型双冲同一用神位时自动合并为叠加信号
+func collectYingqiSignals(natal *BaziResult, lnGan, lnZhi, dyGan, dyZhi string) []EventSignal {
+	yongPos, jiPos := collectYongshenPositions(natal)
+	if len(yongPos) == 0 && len(jiPos) == 0 {
+		return nil
+	}
+	var tagged []yingqiTagged
+	addTagged := func(sig EventSignal, src, pos, kind string) {
+		tagged = append(tagged, yingqiTagged{sig, src, pos, kind})
+	}
+	// sigs is kept for non-tagged appends (合化类 etc.)
+	var extraSigs []EventSignal
+
+	posGanVal := map[string]string{
+		"年干": natal.YearGan, "月干": natal.MonthGan,
+		"日干": natal.DayGan, "时干": natal.HourGan,
+	}
+	posZhiVal := map[string]string{
+		"年支": natal.YearZhi, "月支": natal.MonthZhi,
+		"日支": natal.DayZhi, "时支": natal.HourZhi,
+	}
+
+	cn2pin := map[string]string{"木": "mu", "火": "huo", "土": "tu", "金": "jin", "水": "shui"}
+	yongSet := map[string]bool{}
+	jiSet := map[string]bool{}
+	for _, ch := range natal.Yongshen {
+		if p, ok := cn2pin[string(ch)]; ok {
+			yongSet[p] = true
+		}
+	}
+	for _, ch := range natal.Jishen {
+		if p, ok := cn2pin[string(ch)]; ok {
+			jiSet[p] = true
+		}
+	}
+
+	// allNatalGan 原局四柱天干，供五行流通检查用
+	allNatalGan := []string{natal.YearGan, natal.MonthGan, natal.DayGan, natal.HourGan}
+
+	// checkGan 检测一个天干与原局用神/忌神天干位的克、五合交互
+	checkGan := func(inGan, inLabel string) {
+		if inGan == "" {
+			return
+		}
+		inWx := ganWuxing[inGan]
+		// 3.3 天干克
+		// 若流年/大运天干本身属于用神五行，则不对用神位产生克害凶信号
+		if !yongSet[inWx] {
+			for _, pos := range yongPos {
+				pg, ok := posGanVal[pos]
+				if !ok || pg == "" {
+					continue
+				}
+				if wxKe[inWx] == ganWuxing[pg] {
+					yongWx := ganWuxing[pg]
+					// 五行流通检查：原局天干存在 M 使得 inWx生M 且 M生yongWx
+					hasLiutong := false
+					for _, ng := range allNatalGan {
+						if ng == "" {
+							continue
+						}
+						m := ganWuxing[ng]
+						if wxSheng[inWx] == m && wxSheng[m] == yongWx {
+							hasLiutong = true
+							break
+						}
+					}
+					if hasLiutong {
+						addTagged(EventSignal{
+							Type:     "综合变动",
+							Evidence: fmt.Sprintf("%s%s克原局%s%s（用神位），五行流通，克势转化，力度减弱%s", inLabel, inGan, pos, pg, pillarWeightLabel(pos)),
+							Polarity: PolarityNeutral, Source: SourceZhuwei,
+						}, inLabel, pos, "克")
+					} else {
+						addTagged(EventSignal{
+							Type:     "综合变动",
+							Evidence: fmt.Sprintf("%s%s克原局%s%s（用神位），用神受克，应期凶%s", inLabel, inGan, pos, pg, pillarWeightLabel(pos)),
+							Polarity: PolarityXiong, Source: SourceZhuwei,
+						}, inLabel, pos, "克")
+					}
+				}
+			}
+		}
+		for _, pos := range jiPos {
+			pg, ok := posGanVal[pos]
+			if !ok || pg == "" {
+				continue
+			}
+			if wxKe[inWx] == ganWuxing[pg] {
+				addTagged(EventSignal{
+					Type:     "综合变动",
+					Evidence: fmt.Sprintf("%s%s克原局%s%s（忌神位），忌神受制，应期吉%s", inLabel, inGan, pos, pg, pillarWeightLabel(pos)),
+					Polarity: PolarityJi, Source: SourceZhuwei,
+				}, inLabel, pos, "克")
+			}
+		}
+		// 3.7 天干五合
+		for _, pos := range append(append([]string{}, yongPos...), jiPos...) {
+			pg, ok := posGanVal[pos]
+			if !ok || pg == "" {
+				continue
+			}
+			huaWx, hasHe := ganWuhe[[2]string{inGan, pg}]
+			if !hasHe {
+				continue
+			}
+			hua := zhiWuxing[natal.MonthZhi] == huaWx || zhiWuxing[dyZhi] == huaWx
+			huaWxCN := wxPinyin2CN[huaWx]
+			isYongPos := containsStr(yongPos, pos)
+			if hua {
+				if yongSet[huaWx] {
+					extraSigs = append(extraSigs, EventSignal{
+						Type:     "综合变动",
+						Evidence: fmt.Sprintf("%s%s合原局%s%s，化%s属用神，合化成立，应期吉", inLabel, inGan, pos, pg, huaWxCN),
+						Polarity: PolarityJi, Source: SourceHehua,
+					})
+				} else if jiSet[huaWx] {
+					extraSigs = append(extraSigs, EventSignal{
+						Type:     "综合变动",
+						Evidence: fmt.Sprintf("%s%s合原局%s%s，化%s属忌神，合化成立，应期凶", inLabel, inGan, pos, pg, huaWxCN),
+						Polarity: PolarityXiong, Source: SourceHehua,
+					})
+				}
+			} else if isYongPos {
+				extraSigs = append(extraSigs, EventSignal{
+					Type:     "综合变动",
+					Evidence: fmt.Sprintf("%s%s合住原局%s%s（用神位），合而不化，用神被锁，应期凶", inLabel, inGan, pos, pg),
+					Polarity: PolarityXiong, Source: SourceHehua,
+				})
+			} else {
+				extraSigs = append(extraSigs, EventSignal{
+					Type:     "综合变动",
+					Evidence: fmt.Sprintf("%s%s合住原局%s%s（忌神位），合而不化，忌神被锁，应期吉", inLabel, inGan, pos, pg),
+					Polarity: PolarityJi, Source: SourceHehua,
+				})
+			}
+		}
+	}
+
+	// checkZhi 检测一个地支与原局用神/忌神地支位的冲、刑、穿、六合交互
+	checkZhi := func(inZhi, inLabel string) {
+		if inZhi == "" {
+			return
+		}
+		// 流年/大运地支本身的五行：若属用神则不对用神位产生冲克刑穿凶信号
+		inZhiWx := zhiWuxing[inZhi]
+		// 3.4 地支冲
+		if !yongSet[inZhiWx] {
+			for _, pos := range yongPos {
+				if pz, ok := posZhiVal[pos]; ok && pz != "" {
+					if c, ok2 := sixChong[inZhi]; ok2 && c == pz {
+						addTagged(EventSignal{
+							Type:     "综合变动",
+							Evidence: fmt.Sprintf("%s%s冲原局%s%s（用神位），用神受冲，应期力度强，应期凶%s", inLabel, inZhi, pos, pz, pillarWeightLabel(pos)),
+							Polarity: PolarityXiong, Source: SourceZhuwei,
+						}, inLabel, pos, "冲")
+					}
+				}
+			}
+		}
+		for _, pos := range jiPos {
+			if pz, ok := posZhiVal[pos]; ok && pz != "" {
+				if c, ok2 := sixChong[inZhi]; ok2 && c == pz {
+					addTagged(EventSignal{
+						Type:     "综合变动",
+						Evidence: fmt.Sprintf("%s%s冲原局%s%s（忌神位），忌神受冲，应期力度强，应期吉%s", inLabel, inZhi, pos, pz, pillarWeightLabel(pos)),
+						Polarity: PolarityJi, Source: SourceZhuwei,
+					}, inLabel, pos, "冲")
+				}
+			}
+		}
+		// 3.5 地支刑
+		for _, set := range []struct {
+			poses  []string
+			isYong bool
+		}{{yongPos, true}, {jiPos, false}} {
+			// 若流年/大运地支本身属用神，跳过对用神位的刑害凶信号
+			if set.isYong && yongSet[inZhiWx] {
+				continue
+			}
+			for _, pos := range set.poses {
+				pz, ok := posZhiVal[pos]
+				if !ok || pz == "" {
+					continue
+				}
+				xingHit := false
+				if x, ok2 := sixXing[inZhi]; ok2 && x == pz {
+					xingHit = true
+				}
+				if selfXing[inZhi] && inZhi == pz {
+					xingHit = true
+				}
+				if !xingHit {
+					continue
+				}
+				posName := "用神"
+				pol := PolarityXiong
+				if !set.isYong {
+					posName = "忌神"
+					pol = PolarityJi
+				}
+				addTagged(EventSignal{
+					Type:     "综合变动",
+					Evidence: fmt.Sprintf("%s%s刑原局%s%s（%s位），%s位受刑，应期力度强，应期%s%s", inLabel, inZhi, pos, pz, posName, posName, map[bool]string{true: "凶", false: "吉"}[set.isYong], pillarWeightLabel(pos)),
+					Polarity: pol, Source: SourceXing,
+				}, inLabel, pos, "刑")
+			}
+		}
+		// 3.6 地支穿（六害）
+		if !yongSet[inZhiWx] {
+			for _, pos := range yongPos {
+				if pz, ok := posZhiVal[pos]; ok && pz != "" {
+					if hai, ok2 := sixHai[inZhi]; ok2 && hai == pz {
+						addTagged(EventSignal{
+							Type:     "综合变动",
+							Evidence: fmt.Sprintf("%s%s穿害原局%s%s（用神位），用神受穿，应期力度中，应期凶%s", inLabel, inZhi, pos, pz, pillarWeightLabel(pos)),
+							Polarity: PolarityXiong, Source: SourceZhuwei,
+						}, inLabel, pos, "穿")
+					}
+				}
+			}
+		}
+		for _, pos := range jiPos {
+			if pz, ok := posZhiVal[pos]; ok && pz != "" {
+				if hai, ok2 := sixHai[inZhi]; ok2 && hai == pz {
+					addTagged(EventSignal{
+						Type:     "综合变动",
+						Evidence: fmt.Sprintf("%s%s穿害原局%s%s（忌神位），忌神受穿，应期力度中，应期吉%s", inLabel, inZhi, pos, pz, pillarWeightLabel(pos)),
+						Polarity: PolarityJi, Source: SourceZhuwei,
+					}, inLabel, pos, "穿")
+				}
+			}
+		}
+		// 3.7 地支六合
+		for _, set := range []struct {
+			poses  []string
+			isYong bool
+		}{{yongPos, true}, {jiPos, false}} {
+			for _, pos := range set.poses {
+				pz, ok := posZhiVal[pos]
+				if !ok || pz == "" {
+					continue
+				}
+				he, ok2 := sixHe[inZhi]
+				if !ok2 || he != pz {
+					continue
+				}
+				huaWx, ok3 := zhiLiuheHua[[2]string{inZhi, pz}]
+				if !ok3 {
+					continue
+				}
+				hua := zhiWuxing[natal.MonthZhi] == huaWx
+				huaWxCN := wxPinyin2CN[huaWx]
+				if hua {
+					if yongSet[huaWx] {
+						extraSigs = append(extraSigs, EventSignal{
+							Type:     "综合变动",
+							Evidence: fmt.Sprintf("%s%s六合原局%s%s，化%s属用神，应期吉", inLabel, inZhi, pos, pz, huaWxCN),
+							Polarity: PolarityJi, Source: SourceHehua,
+						})
+					} else if jiSet[huaWx] {
+						extraSigs = append(extraSigs, EventSignal{
+							Type:     "综合变动",
+							Evidence: fmt.Sprintf("%s%s六合原局%s%s，化%s属忌神，应期凶", inLabel, inZhi, pos, pz, huaWxCN),
+							Polarity: PolarityXiong, Source: SourceHehua,
+						})
+					}
+				} else {
+					posName := "用神"
+					pol := PolarityXiong
+					if !set.isYong {
+						posName = "忌神"
+						pol = PolarityJi
+					}
+					extraSigs = append(extraSigs, EventSignal{
+						Type:     "综合变动",
+						Evidence: fmt.Sprintf("%s%s六合原局%s%s（%s位），合而不化，%s被锁，应期力度弱，应期%s%s", inLabel, inZhi, pos, pz, posName, posName, map[bool]string{true: "凶", false: "吉"}[set.isYong], pillarWeightLabel(pos)),
+						Polarity: pol, Source: SourceHehua,
+					})
+				}
+			}
+		}
+	}
+
+	checkGan(lnGan, "流年")
+	checkZhi(lnZhi, "流年")
+	checkGan(dyGan, "大运")
+	checkZhi(dyZhi, "大运")
+
+	// 大运+流年双重命中同一用神位合并（仅冲/刑/穿三类）
+	merged := make([]bool, len(tagged))
+	var result []EventSignal
+	for i := 0; i < len(tagged); i++ {
+		if merged[i] {
+			continue
+		}
+		a := tagged[i]
+		// 只对冲/刑/穿寻找对应的大运/流年配对
+		if a.hitKind != "冲" && a.hitKind != "刑" && a.hitKind != "穿" {
+			result = append(result, a.EventSignal)
+			continue
+		}
+		pairIdx := -1
+		for j := i + 1; j < len(tagged); j++ {
+			b := tagged[j]
+			if !merged[j] && b.srcLabel != a.srcLabel &&
+				b.hitPos == a.hitPos && b.hitKind == a.hitKind && b.Polarity == a.Polarity {
+				pairIdx = j
+				break
+			}
+		}
+		if pairIdx >= 0 {
+			merged[pairIdx] = true
+			result = append(result, EventSignal{
+				Type:     a.Type,
+				Evidence: fmt.Sprintf("大运流年双重命中：%s；大运流年双重命中，力度倍增%s", a.Evidence, pillarWeightLabel(a.hitPos)),
+				Polarity: a.Polarity,
+				Source:   a.Source,
+			})
+		} else {
+			result = append(result, a.EventSignal)
+		}
+	}
+	return append(result, extraSigs...)
+}
 
 func containsStr(slice []string, s string) bool {
 	for _, v := range slice {
@@ -721,26 +1269,34 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 		signals = append(signals, sig)
 	}
 
-	// ── 用神基底色（最先计算，作为后续 polarity 基底）──────────────────────────
-	baseline, baselineEvidence := getYongshenBaseline(natal, lnGan)
-	if baselineEvidence != "" {
-		seen["用神基底"] = true
-		signals = append(signals, EventSignal{
-			Type:     "用神基底",
-			Evidence: baselineEvidence,
-			Polarity: baseline,
-			Source:   SourceYongshen,
-		})
+	// 大运干支拆解（提前，供应期位置信号使用）
+	var dyGan, dyZhi string
+	dyRunes := []rune(dayunGanZhi)
+	if len(dyRunes) >= 2 {
+		dyGan = string(dyRunes[0])
+		dyZhi = string(dyRunes[1])
 	}
 
-	// addP: 添加信号，自动按 baseline + signalSelf 派生 polarity
+	// ── 应期位置信号（Layer 0：刑冲克合穿破原局用神/忌神位）────────────────────
+	layer0Sigs := collectYingqiSignals(natal, lnGan, lnZhi, dyGan, dyZhi)
+	layer0HasXiong := false
+	for _, s := range layer0Sigs {
+		if s.Polarity == PolarityXiong {
+			layer0HasXiong = true
+			break
+		}
+	}
+	signals = append(signals, layer0Sigs...)
+	layer0End := len(signals) // Layer 0 ends here; Layer 4+ signals begin after
+
+	// addP: 添加信号，极性由 signalSelf 独立决定
 	addP := func(typ, evidence, signalSelf, source string) {
 		if seen[typ] {
 			return
 		}
 		seen[typ] = true
 		sig := EventSignal{Type: typ, Evidence: evidence}
-		applyPolarity(&sig, signalSelf, baseline, source)
+		applyPolarity(&sig, signalSelf, "", source)
 		signals = append(signals, sig)
 	}
 	_ = add // 保留兼容引用以避免未使用警告
@@ -765,13 +1321,6 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 	// 读书期判定（age < 18 时启用学业 / 性格语义重映射）
 	isYoung := age > 0 && age < YoungAgeCutoff
 
-	// 大运干支拆解
-	var dyGan, dyZhi string
-	dyRunes := []rune(dayunGanZhi)
-	if len(dyRunes) >= 2 {
-		dyGan = string(dyRunes[0])
-		dyZhi = string(dyRunes[1])
-	}
 	dyShishen := GetShiShen(dayGan, dyGan)
 	dyZhiShishen := GetZhiShiShen(dayGan, dyZhi)
 
@@ -962,7 +1511,7 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 				if dyOfficialDouble {
 					ev = "大运" + dayunGanZhi + "干支均为官杀，整个大运官杀场域强劲，流年再叠，本年事业变动力度极大"
 				}
-				signals = append(signals, EventSignal{Type: "事业", Evidence: ev, Polarity: baseline, Source: SourceZhuwei})
+				signals = append(signals, EventSignal{Type: "事业", Evidence: ev, Polarity: PolarityNeutral, Source: SourceZhuwei})
 			}
 		}
 	}
@@ -1192,14 +1741,35 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 		}
 	}
 
-	// ── 神煞接入 ────────────────────────────────────────────────────────────
+	// ── 神煞接入（含重煞/轻煞分级）────────────────────────────────────────────
+	type shenshaSigWithMeta struct {
+		sig     EventSignal
+		isHeavy bool
+	}
 	shenshaList := getYearShensha(natal, lnGan, lnZhi)
+	var shenshaSigs []shenshaSigWithMeta
 	for _, name := range shenshaList {
-		ssSig, ok := shenshaSignal(name, baseline)
+		ssSig, ok := shenshaSignal(name, "")
 		if !ok {
 			continue
 		}
-		signals = append(signals, ssSig)
+		meta := shenshaWhitelist[name]
+		shenshaSigs = append(shenshaSigs, shenshaSigWithMeta{ssSig, meta.IsHeavy})
+	}
+	// 检测本年是否存在重煞凶信号
+	hasHeavyXiong := false
+	for _, ss := range shenshaSigs {
+		if ss.isHeavy && ss.sig.Polarity == PolarityXiong {
+			hasHeavyXiong = true
+			break
+		}
+	}
+	// 重煞出现时，轻煞吉信号追加降级注释（Polarity 不变）
+	for i := range shenshaSigs {
+		if hasHeavyXiong && !shenshaSigs[i].isHeavy && shenshaSigs[i].sig.Polarity == PolarityJi {
+			shenshaSigs[i].sig.Evidence += "（本年有重煞，此信号仅作参考）"
+		}
+		signals = append(signals, shenshaSigs[i].sig)
 	}
 
 	// ── 少年期：将神煞输出的成人期 Type 重映射至学业 / 性格 ─────────────────────
@@ -1240,6 +1810,19 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 			Polarity: PolarityXiong,
 			Source:   SourceZhuwei,
 		})
+	}
+
+	// ── Layer 0 凶压制 Layer 4 吉（末尾后处理）──────────────────────────────
+	// Layer 0 有凶信号时，过滤掉 Layer 4（i >= layer0End）中 Source=柱位互动 且 Polarity=吉 的信号
+	if layer0HasXiong {
+		kept := make([]EventSignal, 0, len(signals))
+		for i, s := range signals {
+			if i >= layer0End && s.Source == SourceZhuwei && s.Polarity == PolarityJi {
+				continue
+			}
+			kept = append(kept, s)
+		}
+		signals = kept
 	}
 
 	return signals
