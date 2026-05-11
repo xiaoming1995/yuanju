@@ -723,5 +723,25 @@ B 命盘摘要：
 		}
 	}
 
+	// 增量迁移 (token-usage-tracking)：用户 AI token 用量统计
+	tokenUsageMigration := `
+CREATE TABLE IF NOT EXISTS token_usage_logs (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id           UUID REFERENCES users(id) ON DELETE SET NULL,
+    chart_id          UUID REFERENCES bazi_charts(id) ON DELETE SET NULL,
+    call_type         VARCHAR(50) NOT NULL,
+    model             VARCHAR(100),
+    provider_id       UUID REFERENCES llm_providers(id) ON DELETE SET NULL,
+    prompt_tokens     INT NOT NULL DEFAULT 0,
+    completion_tokens INT NOT NULL DEFAULT 0,
+    total_tokens      INT NOT NULL DEFAULT 0,
+    created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_token_usage_user_id    ON token_usage_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_token_usage_created_at ON token_usage_logs(created_at);`
+	if _, err := DB.Exec(tokenUsageMigration); err != nil {
+		log.Fatalf("增量迁移失败 (token_usage_logs): %v", err)
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }
