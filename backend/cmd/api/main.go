@@ -92,6 +92,7 @@ func main() {
 				adminAuth.POST("/llm-providers", handler.AdminCreateProvider)
 				adminAuth.PUT("/llm-providers/:id", handler.AdminUpdateProvider)
 				adminAuth.PUT("/llm-providers/:id/activate", handler.AdminActivateProvider)
+				adminAuth.POST("/llm-providers/:id/test", handler.AdminTestProvider)
 				adminAuth.DELETE("/llm-providers/:id", handler.AdminDeleteProvider)
 
 				// 统计

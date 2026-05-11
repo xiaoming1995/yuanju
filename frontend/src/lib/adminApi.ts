@@ -40,6 +40,8 @@ export const adminLLMAPI = {
     adminApi.put(`/api/admin/llm-providers/${id}/activate`, {}),
   delete: (id: string) =>
     adminApi.delete(`/api/admin/llm-providers/${id}`),
+  test: (id: string) =>
+    adminApi.post(`/api/admin/llm-providers/${id}/test`, {}),
 }
 
 export const adminStatsAPI = {

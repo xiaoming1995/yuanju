@@ -475,3 +475,30 @@ func min(a, b int) int {
 	}
 	return b
 }
+
+// TestProviderConnection 用 1-token 探测请求验证 Provider 连通性
+func TestProviderConnection(url, apiKey, modelName string) error {
+	reqBody := AIRequest{
+		Model:       modelName,
+		Messages:    []AIMessage{{Role: "user", Content: "Hi"}},
+		MaxTokens:   1,
+		Temperature: 0,
+	}
+	bodyBytes, _ := json.Marshal(reqBody)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(bodyBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("连接失败: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("API 返回 %d: %s", resp.StatusCode, string(body[:min(len(body), 100)]))
+	}
+	return nil
+}

@@ -4,11 +4,15 @@ import { adminLLMAPI } from '../../lib/adminApi'
 
 interface Provider {
   id: string; name: string; type: string; base_url: string
-  model: string; api_key_masked: string; active: boolean
+  model: string; api_key_masked: string; api_key_preview: string; active: boolean
 }
 
 interface PresetType {
   type: string; name: string; base_url: string; model: string;
+}
+
+interface TestResult {
+  ok: boolean; latency_ms?: number; error?: string
 }
 
 const initialForm = { name: '', type: 'deepseek', base_url: '', model: '', api_key: '' }
@@ -22,6 +26,8 @@ export default function AdminLLMPage() {
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [testingId, setTestingId] = useState<string | null>(null)
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
 
   const load = () => {
     adminLLMAPI.list().then(r => {
@@ -69,7 +75,6 @@ export default function AdminLLMPage() {
   }
 
   const handleActivate = async (id: string) => {
-    // 乐观更新
     setProviders(ps => ps.map(p => ({ ...p, active: p.id === id })))
     try { await adminLLMAPI.activate(id) } catch { load() }
   }
@@ -80,6 +85,20 @@ export default function AdminLLMPage() {
       alert(e instanceof Error ? e.message : '删除失败')
     }
   }
+
+  const handleTest = async (id: string) => {
+    setTestingId(id)
+    try {
+      const res = await adminLLMAPI.test(id)
+      setTestResults(prev => ({ ...prev, [id]: res.data }))
+    } catch (e: unknown) {
+      setTestResults(prev => ({ ...prev, [id]: { ok: false, error: e instanceof Error ? e.message : '测试失败' } }))
+    } finally {
+      setTestingId(null)
+    }
+  }
+
+  const keyDisplay = (p: Provider) => p.api_key_preview || p.api_key_masked || '—'
 
   return (
     <div>
@@ -109,18 +128,37 @@ export default function AdminLLMPage() {
                   <td style={{ fontWeight: 600, color: '#e8e8e8' }}>{p.name}</td>
                   <td style={{ color: '#888', fontSize: 12 }}>{p.type}</td>
                   <td style={{ color: '#aaa', fontSize: 13 }}>{p.model}</td>
-                  <td><code style={{ fontSize: 12, color: '#666' }}>{p.api_key_masked || '已加密'}</code></td>
                   <td>
-                    <span className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      {p.active ? <><CheckCircle size={12} /> 激活</> : '待机'}
-                    </span>
+                    <code style={{ fontSize: 12, color: '#888' }}>{keyDisplay(p)}</code>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        {p.active ? <><CheckCircle size={12} /> 激活</> : '待机'}
+                      </span>
+                      {testResults[p.id] && (
+                        <span style={{ fontSize: 11, color: testResults[p.id].ok ? '#4ade80' : '#f87171' }}>
+                          {testResults[p.id].ok
+                            ? `✓ ${testResults[p.id].latency_ms}ms`
+                            : `✗ ${testResults[p.id].error}`}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {!p.active && (
                         <button className="admin-btn admin-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}
                           onClick={() => handleActivate(p.id)}>激活</button>
                       )}
+                      <button
+                        className="admin-btn admin-btn-ghost"
+                        style={{ padding: '4px 10px', fontSize: 12 }}
+                        disabled={testingId === p.id}
+                        onClick={() => handleTest(p.id)}
+                      >
+                        {testingId === p.id ? '测试中…' : '测试'}
+                      </button>
                       <button className="admin-btn admin-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}
                         onClick={() => openEdit(p)}>编辑</button>
                       {!p.active && (
@@ -172,10 +210,17 @@ export default function AdminLLMPage() {
             </div>
 
             <div className="admin-form-group" style={{ marginBottom: 16 }}>
-              <label className="admin-form-label">API Key {editing && <span style={{ color: '#666' }}>(留空则不修改)</span>}</label>
+              <label className="admin-form-label">
+                API Key {editing && <span style={{ color: '#666' }}>(留空则不修改)</span>}
+              </label>
+              {editing && (editing.api_key_preview || editing.api_key_masked) && (
+                <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>
+                  当前：<code style={{ color: '#a78bfa' }}>{editing.api_key_preview || editing.api_key_masked}</code>
+                </div>
+              )}
               <input className="admin-form-input" type="password" value={form.api_key}
                 onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))}
-                placeholder={editing ? (editing.api_key_masked || '已加密，留空则不修改') : 'sk-xxxxxxxxxx'} />
+                placeholder={editing ? '输入新密钥（留空保留当前）' : 'sk-xxxxxxxxxx'} />
             </div>
 
             <div className="admin-modal-actions">

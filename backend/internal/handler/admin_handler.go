@@ -8,8 +8,10 @@ import (
 	"yuanju/configs"
 	"yuanju/internal/model"
 	"yuanju/internal/repository"
+	"yuanju/internal/service"
 	"yuanju/pkg/crypto"
 	"yuanju/pkg/database"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -87,9 +89,8 @@ func AdminListProviders(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
 	}
-	// mask api key
 	for i := range providers {
-		providers[i].APIKeyMasked = crypto.MaskKey(providers[i].APIKeyEncrypted)
+		providers[i].APIKeyMasked = providers[i].APIKeyPreview
 	}
 	c.JSON(http.StatusOK, gin.H{"providers": providers, "predefined": model.PredefinedProviders})
 }
@@ -106,17 +107,18 @@ func AdminCreateProvider(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	preview := crypto.MaskPlainKey(req.APIKey)
 	encrypted, err := crypto.Encrypt(req.APIKey, configs.AppConfig.AdminEncryptionKey)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Key 加密失败"})
 		return
 	}
-	p, err := repository.CreateLLMProvider(req.Name, req.Type, req.BaseURL, req.Model, encrypted)
+	p, err := repository.CreateLLMProvider(req.Name, req.Type, req.BaseURL, req.Model, encrypted, preview)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建失败: " + err.Error()})
 		return
 	}
-	p.APIKeyMasked = crypto.MaskKey(req.APIKey)
+	p.APIKeyMasked = preview
 	c.JSON(http.StatusCreated, gin.H{"provider": p})
 }
 
@@ -142,15 +144,17 @@ func AdminUpdateProvider(c *gin.Context) {
 		}
 	}
 	encrypted := oldEncrypted
+	preview := ""
 	if req.APIKey != "" {
 		var err error
+		preview = crypto.MaskPlainKey(req.APIKey)
 		encrypted, err = crypto.Encrypt(req.APIKey, configs.AppConfig.AdminEncryptionKey)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Key 加密失败"})
 			return
 		}
 	}
-	if err := repository.UpdateLLMProvider(id, req.Name, req.BaseURL, req.Model, encrypted); err != nil {
+	if err := repository.UpdateLLMProvider(id, req.Name, req.BaseURL, req.Model, encrypted, preview); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新失败"})
 		return
 	}
@@ -182,6 +186,38 @@ func AdminDeleteProvider(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
+}
+
+// AdminTestProvider POST /api/admin/llm-providers/:id/test
+func AdminTestProvider(c *gin.Context) {
+	id := c.Param("id")
+	providers, _ := repository.ListLLMProviders()
+	var target *model.LLMProvider
+	for i := range providers {
+		if providers[i].ID == id {
+			p := providers[i]
+			target = &p
+			break
+		}
+	}
+	if target == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Provider 不存在"})
+		return
+	}
+	apiKey, err := crypto.Decrypt(target.APIKeyEncrypted, configs.AppConfig.AdminEncryptionKey)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "解密失败"})
+		return
+	}
+	baseURL := strings.TrimSuffix(strings.TrimSuffix(target.BaseURL, "/v1"), "/")
+	start := time.Now()
+	testErr := service.TestProviderConnection(baseURL+"/v1/chat/completions", apiKey, target.Model)
+	elapsed := int(time.Since(start).Milliseconds())
+	if testErr != nil {
+		c.JSON(http.StatusOK, gin.H{"ok": false, "error": testErr.Error(), "latency_ms": elapsed})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "latency_ms": elapsed})
 }
 
 // ====== Admin Stats ======

@@ -36,7 +36,7 @@ func GetAdminByEmail(email string) (*model.Admin, error) {
 
 func ListLLMProviders() ([]model.LLMProvider, error) {
 	rows, err := database.DB.Query(
-		`SELECT id, name, type, base_url, model, api_key_encrypted, active, created_at, updated_at
+		`SELECT id, name, type, base_url, model, api_key_encrypted, api_key_preview, active, created_at, updated_at
 		 FROM llm_providers ORDER BY created_at ASC`,
 	)
 	if err != nil {
@@ -48,7 +48,7 @@ func ListLLMProviders() ([]model.LLMProvider, error) {
 	for rows.Next() {
 		var p model.LLMProvider
 		if err := rows.Scan(&p.ID, &p.Name, &p.Type, &p.BaseURL, &p.Model,
-			&p.APIKeyEncrypted, &p.Active, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			&p.APIKeyEncrypted, &p.APIKeyPreview, &p.Active, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, err
 		}
 		providers = append(providers, p)
@@ -69,24 +69,26 @@ func GetActiveLLMProvider() (*model.LLMProvider, error) {
 	return p, err
 }
 
-func CreateLLMProvider(name, typ, baseURL, modelName, encryptedKey string) (*model.LLMProvider, error) {
+func CreateLLMProvider(name, typ, baseURL, modelName, encryptedKey, preview string) (*model.LLMProvider, error) {
 	p := &model.LLMProvider{}
 	err := database.DB.QueryRow(
-		`INSERT INTO llm_providers (name, type, base_url, model, api_key_encrypted)
-		 VALUES ($1, $2, $3, $4, $5)
-		 RETURNING id, name, type, base_url, model, api_key_encrypted, active, created_at, updated_at`,
-		name, typ, baseURL, modelName, encryptedKey,
+		`INSERT INTO llm_providers (name, type, base_url, model, api_key_encrypted, api_key_preview)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 RETURNING id, name, type, base_url, model, api_key_encrypted, api_key_preview, active, created_at, updated_at`,
+		name, typ, baseURL, modelName, encryptedKey, preview,
 	).Scan(&p.ID, &p.Name, &p.Type, &p.BaseURL, &p.Model,
-		&p.APIKeyEncrypted, &p.Active, &p.CreatedAt, &p.UpdatedAt)
+		&p.APIKeyEncrypted, &p.APIKeyPreview, &p.Active, &p.CreatedAt, &p.UpdatedAt)
 	return p, err
 }
 
-func UpdateLLMProvider(id, name, baseURL, modelName, encryptedKey string) error {
+func UpdateLLMProvider(id, name, baseURL, modelName, encryptedKey, preview string) error {
 	_, err := database.DB.Exec(
 		`UPDATE llm_providers
-		 SET name=$1, base_url=$2, model=$3, api_key_encrypted=$4, updated_at=NOW()
-		 WHERE id=$5`,
-		name, baseURL, modelName, encryptedKey, id,
+		 SET name=$1, base_url=$2, model=$3, api_key_encrypted=$4,
+		     api_key_preview=CASE WHEN $5 != '' THEN $5 ELSE api_key_preview END,
+		     updated_at=NOW()
+		 WHERE id=$6`,
+		name, baseURL, modelName, encryptedKey, preview, id,
 	)
 	return err
 }

@@ -62,6 +62,15 @@ func MaskKey(key string) string {
 	return key[:8] + "***"
 }
 
+// MaskPlainKey 将明文 API Key 脱敏：前6位 + *** + 后4位
+// 例：sk-abc1234567890xyz → sk-abc***0xyz
+func MaskPlainKey(plaintext string) string {
+	if len(plaintext) <= 10 {
+		return "***"
+	}
+	return plaintext[:6] + "***" + plaintext[len(plaintext)-4:]
+}
+
 // padKey 将密钥补齐/截断到 32 字节
 func padKey(key string) []byte {
 	b := []byte(key)

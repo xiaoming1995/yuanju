@@ -22,6 +22,7 @@ type LLMProvider struct {
 	BaseURL         string    `db:"base_url" json:"base_url"`
 	Model           string    `db:"model" json:"model"`
 	APIKeyEncrypted string    `db:"api_key_encrypted" json:"-"`
+	APIKeyPreview   string    `db:"api_key_preview" json:"api_key_preview,omitempty"`
 	APIKeyMasked    string    `db:"-" json:"api_key_masked,omitempty"`
 	Active          bool      `db:"active" json:"active"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`

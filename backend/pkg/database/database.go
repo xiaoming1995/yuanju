@@ -743,5 +743,10 @@ CREATE INDEX IF NOT EXISTS idx_token_usage_created_at ON token_usage_logs(create
 		log.Fatalf("增量迁移失败 (token_usage_logs): %v", err)
 	}
 
+	// 增量迁移：llm_providers 新增 api_key_preview 列
+	if _, err := DB.Exec(`ALTER TABLE llm_providers ADD COLUMN IF NOT EXISTS api_key_preview VARCHAR(50) DEFAULT ''`); err != nil {
+		log.Fatalf("增量迁移失败 (api_key_preview): %v", err)
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }
