@@ -41,7 +41,11 @@ export default function AdminLLMPage() {
 
   const openCreate = () => {
     setEditing(null)
-    setForm(initialForm)
+    const first = presetTypes[0]
+    setForm(first
+      ? { ...initialForm, type: first.type, name: first.name, base_url: first.base_url, model: first.model, thinking_enabled: isProModel(first.model) }
+      : initialForm
+    )
     setError('')
     setShowModal(true)
   }
@@ -53,9 +57,11 @@ export default function AdminLLMPage() {
     setShowModal(true)
   }
 
+  const isProModel = (model: string) => model.toLowerCase().includes('pro') || model.toLowerCase().includes('reasoner')
+
   const handleTypeChange = (presetName: string) => {
     const preset = presetTypes.find(t => t.name === presetName)
-    if (preset) setForm(f => ({ ...f, type: preset.type, name: preset.name, base_url: preset.base_url, model: preset.model }))
+    if (preset) setForm(f => ({ ...f, type: preset.type, name: preset.name, base_url: preset.base_url, model: preset.model, thinking_enabled: isProModel(preset.model) }))
   }
 
   const handleSave = async () => {
