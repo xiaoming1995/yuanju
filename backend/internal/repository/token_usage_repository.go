@@ -3,18 +3,27 @@ package repository
 import (
 	"fmt"
 	"log"
+	"sort"
 	"time"
 	"yuanju/pkg/database"
 )
 
 type TokenUsageSummaryRow struct {
-	UserID           string `json:"user_id"`
-	Email            string `json:"email"`
-	Nickname         string `json:"nickname"`
-	RequestCount     int    `json:"request_count"`
-	PromptTokens     int    `json:"prompt_tokens"`
-	CompletionTokens int    `json:"completion_tokens"`
-	TotalTokens      int    `json:"total_tokens"`
+	UserID           string  `json:"user_id"`
+	Email            string  `json:"email"`
+	Nickname         string  `json:"nickname"`
+	RequestCount     int     `json:"request_count"`
+	PromptTokens     int     `json:"prompt_tokens"`
+	CompletionTokens int     `json:"completion_tokens"`
+	TotalTokens      int     `json:"total_tokens"`
+	EstimatedCostCny float64 `json:"estimated_cost_cny"`
+}
+
+type summaryByModel struct {
+	userID, email, nickname             string
+	model                               string
+	requestCount                        int
+	promptTokens, completionTokens, totalTokens int
 }
 
 type TokenUsageDetailRow struct {
@@ -58,8 +67,9 @@ func CreateTokenUsageLog(userID *string, chartID *string, callType, model, provi
 	return nil
 }
 
-// GetTokenUsageSummary 按用户聚合 token 消耗，from/to 均为日期（含）
-func GetTokenUsageSummary(from, to time.Time) ([]TokenUsageSummaryRow, error) {
+// GetTokenUsageSummary 按用户聚合 token 消耗，from/to 均为日期（含）。
+// costFn(model, promptTokens, completionTokens) 用于计算预估费用；传 nil 则费用为 0。
+func GetTokenUsageSummary(from, to time.Time, costFn func(string, int, int) float64) ([]TokenUsageSummaryRow, error) {
 	toExcl := to.AddDate(0, 0, 1)
 	rows, err := database.DB.Query(`
 		SELECT
@@ -67,14 +77,15 @@ func GetTokenUsageSummary(from, to time.Time) ([]TokenUsageSummaryRow, error) {
 			u.email,
 			COALESCE(u.nickname, '') AS nickname,
 			COUNT(t.id)::int                           AS request_count,
+			COALESCE(t.model, '')                      AS model,
 			COALESCE(SUM(t.prompt_tokens), 0)::int     AS prompt_tokens,
 			COALESCE(SUM(t.completion_tokens), 0)::int AS completion_tokens,
 			COALESCE(SUM(t.total_tokens), 0)::int      AS total_tokens
 		FROM users u
 		JOIN token_usage_logs t ON t.user_id = u.id
 		WHERE t.created_at >= $1 AND t.created_at < $2
-		GROUP BY u.id, u.email, u.nickname
-		ORDER BY total_tokens DESC`,
+		GROUP BY u.id, u.email, u.nickname, t.model
+		ORDER BY u.id`,
 		from, toExcl,
 	)
 	if err != nil {
@@ -82,16 +93,55 @@ func GetTokenUsageSummary(from, to time.Time) ([]TokenUsageSummaryRow, error) {
 	}
 	defer rows.Close()
 
-	var result []TokenUsageSummaryRow
+	var byModel []summaryByModel
 	for rows.Next() {
-		var r TokenUsageSummaryRow
-		if err := rows.Scan(&r.UserID, &r.Email, &r.Nickname, &r.RequestCount,
-			&r.PromptTokens, &r.CompletionTokens, &r.TotalTokens); err != nil {
+		var r summaryByModel
+		if err := rows.Scan(&r.userID, &r.email, &r.nickname, &r.requestCount,
+			&r.model, &r.promptTokens, &r.completionTokens, &r.totalTokens); err != nil {
 			log.Printf("[TokenUsage] Scan 失败: %v", err)
 			continue
 		}
-		result = append(result, r)
+		byModel = append(byModel, r)
 	}
+
+	type entry struct {
+		row  TokenUsageSummaryRow
+		cost float64
+	}
+	userMap := make(map[string]*entry)
+	var userOrder []string
+
+	for _, r := range byModel {
+		e, exists := userMap[r.userID]
+		if !exists {
+			e = &entry{row: TokenUsageSummaryRow{
+				UserID:   r.userID,
+				Email:    r.email,
+				Nickname: r.nickname,
+			}}
+			userMap[r.userID] = e
+			userOrder = append(userOrder, r.userID)
+		}
+		e.row.RequestCount += r.requestCount
+		e.row.PromptTokens += r.promptTokens
+		e.row.CompletionTokens += r.completionTokens
+		e.row.TotalTokens += r.totalTokens
+		if costFn != nil {
+			e.cost += costFn(r.model, r.promptTokens, r.completionTokens)
+		}
+	}
+
+	result := make([]TokenUsageSummaryRow, 0, len(userOrder))
+	for _, uid := range userOrder {
+		e := userMap[uid]
+		e.row.EstimatedCostCny = e.cost
+		result = append(result, e.row)
+	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].TotalTokens > result[j].TotalTokens
+	})
+
 	return result, nil
 }
 
