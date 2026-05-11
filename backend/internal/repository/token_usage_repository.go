@@ -12,18 +12,12 @@ type TokenUsageSummaryRow struct {
 	UserID           string  `json:"user_id"`
 	Email            string  `json:"email"`
 	Nickname         string  `json:"nickname"`
+	Model            string  `json:"model"`
 	RequestCount     int     `json:"request_count"`
 	PromptTokens     int     `json:"prompt_tokens"`
 	CompletionTokens int     `json:"completion_tokens"`
 	TotalTokens      int     `json:"total_tokens"`
 	EstimatedCostCny float64 `json:"estimated_cost_cny"`
-}
-
-type summaryByModel struct {
-	userID, email, nickname             string
-	model                               string
-	requestCount                        int
-	promptTokens, completionTokens, totalTokens int
 }
 
 type TokenUsageDetailRow struct {
@@ -94,55 +88,47 @@ func GetTokenUsageSummary(from, to time.Time, costFn func(string, int, int) floa
 	}
 	defer rows.Close()
 
-	var byModel []summaryByModel
+	var byModel []TokenUsageSummaryRow
 	for rows.Next() {
-		var r summaryByModel
-		if err := rows.Scan(&r.userID, &r.email, &r.nickname, &r.requestCount,
-			&r.model, &r.promptTokens, &r.completionTokens, &r.totalTokens); err != nil {
+		var r TokenUsageSummaryRow
+		if err := rows.Scan(&r.UserID, &r.Email, &r.Nickname, &r.RequestCount,
+			&r.Model, &r.PromptTokens, &r.CompletionTokens, &r.TotalTokens); err != nil {
 			log.Printf("[TokenUsage] Scan 失败: %v", err)
 			continue
+		}
+		if costFn != nil {
+			r.EstimatedCostCny = costFn(r.Model, r.PromptTokens, r.CompletionTokens)
 		}
 		byModel = append(byModel, r)
 	}
 
-	type entry struct {
-		row  TokenUsageSummaryRow
-		cost float64
+	type userMeta struct {
+		totalTokens int
+		rows        []TokenUsageSummaryRow
 	}
-	userMap := make(map[string]*entry)
+	userMap := make(map[string]*userMeta)
 	var userOrder []string
-
 	for _, r := range byModel {
-		e, exists := userMap[r.userID]
-		if !exists {
-			e = &entry{row: TokenUsageSummaryRow{
-				UserID:   r.userID,
-				Email:    r.email,
-				Nickname: r.nickname,
-			}}
-			userMap[r.userID] = e
-			userOrder = append(userOrder, r.userID)
+		if _, exists := userMap[r.UserID]; !exists {
+			userMap[r.UserID] = &userMeta{}
+			userOrder = append(userOrder, r.UserID)
 		}
-		e.row.RequestCount += r.requestCount
-		e.row.PromptTokens += r.promptTokens
-		e.row.CompletionTokens += r.completionTokens
-		e.row.TotalTokens += r.totalTokens
-		if costFn != nil {
-			e.cost += costFn(r.model, r.promptTokens, r.completionTokens)
-		}
+		userMap[r.UserID].totalTokens += r.TotalTokens
+		userMap[r.UserID].rows = append(userMap[r.UserID].rows, r)
 	}
 
-	result := make([]TokenUsageSummaryRow, 0, len(userOrder))
-	for _, uid := range userOrder {
-		e := userMap[uid]
-		e.row.EstimatedCostCny = e.cost
-		result = append(result, e.row)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i].TotalTokens > result[j].TotalTokens
+	sort.Slice(userOrder, func(i, j int) bool {
+		return userMap[userOrder[i]].totalTokens > userMap[userOrder[j]].totalTokens
 	})
 
+	var result []TokenUsageSummaryRow
+	for _, uid := range userOrder {
+		meta := userMap[uid]
+		sort.Slice(meta.rows, func(i, j int) bool {
+			return meta.rows[i].TotalTokens > meta.rows[j].TotalTokens
+		})
+		result = append(result, meta.rows...)
+	}
 	return result, nil
 }
 
