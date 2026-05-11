@@ -133,15 +133,16 @@ func GetTokenUsageSummary(from, to time.Time, costFn func(string, int, int) floa
 }
 
 // GetTokenUsageDetail 查询单用户分页明细。
-// costFn(model, promptTokens, completionTokens) 用于计算预估费用；传 nil 则费用为 0。
-func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int, costFn func(string, int, int) float64) (total int, items []TokenUsageDetailRow, err error) {
+// model 传空字符串则不过滤模型；costFn 传 nil 则费用为 0。
+func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int, model string, costFn func(string, int, int) float64) (total int, items []TokenUsageDetailRow, err error) {
 	toExcl := to.AddDate(0, 0, 1)
 	offset := (page - 1) * limit
 
 	if err = database.DB.QueryRow(`
 		SELECT COUNT(*) FROM token_usage_logs
-		WHERE user_id = $1 AND created_at >= $2 AND created_at < $3`,
-		userID, from, toExcl,
+		WHERE user_id = $1 AND created_at >= $2 AND created_at < $3
+		AND ($4 = '' OR COALESCE(model, '') = $4)`,
+		userID, from, toExcl, model,
 	).Scan(&total); err != nil {
 		return 0, nil, fmt.Errorf("GetTokenUsageDetail count: %w", err)
 	}
@@ -151,9 +152,10 @@ func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int, cos
 		       reasoning_tokens, cache_hit_tokens, cache_miss_tokens, created_at
 		FROM token_usage_logs
 		WHERE user_id = $1 AND created_at >= $2 AND created_at < $3
+		AND ($4 = '' OR COALESCE(model, '') = $4)
 		ORDER BY created_at DESC
-		LIMIT $4 OFFSET $5`,
-		userID, from, toExcl, limit, offset,
+		LIMIT $5 OFFSET $6`,
+		userID, from, toExcl, model, limit, offset,
 	)
 	if err != nil {
 		return 0, nil, fmt.Errorf("GetTokenUsageDetail query: %w", err)

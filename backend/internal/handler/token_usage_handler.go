@@ -41,7 +41,8 @@ func AdminGetTokenUsageDetail(c *gin.Context) {
 		limit = 20
 	}
 
-	total, items, err := repository.GetTokenUsageDetail(userID, from, to, page, limit, service.CalcCost)
+	model := c.DefaultQuery("model", "")
+	total, items, err := repository.GetTokenUsageDetail(userID, from, to, page, limit, model, service.CalcCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
