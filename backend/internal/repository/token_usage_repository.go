@@ -36,6 +36,7 @@ type TokenUsageDetailRow struct {
 	ReasoningTokens  int       `json:"reasoning_tokens"`
 	CacheHitTokens   int       `json:"cache_hit_tokens"`
 	CacheMissTokens  int       `json:"cache_miss_tokens"`
+	EstimatedCostCny float64   `json:"estimated_cost_cny"`
 	CreatedAt        time.Time `json:"created_at"`
 }
 
@@ -145,8 +146,9 @@ func GetTokenUsageSummary(from, to time.Time, costFn func(string, int, int) floa
 	return result, nil
 }
 
-// GetTokenUsageDetail 查询单用户分页明细
-func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int) (total int, items []TokenUsageDetailRow, err error) {
+// GetTokenUsageDetail 查询单用户分页明细。
+// costFn(model, promptTokens, completionTokens) 用于计算预估费用；传 nil 则费用为 0。
+func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int, costFn func(string, int, int) float64) (total int, items []TokenUsageDetailRow, err error) {
 	toExcl := to.AddDate(0, 0, 1)
 	offset := (page - 1) * limit
 
@@ -179,6 +181,9 @@ func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int) (to
 			&r.ReasoningTokens, &r.CacheHitTokens, &r.CacheMissTokens, &r.CreatedAt); err != nil {
 			log.Printf("[TokenUsage] Scan detail 失败: %v", err)
 			continue
+		}
+		if costFn != nil {
+			r.EstimatedCostCny = costFn(r.Model, r.PromptTokens, r.CompletionTokens)
 		}
 		items = append(items, r)
 	}
