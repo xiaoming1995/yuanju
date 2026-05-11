@@ -29,7 +29,10 @@ type TokenUsageDetailRow struct {
 
 // CreateTokenUsageLog 写入一条 token 用量记录；totalTokens==0 时跳过
 func CreateTokenUsageLog(userID *string, chartID *string, callType, model, providerID string, promptTokens, completionTokens, totalTokens int) error {
+	log.Printf("[TokenUsage] 写入调用: callType=%s userID=%v prompt=%d completion=%d total=%d",
+		callType, userID, promptTokens, completionTokens, totalTokens)
 	if totalTokens == 0 {
+		log.Printf("[TokenUsage] total=0，跳过写入")
 		return nil
 	}
 	var providerIDPtr *string

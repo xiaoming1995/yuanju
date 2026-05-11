@@ -367,6 +367,8 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (
 		status, errMsg = "error", aiErr.Error()
 	}
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+	log.Printf("[TokenUsage-DEBUG] report aiErr=%v usage={prompt=%d completion=%d total=%d} userID=%v",
+		aiErr, usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, userID)
 	if aiErr == nil {
 		go func() {
 			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "report", modelName, providerID,
@@ -516,6 +518,8 @@ func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *str
 		status, errMsg = "error", aiErr.Error()
 	}
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+	log.Printf("[TokenUsage-DEBUG] aiErr=%v usage={prompt=%d completion=%d total=%d} userID=%v",
+		aiErr, usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, userID)
 	if aiErr == nil {
 		go func() {
 			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "report_stream", modelName, providerID,

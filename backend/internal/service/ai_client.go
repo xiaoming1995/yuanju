@@ -424,7 +424,9 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 					Usage TokenUsage `json:"usage"`
 				}
 				if json.Unmarshal([]byte(dataStr), &event) == nil {
-					if len(event.Choices) == 0 && event.Usage.TotalTokens > 0 {
+					// 捕获 usage：兼容 OpenAI（choices=[]的末尾 chunk）和
+					// DeepSeek R1 等在任意 chunk 中内嵌 usage 的提供商
+					if event.Usage.TotalTokens > 0 {
 						capturedUsage = event.Usage
 					}
 					if len(event.Choices) > 0 {
