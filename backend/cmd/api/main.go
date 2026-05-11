@@ -107,6 +107,10 @@ func main() {
 				adminAuth.GET("/ai-logs", handler.AdminListAILogs)
 				adminAuth.GET("/ai-logs/summary", handler.AdminGetAILogsSummary)
 
+				// Token 用量统计
+				adminAuth.GET("/token-usage/summary", handler.AdminGetTokenUsageSummary)
+				adminAuth.GET("/token-usage/detail", handler.AdminGetTokenUsageDetail)
+
 				// 报告缓存管理
 				adminAuth.DELETE("/reports/cache", handler.AdminClearAllReports)
 				adminAuth.DELETE("/reports/cache/:chart_id", handler.AdminClearReportByChart)
