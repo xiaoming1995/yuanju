@@ -615,6 +615,14 @@ B 命盘摘要：
 	}
 	log.Println("✅ 神煞注解 (shensha_annotations) 初始化完成")
 
+	// 增量迁移 (shensha-annotations phase2)：新增 category / short_desc 字段
+	for _, col := range []struct{ name, def string }{
+		{"category", "VARCHAR(20) NOT NULL DEFAULT ''"},
+		{"short_desc", "VARCHAR(200) NOT NULL DEFAULT ''"},
+	} {
+		DB.Exec(`ALTER TABLE shensha_annotations ADD COLUMN IF NOT EXISTS ` + col.name + ` ` + col.def)
+	}
+
 	// 增量迁移 (past-year-events)：过往年份事件推算报告缓存表
 	pastEventsMigration := `
 	CREATE TABLE IF NOT EXISTS ai_past_events (

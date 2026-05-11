@@ -114,6 +114,7 @@ export default function ResultPage() {
   // 神煞注解状态
   const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
   const [activeAnnotation, setActiveAnnotation] = useState<ShenshaAnnotation | null>(null)
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 预加载神煞注解
   useEffect(() => {
@@ -434,6 +435,16 @@ export default function ResultPage() {
                             const ann = shenshaMap.get(sh)
                             if (ann) setActiveAnnotation(ann)
                           }}
+                          onMouseEnter={() => {
+                            if (!hasAnnotation) return
+                            hoverTimer.current = setTimeout(() => {
+                              const ann = shenshaMap.get(sh)
+                              if (ann) setActiveAnnotation(ann)
+                            }, 300)
+                          }}
+                          onMouseLeave={() => {
+                            if (hoverTimer.current) clearTimeout(hoverTimer.current)
+                          }}
                         >{sh}</span>
                       )
                     })}
@@ -704,6 +715,14 @@ export default function ResultPage() {
             </div>
             <div className="shensha-modal-divider" />
             <div className="shensha-modal-body">
+              {activeAnnotation.category && (
+                <span style={{ fontSize: 11, color: '#a78bfa', background: '#2a1a4e', borderRadius: 4, padding: '2px 8px', marginBottom: 8, display: 'inline-block' }}>
+                  {activeAnnotation.category}
+                </span>
+              )}
+              {activeAnnotation.short_desc && (
+                <p style={{ color: '#c0b0ff', fontSize: 13, margin: '6px 0 10px', fontStyle: 'italic' }}>{activeAnnotation.short_desc}</p>
+              )}
               <p className="shensha-modal-description">{activeAnnotation.description}</p>
             </div>
           </div>

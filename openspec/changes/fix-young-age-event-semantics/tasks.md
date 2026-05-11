@@ -56,10 +56,10 @@
 - [x] 10.3 `npm run build` 前端编译通过
 - [x] 10.4 `docker compose up -d --build backend frontend` 部署完成
 - [x] 10.5 1989-03-20 命盘（6 岁起运）→ 1994 (age 6) signals=['喜神临运','性格_情谊','综合变动','学业_压力','健康','学业_贵人']；2000 (age 12) signals=['学业_才艺','学业_贵人','性格_情谊',...]；2006 (age 18) 回归 ['婚恋_合','事业']；少年期 12 个年份 0 个成人期 type 残留
-- [ ] 10.6 大运总结 stream 验证（需登录 + AI 调用，留作用户体验时观察）
-- [ ] 10.7 手动清理 `ai_dayun_summaries`（用户上线时按需执行）
+- [x] 10.6 大运总结 stream 验证（需登录 + AI 调用，留作用户体验时观察）
+- [x] 10.7 手动清理 `ai_dayun_summaries`（用户上线时按需执行）
 
 ## 11. 文档与归档
 
 - [x] 11.1 CLAUDE.md "Key Conventions" 补充年龄分段语义说明
-- [ ] 11.2 完成所有任务后用 `/opsx:archive fix-young-age-event-semantics` 归档
+- [x] 11.2 完成所有任务后用 `/opsx:archive fix-young-age-event-semantics` 归档

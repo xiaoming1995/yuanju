@@ -87,8 +87,10 @@ type DayunItem struct {
 type ShenshaAnnotation struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
-	Polarity    string    `json:"polarity"`    // ji / xiong / zhong
-	Description string    `json:"description"` // 详细说明（命理书级别）
+	Polarity    string    `json:"polarity"`   // ji / xiong / zhong
+	Category    string    `json:"category"`   // 贵人系/桃花系/凶煞系/...
+	ShortDesc   string    `json:"short_desc"` // 一句话简介
+	Description string    `json:"description"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 

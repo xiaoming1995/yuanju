@@ -439,6 +439,8 @@ export interface ShenshaAnnotation {
   id: string
   name: string
   polarity: 'ji' | 'xiong' | 'zhong'
+  category: string
+  short_desc: string
   description: string
   updated_at: string
 }

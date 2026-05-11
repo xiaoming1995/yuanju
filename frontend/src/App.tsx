@@ -19,6 +19,7 @@ import AdminCelebritiesPage from './pages/admin/AdminCelebritiesPage'
 import PromptSettings from './pages/admin/PromptSettings'
 import AlgoConfigPage from './pages/admin/AlgoConfigPage'
 import TokenUsagePage from './pages/admin/TokenUsagePage'
+import ShenshaAnnotationsPage from './pages/admin/ShenshaAnnotationsPage'
 import ParticleBackground from './components/ParticleBackground'
 import PastEventsPage from './pages/PastEventsPage'
 import CompatibilityPage from './pages/CompatibilityPage'
@@ -69,6 +70,7 @@ export default function App() {
               <Route path="prompts" element={<PromptSettings />} />
               <Route path="algo-config" element={<AlgoConfigPage />} />
               <Route path="token-usage" element={<TokenUsagePage />} />
+              <Route path="shensha-annotations" element={<ShenshaAnnotationsPage />} />
             </Route>
           </Routes>
         </AuthProvider>

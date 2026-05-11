@@ -20,20 +20,22 @@ func GetShenshaAnnotations(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": annotations})
 }
 
-// AdminUpdateShenshaAnnotation Admin 接口：更新指定神煞的描述文案
+// AdminUpdateShenshaAnnotation Admin 接口：更新指定神煞的注解
 // PUT /api/admin/shensha-annotations/:name
 func AdminUpdateShenshaAnnotation(c *gin.Context) {
 	name := c.Param("name")
 
 	var body struct {
-		Description string `json:"description" binding:"required"`
+		Category    string `json:"category"`
+		ShortDesc   string `json:"short_desc"`
+		Description string `json:"description"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "description 字段不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求格式错误"})
 		return
 	}
 
-	err := repository.UpdateShenshaAnnotation(database.DB, name, body.Description)
+	err := repository.UpdateShenshaAnnotation(database.DB, name, body.Category, body.ShortDesc, body.Description)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, gin.H{"error": "神煞不存在: " + name})

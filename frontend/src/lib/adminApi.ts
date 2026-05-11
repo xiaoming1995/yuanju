@@ -109,6 +109,12 @@ export const adminAlgoTiaohouAPI = {
     adminApi.delete(`/api/admin/algo-tiaohou/${dayGan}/${monthZhi}`),
 }
 
+export const adminShenshaAPI = {
+  list: () => adminApi.get('/api/shensha/annotations'),
+  update: (name: string, data: { category: string; short_desc: string; description: string }) =>
+    adminApi.put(`/api/admin/shensha-annotations/${encodeURIComponent(name)}`, data),
+}
+
 export const adminTokenUsageAPI = {
   summary: (from: string, to: string) =>
     adminApi.get(`/api/admin/token-usage/summary?from=${from}&to=${to}`),
