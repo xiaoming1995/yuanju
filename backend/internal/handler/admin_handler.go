@@ -97,11 +97,12 @@ func AdminListProviders(c *gin.Context) {
 
 func AdminCreateProvider(c *gin.Context) {
 	var req struct {
-		Name    string `json:"name" binding:"required"`
-		Type    string `json:"type" binding:"required"`
-		BaseURL string `json:"base_url" binding:"required"`
-		Model   string `json:"model" binding:"required"`
-		APIKey  string `json:"api_key" binding:"required"`
+		Name            string `json:"name" binding:"required"`
+		Type            string `json:"type" binding:"required"`
+		BaseURL         string `json:"base_url" binding:"required"`
+		Model           string `json:"model" binding:"required"`
+		APIKey          string `json:"api_key" binding:"required"`
+		ThinkingEnabled bool   `json:"thinking_enabled"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -113,7 +114,7 @@ func AdminCreateProvider(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Key 加密失败"})
 		return
 	}
-	p, err := repository.CreateLLMProvider(req.Name, req.Type, req.BaseURL, req.Model, encrypted, preview)
+	p, err := repository.CreateLLMProvider(req.Name, req.Type, req.BaseURL, req.Model, encrypted, preview, req.ThinkingEnabled)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建失败: " + err.Error()})
 		return
@@ -125,10 +126,11 @@ func AdminCreateProvider(c *gin.Context) {
 func AdminUpdateProvider(c *gin.Context) {
 	id := c.Param("id")
 	var req struct {
-		Name    string `json:"name"`
-		BaseURL string `json:"base_url"`
-		Model   string `json:"model"`
-		APIKey  string `json:"api_key"` // 可选，不传则不更新
+		Name            string `json:"name"`
+		BaseURL         string `json:"base_url"`
+		Model           string `json:"model"`
+		APIKey          string `json:"api_key"` // 可选，不传则不更新
+		ThinkingEnabled bool   `json:"thinking_enabled"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -154,7 +156,7 @@ func AdminUpdateProvider(c *gin.Context) {
 			return
 		}
 	}
-	if err := repository.UpdateLLMProvider(id, req.Name, req.BaseURL, req.Model, encrypted, preview); err != nil {
+	if err := repository.UpdateLLMProvider(id, req.Name, req.BaseURL, req.Model, encrypted, preview, req.ThinkingEnabled); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新失败"})
 		return
 	}

@@ -32,9 +32,9 @@ export const adminAuthAPI = {
 
 export const adminLLMAPI = {
   list: () => adminApi.get('/api/admin/llm-providers'),
-  create: (data: { name: string; type: string; base_url: string; model: string; api_key: string }) =>
+  create: (data: { name: string; type: string; base_url: string; model: string; api_key: string; thinking_enabled?: boolean }) =>
     adminApi.post('/api/admin/llm-providers', data),
-  update: (id: string, data: { name?: string; base_url?: string; model?: string; api_key?: string }) =>
+  update: (id: string, data: { name?: string; base_url?: string; model?: string; api_key?: string; thinking_enabled?: boolean }) =>
     adminApi.put(`/api/admin/llm-providers/${id}`, data),
   activate: (id: string) =>
     adminApi.put(`/api/admin/llm-providers/${id}/activate`, {}),

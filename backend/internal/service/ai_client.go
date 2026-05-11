@@ -115,14 +115,20 @@ type AIMessage struct {
 	Content string `json:"content"`
 }
 
+// ThinkingConfig DeepSeek 官方思考模式参数（v4-pro 等）
+type ThinkingConfig struct {
+	Type string `json:"type"` // "enabled" | "disabled"
+}
+
 type AIRequest struct {
-	Model         string         `json:"model"`
-	Messages      []AIMessage    `json:"messages"`
-	MaxTokens     int            `json:"max_tokens"`
-	Temperature   float64        `json:"temperature"`
-	Stream        bool           `json:"stream,omitempty"`
-	EnableThinking *bool         `json:"enable_thinking,omitempty"`
-	StreamOptions  *StreamOptions `json:"stream_options,omitempty"`
+	Model          string          `json:"model"`
+	Messages       []AIMessage     `json:"messages"`
+	MaxTokens      int             `json:"max_tokens"`
+	Temperature    float64         `json:"temperature"`
+	Stream         bool            `json:"stream,omitempty"`
+	Thinking       *ThinkingConfig `json:"thinking,omitempty"`       // DeepSeek 官方格式
+	EnableThinking *bool           `json:"enable_thinking,omitempty"` // Qwen3 等格式
+	StreamOptions  *StreamOptions  `json:"stream_options,omitempty"`
 }
 
 type AIResponse struct {
@@ -250,23 +256,35 @@ func callAIInternal(systemPrompt, userPrompt string) (content, model, providerID
 	return "", "", "", 0, TokenUsage{}, fmt.Errorf("未配置可用的 LLM Provider，请在 Admin 面板添加并激活一个 Provider")
 }
 
-func StreamAIWithSystem(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
-	return streamAIWithSystemEx(userPrompt, callback, onThinking, nil)
+// isDeepSeekModel 判断是否为 DeepSeek 系列模型（使用官方 thinking API 格式）
+func isDeepSeekModel(modelName string) bool {
+	return strings.Contains(strings.ToLower(modelName), "deepseek")
 }
 
-// StreamAIWithSystemNoThink 调用激活 Provider 但显式关闭推理思考模式（适用于 Qwen3 等混合推理模型）
-// 同时在 user prompt 末尾追加 /no_think 兜底（即使 provider 不识别 enable_thinking 字段也能切非推理）
-func StreamAIWithSystemNoThink(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
-	disabled := false
-	noThinkPrompt := userPrompt + "\n\n/no_think"
-	return streamAIWithSystemEx(noThinkPrompt, callback, onThinking, &disabled)
+// applyThinkingToRequest 根据 model 名称和 thinkingEnabled 设置正确的思考模式参数
+// DeepSeek → thinking:{type:...}；其他（Qwen3 等）→ enable_thinking:bool
+// 返回处理后的 userPrompt（Qwen3 关闭思考时追加 /no_think 兜底）
+func applyThinkingToRequest(req *AIRequest, modelName, userPrompt string, thinkingEnabled bool) string {
+	if isDeepSeekModel(modelName) {
+		thinkType := "disabled"
+		if thinkingEnabled {
+			thinkType = "enabled"
+		}
+		req.Thinking = &ThinkingConfig{Type: thinkType}
+	} else {
+		req.EnableThinking = &thinkingEnabled
+		if !thinkingEnabled {
+			return userPrompt + "\n\n/no_think"
+		}
+	}
+	return userPrompt
 }
 
-func streamAIWithSystemEx(userPrompt string, callback func(string) error, onThinking func() error, enableThinking *bool) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
+// StreamAI 统一流式调用入口，思考模式由激活 Provider 的 thinking_enabled 配置驱动
+func StreamAI(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
 	systemPrompt := buildKnowledgeBaseSystem()
 	start := time.Now()
 
-	// 优先从 DB 读取激活 Provider
 	provider, dbErr := repository.GetActiveLLMProvider()
 	if dbErr == nil && provider != nil {
 		apiKey, decErr := crypto.Decrypt(provider.APIKeyEncrypted, configs.AppConfig.AdminEncryptionKey)
@@ -274,7 +292,7 @@ func streamAIWithSystemEx(userPrompt string, callback func(string) error, onThin
 			return "", "", provider.ID, 0, TokenUsage{}, fmt.Errorf("Provider [%s] API Key 解密失败，请检查 ADMIN_ENCRYPTION_KEY 配置", provider.Name)
 		}
 		baseURL := strings.TrimSuffix(strings.TrimSuffix(provider.BaseURL, "/v1"), "/")
-		result, u, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback, onThinking, enableThinking)
+		result, u, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback, onThinking, provider.ThinkingEnabled)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr != nil {
 			return result, provider.Model, provider.ID, elapsed, TokenUsage{}, fmt.Errorf("Provider [%s] 调用失败: %w", provider.Name, callErr)
@@ -282,22 +300,32 @@ func streamAIWithSystemEx(userPrompt string, callback func(string) error, onThin
 		return result, provider.Model, provider.ID, elapsed, u, nil
 	}
 
-	// Fallback
+	// Fallback（.env 旧配置），思考模式默认关闭
 	if configs.AppConfig.DeepSeekAPIKey != "" {
-		result, u, callErr := streamOpenAICompatible(configs.AppConfig.AIBaseURL+"/v1/chat/completions", configs.AppConfig.DeepSeekAPIKey, "deepseek-chat", systemPrompt, userPrompt, callback, onThinking, enableThinking)
+		result, u, callErr := streamOpenAICompatible(configs.AppConfig.AIBaseURL+"/v1/chat/completions", configs.AppConfig.DeepSeekAPIKey, "deepseek-v4-flash", systemPrompt, userPrompt, callback, onThinking, false)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
-			return result, "deepseek-chat", "", elapsed, u, nil
+			return result, "deepseek-v4-flash", "", elapsed, u, nil
 		}
 	}
 	if configs.AppConfig.OpenAIAPIKey != "" {
-		result, u, callErr := streamOpenAICompatible("https://api.openai.com/v1/chat/completions", configs.AppConfig.OpenAIAPIKey, "gpt-4o-mini", systemPrompt, userPrompt, callback, onThinking, enableThinking)
+		result, u, callErr := streamOpenAICompatible("https://api.openai.com/v1/chat/completions", configs.AppConfig.OpenAIAPIKey, "gpt-4o-mini", systemPrompt, userPrompt, callback, onThinking, false)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr == nil {
 			return result, "gpt-4o-mini", "", elapsed, u, nil
 		}
 	}
 	return "", "", "", 0, TokenUsage{}, fmt.Errorf("未配置可用的 LLM Provider")
+}
+
+// StreamAIWithSystem 保留兼容名（内部调用 StreamAI）
+func StreamAIWithSystem(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
+	return StreamAI(userPrompt, callback, onThinking)
+}
+
+// StreamAIWithSystemNoThink 保留兼容名（内部调用 StreamAI，思考模式由 Provider 配置决定）
+func StreamAIWithSystemNoThink(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
+	return StreamAI(userPrompt, callback, onThinking)
 }
 
 func callOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string) (string, TokenUsage, error) {
@@ -352,15 +380,11 @@ func callOpenAICompatibleWithLog(url, apiKey, modelName, systemPrompt, userPromp
 	return result, usage, err
 }
 
-func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string, callback func(string) error, onThinking func() error, enableThinking *bool) (string, TokenUsage, error) {
+func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string, callback func(string) error, onThinking func() error, thinkingEnabled bool) (string, TokenUsage, error) {
 	t0 := time.Now()
-	thinkLabel := "default"
-	if enableThinking != nil {
-		if *enableThinking {
-			thinkLabel = "force-on"
-		} else {
-			thinkLabel = "force-off"
-		}
+	thinkLabel := "off"
+	if thinkingEnabled {
+		thinkLabel = "on"
 	}
 	log.Printf("[AIStream] 开始请求 model=%s url=%s thinking=%s", modelName, url, thinkLabel)
 
@@ -368,14 +392,14 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 		Model: modelName,
 		Messages: []AIMessage{
 			{Role: "system", Content: systemPrompt},
-			{Role: "user", Content: userPrompt},
 		},
-		MaxTokens:      12000,
-		Temperature:    1.0,
-		Stream:         true,
-		EnableThinking: enableThinking,
-		StreamOptions:  &StreamOptions{IncludeUsage: true},
+		MaxTokens:     12000,
+		Temperature:   1.0,
+		Stream:        true,
+		StreamOptions: &StreamOptions{IncludeUsage: true},
 	}
+	finalUserPrompt := applyThinkingToRequest(&reqBody, modelName, userPrompt, thinkingEnabled)
+	reqBody.Messages = append(reqBody.Messages, AIMessage{Role: "user", Content: finalUserPrompt})
 
 	bodyBytes, _ := json.Marshal(reqBody)
 	ctx, cancel := context.WithTimeout(context.Background(), 600*time.Second)

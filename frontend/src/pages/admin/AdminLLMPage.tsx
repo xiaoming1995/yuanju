@@ -4,7 +4,8 @@ import { adminLLMAPI } from '../../lib/adminApi'
 
 interface Provider {
   id: string; name: string; type: string; base_url: string
-  model: string; api_key_masked: string; api_key_preview: string; active: boolean
+  model: string; api_key_masked: string; api_key_preview: string
+  thinking_enabled: boolean; active: boolean
 }
 
 interface PresetType {
@@ -15,7 +16,7 @@ interface TestResult {
   ok: boolean; latency_ms?: number; error?: string
 }
 
-const initialForm = { name: '', type: 'deepseek', base_url: '', model: '', api_key: '' }
+const initialForm = { name: '', type: 'deepseek', base_url: '', model: '', api_key: '', thinking_enabled: false }
 
 export default function AdminLLMPage() {
   const [providers, setProviders] = useState<Provider[]>([])
@@ -47,7 +48,7 @@ export default function AdminLLMPage() {
 
   const openEdit = (p: Provider) => {
     setEditing(p)
-    setForm({ name: p.name, type: p.type, base_url: p.base_url, model: p.model, api_key: '' })
+    setForm({ name: p.name, type: p.type, base_url: p.base_url, model: p.model, api_key: '', thinking_enabled: p.thinking_enabled })
     setError('')
     setShowModal(true)
   }
@@ -63,9 +64,9 @@ export default function AdminLLMPage() {
     setSaving(true); setError('')
     try {
       if (editing) {
-        await adminLLMAPI.update(editing.id, { name: form.name, base_url: form.base_url, model: form.model, ...(form.api_key ? { api_key: form.api_key } : {}) })
+        await adminLLMAPI.update(editing.id, { name: form.name, base_url: form.base_url, model: form.model, thinking_enabled: form.thinking_enabled, ...(form.api_key ? { api_key: form.api_key } : {}) })
       } else {
-        await adminLLMAPI.create({ name: form.name, type: form.type, base_url: form.base_url, model: form.model, api_key: form.api_key })
+        await adminLLMAPI.create({ name: form.name, type: form.type, base_url: form.base_url, model: form.model, api_key: form.api_key, thinking_enabled: form.thinking_enabled })
       }
       setShowModal(false)
       load()
@@ -114,7 +115,7 @@ export default function AdminLLMPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>名称</th><th>类型</th><th>模型</th><th>API Key</th><th>状态</th><th>操作</th>
+                <th>名称</th><th>类型</th><th>模型</th><th>API Key</th><th>思考模式</th><th>状态</th><th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -130,6 +131,11 @@ export default function AdminLLMPage() {
                   <td style={{ color: '#aaa', fontSize: 13 }}>{p.model}</td>
                   <td>
                     <code style={{ fontSize: 12, color: '#888' }}>{keyDisplay(p)}</code>
+                  </td>
+                  <td>
+                    {p.thinking_enabled
+                      ? <span style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600 }}>开启</span>
+                      : <span style={{ fontSize: 12, color: '#555' }}>—</span>}
                   </td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -207,6 +213,21 @@ export default function AdminLLMPage() {
               <label className="admin-form-label">Base URL</label>
               <input className="admin-form-input" value={form.base_url}
                 onChange={e => setForm(f => ({ ...f, base_url: e.target.value }))} placeholder="https://api.deepseek.com" />
+            </div>
+
+            <div className="admin-form-group" style={{ marginBottom: 16 }}>
+              <label className="admin-form-label">思考模式</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.thinking_enabled}
+                  onChange={e => setForm(f => ({ ...f, thinking_enabled: e.target.checked }))}
+                  style={{ width: 16, height: 16, accentColor: '#a78bfa' }}
+                />
+                <span style={{ fontSize: 13, color: form.thinking_enabled ? '#a78bfa' : '#888' }}>
+                  {form.thinking_enabled ? '已开启（deepseek-v4-pro 等推理模型）' : '已关闭（deepseek-v4-flash 等标准模型）'}
+                </span>
+              </label>
             </div>
 
             <div className="admin-form-group" style={{ marginBottom: 16 }}>

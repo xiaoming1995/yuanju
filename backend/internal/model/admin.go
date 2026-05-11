@@ -24,6 +24,7 @@ type LLMProvider struct {
 	APIKeyEncrypted string    `db:"api_key_encrypted" json:"-"`
 	APIKeyPreview   string    `db:"api_key_preview" json:"api_key_preview,omitempty"`
 	APIKeyMasked    string    `db:"-" json:"api_key_masked,omitempty"`
+	ThinkingEnabled bool      `db:"thinking_enabled" json:"thinking_enabled"`
 	Active          bool      `db:"active" json:"active"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`
@@ -81,8 +82,8 @@ type CelebrityRecord struct {
 
 // PredefinedProviders 预设的 Provider 类型（用于前端下拉）
 var PredefinedProviders = []map[string]string{
-	{"type": "deepseek", "name": "DeepSeek Chat (V3)", "base_url": "https://api.deepseek.com", "model": "deepseek-chat"},
-	{"type": "deepseek-reasoner", "name": "DeepSeek Reasoner (R1)", "base_url": "https://api.deepseek.com", "model": "deepseek-reasoner"},
+	{"type": "deepseek", "name": "DeepSeek V4 Flash", "base_url": "https://api.deepseek.com", "model": "deepseek-v4-flash"},
+	{"type": "deepseek", "name": "DeepSeek V4 Pro（思考）", "base_url": "https://api.deepseek.com", "model": "deepseek-v4-pro"},
 	{"type": "openai", "name": "OpenAI", "base_url": "https://api.openai.com", "model": "gpt-4o-mini"},
 	{"type": "kimi", "name": "Kimi K2.5（月之暗面）", "base_url": "https://api.moonshot.cn/v1", "model": "kimi-k2.5"},
 	{"type": "qwen", "name": "阿里 Qwen", "base_url": "https://dashscope.aliyuncs.com/compatible-mode", "model": "qwen-plus"},

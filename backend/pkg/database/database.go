@@ -757,5 +757,10 @@ ALTER TABLE token_usage_logs ADD COLUMN IF NOT EXISTS cache_miss_tokens  INT NOT
 		log.Fatalf("增量迁移失败 (token_usage_enrich): %v", err)
 	}
 
+	// 增量迁移：llm_providers 新增 thinking_enabled 列
+	if _, err := DB.Exec(`ALTER TABLE llm_providers ADD COLUMN IF NOT EXISTS thinking_enabled BOOLEAN NOT NULL DEFAULT false`); err != nil {
+		log.Fatalf("增量迁移失败 (thinking_enabled): %v", err)
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }
