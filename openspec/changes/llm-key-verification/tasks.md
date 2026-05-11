@@ -46,4 +46,4 @@
 
 - [x] 10.1 `go build ./...` 验证后端编译通过
 - [x] 10.2 `npm run build` 验证前端编译通过
-- [ ] 10.3 提交代码，`docker-compose up --build -d backend frontend` 重建镜像
+- [x] 10.3 提交代码，`docker-compose up --build -d backend frontend` 重建镜像

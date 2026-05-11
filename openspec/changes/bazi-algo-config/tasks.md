@@ -39,8 +39,8 @@
 
 ## 6. 验证
 
-- [ ] 6.1 验证服务启动时 `algo_tiaohou` 表自动 seed 120 条记录
-- [ ] 6.2 验证修改 `jixiong_jiHan_min` 参数 → reload → 新的 `CalcDayunJixiong` 使用新阈值
-- [ ] 6.3 验证修改某条调候规则 → reload → `calcTiaohou` 返回更新后的喜用天干
-- [ ] 6.4 验证 DELETE 调候规则 → reload → 该条目回归硬编码默认值
-- [ ] 6.5 运行 `go test ./pkg/bazi/...` 确保全部通过
+- [x] 6.1 验证服务启动时 `algo_tiaohou` 表自动 seed 120 条记录
+- [x] 6.2 验证修改 `jixiong_jiHan_min` 参数 → reload → 新的 `CalcDayunJixiong` 使用新阈值
+- [x] 6.3 验证修改某条调候规则 → reload → `calcTiaohou` 返回更新后的喜用天干
+- [x] 6.4 验证 DELETE 调候规则 → reload → 该条目回归硬编码默认值
+- [x] 6.5 运行 `go test ./pkg/bazi/...` 确保全部通过

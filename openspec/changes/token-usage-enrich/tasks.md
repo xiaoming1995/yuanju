@@ -26,6 +26,6 @@
 
 ## Task 6: 编译验证与重建
 
-- [ ] 6.1 `go build ./...` 验证后端编译通过
-- [ ] 6.2 `npm run build` 验证前端编译通过
-- [ ] 6.3 提交代码并 `docker-compose up --build -d backend frontend`
+- [x] 6.1 `go build ./...` 验证后端编译通过
+- [x] 6.2 `npm run build` 验证前端编译通过
+- [x] 6.3 提交代码并 `docker-compose up --build -d backend frontend`
