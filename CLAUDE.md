@@ -54,15 +54,18 @@ backend (Go + Gin)
         admin_handler.go, admin_prompt.go
         celebrity_handler.go, shensha_handler.go
         algo_config_handler.go, algo_tiaohou_handler.go
+        compatibility_handler.go
       internal/middleware/           # JWT auth (user vs admin are separate)
       internal/model/                # Data structs
       internal/repository/           # All SQL — no SQL outside this layer
         repository.go, admin_repository.go, prompt_repository.go
+        compatibility_repository.go
         celebrity_repository.go, liunian_repository.go
         shensha_repo.go, algo_config_repository.go, algo_tiaohou_repository.go
       internal/service/              # Business logic, AI client
         ai_client.go, auth_service.go, report_service.go
         celebrity_service.go, algo_config_service.go
+        compatibility_service.go
       pkg/bazi/                      # Numerology algorithm engine
         engine.go                    # Core 四柱 calculation (lunar-go)
         shishen.go                   # 十神 (Ten Gods) classification
@@ -83,7 +86,8 @@ backend (Go + Gin)
 2. User requests AI report → `POST /api/bazi/report/:chart_id` → prompt template from DB → DeepSeek API → cached in `ai_reports` table
 3. Streaming report → `POST /api/bazi/report-stream/:chart_id` → SSE (Server-Sent Events), handler in `bazi_handler.go:GenerateReportStream`
 4. Liunian (流年) report → `POST /api/bazi/liunian-report/:chart_id` → AI analysis for a specific year
-5. Admin manages LLM providers, prompts, algo config, and tiaohou rules via `/api/admin/` routes
+5. Compatibility (合盘) → `POST /api/compatibility` → dual BaziResult signal engine → scores/evidences saved in `compatibility_readings` + `compatibility_evidences`; AI report cached in `ai_compatibility_reports`. Partner chart stored as JSON snapshot in `compatibility_participants` only — does NOT appear in user's `/history` bazi charts.
+6. Admin manages LLM providers, prompts, algo config, and tiaohou rules via `/api/admin/` routes
 
 **Auth:** Two independent JWT systems — user token (`yj_token`) and admin token (`yj_admin_token`). They use separate secrets (`JWT_SECRET` vs `ADMIN_JWT_SECRET`) and separate middleware. `OptionalAuth()` middleware allows unauthenticated access while passing user context when a token is present.
 

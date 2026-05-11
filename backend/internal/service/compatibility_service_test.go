@@ -109,3 +109,53 @@ func TestEnsureCompatibilityDurationAssessment_BackfillsMissingDuration(t *testi
 		t.Fatal("expected duration windows to be backfilled")
 	}
 }
+
+func TestNormalizeCompatibilityProfile_DefaultsSolar(t *testing.T) {
+	p := model.CompatibilityBirthProfile{Year: 1990, Month: 1, Day: 1, Hour: 0, Gender: "male"}
+	got := normalizeCompatibilityProfile(p)
+	if got.CalendarType != "solar" {
+		t.Errorf("expected solar, got %q", got.CalendarType)
+	}
+}
+
+func TestNormalizeCompatibilityProfile_PreservesExisting(t *testing.T) {
+	p := model.CompatibilityBirthProfile{Year: 1990, Month: 1, Day: 1, Hour: 0, Gender: "female", CalendarType: "lunar"}
+	got := normalizeCompatibilityProfile(p)
+	if got.CalendarType != "lunar" {
+		t.Errorf("expected lunar, got %q", got.CalendarType)
+	}
+}
+
+func TestCompatibilityParticipantSummary_MissingSnapshot(t *testing.T) {
+	p := &model.CompatibilityParticipant{DisplayName: "张三", ChartSnapshot: nil}
+	_, err := compatibilityParticipantSummary(p)
+	if err == nil {
+		t.Fatal("expected error for missing chart_snapshot")
+	}
+}
+
+func TestCompatibilityParticipantSummary_ValidSnapshot(t *testing.T) {
+	p := &model.CompatibilityParticipant{
+		DisplayName:   "李四",
+		ChartSnapshot: makeCompatibilitySnapshot("李四", "male"),
+	}
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(summary, "李四") {
+		t.Errorf("expected summary to contain display name, got: %s", summary)
+	}
+	if !strings.Contains(summary, "日主=") {
+		t.Errorf("expected summary to contain 日主, got: %s", summary)
+	}
+}
+
+func TestCompatibilityPromptFallback_ContainsTemplateVars(t *testing.T) {
+	fb := compatibilityPromptFallback()
+	for _, v := range []string{"{{.SelfLabel}}", "{{.PartnerLabel}}", "{{.ScoresJSON}}", "{{.DurationJSON}}"} {
+		if !strings.Contains(fb, v) {
+			t.Errorf("expected fallback prompt to contain %q", v)
+		}
+	}
+}

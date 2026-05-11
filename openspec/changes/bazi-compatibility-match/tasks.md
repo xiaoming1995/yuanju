@@ -55,14 +55,14 @@
 ## 7. 测试与验收
 
 - [x] 7.1 为 compatibility signal engine 编写单元测试，覆盖强匹配、强冲突、正负证据并存等场景
-- [ ] 7.2 为 repository / service / handler 编写后端测试，覆盖创建、详情、历史、越权访问
-- [ ] 7.3 为前端核心页面补充交互测试，覆盖创建成功、历史进入详情、无报告/有报告状态
-- [ ] 7.4 手工验收：同一用户创建多条合盘记录，确认对象 B 不会出现在普通 `/history`
-- [ ] 7.5 手工验收：生成 compatibility 报告后再次打开详情，确认命中缓存且展示一致
+- [x] 7.2 为 repository / service / handler 编写后端测试，覆盖创建、详情、历史、越权访问
+- [x] 7.3 为前端核心页面补充交互测试，覆盖创建成功、历史进入详情、无报告/有报告状态
+- [x] 7.4 手工验收：同一用户创建多条合盘记录，确认对象 B 不会出现在普通 `/history`
+- [x] 7.5 手工验收：生成 compatibility 报告后再次打开详情，确认命中缓存且展示一致
 - [x] 7.6 为 `duration_assessment` 编写测试，覆盖“短期高、长期低”“三窗口整体偏稳”“静态高分但动态承压”等代表性场景
 
 ## 8. 文档与收尾
 
-- [ ] 8.1 在项目说明或 AGENTS/CLAUDE 级别文档中补充“合盘能力”概述与边界
-- [ ] 8.2 与运营/提示词维护方确认默认 compatibility Prompt 文案
-- [ ] 8.3 完成后使用 `/opsx:apply bazi-compatibility-match` 或进入实现阶段执行该 change
+- [x] 8.1 在项目说明或 AGENTS/CLAUDE 级别文档中补充”合盘能力”概述与边界
+- [x] 8.2 与运营/提示词维护方确认默认 compatibility Prompt 文案
+- [x] 8.3 完成后使用 `/opsx:apply bazi-compatibility-match` 或进入实现阶段执行该 change
