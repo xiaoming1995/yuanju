@@ -24,13 +24,16 @@ type TokenUsageDetailRow struct {
 	PromptTokens     int       `json:"prompt_tokens"`
 	CompletionTokens int       `json:"completion_tokens"`
 	TotalTokens      int       `json:"total_tokens"`
+	ReasoningTokens  int       `json:"reasoning_tokens"`
+	CacheHitTokens   int       `json:"cache_hit_tokens"`
+	CacheMissTokens  int       `json:"cache_miss_tokens"`
 	CreatedAt        time.Time `json:"created_at"`
 }
 
 // CreateTokenUsageLog 写入一条 token 用量记录；totalTokens==0 时跳过
-func CreateTokenUsageLog(userID *string, chartID *string, callType, model, providerID string, promptTokens, completionTokens, totalTokens int) error {
-	log.Printf("[TokenUsage] 写入调用: callType=%s userID=%v prompt=%d completion=%d total=%d",
-		callType, userID, promptTokens, completionTokens, totalTokens)
+func CreateTokenUsageLog(userID *string, chartID *string, callType, model, providerID string, promptTokens, completionTokens, totalTokens, reasoningTokens, cacheHitTokens, cacheMissTokens int) error {
+	log.Printf("[TokenUsage] 写入调用: callType=%s userID=%v prompt=%d completion=%d total=%d reasoning=%d cacheHit=%d",
+		callType, userID, promptTokens, completionTokens, totalTokens, reasoningTokens, cacheHitTokens)
 	if totalTokens == 0 {
 		log.Printf("[TokenUsage] total=0，跳过写入")
 		return nil
@@ -41,10 +44,13 @@ func CreateTokenUsageLog(userID *string, chartID *string, callType, model, provi
 	}
 	_, err := database.DB.Exec(`
 		INSERT INTO token_usage_logs
-			(user_id, chart_id, call_type, model, provider_id, prompt_tokens, completion_tokens, total_tokens)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+			(user_id, chart_id, call_type, model, provider_id,
+			 prompt_tokens, completion_tokens, total_tokens,
+			 reasoning_tokens, cache_hit_tokens, cache_miss_tokens)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 		userID, chartID, callType, model, providerIDPtr,
 		promptTokens, completionTokens, totalTokens,
+		reasoningTokens, cacheHitTokens, cacheMissTokens,
 	)
 	if err != nil {
 		return fmt.Errorf("CreateTokenUsageLog: %w", err)
@@ -103,7 +109,8 @@ func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int) (to
 	}
 
 	rows, err := database.DB.Query(`
-		SELECT id, call_type, COALESCE(model, ''), prompt_tokens, completion_tokens, total_tokens, created_at
+		SELECT id, call_type, COALESCE(model, ''), prompt_tokens, completion_tokens, total_tokens,
+		       reasoning_tokens, cache_hit_tokens, cache_miss_tokens, created_at
 		FROM token_usage_logs
 		WHERE user_id = $1 AND created_at >= $2 AND created_at < $3
 		ORDER BY created_at DESC
@@ -118,7 +125,8 @@ func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int) (to
 	for rows.Next() {
 		var r TokenUsageDetailRow
 		if err := rows.Scan(&r.ID, &r.CallType, &r.Model,
-			&r.PromptTokens, &r.CompletionTokens, &r.TotalTokens, &r.CreatedAt); err != nil {
+			&r.PromptTokens, &r.CompletionTokens, &r.TotalTokens,
+			&r.ReasoningTokens, &r.CacheHitTokens, &r.CacheMissTokens, &r.CreatedAt); err != nil {
 			log.Printf("[TokenUsage] Scan detail 失败: %v", err)
 			continue
 		}

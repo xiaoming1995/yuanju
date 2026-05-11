@@ -748,5 +748,14 @@ CREATE INDEX IF NOT EXISTS idx_token_usage_created_at ON token_usage_logs(create
 		log.Fatalf("增量迁移失败 (api_key_preview): %v", err)
 	}
 
+	// 增量迁移：token_usage_logs 新增推理和缓存明细列
+	tokenUsageEnrichMigration := `
+ALTER TABLE token_usage_logs ADD COLUMN IF NOT EXISTS reasoning_tokens  INT NOT NULL DEFAULT 0;
+ALTER TABLE token_usage_logs ADD COLUMN IF NOT EXISTS cache_hit_tokens   INT NOT NULL DEFAULT 0;
+ALTER TABLE token_usage_logs ADD COLUMN IF NOT EXISTS cache_miss_tokens  INT NOT NULL DEFAULT 0;`
+	if _, err := DB.Exec(tokenUsageEnrichMigration); err != nil {
+		log.Fatalf("增量迁移失败 (token_usage_enrich): %v", err)
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }

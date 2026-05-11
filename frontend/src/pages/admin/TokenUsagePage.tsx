@@ -19,6 +19,9 @@ interface DetailRow {
   prompt_tokens: number
   completion_tokens: number
   total_tokens: number
+  reasoning_tokens: number
+  cache_hit_tokens: number
+  cache_miss_tokens: number
   created_at: string
 }
 
@@ -201,6 +204,8 @@ export default function TokenUsagePage() {
                       <th>模型</th>
                       <th style={{ textAlign: 'right' }}>输入</th>
                       <th style={{ textAlign: 'right' }}>输出</th>
+                      <th style={{ textAlign: 'right' }}>推理</th>
+                      <th style={{ textAlign: 'right' }}>缓存命中</th>
                       <th style={{ textAlign: 'right' }}>总计</th>
                     </tr>
                   </thead>
@@ -214,6 +219,12 @@ export default function TokenUsagePage() {
                         <td style={{ fontSize: 12, color: '#aaa' }}>{item.model}</td>
                         <td style={{ textAlign: 'right' }}>{fmt(item.prompt_tokens)}</td>
                         <td style={{ textAlign: 'right' }}>{fmt(item.completion_tokens)}</td>
+                        <td style={{ textAlign: 'right', color: item.reasoning_tokens > 0 ? '#94a3b8' : '#555' }}>
+                          {item.reasoning_tokens > 0 ? fmt(item.reasoning_tokens) : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right', color: item.cache_hit_tokens > 0 ? '#4ade80' : '#555' }}>
+                          {item.cache_hit_tokens > 0 ? fmt(item.cache_hit_tokens) : '—'}
+                        </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(item.total_tokens)}</td>
                       </tr>
                     ))}

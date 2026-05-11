@@ -101,6 +101,9 @@ type TokenUsage struct {
 	PromptTokens     int `json:"prompt_tokens"`
 	CompletionTokens int `json:"completion_tokens"`
 	TotalTokens      int `json:"total_tokens"`
+	ReasoningTokens  int `json:"reasoning_tokens"`
+	CacheHitTokens   int `json:"prompt_cache_hit_tokens"`
+	CacheMissTokens  int `json:"prompt_cache_miss_tokens"`
 }
 
 type StreamOptions struct {
@@ -421,13 +424,29 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 							ReasoningContent string `json:"reasoning_content"`
 						} `json:"delta"`
 					} `json:"choices"`
-					Usage TokenUsage `json:"usage"`
+					Usage struct {
+						PromptTokens     int `json:"prompt_tokens"`
+						CompletionTokens int `json:"completion_tokens"`
+						TotalTokens      int `json:"total_tokens"`
+						CacheHitTokens   int `json:"prompt_cache_hit_tokens"`
+						CacheMissTokens  int `json:"prompt_cache_miss_tokens"`
+						CompletionTokensDetails struct {
+							ReasoningTokens int `json:"reasoning_tokens"`
+						} `json:"completion_tokens_details"`
+					} `json:"usage"`
 				}
 				if json.Unmarshal([]byte(dataStr), &event) == nil {
 					// 捕获 usage：兼容 OpenAI（choices=[]的末尾 chunk）和
 					// DeepSeek R1 等在任意 chunk 中内嵌 usage 的提供商
 					if event.Usage.TotalTokens > 0 {
-						capturedUsage = event.Usage
+						capturedUsage = TokenUsage{
+							PromptTokens:     event.Usage.PromptTokens,
+							CompletionTokens: event.Usage.CompletionTokens,
+							TotalTokens:      event.Usage.TotalTokens,
+							ReasoningTokens:  event.Usage.CompletionTokensDetails.ReasoningTokens,
+							CacheHitTokens:   event.Usage.CacheHitTokens,
+							CacheMissTokens:  event.Usage.CacheMissTokens,
+						}
 					}
 					if len(event.Choices) > 0 {
 						// 推理模型的思考阶段：通知前端正在推理
