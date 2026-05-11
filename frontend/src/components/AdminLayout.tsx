@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
-import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen, SlidersHorizontal } from 'lucide-react'
+import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen, SlidersHorizontal, BarChart2 } from 'lucide-react'
 import { useAdminAuth } from '../contexts/AdminAuthContext'
 import './AdminLayout.css'
 
@@ -45,6 +45,9 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/algo-config" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><SlidersHorizontal size={18} /></span> 算法参数配置
+          </NavLink>
+          <NavLink to="/admin/token-usage" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><BarChart2 size={18} /></span> Token 用量
           </NavLink>
         </nav>
         <div className="admin-sidebar-footer">
