@@ -1,0 +1,254 @@
+import { useState } from 'react'
+import { BarChart2 } from 'lucide-react'
+import { adminTokenUsageAPI } from '../../lib/adminApi'
+
+interface SummaryRow {
+  user_id: string
+  email: string
+  nickname: string
+  request_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+}
+
+interface DetailRow {
+  id: string
+  call_type: string
+  model: string
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  created_at: string
+}
+
+interface DetailData {
+  total: number
+  items: DetailRow[]
+}
+
+function fmt(n: number) {
+  return n.toLocaleString('zh-CN')
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function firstOfMonthStr() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+
+export default function TokenUsagePage() {
+  const [from, setFrom] = useState(firstOfMonthStr())
+  const [to, setTo] = useState(todayStr())
+  const [summary, setSummary] = useState<SummaryRow[]>([])
+  const [loading, setLoading] = useState(false)
+  const [queried, setQueried] = useState(false)
+
+  const [drawerUser, setDrawerUser] = useState<SummaryRow | null>(null)
+  const [detail, setDetail] = useState<DetailData | null>(null)
+  const [detailPage, setDetailPage] = useState(1)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const detailLimit = 20
+
+  const handleQuery = async () => {
+    setLoading(true)
+    try {
+      const res = await adminTokenUsageAPI.summary(from, to)
+      setSummary(res.data || [])
+      setQueried(true)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const openDetail = async (row: SummaryRow, page = 1) => {
+    setDrawerUser(row)
+    setDetailPage(page)
+    setDetailLoading(true)
+    try {
+      const res = await adminTokenUsageAPI.detail(row.user_id, from, to, page, detailLimit)
+      setDetail(res.data)
+    } finally {
+      setDetailLoading(false)
+    }
+  }
+
+  const closeDrawer = () => {
+    setDrawerUser(null)
+    setDetail(null)
+  }
+
+  const callTypeLabel: Record<string, string> = {
+    report: '原局报告',
+    report_stream: '流式报告',
+    liunian: '流年',
+    dayun: '大运',
+    celebrity: '名人生成',
+    compatibility: '合盘',
+  }
+
+  const detailTotalPages = detail ? Math.ceil(detail.total / detailLimit) : 1
+
+  return (
+    <div>
+      <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <BarChart2 size={24} /> Token 用量统计
+      </h1>
+
+      {/* 筛选栏 */}
+      <div className="admin-card" style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+        <label style={{ color: '#aaa', fontSize: 14 }}>开始日期</label>
+        <input
+          type="date"
+          value={from}
+          onChange={e => setFrom(e.target.value)}
+          style={{ background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: '6px 10px' }}
+        />
+        <label style={{ color: '#aaa', fontSize: 14 }}>结束日期</label>
+        <input
+          type="date"
+          value={to}
+          onChange={e => setTo(e.target.value)}
+          style={{ background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: '6px 10px' }}
+        />
+        <button
+          className="admin-btn"
+          onClick={handleQuery}
+          disabled={loading}
+          style={{ minWidth: 80 }}
+        >
+          {loading ? '查询中…' : '查询'}
+        </button>
+      </div>
+
+      {/* 汇总表格 */}
+      {queried && (
+        <div className="admin-card">
+          {summary.length === 0 ? (
+            <div style={{ color: '#888', textAlign: 'center', padding: 32 }}>该时间段内无 token 消耗记录</div>
+          ) : (
+            <table className="admin-table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th>用户邮箱</th>
+                  <th>昵称</th>
+                  <th style={{ textAlign: 'right' }}>请求次数</th>
+                  <th style={{ textAlign: 'right' }}>输入 tokens</th>
+                  <th style={{ textAlign: 'right' }}>输出 tokens</th>
+                  <th style={{ textAlign: 'right' }}>总 tokens</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summary.map(row => (
+                  <tr key={row.user_id}>
+                    <td>{row.email}</td>
+                    <td>{row.nickname || '—'}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(row.request_count)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(row.prompt_tokens)}</td>
+                    <td style={{ textAlign: 'right' }}>{fmt(row.completion_tokens)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(row.total_tokens)}</td>
+                    <td>
+                      <button className="admin-btn" style={{ padding: '4px 12px', fontSize: 13 }} onClick={() => openDetail(row)}>
+                        明细
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* 明细抽屉 */}
+      {drawerUser && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+            display: 'flex', justifyContent: 'flex-end',
+          }}
+          onClick={closeDrawer}
+        >
+          <div
+            style={{
+              width: 600, maxWidth: '95vw', background: '#12122a', height: '100%',
+              overflowY: 'auto', padding: 24, boxShadow: '-4px 0 20px rgba(0,0,0,0.4)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>
+                {drawerUser.email} 的调用明细
+              </h2>
+              <button className="admin-btn" onClick={closeDrawer} style={{ padding: '4px 12px' }}>关闭</button>
+            </div>
+
+            {detailLoading ? (
+              <div className="admin-loading">加载中…</div>
+            ) : detail && detail.items.length === 0 ? (
+              <div style={{ color: '#888', textAlign: 'center', padding: 32 }}>无记录</div>
+            ) : detail ? (
+              <>
+                <table className="admin-table" style={{ width: '100%', marginBottom: 16 }}>
+                  <thead>
+                    <tr>
+                      <th>时间</th>
+                      <th>类型</th>
+                      <th>模型</th>
+                      <th style={{ textAlign: 'right' }}>输入</th>
+                      <th style={{ textAlign: 'right' }}>输出</th>
+                      <th style={{ textAlign: 'right' }}>总计</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.items.map(item => (
+                      <tr key={item.id}>
+                        <td style={{ fontSize: 12, color: '#aaa' }}>
+                          {new Date(item.created_at).toLocaleString('zh-CN', { hour12: false })}
+                        </td>
+                        <td>{callTypeLabel[item.call_type] ?? item.call_type}</td>
+                        <td style={{ fontSize: 12, color: '#aaa' }}>{item.model}</td>
+                        <td style={{ textAlign: 'right' }}>{fmt(item.prompt_tokens)}</td>
+                        <td style={{ textAlign: 'right' }}>{fmt(item.completion_tokens)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(item.total_tokens)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* 分页 */}
+                {detailTotalPages > 1 && (
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                    <button
+                      className="admin-btn"
+                      disabled={detailPage <= 1}
+                      onClick={() => openDetail(drawerUser, detailPage - 1)}
+                      style={{ padding: '4px 12px' }}
+                    >
+                      上一页
+                    </button>
+                    <span style={{ color: '#888', lineHeight: '32px', fontSize: 13 }}>
+                      {detailPage} / {detailTotalPages}（共 {detail.total} 条）
+                    </span>
+                    <button
+                      className="admin-btn"
+                      disabled={detailPage >= detailTotalPages}
+                      onClick={() => openDetail(drawerUser, detailPage + 1)}
+                      style={{ padding: '4px 12px' }}
+                    >
+                      下一页
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
