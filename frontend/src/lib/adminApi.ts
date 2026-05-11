@@ -112,9 +112,9 @@ export const adminAlgoTiaohouAPI = {
 export const adminTokenUsageAPI = {
   summary: (from: string, to: string) =>
     adminApi.get(`/api/admin/token-usage/summary?from=${from}&to=${to}`),
-  detail: (userId: string, from: string, to: string, page: number, limit = 20) =>
+  detail: (userId: string, from: string, to: string, page: number, limit = 20, model = '') =>
     adminApi.get(
-      `/api/admin/token-usage/detail?user_id=${userId}&from=${from}&to=${to}&page=${page}&limit=${limit}`
+      `/api/admin/token-usage/detail?user_id=${userId}&from=${from}&to=${to}&page=${page}&limit=${limit}${model ? `&model=${encodeURIComponent(model)}` : ''}`
     ),
 }
 

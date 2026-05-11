@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { BarChart2 } from 'lucide-react'
 import { adminTokenUsageAPI } from '../../lib/adminApi'
 
@@ -6,6 +6,7 @@ interface SummaryRow {
   user_id: string
   email: string
   nickname: string
+  model: string
   request_count: number
   prompt_tokens: number
   completion_tokens: number
@@ -45,6 +46,47 @@ function firstOfMonthStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
+interface UserGroup {
+  userID: string
+  email: string
+  nickname: string
+  rows: SummaryRow[]
+  totalRequestCount: number
+  totalPrompt: number
+  totalCompletion: number
+  totalTokens: number
+  totalCost: number
+}
+
+function buildGroups(summary: SummaryRow[]): UserGroup[] {
+  const order: string[] = []
+  const map = new Map<string, UserGroup>()
+  for (const r of summary) {
+    if (!map.has(r.user_id)) {
+      order.push(r.user_id)
+      map.set(r.user_id, {
+        userID: r.user_id,
+        email: r.email,
+        nickname: r.nickname,
+        rows: [],
+        totalRequestCount: 0,
+        totalPrompt: 0,
+        totalCompletion: 0,
+        totalTokens: 0,
+        totalCost: 0,
+      })
+    }
+    const g = map.get(r.user_id)!
+    g.rows.push(r)
+    g.totalRequestCount += r.request_count
+    g.totalPrompt += r.prompt_tokens
+    g.totalCompletion += r.completion_tokens
+    g.totalTokens += r.total_tokens
+    g.totalCost += r.estimated_cost_cny
+  }
+  return order.map(id => map.get(id)!)
+}
+
 export default function TokenUsagePage() {
   const [from, setFrom] = useState(firstOfMonthStr())
   const [to, setTo] = useState(todayStr())
@@ -53,6 +95,7 @@ export default function TokenUsagePage() {
   const [queried, setQueried] = useState(false)
 
   const [drawerUser, setDrawerUser] = useState<SummaryRow | null>(null)
+  const [drawerModel, setDrawerModel] = useState('')
   const [detail, setDetail] = useState<DetailData | null>(null)
   const [detailPage, setDetailPage] = useState(1)
   const [detailLoading, setDetailLoading] = useState(false)
@@ -69,12 +112,12 @@ export default function TokenUsagePage() {
     }
   }
 
-  const openDetail = async (row: SummaryRow, page = 1) => {
+  const openDetail = async (row: SummaryRow, page = 1, model = drawerModel) => {
     setDrawerUser(row)
     setDetailPage(page)
     setDetailLoading(true)
     try {
-      const res = await adminTokenUsageAPI.detail(row.user_id, from, to, page, detailLimit)
+      const res = await adminTokenUsageAPI.detail(row.user_id, from, to, page, detailLimit, model)
       setDetail(res.data)
     } finally {
       setDetailLoading(false)
@@ -84,6 +127,7 @@ export default function TokenUsagePage() {
   const closeDrawer = () => {
     setDrawerUser(null)
     setDetail(null)
+    setDrawerModel('')
   }
 
   const callTypeLabel: Record<string, string> = {
@@ -96,6 +140,11 @@ export default function TokenUsagePage() {
   }
 
   const detailTotalPages = detail ? Math.ceil(detail.total / detailLimit) : 1
+  const groups = buildGroups(summary)
+
+  const userModels = drawerUser
+    ? summary.filter(r => r.user_id === drawerUser.user_id).map(r => r.model)
+    : []
 
   return (
     <div>
@@ -136,43 +185,77 @@ export default function TokenUsagePage() {
             <div style={{ color: '#888', textAlign: 'center', padding: 32 }}>该时间段内无 token 消耗记录</div>
           ) : (
             <>
-            <table className="admin-table" style={{ width: '100%' }}>
-              <thead>
-                <tr>
-                  <th>用户邮箱</th>
-                  <th>昵称</th>
-                  <th style={{ textAlign: 'right' }}>请求次数</th>
-                  <th style={{ textAlign: 'right' }}>输入 tokens</th>
-                  <th style={{ textAlign: 'right' }}>输出 tokens</th>
-                  <th style={{ textAlign: 'right' }}>总 tokens</th>
-                  <th style={{ textAlign: 'right' }}>预估费用</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {summary.map(row => (
-                  <tr key={row.user_id}>
-                    <td>{row.email}</td>
-                    <td>{row.nickname || '—'}</td>
-                    <td style={{ textAlign: 'right' }}>{fmt(row.request_count)}</td>
-                    <td style={{ textAlign: 'right' }}>{fmt(row.prompt_tokens)}</td>
-                    <td style={{ textAlign: 'right' }}>{fmt(row.completion_tokens)}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(row.total_tokens)}</td>
-                    <td style={{ textAlign: 'right', color: '#f59e0b', fontWeight: 700 }}>
-                      ¥ {row.estimated_cost_cny.toFixed(4)}
-                    </td>
-                    <td>
-                      <button className="admin-btn" style={{ padding: '4px 12px', fontSize: 13 }} onClick={() => openDetail(row)}>
-                        明细
-                      </button>
-                    </td>
+              <table className="admin-table" style={{ width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th>用户邮箱</th>
+                    <th>昵称</th>
+                    <th>模型</th>
+                    <th style={{ textAlign: 'right' }}>请求次数</th>
+                    <th style={{ textAlign: 'right' }}>输入 tokens</th>
+                    <th style={{ textAlign: 'right' }}>输出 tokens</th>
+                    <th style={{ textAlign: 'right' }}>总 tokens</th>
+                    <th style={{ textAlign: 'right' }}>预估费用</th>
+                    <th>操作</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <div style={{ fontSize: 12, color: '#555', marginTop: 8, padding: '0 4px' }}>
-              * 基于当前 algo_config 单价估算，仅供参考
-            </div>
+                </thead>
+                <tbody>
+                  {groups.map((group, gi) => (
+                    <Fragment key={group.userID}>
+                      {/* spacer between groups */}
+                      {gi > 0 && (
+                        <tr style={{ height: 4, background: '#0d0d1a' }}>
+                          <td colSpan={9} style={{ padding: 0 }} />
+                        </tr>
+                      )}
+                      {/* per-model rows */}
+                      {group.rows.map((row, ri) => (
+                        <tr key={row.model}>
+                          <td style={{ color: '#e0e0e0' }}>{ri === 0 ? row.email : ''}</td>
+                          <td>{ri === 0 ? (row.nickname || '—') : ''}</td>
+                          <td style={{ fontSize: 12, color: '#aaa' }}>{row.model}</td>
+                          <td style={{ textAlign: 'right' }}>{fmt(row.request_count)}</td>
+                          <td style={{ textAlign: 'right' }}>{fmt(row.prompt_tokens)}</td>
+                          <td style={{ textAlign: 'right' }}>{fmt(row.completion_tokens)}</td>
+                          <td style={{ textAlign: 'right', color: '#a78bfa' }}>{fmt(row.total_tokens)}</td>
+                          <td style={{ textAlign: 'right', color: '#f59e0b', fontSize: 12 }}>
+                            ¥ {row.estimated_cost_cny.toFixed(4)}
+                          </td>
+                          <td />
+                        </tr>
+                      ))}
+                      {/* subtotal row */}
+                      <tr style={{ background: '#1e1e40' }}>
+                        <td style={{ color: '#888' }} />
+                        <td style={{ color: '#888' }} />
+                        <td style={{ fontWeight: 700, color: '#e0e0e0', fontSize: 13 }}>合计</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(group.totalRequestCount)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(group.totalPrompt)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(group.totalCompletion)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(group.totalTokens)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#f59e0b' }}>
+                          ¥ {group.totalCost.toFixed(4)}
+                        </td>
+                        <td>
+                          <button
+                            className="admin-btn"
+                            style={{ padding: '4px 12px', fontSize: 13 }}
+                            onClick={() => {
+                              setDrawerModel('')
+                              openDetail(group.rows[0], 1, '')
+                            }}
+                          >
+                            明细
+                          </button>
+                        </td>
+                      </tr>
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ fontSize: 12, color: '#555', marginTop: 8, padding: '0 4px' }}>
+                * 基于当前 algo_config 单价估算，仅供参考
+              </div>
             </>
           )}
         </div>
@@ -194,11 +277,32 @@ export default function TokenUsagePage() {
             }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>
                 {drawerUser.email} 的调用明细
               </h2>
               <button className="admin-btn" onClick={closeDrawer} style={{ padding: '4px 12px' }}>关闭</button>
+            </div>
+
+            {/* 模型筛选 tabs */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+              {['', ...userModels].map(m => (
+                <button
+                  key={m === '' ? '__all__' : m}
+                  onClick={() => {
+                    setDrawerModel(m)
+                    openDetail(drawerUser, 1, m)
+                  }}
+                  style={{
+                    background: drawerModel === m ? '#a78bfa' : 'transparent',
+                    color: drawerModel === m ? '#fff' : '#888',
+                    border: '1px solid #333',
+                    borderRadius: 4, padding: '4px 12px', fontSize: 12, cursor: 'pointer',
+                  }}
+                >
+                  {m === '' ? '全部' : m}
+                </button>
+              ))}
             </div>
 
             {detailLoading ? (
