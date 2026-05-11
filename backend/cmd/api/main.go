@@ -22,6 +22,7 @@ func main() {
 
 	// 种子数据：将 .env 中已有的 API Key 写入 llm_providers
 	seed.SeedLLMProviders()
+	seed.SeedLLMPrices()
 
 	// 加载算法配置（含调候用神 seed）
 	if err := service.LoadAlgoConfig(); err != nil {

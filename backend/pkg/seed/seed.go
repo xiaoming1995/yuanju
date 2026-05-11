@@ -55,3 +55,28 @@ func SeedLLMProviders() {
 		}
 	}
 }
+
+// SeedLLMPrices 将默认模型定价写入 algo_config（ON CONFLICT DO NOTHING，不覆盖 Admin 已改的值）
+func SeedLLMPrices() {
+	prices := []struct {
+		key, value, description string
+	}{
+		{"llm_price_flash_input", "0.27", "deepseek-v4-flash 输入单价（CNY/百万tokens）"},
+		{"llm_price_flash_output", "1.10", "deepseek-v4-flash 输出单价（CNY/百万tokens）"},
+		{"llm_price_pro_input", "4.00", "deepseek-v4-pro 输入单价（CNY/百万tokens）"},
+		{"llm_price_pro_output", "16.00", "deepseek-v4-pro 输出单价（CNY/百万tokens）"},
+		{"llm_price_default_input", "1.00", "未知模型 fallback 输入单价（CNY/百万tokens）"},
+		{"llm_price_default_output", "2.00", "未知模型 fallback 输出单价（CNY/百万tokens）"},
+	}
+	for _, p := range prices {
+		if _, err := database.DB.Exec(
+			`INSERT INTO algo_config (key, value, description)
+			 VALUES ($1, $2, $3)
+			 ON CONFLICT (key) DO NOTHING`,
+			p.key, p.value, p.description,
+		); err != nil {
+			log.Printf("[seed] LLM 定价 seed 失败: key=%s err=%v", p.key, err)
+		}
+	}
+	log.Println("✅ 种子数据：LLM 定价配置已写入 algo_config（ON CONFLICT DO NOTHING）")
+}
