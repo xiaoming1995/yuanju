@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"text/template"
 	"yuanju/internal/model"
@@ -168,10 +169,16 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 		return nil, fmt.Errorf("compatibility Prompt 渲染失败: %v", err)
 	}
 
-	rawContent, modelName, _, _, aiErr := callAIWithSystem(parsed.String())
+	rawContent, modelName, providerID, _, usage, aiErr := callAIWithSystem(parsed.String())
 	if aiErr != nil {
 		return nil, aiErr
 	}
+	go func(uid string) {
+		if logErr := repository.CreateTokenUsageLog(&uid, nil, "compatibility", modelName, providerID,
+			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens); logErr != nil {
+			log.Printf("[TokenUsage] compatibility 写入失败: %v", logErr)
+		}
+	}(userID)
 	rawContent = strings.TrimSpace(rawContent)
 
 	var structured model.CompatibilityStructuredReport

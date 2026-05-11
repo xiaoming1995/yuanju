@@ -3,8 +3,10 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"yuanju/internal/model"
+	"yuanju/internal/repository"
 )
 
 // GenerateCelebrities 调用大模型批量生成符合要求的主题名人数据
@@ -22,10 +24,16 @@ JSON 数组中每一个对象的结构必须完全符合以下要求：
 ]
 只返回这唯一的 JSON 数组！`, topic, count)
 
-	content, modelName, _, _, err := callAI(prompt)
+	content, modelName, providerID, _, usage, err := callAI(prompt)
 	if err != nil {
 		return nil, fmt.Errorf("AI 生成失败: %v", err)
 	}
+	go func() {
+		if logErr := repository.CreateTokenUsageLog(nil, nil, "celebrity", modelName, providerID,
+			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens); logErr != nil {
+			log.Printf("[TokenUsage] celebrity 写入失败: %v", logErr)
+		}
+	}()
 
 	fmt.Printf("[GenerateCelebrities] AI Model: %s, Response: %s\n", modelName, content)
 
