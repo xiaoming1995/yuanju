@@ -29,6 +29,7 @@ export default function AdminLLMPage() {
   const [error, setError] = useState('')
   const [testingId, setTestingId] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
+  const [selectedPresetName, setSelectedPresetName] = useState('')
 
   const load = () => {
     adminLLMAPI.list().then(r => {
@@ -39,29 +40,45 @@ export default function AdminLLMPage() {
 
   useEffect(() => { load() }, [])
 
+  const isProModel = (model: string) => model.toLowerCase().includes('pro') || model.toLowerCase().includes('reasoner')
+
   const openCreate = () => {
     setEditing(null)
     const first = presetTypes[0]
-    setForm(first
-      ? { ...initialForm, type: first.type, name: first.name, base_url: first.base_url, model: first.model, thinking_enabled: isProModel(first.model) }
-      : initialForm
-    )
+    if (first) {
+      setSelectedPresetName(first.name)
+      setForm({ ...initialForm, type: first.type, name: first.name, base_url: first.base_url, model: first.model, thinking_enabled: isProModel(first.model) })
+    } else {
+      setSelectedPresetName('')
+      setForm(initialForm)
+    }
     setError('')
     setShowModal(true)
   }
 
   const openEdit = (p: Provider) => {
     setEditing(p)
+    // 尝试在预设列表中找匹配的 model，用于 select 回显
+    const matched = presetTypes.find(t => t.model === p.model)
+    setSelectedPresetName(matched?.name ?? '')
     setForm({ name: p.name, type: p.type, base_url: p.base_url, model: p.model, api_key: '', thinking_enabled: p.thinking_enabled })
     setError('')
     setShowModal(true)
   }
 
-  const isProModel = (model: string) => model.toLowerCase().includes('pro') || model.toLowerCase().includes('reasoner')
-
   const handleTypeChange = (presetName: string) => {
     const preset = presetTypes.find(t => t.name === presetName)
-    if (preset) setForm(f => ({ ...f, type: preset.type, name: preset.name, base_url: preset.base_url, model: preset.model, thinking_enabled: isProModel(preset.model) }))
+    if (!preset) return
+    setSelectedPresetName(presetName)
+    setForm(f => ({
+      ...f,
+      type: preset.type,
+      base_url: preset.base_url,
+      model: preset.model,
+      thinking_enabled: isProModel(preset.model),
+      // 新建时同步名称；编辑时保留原名称
+      ...(editing ? {} : { name: preset.name }),
+    }))
   }
 
   const handleSave = async () => {
@@ -196,8 +213,9 @@ export default function AdminLLMPage() {
 
             <div className="admin-form-group" style={{ marginBottom: 16 }}>
               <label className="admin-form-label">Provider 类型</label>
-              <select className="admin-form-select" value={form.name}
-                onChange={e => handleTypeChange(e.target.value)} disabled={!!editing}>
+              <select className="admin-form-select" value={selectedPresetName}
+                onChange={e => handleTypeChange(e.target.value)}>
+                <option value="">— 自定义 —</option>
                 {presetTypes.map((t, idx) => <option key={idx} value={t.name}>{t.name}</option>)}
               </select>
             </div>
