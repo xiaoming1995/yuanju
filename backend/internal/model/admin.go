@@ -25,6 +25,8 @@ type LLMProvider struct {
 	APIKeyPreview   string    `db:"api_key_preview" json:"api_key_preview,omitempty"`
 	APIKeyMasked    string    `db:"-" json:"api_key_masked,omitempty"`
 	ThinkingEnabled bool      `db:"thinking_enabled" json:"thinking_enabled"`
+	InputPriceCny   float64   `db:"input_price_cny" json:"input_price_cny"`
+	OutputPriceCny  float64   `db:"output_price_cny" json:"output_price_cny"`
 	Active          bool      `db:"active" json:"active"`
 	CreatedAt       time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at" json:"updated_at"`

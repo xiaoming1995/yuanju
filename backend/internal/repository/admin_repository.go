@@ -36,7 +36,7 @@ func GetAdminByEmail(email string) (*model.Admin, error) {
 
 func ListLLMProviders() ([]model.LLMProvider, error) {
 	rows, err := database.DB.Query(
-		`SELECT id, name, type, base_url, model, api_key_encrypted, api_key_preview, thinking_enabled, active, created_at, updated_at
+		`SELECT id, name, type, base_url, model, api_key_encrypted, api_key_preview, thinking_enabled, input_price_cny, output_price_cny, active, created_at, updated_at
 		 FROM llm_providers ORDER BY created_at ASC`,
 	)
 	if err != nil {
@@ -48,7 +48,7 @@ func ListLLMProviders() ([]model.LLMProvider, error) {
 	for rows.Next() {
 		var p model.LLMProvider
 		if err := rows.Scan(&p.ID, &p.Name, &p.Type, &p.BaseURL, &p.Model,
-			&p.APIKeyEncrypted, &p.APIKeyPreview, &p.ThinkingEnabled, &p.Active, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			&p.APIKeyEncrypted, &p.APIKeyPreview, &p.ThinkingEnabled, &p.InputPriceCny, &p.OutputPriceCny, &p.Active, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, err
 		}
 		providers = append(providers, p)
@@ -69,28 +69,36 @@ func GetActiveLLMProvider() (*model.LLMProvider, error) {
 	return p, err
 }
 
-func CreateLLMProvider(name, typ, baseURL, modelName, encryptedKey, preview string, thinkingEnabled bool) (*model.LLMProvider, error) {
+func CreateLLMProvider(name, typ, baseURL, modelName, encryptedKey, preview string, thinkingEnabled bool, inputPrice, outputPrice float64) (*model.LLMProvider, error) {
 	p := &model.LLMProvider{}
 	err := database.DB.QueryRow(
-		`INSERT INTO llm_providers (name, type, base_url, model, api_key_encrypted, api_key_preview, thinking_enabled)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
-		 RETURNING id, name, type, base_url, model, api_key_encrypted, api_key_preview, thinking_enabled, active, created_at, updated_at`,
-		name, typ, baseURL, modelName, encryptedKey, preview, thinkingEnabled,
+		`INSERT INTO llm_providers (name, type, base_url, model, api_key_encrypted, api_key_preview, thinking_enabled, input_price_cny, output_price_cny)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		 RETURNING id, name, type, base_url, model, api_key_encrypted, api_key_preview, thinking_enabled, input_price_cny, output_price_cny, active, created_at, updated_at`,
+		name, typ, baseURL, modelName, encryptedKey, preview, thinkingEnabled, inputPrice, outputPrice,
 	).Scan(&p.ID, &p.Name, &p.Type, &p.BaseURL, &p.Model,
-		&p.APIKeyEncrypted, &p.APIKeyPreview, &p.ThinkingEnabled, &p.Active, &p.CreatedAt, &p.UpdatedAt)
+		&p.APIKeyEncrypted, &p.APIKeyPreview, &p.ThinkingEnabled, &p.InputPriceCny, &p.OutputPriceCny, &p.Active, &p.CreatedAt, &p.UpdatedAt)
 	return p, err
 }
 
-func UpdateLLMProvider(id, name, baseURL, modelName, encryptedKey, preview string, thinkingEnabled bool) error {
+func UpdateLLMProvider(id, name, baseURL, modelName, encryptedKey, preview string, thinkingEnabled bool, inputPrice, outputPrice float64) error {
 	_, err := database.DB.Exec(
 		`UPDATE llm_providers
 		 SET name=$1, base_url=$2, model=$3, api_key_encrypted=$4,
 		     api_key_preview=CASE WHEN $5 != '' THEN $5 ELSE api_key_preview END,
-		     thinking_enabled=$6, updated_at=NOW()
-		 WHERE id=$7`,
-		name, baseURL, modelName, encryptedKey, preview, thinkingEnabled, id,
+		     thinking_enabled=$6, input_price_cny=$7, output_price_cny=$8, updated_at=NOW()
+		 WHERE id=$9`,
+		name, baseURL, modelName, encryptedKey, preview, thinkingEnabled, inputPrice, outputPrice, id,
 	)
 	return err
+}
+
+func GetPriceByModel(modelName string) (inputPrice, outputPrice float64, err error) {
+	err = database.DB.QueryRow(
+		`SELECT input_price_cny, output_price_cny FROM llm_providers WHERE model = $1 LIMIT 1`,
+		modelName,
+	).Scan(&inputPrice, &outputPrice)
+	return
 }
 
 func ActivateLLMProvider(id string) error {

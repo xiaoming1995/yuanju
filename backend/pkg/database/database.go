@@ -770,5 +770,13 @@ ALTER TABLE token_usage_logs ADD COLUMN IF NOT EXISTS cache_miss_tokens  INT NOT
 		log.Fatalf("增量迁移失败 (thinking_enabled): %v", err)
 	}
 
+	// 增量迁移：llm_providers 新增定价列
+	if _, err := DB.Exec(`ALTER TABLE llm_providers ADD COLUMN IF NOT EXISTS input_price_cny DECIMAL(10,4) DEFAULT 1.0`); err != nil {
+		log.Fatalf("增量迁移失败 (input_price_cny): %v", err)
+	}
+	if _, err := DB.Exec(`ALTER TABLE llm_providers ADD COLUMN IF NOT EXISTS output_price_cny DECIMAL(10,4) DEFAULT 2.0`); err != nil {
+		log.Fatalf("增量迁移失败 (output_price_cny): %v", err)
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }

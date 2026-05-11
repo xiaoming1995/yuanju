@@ -5,7 +5,7 @@ import { adminLLMAPI } from '../../lib/adminApi'
 interface Provider {
   id: string; name: string; type: string; base_url: string
   model: string; api_key_masked: string; api_key_preview: string
-  thinking_enabled: boolean; active: boolean
+  thinking_enabled: boolean; input_price_cny: number; output_price_cny: number; active: boolean
 }
 
 interface PresetType {
@@ -16,7 +16,7 @@ interface TestResult {
   ok: boolean; latency_ms?: number; error?: string
 }
 
-const initialForm = { name: '', type: 'deepseek', base_url: '', model: '', api_key: '', thinking_enabled: false }
+const initialForm = { name: '', type: 'deepseek', base_url: '', model: '', api_key: '', thinking_enabled: false, input_price_cny: 1.0, output_price_cny: 2.0 }
 
 export default function AdminLLMPage() {
   const [providers, setProviders] = useState<Provider[]>([])
@@ -61,7 +61,7 @@ export default function AdminLLMPage() {
     // 尝试在预设列表中找匹配的 model，用于 select 回显
     const matched = presetTypes.find(t => t.model === p.model)
     setSelectedPresetName(matched?.name ?? '')
-    setForm({ name: p.name, type: p.type, base_url: p.base_url, model: p.model, api_key: '', thinking_enabled: p.thinking_enabled })
+    setForm({ name: p.name, type: p.type, base_url: p.base_url, model: p.model, api_key: '', thinking_enabled: p.thinking_enabled, input_price_cny: p.input_price_cny ?? 1.0, output_price_cny: p.output_price_cny ?? 2.0 })
     setError('')
     setShowModal(true)
   }
@@ -87,9 +87,9 @@ export default function AdminLLMPage() {
     setSaving(true); setError('')
     try {
       if (editing) {
-        await adminLLMAPI.update(editing.id, { name: form.name, base_url: form.base_url, model: form.model, thinking_enabled: form.thinking_enabled, ...(form.api_key ? { api_key: form.api_key } : {}) })
+        await adminLLMAPI.update(editing.id, { name: form.name, base_url: form.base_url, model: form.model, thinking_enabled: form.thinking_enabled, input_price_cny: form.input_price_cny, output_price_cny: form.output_price_cny, ...(form.api_key ? { api_key: form.api_key } : {}) })
       } else {
-        await adminLLMAPI.create({ name: form.name, type: form.type, base_url: form.base_url, model: form.model, api_key: form.api_key, thinking_enabled: form.thinking_enabled })
+        await adminLLMAPI.create({ name: form.name, type: form.type, base_url: form.base_url, model: form.model, api_key: form.api_key, thinking_enabled: form.thinking_enabled, input_price_cny: form.input_price_cny, output_price_cny: form.output_price_cny })
       }
       setShowModal(false)
       load()
@@ -138,7 +138,7 @@ export default function AdminLLMPage() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>名称</th><th>类型</th><th>模型</th><th>API Key</th><th>思考模式</th><th>状态</th><th>操作</th>
+                <th>名称</th><th>类型</th><th>模型</th><th>API Key</th><th>思考模式</th><th>输入价（¥/百万）</th><th>输出价（¥/百万）</th><th>状态</th><th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -160,6 +160,8 @@ export default function AdminLLMPage() {
                       ? <span style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600 }}>开启</span>
                       : <span style={{ fontSize: 12, color: '#555' }}>—</span>}
                   </td>
+                  <td style={{ color: '#aaa', fontSize: 13 }}>¥{p.input_price_cny?.toFixed(2) ?? '—'}</td>
+                  <td style={{ color: '#aaa', fontSize: 13 }}>¥{p.output_price_cny?.toFixed(2) ?? '—'}</td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <span className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -252,6 +254,23 @@ export default function AdminLLMPage() {
                   {form.thinking_enabled ? '已开启（deepseek-v4-pro 等推理模型）' : '已关闭（deepseek-v4-flash 等标准模型）'}
                 </span>
               </label>
+            </div>
+
+            <div className="admin-form-row">
+              <div className="admin-form-group">
+                <label className="admin-form-label">输入价（¥/百万tokens）</label>
+                <input className="admin-form-input" type="number" step="0.01" min="0"
+                  value={form.input_price_cny}
+                  onChange={e => setForm(f => ({ ...f, input_price_cny: parseFloat(e.target.value) || 0 }))}
+                  placeholder="1.00" />
+              </div>
+              <div className="admin-form-group">
+                <label className="admin-form-label">输出价（¥/百万tokens）</label>
+                <input className="admin-form-input" type="number" step="0.01" min="0"
+                  value={form.output_price_cny}
+                  onChange={e => setForm(f => ({ ...f, output_price_cny: parseFloat(e.target.value) || 0 }))}
+                  placeholder="2.00" />
+              </div>
             </div>
 
             <div className="admin-form-group" style={{ marginBottom: 16 }}>
