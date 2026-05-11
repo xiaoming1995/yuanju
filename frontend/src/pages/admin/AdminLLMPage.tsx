@@ -175,7 +175,7 @@ export default function AdminLLMPage() {
               <label className="admin-form-label">API Key {editing && <span style={{ color: '#666' }}>(留空则不修改)</span>}</label>
               <input className="admin-form-input" type="password" value={form.api_key}
                 onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))}
-                placeholder={editing ? '•••••• (不修改请留空)' : 'sk-xxxxxxxxxx'} />
+                placeholder={editing ? (editing.api_key_masked || '已加密，留空则不修改') : 'sk-xxxxxxxxxx'} />
             </div>
 
             <div className="admin-modal-actions">
