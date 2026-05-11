@@ -349,7 +349,7 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 }
 
 // GenerateAIReport 生成 AI 报告（带缓存）
-func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport, error) {
+func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (*model.AIReport, error) {
 	// 检查缓存
 	cached, err := repository.GetReportByChartID(chartID)
 	if err == nil && cached != nil {
@@ -359,7 +359,7 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 	// 构建 Prompt 并调用 AI
 	celebs, _ := repository.ListCelebrities(true)
 	prompt := buildBaziPrompt(result, celebs)
-	rawContent, modelName, providerID, durationMs, aiErr := callAIWithSystem(prompt)
+	rawContent, modelName, providerID, durationMs, usage, aiErr := callAIWithSystem(prompt)
 
 	// 记录调用日志（无论成功失败）
 	status, errMsg := "success", ""
@@ -367,6 +367,14 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 		status, errMsg = "error", aiErr.Error()
 	}
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+	if aiErr == nil {
+		go func() {
+			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "report", modelName, providerID,
+				usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens); logErr != nil {
+				log.Printf("[TokenUsage] 写入失败: %v", logErr)
+			}
+		}()
+	}
 
 	if aiErr != nil {
 		return nil, aiErr
@@ -483,7 +491,7 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult) (*model.AIReport,
 }
 
 // GenerateAIReportStream 流式生成 AI 报告
-func GenerateAIReportStream(chartID string, result *bazi.BaziResult, onData func(string) error, onThinking func() error) error {
+func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *string, onData func(string) error, onThinking func() error) error {
 	t0 := time.Now()
 
 	// 检查缓存
@@ -500,14 +508,22 @@ func GenerateAIReportStream(chartID string, result *bazi.BaziResult, onData func
 	prompt := buildBaziPrompt(result, celebs)
 	log.Printf("[ReportStream T+%dms] Prompt 构建完成 (长度=%d 字符)", time.Since(t0).Milliseconds(), len(prompt))
 
-	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystem(prompt, onData, onThinking)
+	rawContent, modelName, providerID, durationMs, usage, aiErr := StreamAIWithSystem(prompt, onData, onThinking)
 	log.Printf("[ReportStream T+%dms] AI 流式调用结束, model=%s, duration=%dms, err=%v", time.Since(t0).Milliseconds(), modelName, durationMs, aiErr)
-	
+
 	status, errMsg := "success", ""
 	if aiErr != nil {
 		status, errMsg = "error", aiErr.Error()
 	}
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+	if aiErr == nil {
+		go func() {
+			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "report_stream", modelName, providerID,
+				usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens); logErr != nil {
+				log.Printf("[TokenUsage] 写入失败: %v", logErr)
+			}
+		}()
+	}
 
 	if aiErr != nil {
 		return aiErr
@@ -632,7 +648,7 @@ func fixJSONStrings(s string) string {
 }
 
 // GenerateLiunianReport 生成流年运势分析
-func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianReport, error) {
+func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*model.AILiunianReport, error) {
 	// 1. 检查缓存
 	cached, err := repository.GetLiunianReport(chartID, targetYear)
 	if err == nil && cached != nil {
@@ -714,7 +730,7 @@ func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianRepo
 	}
 
 	// 4. 调用 AI（使用知识库增强的 System Prompt）
-	rawContent, modelName, providerID, durationMs, aiErr := callAIWithSystem(parsedPrompt.String())
+	rawContent, modelName, providerID, durationMs, usage, aiErr := callAIWithSystem(parsedPrompt.String())
 	status, errMsg := "success", ""
 	if aiErr != nil {
 		status, errMsg = "error", aiErr.Error()
@@ -722,6 +738,12 @@ func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianRepo
 		return nil, aiErr
 	}
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+	go func() {
+		if logErr := repository.CreateTokenUsageLog(userID, &chartID, "liunian", modelName, providerID,
+			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens); logErr != nil {
+			log.Printf("[TokenUsage] 写入失败: %v", logErr)
+		}
+	}()
 
 	// 解析 JSON
 	cleanJSON := strings.TrimSpace(rawContent)
@@ -757,7 +779,7 @@ func GenerateLiunianReport(chartID string, targetYear int) (*model.AILiunianRepo
 
 // GeneratePastEventsStream 过往年份事件推算 SSE 流式生成
 // 若缓存命中则直接回调全量内容，否则算法扫描信号 → Prompt → AI 流式输出 → 存库
-func GeneratePastEventsStream(chartID string, onData func(string) error, onThinking func() error) error {
+func GeneratePastEventsStream(chartID string, userID *string, onData func(string) error, onThinking func() error) error {
 	// 1. 缓存检查
 	cached, err := repository.GetPastEvents(chartID)
 	if err == nil && cached != nil && cached.ContentStructured != nil {
@@ -858,12 +880,20 @@ func GeneratePastEventsStream(chartID string, onData func(string) error, onThink
 	}
 
 	// 6. SSE 流式 AI 调用（过往事件推算固定关闭推理思考模式，避免 Qwen3 等推理模型 3 分钟+思考阶段）
-	rawContent, modelName, providerID, durationMs, aiErr := StreamAIWithSystemNoThink(parsedPrompt.String(), onData, onThinking)
+	rawContent, modelName, providerID, durationMs, usage, aiErr := StreamAIWithSystemNoThink(parsedPrompt.String(), onData, onThinking)
 	status, errMsg := "success", ""
 	if aiErr != nil {
 		status, errMsg = "error", aiErr.Error()
 	}
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+	if aiErr == nil {
+		go func() {
+			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "dayun", modelName, providerID,
+				usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens); logErr != nil {
+				log.Printf("[TokenUsage] 写入失败: %v", logErr)
+			}
+		}()
+	}
 	if aiErr != nil {
 		return aiErr
 	}
@@ -985,7 +1015,7 @@ type DayunSummaryStreamItem struct {
 }
 
 // GenerateDayunSummariesStream 按大运分段调 AI 生成 themes + summary，每段独立缓存与推送
-func GenerateDayunSummariesStream(chartID string, onItem func(item DayunSummaryStreamItem) error) error {
+func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(item DayunSummaryStreamItem) error) error {
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
 		return fmt.Errorf("未找到排盘记录")
@@ -1116,7 +1146,7 @@ func GenerateDayunSummariesStream(chartID string, onItem func(item DayunSummaryS
 
 		// 4. 调 AI（非推理模式）
 		var collect strings.Builder
-		_, modelName, providerID, durationMs, aiErr := StreamAIWithSystemNoThink(pbuf.String(), func(chunk string) error {
+		_, modelName, providerID, durationMs, usage, aiErr := StreamAIWithSystemNoThink(pbuf.String(), func(chunk string) error {
 			collect.WriteString(chunk)
 			return nil
 		}, nil)
@@ -1125,6 +1155,14 @@ func GenerateDayunSummariesStream(chartID string, onItem func(item DayunSummaryS
 			status, errMsg = "error", aiErr.Error()
 		}
 		repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
+		if aiErr == nil {
+			go func(u TokenUsage, mn, pid string) {
+				if logErr := repository.CreateTokenUsageLog(userID, &chartID, "dayun", mn, pid,
+					u.PromptTokens, u.CompletionTokens, u.TotalTokens); logErr != nil {
+					log.Printf("[TokenUsage] 写入失败: %v", logErr)
+				}
+			}(usage, modelName, providerID)
+		}
 		if aiErr != nil {
 			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: aiErr.Error()})
 			continue
