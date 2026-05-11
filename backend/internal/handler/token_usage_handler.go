@@ -7,12 +7,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"yuanju/internal/repository"
+	"yuanju/internal/service"
 )
 
 // AdminGetTokenUsageSummary GET /api/admin/token-usage/summary?from=YYYY-MM-DD&to=YYYY-MM-DD
 func AdminGetTokenUsageSummary(c *gin.Context) {
 	from, to := parseDateRange(c)
-	rows, err := repository.GetTokenUsageSummary(from, to)
+	rows, err := repository.GetTokenUsageSummary(from, to, service.CalcCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -40,7 +41,7 @@ func AdminGetTokenUsageDetail(c *gin.Context) {
 		limit = 20
 	}
 
-	total, items, err := repository.GetTokenUsageDetail(userID, from, to, page, limit)
+	total, items, err := repository.GetTokenUsageDetail(userID, from, to, page, limit, service.CalcCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
