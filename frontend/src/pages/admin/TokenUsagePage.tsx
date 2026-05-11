@@ -10,6 +10,7 @@ interface SummaryRow {
   prompt_tokens: number
   completion_tokens: number
   total_tokens: number
+  estimated_cost_cny: number
 }
 
 interface DetailRow {
@@ -22,6 +23,7 @@ interface DetailRow {
   reasoning_tokens: number
   cache_hit_tokens: number
   cache_miss_tokens: number
+  estimated_cost_cny: number
   created_at: string
 }
 
@@ -133,6 +135,7 @@ export default function TokenUsagePage() {
           {summary.length === 0 ? (
             <div style={{ color: '#888', textAlign: 'center', padding: 32 }}>该时间段内无 token 消耗记录</div>
           ) : (
+            <>
             <table className="admin-table" style={{ width: '100%' }}>
               <thead>
                 <tr>
@@ -142,6 +145,7 @@ export default function TokenUsagePage() {
                   <th style={{ textAlign: 'right' }}>输入 tokens</th>
                   <th style={{ textAlign: 'right' }}>输出 tokens</th>
                   <th style={{ textAlign: 'right' }}>总 tokens</th>
+                  <th style={{ textAlign: 'right' }}>预估费用</th>
                   <th>操作</th>
                 </tr>
               </thead>
@@ -154,6 +158,9 @@ export default function TokenUsagePage() {
                     <td style={{ textAlign: 'right' }}>{fmt(row.prompt_tokens)}</td>
                     <td style={{ textAlign: 'right' }}>{fmt(row.completion_tokens)}</td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(row.total_tokens)}</td>
+                    <td style={{ textAlign: 'right', color: '#f59e0b', fontWeight: 700 }}>
+                      ¥ {row.estimated_cost_cny.toFixed(4)}
+                    </td>
                     <td>
                       <button className="admin-btn" style={{ padding: '4px 12px', fontSize: 13 }} onClick={() => openDetail(row)}>
                         明细
@@ -163,6 +170,10 @@ export default function TokenUsagePage() {
                 ))}
               </tbody>
             </table>
+            <div style={{ fontSize: 12, color: '#555', marginTop: 8, padding: '0 4px' }}>
+              * 基于当前 algo_config 单价估算，仅供参考
+            </div>
+            </>
           )}
         </div>
       )}
@@ -206,6 +217,7 @@ export default function TokenUsagePage() {
                       <th style={{ textAlign: 'right' }}>输出</th>
                       <th style={{ textAlign: 'right' }}>推理</th>
                       <th style={{ textAlign: 'right' }}>缓存命中</th>
+                      <th style={{ textAlign: 'right' }}>费用</th>
                       <th style={{ textAlign: 'right' }}>总计</th>
                     </tr>
                   </thead>
@@ -224,6 +236,9 @@ export default function TokenUsagePage() {
                         </td>
                         <td style={{ textAlign: 'right', color: item.cache_hit_tokens > 0 ? '#4ade80' : '#555' }}>
                           {item.cache_hit_tokens > 0 ? fmt(item.cache_hit_tokens) : '—'}
+                        </td>
+                        <td style={{ textAlign: 'right', color: '#f59e0b', fontSize: 12 }}>
+                          ¥ {item.estimated_cost_cny.toFixed(4)}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(item.total_tokens)}</td>
                       </tr>
