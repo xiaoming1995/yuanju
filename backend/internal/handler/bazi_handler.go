@@ -121,7 +121,7 @@ func GenerateReport(c *gin.Context) {
 
 	// 3. 生成 AI 报告（若针对此 chartID 曾跑过则 0s 内自动命中缓存）
 	log.Printf("[AI Report] 开始生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
-	report, err := service.GenerateAIReport(chart.ID, result)
+	report, err := service.GenerateAIReport(chart.ID, result, &userIDStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -183,7 +183,7 @@ func GenerateReportStream(c *gin.Context) {
 	log.Printf("[Stream T+%dms] SSE headers 已发送，开始调用 AI", time.Since(t0).Milliseconds())
 
 	chunkCount := 0
-	err = service.GenerateAIReportStream(chart.ID, result, func(chunk string) error {
+	err = service.GenerateAIReportStream(chart.ID, result, &userIDStr, func(chunk string) error {
 		chunkCount++
 		if chunkCount == 1 {
 			log.Printf("[Stream T+%dms] ✅ 收到第 1 个 chunk (长度=%d)", time.Since(t0).Milliseconds(), len(chunk))
@@ -245,7 +245,7 @@ func GenerateLiunianReport(c *gin.Context) {
 	}
 
 	log.Printf("[AI Liunian Report] 开始生成流年报告 chart_id=%s year=%d", chart.ID, req.TargetYear)
-	report, err := service.GenerateLiunianReport(chart.ID, req.TargetYear)
+	report, err := service.GenerateLiunianReport(chart.ID, req.TargetYear, &userIDStr)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -382,6 +382,7 @@ func HandleDayunSummariesStream(c *gin.Context) {
 		return
 	}
 
+	userIDStr := userID.(string)
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
 	c.Header("Connection", "keep-alive")
@@ -389,7 +390,7 @@ func HandleDayunSummariesStream(c *gin.Context) {
 	c.Header("X-Accel-Buffering", "no")
 	c.Writer.Flush()
 
-	err = service.GenerateDayunSummariesStream(chartID, func(item service.DayunSummaryStreamItem) error {
+	err = service.GenerateDayunSummariesStream(chartID, &userIDStr, func(item service.DayunSummaryStreamItem) error {
 		bytes, _ := json.Marshal(item)
 		fmt.Fprintf(c.Writer, "event: dayun\ndata: %s\n\n", string(bytes))
 		c.Writer.Flush()
@@ -422,6 +423,7 @@ func HandlePastEventsStream(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
 		return
 	}
+	userIDStr := userID.(string)
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -430,7 +432,7 @@ func HandlePastEventsStream(c *gin.Context) {
 	c.Header("X-Accel-Buffering", "no")
 	c.Writer.Flush()
 
-	err = service.GeneratePastEventsStream(chartID, func(chunk string) error {
+	err = service.GeneratePastEventsStream(chartID, &userIDStr, func(chunk string) error {
 		jsonBytes, _ := json.Marshal(map[string]string{"chunk": chunk})
 		fmt.Fprintf(c.Writer, "event: message\ndata: %s\n\n", string(jsonBytes))
 		c.Writer.Flush()
