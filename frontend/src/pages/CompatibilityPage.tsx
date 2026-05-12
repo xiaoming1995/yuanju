@@ -54,7 +54,7 @@ export default function CompatibilityPage() {
             <h1 className="serif" style={{ fontSize: 30, margin: 0 }}>姻缘合盘</h1>
           </div>
           <p style={{ margin: 0, color: 'var(--text-muted)', lineHeight: 1.7 }}>
-            第一版采用双盘结构化分析：吸引力、稳定度、沟通协同、现实磨合四维结果，再结合 AI 生成完整解读。
+            第一版采用双盘结构化分析：吸引力、稳定度、沟通协同、现实磨合四维结果，生成完整解读。
           </p>
         </div>
 

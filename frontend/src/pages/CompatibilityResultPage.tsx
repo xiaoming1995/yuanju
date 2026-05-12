@@ -367,7 +367,7 @@ export default function CompatibilityResultPage() {
 
         <div className="card compatibility-ai-card">
           <div className="compatibility-ai-header">
-            <h2 className="serif compatibility-section-title" style={{ margin: 0 }}>AI 合盘解读</h2>
+            <h2 className="serif compatibility-section-title" style={{ margin: 0 }}>合盘解读</h2>
             {!detail.latest_report && (
               <button className="btn btn-primary" onClick={handleGenerateReport} disabled={reportLoading}>
                 {reportLoading ? '生成中...' : '生成解读'}
@@ -402,7 +402,7 @@ export default function CompatibilityResultPage() {
           ) : detail.latest_report ? (
             <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{detail.latest_report.content}</div>
           ) : (
-            <p style={{ margin: 0, color: 'var(--text-muted)' }}>尚未生成 AI 合盘解读。</p>
+            <p style={{ margin: 0, color: 'var(--text-muted)' }}>尚未生成合盘解读。</p>
           )}
         </div>
       </div>
