@@ -140,7 +140,7 @@ export default function HomePage() {
                     正在计算...
                   </>
                 ) : (
-                  立即起盘
+                  <>立即起盘</>
                 )}
               </button>
 
