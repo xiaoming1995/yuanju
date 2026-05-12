@@ -56,6 +56,24 @@ func AdminGetTokenUsageDetail(c *gin.Context) {
 	})
 }
 
+// AdminGetTokenUsageContent GET /api/admin/token-usage/content/:id
+func AdminGetTokenUsageContent(c *gin.Context) {
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id 必填"})
+		return
+	}
+	inputContent, outputContent, err := repository.GetTokenUsageContent(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "记录不存在"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"input_content":  inputContent,
+		"output_content": outputContent,
+	})
+}
+
 // parseDateRange 解析 from/to 查询参数，默认当月第一天至今日
 func parseDateRange(c *gin.Context) (from, to time.Time) {
 	now := time.Now()

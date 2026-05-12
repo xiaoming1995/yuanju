@@ -112,6 +112,7 @@ func main() {
 				// Token 用量统计
 				adminAuth.GET("/token-usage/summary", handler.AdminGetTokenUsageSummary)
 				adminAuth.GET("/token-usage/detail", handler.AdminGetTokenUsageDetail)
+				adminAuth.GET("/token-usage/content/:id", handler.AdminGetTokenUsageContent)
 
 				// 报告缓存管理
 				adminAuth.DELETE("/reports/cache", handler.AdminClearAllReports)
