@@ -10,6 +10,7 @@ import YongshenBadge from '../components/YongshenBadge'
 import MingpanAvatar from '../components/MingpanAvatar'
 import TiaohouCard from '../components/TiaohouCard'
 import ShareCard from '../components/ShareCard'
+import PrintLayout from '../components/PrintLayout'
 import { toPng, toBlob } from 'html-to-image'
 import './ResultPage.css'
 
@@ -332,8 +333,9 @@ export default function ResultPage() {
   const reportSections = structured ? [] : parseReport(report?.content || '')
 
   return (
-    <div className="result-page page">
-      <div className="container">
+    <>
+      <div className="result-page page screen-only">
+        <div className="container">
 
         {/* 生辰标题 */}
         <div className="result-header animate-fade-up">
@@ -500,8 +502,8 @@ export default function ResultPage() {
         <div className="report-section card animate-fade-up">
           <div className="report-section-header">
             <h2 className="section-title serif">命理解读</h2>
-            {report && (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {report && (
                 <button
                   id="save-card-btn"
                   className="btn btn-ghost btn-sm"
@@ -510,18 +512,17 @@ export default function ResultPage() {
                 >
                   {savingImage ? '生成中...' : '保存分享图'}
                 </button>
-                {/* PDF 导出移动端不支持，仅桂面展示 */}
-                {!isMobileDevice && (
-                  <button
-                    id="export-report-btn"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => window.print()}
-                  >
-                    导出 PDF
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+              {!isMobileDevice && (
+                <button
+                  id="export-report-btn"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => window.print()}
+                >
+                  导出 PDF
+                </button>
+              )}
+            </div>
           </div>
 
           {/* 已有报告 */}
@@ -727,7 +728,21 @@ export default function ResultPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      <PrintLayout
+        birthYear={result.birth_year}
+        birthMonth={result.birth_month}
+        birthDay={result.birth_day}
+        birthHour={result.birth_hour}
+        gender={result.gender}
+        yongshen={result.yongshen || ''}
+        jishen={result.jishen || ''}
+        pillars={pillars}
+        dayun={result.dayun}
+        structured={structured}
+        shenshaMap={shenshaMap}
+      />
+    </>
   )
 }
 
