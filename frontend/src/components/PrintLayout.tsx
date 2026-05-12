@@ -116,7 +116,7 @@ export default function PrintLayout({
         fontFamily: '"Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", serif',
         color: darkBrown,
         background: '#fff',
-        padding: '28px 36px',
+        padding: '20mm 18mm',
         maxWidth: 820,
         margin: '0 auto',
         lineHeight: 1.7,
