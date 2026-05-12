@@ -348,14 +348,8 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 	return prompt
 }
 
-// GenerateAIReport 生成 AI 报告（带缓存）
+// GenerateAIReport 生成 AI 报告（始终调 LLM，生成后覆盖存库）
 func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (*model.AIReport, error) {
-	// 检查缓存
-	cached, err := repository.GetReportByChartID(chartID)
-	if err == nil && cached != nil {
-		return cached, nil
-	}
-
 	// 构建 Prompt 并调用 AI
 	celebs, _ := repository.ListCelebrities(true)
 	prompt := buildBaziPrompt(result, celebs)
@@ -496,15 +490,6 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (
 // GenerateAIReportStream 流式生成 AI 报告
 func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *string, onData func(string) error, onThinking func() error) error {
 	t0 := time.Now()
-
-	// 检查缓存
-	cached, err := repository.GetReportByChartID(chartID)
-	log.Printf("[ReportStream T+%dms] 缓存检查完成, hit=%v", time.Since(t0).Milliseconds(), cached != nil)
-	if err == nil && cached != nil {
-		// 缓存命中：直接把全量内容模拟成一个数据块推下去
-		_ = onData(cached.Content)
-		return nil
-	}
 
 	// 构建 Prompt
 	celebs, _ := repository.ListCelebrities(true)
@@ -653,15 +638,9 @@ func fixJSONStrings(s string) string {
 	return buf.String()
 }
 
-// GenerateLiunianReport 生成流年运势分析
+// GenerateLiunianReport 生成流年运势分析（始终调 LLM，生成后 upsert 存库）
 func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*model.AILiunianReport, error) {
-	// 1. 检查缓存
-	cached, err := repository.GetLiunianReport(chartID, targetYear)
-	if err == nil && cached != nil {
-		return cached, nil
-	}
-
-	// 2. 读取排盘
+	// 1. 读取排盘
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
 		return nil, fmt.Errorf("无此排盘记录")
@@ -784,16 +763,9 @@ func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*mod
 	return repository.CreateLiunianReport(chartID, targetYear, currentDayun, &rawMsg, modelName)
 }
 
-// GeneratePastEventsStream 过往年份事件推算 SSE 流式生成
-// 若缓存命中则直接回调全量内容，否则算法扫描信号 → Prompt → AI 流式输出 → 存库
+// GeneratePastEventsStream 过往年份事件推算 SSE 流式生成（始终调 LLM，生成后 upsert 存库）
 func GeneratePastEventsStream(chartID string, userID *string, onData func(string) error, onThinking func() error) error {
-	// 1. 缓存检查
-	cached, err := repository.GetPastEvents(chartID)
-	if err == nil && cached != nil && cached.ContentStructured != nil {
-		return onData(string(*cached.ContentStructured))
-	}
-
-	// 2. 读取排盘
+	// 1. 读取排盘
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
 		return fmt.Errorf("未找到排盘记录")
@@ -1084,23 +1056,6 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 
 	for _, dy := range result.Dayun {
 		gz := dy.Gan + dy.Zhi
-
-		// 1. 缓存命中 → 直接推送
-		cached, _ := repository.GetDayunSummary(chartID, dy.Index)
-		if cached != nil {
-			var themes []string
-			if cached.Themes != nil {
-				_ = json.Unmarshal(*cached.Themes, &themes)
-			}
-			_ = onItem(DayunSummaryStreamItem{
-				DayunIndex: dy.Index,
-				GanZhi:     gz,
-				Themes:     themes,
-				Summary:    cached.Summary,
-				Cached:     true,
-			})
-			continue
-		}
 
 		// 取该段大运的 10 年信号
 		var dySignals []bazi.YearSignals
