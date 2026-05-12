@@ -159,7 +159,7 @@ export default function HomePage() {
         <div className="container">
           <div className="features-grid">
             {[
-              { icon: '', title: '传统算法', desc: '基于 lunar-go 天文历法库，精确到秒级节气与真太阳时' },
+              { icon: '', title: '精准排盘', desc: '严格遵循古法节气历法，支持真太阳时地区修正' },
               { icon: '', title: '命理解读', desc: '结合命理知识，生成通俗易懂的个性报告' },
               { icon: '', title: '五行分析', desc: '可视化五行分布，直观了解命局特点' },
             ].map((f, i) => (
