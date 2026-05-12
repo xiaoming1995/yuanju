@@ -214,35 +214,50 @@ export default function PrintLayout({
 
       {/* ── 神煞 ── */}
       {allShensha.length > 0 && (
-        <div style={{ marginBottom: 24, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+        <div style={{ marginBottom: 24 }}>
           {sectionTitle('神　煞')}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-            {allShensha.map((sha, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 8,
-                  padding: '6px 10px',
-                  background: SHA_BG[sha.polarity],
-                  borderLeft: `3px solid ${SHA_COLOR[sha.polarity]}`,
-                  borderRadius: 2,
-                  pageBreakInside: 'avoid', breakInside: 'avoid',
-                }}
-              >
-                <span style={{ fontSize: 10, color: '#999', whiteSpace: 'nowrap', paddingTop: 2, minWidth: 26 }}>
-                  {sha.pillarLabel}
-                </span>
-                <span style={{ fontWeight: 700, color: SHA_COLOR[sha.polarity], whiteSpace: 'nowrap', minWidth: 56, fontSize: 12 }}>
-                  {sha.name}
-                </span>
-                {sha.annotation?.short_desc && (
-                  <span style={{ fontSize: 11, color: '#444', lineHeight: 1.5 }}>
-                    {sha.annotation.short_desc}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', border: `1px solid ${borderColor}`, fontSize: 12 }}>
+            <thead>
+              <tr>
+                {['柱位', '神煞名称', '性质', '简述'].map(h => (
+                  <th key={h} style={{
+                    padding: '6px 10px', textAlign: 'center',
+                    fontSize: 11, fontWeight: 700, color: midBrown,
+                    background: '#faf3e4', borderBottom: `1px solid ${borderColor}`,
+                    letterSpacing: 1, whiteSpace: 'nowrap',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {allShensha.map((sha, i) => (
+                <tr key={i} style={{
+                  background: i % 2 === 0 ? '#fff' : lightBg,
+                  breakInside: 'avoid', pageBreakInside: 'avoid',
+                }}>
+                  <td style={{ padding: '6px 10px', textAlign: 'center', color: midBrown, fontWeight: 600, whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
+                    {sha.pillarLabel}
+                  </td>
+                  <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: SHA_COLOR[sha.polarity], whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
+                    {sha.name}
+                  </td>
+                  <td style={{ padding: '6px 8px', textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700,
+                      color: SHA_COLOR[sha.polarity],
+                      background: SHA_BG[sha.polarity],
+                      padding: '1px 8px', borderRadius: 2,
+                    }}>
+                      {sha.polarity === 'ji' ? '吉' : sha.polarity === 'xiong' ? '凶' : '中'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '6px 12px', color: '#444', lineHeight: 1.7, borderBottom: `1px solid #f0e8d4`, fontSize: 11 }}>
+                    {sha.annotation?.short_desc || '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
