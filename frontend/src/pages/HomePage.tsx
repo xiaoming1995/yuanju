@@ -70,12 +70,12 @@ export default function HomePage() {
       <section className="hero">
         <div className="container">
           <div className="hero-content animate-fade-up">
-            <div className="hero-badge serif">✦ 八字命理 · AI 解读 ✦</div>
+            <div className="hero-badge serif">八字命理 · 命理解读</div>
             <h1 className="hero-title serif">
               知命理，<span className="text-gold">悟人生</span>
             </h1>
             <p className="hero-desc">
-              融合传统八字命理与人工智能，为你解读命盘中的天赋与机遇
+              融合传统八字命理与现代算法，为你解读命盘中的天赋与机遇
             </p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function HomePage() {
                 </select>
               </div>
 
-              {error && <p className="form-error">⚠ {error}</p>}
+              {error && <p className="form-error">{error}</p>}
 
               <button
                 type="submit"
@@ -140,13 +140,13 @@ export default function HomePage() {
                     正在计算...
                   </>
                 ) : (
-                  <>✦ 立即起盘</>
+                  立即起盘
                 )}
               </button>
 
               {!user && (
                 <p className="guest-hint">
-                  <a href="/login">登录</a>后可保存记录并获得 AI 智能解读报告
+                  <a href="/login">登录</a>后可保存记录并获得完整解读报告
                 </p>
               )}
             </form>
@@ -159,9 +159,9 @@ export default function HomePage() {
         <div className="container">
           <div className="features-grid">
             {[
-              { icon: '◉', title: '传统算法', desc: '基于 lunar-go 天文历法库，精确到秒级节气与真太阳时' },
-              { icon: '✦', title: 'AI 智能解读', desc: '大模型结合命理知识，生成通俗易懂的个性报告' },
-              { icon: '◈', title: '五行分析', desc: '可视化五行分布，直观了解命局特点' },
+              { icon: '', title: '传统算法', desc: '基于 lunar-go 天文历法库，精确到秒级节气与真太阳时' },
+              { icon: '', title: '命理解读', desc: '结合命理知识，生成通俗易懂的个性报告' },
+              { icon: '', title: '五行分析', desc: '可视化五行分布，直观了解命局特点' },
             ].map((f, i) => (
               <div key={i} className="feature-card card">
                 <div className="feature-icon">{f.icon}</div>
