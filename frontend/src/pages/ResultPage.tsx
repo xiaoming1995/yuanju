@@ -346,10 +346,10 @@ export default function ResultPage() {
           </h1>
           <div className="result-tags">
             <span className={`wuxing-badge ${result.yongshen ? 'wuxing-' + (WUXING_MAP[result.yongshen?.charAt(0)] || 'jin') : 'wuxing-unknown'}`}>
-              喜用：{result.yongshen || (reportLoading ? 'AI测算中...' : '待生成')}
+              喜用：{result.yongshen || (reportLoading ? '测算中...' : '待生成')}
             </span>
             <span className={`wuxing-badge ${result.jishen ? 'wuxing-' + (WUXING_MAP[result.jishen?.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
-              忌：{result.jishen || (reportLoading ? 'AI测算中...' : '待生成')}
+              忌：{result.jishen || (reportLoading ? '测算中...' : '待生成')}
             </span>
           </div>
         </div>
@@ -479,7 +479,7 @@ export default function ResultPage() {
             {/* 命理专属头像 (Feature Flag 控制) */}
             {ENABLE_MINGPAN_AVATAR && (
               <div className="mingpan-avatar-section card">
-                <h2 className="section-title serif">✦ 专属命理头像</h2>
+                <h2 className="section-title serif">专属命理头像</h2>
                 <p className="section-desc">根据你的喜用神五行，程序化生成专属命元图腾</p>
                 <MingpanAvatar
                   yongshen={result.yongshen || ''}
@@ -499,7 +499,7 @@ export default function ResultPage() {
         {/* AI 解读区域 */}
         <div className="report-section card animate-fade-up">
           <div className="report-section-header">
-            <h2 className="section-title serif">✦ AI 命理解读</h2>
+            <h2 className="section-title serif">命理解读</h2>
             {report && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button
@@ -552,7 +552,6 @@ export default function ResultPage() {
                   )}
                   {reportMode === 'brief' && structured.analysis?.summary && (
                     <div className="report-summary">
-                      <span className="report-summary-icon">✦</span>
                       <span>{structured.analysis.summary}</span>
                     </div>
                   )}
@@ -577,7 +576,7 @@ export default function ResultPage() {
                 )
               )}
               <p className="report-disclaimer">
-                本报告由 AI 辅助生成，内容仅供参考，不构成任何决策建议。
+                本报告内容仅供参考，不构成任何决策建议。
               </p>
             </div>
           )}
@@ -600,7 +599,7 @@ export default function ResultPage() {
               </div>
               <div className="ai-loading-step">
                 <div className="ai-loading-text">
-                  🧠 AI 正在深度推理中...  已思考 {thinkingSeconds} 秒
+                  正在深度推演中...  已思考 {thinkingSeconds} 秒
                 </div>
               </div>
             </div>
@@ -622,7 +621,7 @@ export default function ResultPage() {
 
           {/* 报错 */}
           {reportError && !reportLoading && !isStreaming && (
-            <p className="form-error" style={{ margin: '12px 0' }}>⚠ {reportError}</p>
+            <p className="form-error" style={{ margin: '12px 0' }}>{reportError}</p>
           )}
 
           {/* 未生成：显示按钮或引导 */}
@@ -631,19 +630,19 @@ export default function ResultPage() {
               {!isGuest ? (
                 <div className="report-cta">
                   <p className="report-cta-desc">
-                    点击下方按钮，AI 将根据你的命盘生成性格、感情、事业、健康四维解读
+                    点击下方按钮，生成性格、感情、事业、健康四维解读
                   </p>
                   <button
                     id="generate-ai-report"
                     className="btn btn-primary"
                     onClick={handleGenerateReport}
                   >
-                    生成 AI 命理解读
+                    生成命理解读
                   </button>
                 </div>
               ) : (
                 <div className="guest-banner">
-                  <span>登录后可获得完整 AI 解读报告，并保存命盘记录</span>
+                  <span>登录后可获得完整解读报告，并保存命盘记录</span>
                   <a href="/register" className="btn btn-primary btn-sm">立即注册</a>
                 </div>
               )}
