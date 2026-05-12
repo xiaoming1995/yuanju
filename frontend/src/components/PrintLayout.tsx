@@ -156,7 +156,7 @@ export default function PrintLayout({
       </div>
 
       {/* ── 四柱 ── */}
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 24, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
         {sectionTitle('四　柱　排　盘')}
         <table style={{ width: '100%', borderCollapse: 'collapse', border: `1px solid ${borderColor}` }}>
           <thead>
@@ -214,7 +214,7 @@ export default function PrintLayout({
 
       {/* ── 神煞 ── */}
       {allShensha.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 24, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
           {sectionTitle('神　煞')}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             {allShensha.map((sha, i) => (
@@ -258,6 +258,8 @@ export default function PrintLayout({
             background: lightBg,
             border: `1px solid ${borderColor}`,
             borderRadius: 3,
+            breakInside: 'avoid',
+            pageBreakInside: 'avoid',
           }}>
             <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, marginBottom: 6, letterSpacing: 2 }}>
               ▍ 命局分析总览

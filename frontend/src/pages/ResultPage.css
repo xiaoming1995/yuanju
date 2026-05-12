@@ -644,10 +644,28 @@
   }
 }
 
+/* @page：去掉浏览器默认页眉页脚（URL、日期等），设置页边距 */
+@page {
+  size: A4;
+  margin: 15mm 18mm;
+}
+
 /* 打印时：隐藏屏幕内容，仅渲染打印布局 */
 @media print {
   .screen-only {
     display: none !important;
+  }
+
+  /* 防止表格行、段落在页中间被切断 */
+  tr, p, li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 大标题前不孤立 */
+  h1, h2, h3, h4 {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 }
 
