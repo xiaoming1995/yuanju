@@ -12,6 +12,8 @@ import TiaohouCard from '../components/TiaohouCard'
 import ShareCard from '../components/ShareCard'
 import PrintLayout from '../components/PrintLayout'
 import { toPng, toBlob } from 'html-to-image'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import './ResultPage.css'
 
 // 💡 特性开关 (Feature Flags)
@@ -110,6 +112,7 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(!result && !!id)
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('brief')
   const [savingImage, setSavingImage] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
 
   // 神煞注解状态
@@ -199,8 +202,48 @@ export default function ResultPage() {
     }
   }
 
-  // 检测是否移动端（用于隐藏 PDF 按鈕）
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+  const handleExportPDF = async () => {
+    if (!isMobileDevice) {
+      window.print()
+      return
+    }
+    // 移动端：用 html2canvas + jsPDF 生成 PDF 文件下载
+    const el = document.querySelector('.print-only') as HTMLElement | null
+    if (!el) return
+    setExportingPDF(true)
+    const prevDisplay = el.style.display
+    try {
+      await document.fonts.ready
+      el.style.display = 'block'
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
+      el.style.display = prevDisplay
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.92)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const imgH = (canvas.height * pageW) / canvas.width
+      let remaining = imgH
+      let offset = 0
+      pdf.addImage(imgData, 'JPEG', 0, offset, pageW, imgH)
+      remaining -= pageH
+      while (remaining > 0) {
+        offset -= pageH
+        pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, offset, pageW, imgH)
+        remaining -= pageH
+      }
+      const fileName = `缘聚命理-命书.pdf`
+      pdf.save(fileName)
+    } catch {
+      alert('生成 PDF 失败，请稍后重试')
+    } finally {
+      el.style.display = prevDisplay
+      setExportingPDF(false)
+    }
+  }
 
   // AI 解读状态
   const [reportLoading, setReportLoading] = useState(false)
@@ -513,15 +556,14 @@ export default function ResultPage() {
                   {savingImage ? '生成中...' : '保存分享图'}
                 </button>
               )}
-              {!isMobileDevice && (
-                <button
-                  id="export-report-btn"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => window.print()}
-                >
-                  导出 PDF
-                </button>
-              )}
+              <button
+                id="export-report-btn"
+                className="btn btn-ghost btn-sm"
+                onClick={handleExportPDF}
+                disabled={exportingPDF}
+              >
+                {exportingPDF ? '生成中...' : '导出 PDF'}
+              </button>
             </div>
           </div>
 

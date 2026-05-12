@@ -40,7 +40,10 @@ export default function AdminLLMPage() {
 
   useEffect(() => { load() }, [])
 
-  const isProModel = (model: string) => model.toLowerCase().includes('pro') || model.toLowerCase().includes('reasoner')
+  const isProModel = (model: string) => {
+    const m = model.toLowerCase()
+    return m.includes('pro') || m.includes('reasoner') || m.includes('qwq') || m.includes('qwen3')
+  }
 
   const openCreate = () => {
     setEditing(null)
@@ -251,7 +254,7 @@ export default function AdminLLMPage() {
                   style={{ width: 16, height: 16, accentColor: '#a78bfa' }}
                 />
                 <span style={{ fontSize: 13, color: form.thinking_enabled ? '#a78bfa' : '#888' }}>
-                  {form.thinking_enabled ? '已开启（deepseek-v4-pro 等推理模型）' : '已关闭（deepseek-v4-flash 等标准模型）'}
+                  {form.thinking_enabled ? '已开启（deepseek-pro / qwen3 / qwq 等推理模型）' : '已关闭（标准模型不需要开启）'}
                 </span>
               </label>
             </div>

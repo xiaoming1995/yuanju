@@ -53,7 +53,7 @@ const borderColor = '#e0cca0'
 const sectionTitle = (text: string) => (
   <div style={{
     display: 'flex', alignItems: 'center', gap: 10,
-    marginBottom: 14,
+    marginBottom: 10,
   }}>
     <div style={{ height: 1, flex: 1, background: `linear-gradient(to right, transparent, ${borderColor})` }} />
     <span style={{
@@ -92,42 +92,67 @@ export default function PrintLayout({
   })
 
   const thS: React.CSSProperties = {
-    padding: '7px 10px', textAlign: 'center',
+    padding: '5px 8px', textAlign: 'center',
     fontSize: 11, fontWeight: 700, color: midBrown,
     borderBottom: `1px solid ${borderColor}`,
     background: '#faf3e4',
     letterSpacing: 1,
   }
   const tdS: React.CSSProperties = {
-    padding: '7px 10px', textAlign: 'center',
+    padding: '5px 8px', textAlign: 'center',
     fontSize: 12, color: darkBrown,
     borderBottom: `1px solid #f0e8d4`,
   }
   const tdLabelS: React.CSSProperties = {
     ...tdS, fontWeight: 700, color: midBrown,
     background: '#fdf8f0', textAlign: 'left',
-    paddingLeft: 12,
+    paddingLeft: 10,
   }
 
   return (
-    <div
-      className="print-only"
-      style={{
-        fontFamily: '"Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", serif',
-        color: darkBrown,
-        background: '#fff',
-        padding: '20mm 18mm',
-        maxWidth: 820,
-        margin: '0 auto',
-        lineHeight: 1.7,
-      }}
-    >
+    <div className="print-only">
+      {/*
+        用 table/thead 实现每页重复页头：
+        CSS 规范要求 thead 在分页打印时自动重复，这比 position:fixed 更可靠，
+        且不会遮挡正文内容流。
+      */}
+      <table className="print-page-table">
+        <thead>
+          <tr>
+            <td>
+              <div className="print-page-header">
+                <span className="print-page-header-brand">缘 聚 命 理</span>
+                <span className="print-page-header-center">命　理　命　书</span>
+                <span className="print-page-header-info">
+                  {birthYear}年{birthMonth}月{birthDay}日&nbsp;·&nbsp;{gender === 'male' ? '男命' : '女命'}
+                </span>
+              </div>
+              {/* 页头与正文之间的间距 */}
+              <div className="print-page-header-spacer" />
+            </td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style={{ verticalAlign: 'top', padding: 0 }}>
+
+      <div
+        style={{
+          fontFamily: '"Noto Serif SC", "Source Han Serif SC", "SimSun", "STSong", serif',
+          color: darkBrown,
+          background: '#fff',
+          padding: '0 16mm 14mm',
+          maxWidth: 820,
+          margin: '0 auto',
+          lineHeight: 1.6,
+        }}
+      >
       {/* ── 封面头部 ── */}
       <div style={{
         textAlign: 'center',
         borderBottom: `2px solid ${gold}`,
-        paddingBottom: 18,
-        marginBottom: 24,
+        paddingBottom: 12,
+        marginBottom: 16,
       }}>
         <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
           YUAN JU MING LI
@@ -156,7 +181,7 @@ export default function PrintLayout({
       </div>
 
       {/* ── 四柱 ── */}
-      <div style={{ marginBottom: 24, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+      <div style={{ marginBottom: 16, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
         {sectionTitle('四　柱　排　盘')}
         <table style={{ width: '100%', borderCollapse: 'collapse', border: `1px solid ${borderColor}` }}>
           <thead>
@@ -214,7 +239,7 @@ export default function PrintLayout({
 
       {/* ── 神煞 ── */}
       {allShensha.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 16 }}>
           {sectionTitle('神　煞')}
           <table style={{ width: '100%', borderCollapse: 'collapse', border: `1px solid ${borderColor}`, fontSize: 12 }}>
             <thead>
@@ -235,24 +260,24 @@ export default function PrintLayout({
                   background: i % 2 === 0 ? '#fff' : lightBg,
                   breakInside: 'avoid', pageBreakInside: 'avoid',
                 }}>
-                  <td style={{ padding: '6px 10px', textAlign: 'center', color: midBrown, fontWeight: 600, whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
+                  <td style={{ padding: '4px 8px', textAlign: 'center', color: midBrown, fontWeight: 600, whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
                     {sha.pillarLabel}
                   </td>
-                  <td style={{ padding: '6px 12px', textAlign: 'center', fontWeight: 700, color: SHA_COLOR[sha.polarity], whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
+                  <td style={{ padding: '4px 10px', textAlign: 'center', fontWeight: 700, color: SHA_COLOR[sha.polarity], whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
                     {sha.name}
                   </td>
-                  <td style={{ padding: '6px 8px', textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
+                  <td style={{ padding: '4px 6px', textAlign: 'center', whiteSpace: 'nowrap', borderBottom: `1px solid #f0e8d4` }}>
                     <span style={{
                       fontSize: 11, fontWeight: 700,
                       color: SHA_COLOR[sha.polarity],
                       background: SHA_BG[sha.polarity],
-                      padding: '1px 8px', borderRadius: 2,
+                      padding: '1px 6px', borderRadius: 2,
                     }}>
                       {sha.polarity === 'ji' ? '吉' : sha.polarity === 'xiong' ? '凶' : '中'}
                     </span>
                   </td>
-                  <td style={{ padding: '6px 12px', color: '#444', lineHeight: 1.7, borderBottom: `1px solid #f0e8d4`, fontSize: 11 }}>
-                    {sha.annotation?.short_desc || '—'}
+                  <td style={{ padding: '4px 10px', color: '#444', lineHeight: 1.6, borderBottom: `1px solid #f0e8d4`, fontSize: 11 }}>
+                    {sha.annotation?.short_desc || sha.annotation?.description || '—'}
                   </td>
                 </tr>
               ))}
@@ -262,21 +287,21 @@ export default function PrintLayout({
       )}
 
       {/* ── 命理解读 ── */}
-      <div style={{ marginBottom: 24, pageBreakBefore: 'always', breakBefore: 'page' }}>
+      <div style={{ marginBottom: 16, pageBreakBefore: 'always', breakBefore: 'page' }}>
         {sectionTitle('命　理　解　读')}
 
         {/* 命局分析总览 */}
         {analysis?.logic && (
           <div style={{
-            marginBottom: 18,
-            padding: '12px 16px',
+            marginBottom: 14,
+            padding: '10px 14px',
             background: lightBg,
             border: `1px solid ${borderColor}`,
             borderRadius: 3,
             breakInside: 'avoid',
             pageBreakInside: 'avoid',
           }}>
-            <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, marginBottom: 6, letterSpacing: 2 }}>
+            <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, marginBottom: 5, letterSpacing: 2 }}>
               ▍ 命局分析总览
             </div>
             <p style={{ fontSize: 12, color: darkBrown, lineHeight: 1.9, margin: 0 }}>
@@ -290,20 +315,20 @@ export default function PrintLayout({
             命理解读尚未生成
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {chapters.map((ch, i) => (
               <div key={i} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <div style={{
-                  fontSize: 13, fontWeight: 700, color: midBrown,
-                  marginBottom: 7,
-                  paddingBottom: 5,
+                  fontSize: 12, fontWeight: 700, color: midBrown,
+                  marginBottom: 5,
+                  paddingBottom: 4,
                   borderBottom: `1px dashed ${borderColor}`,
                   letterSpacing: 1,
                 }}>
                   【{ch.title}】
                 </div>
                 <p style={{
-                  fontSize: 12, color: darkBrown, lineHeight: 2,
+                  fontSize: 12, color: darkBrown, lineHeight: 1.85,
                   margin: 0,
                   fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
                 }}>
@@ -316,7 +341,7 @@ export default function PrintLayout({
       </div>
 
       {/* ── 大运总览 ── */}
-      <div style={{ marginBottom: 24, pageBreakBefore: 'always', breakBefore: 'page' }}>
+      <div style={{ marginBottom: 16 }}>
         {sectionTitle('大　运　总　览')}
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, border: `1px solid ${borderColor}` }}>
           <thead>
@@ -355,6 +380,12 @@ export default function PrintLayout({
         <span>本报告内容仅供参考，不构成任何决策建议。</span>
         <span style={{ color: gold, letterSpacing: 2 }}>缘 聚 命 理</span>
       </div>
+      </div>
+
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   )
 }

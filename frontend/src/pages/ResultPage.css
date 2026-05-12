@@ -656,6 +656,51 @@
     display: none !important;
   }
 
+  /* 每页重复页头：用 thead 实现，每页自动重复 */
+  .print-page-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .print-page-table thead {
+    display: table-header-group;
+  }
+  .print-page-table tbody {
+    display: table-row-group;
+  }
+  .print-page-table td {
+    padding: 0;
+  }
+  .print-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5mm 16mm 4mm;
+    border-bottom: 1px solid #e0cca0;
+    background: #fff;
+    font-family: "Noto Serif SC", "SimSun", serif;
+  }
+  .print-page-header-brand {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #b8952a;
+  }
+  .print-page-header-center {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #5a3a1a;
+  }
+  .print-page-header-info {
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #999;
+  }
+  /* 页头与正文之间的间距 */
+  .print-page-header-spacer {
+    height: 6mm;
+  }
+
   /* 防止表格行、段落在页中间被切断 */
   tr, p, li {
     break-inside: avoid;
