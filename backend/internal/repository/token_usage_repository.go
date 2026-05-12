@@ -35,7 +35,9 @@ type TokenUsageDetailRow struct {
 }
 
 // CreateTokenUsageLog 写入一条 token 用量记录；totalTokens==0 时跳过
-func CreateTokenUsageLog(userID *string, chartID *string, callType, model, providerID string, promptTokens, completionTokens, totalTokens, reasoningTokens, cacheHitTokens, cacheMissTokens int) error {
+func CreateTokenUsageLog(userID *string, chartID *string, callType, model, providerID string,
+	promptTokens, completionTokens, totalTokens, reasoningTokens, cacheHitTokens, cacheMissTokens int,
+	inputContent, outputContent string) error {
 	log.Printf("[TokenUsage] 写入调用: callType=%s userID=%v prompt=%d completion=%d total=%d reasoning=%d cacheHit=%d",
 		callType, userID, promptTokens, completionTokens, totalTokens, reasoningTokens, cacheHitTokens)
 	if totalTokens == 0 {
@@ -50,16 +52,30 @@ func CreateTokenUsageLog(userID *string, chartID *string, callType, model, provi
 		INSERT INTO token_usage_logs
 			(user_id, chart_id, call_type, model, provider_id,
 			 prompt_tokens, completion_tokens, total_tokens,
-			 reasoning_tokens, cache_hit_tokens, cache_miss_tokens)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+			 reasoning_tokens, cache_hit_tokens, cache_miss_tokens,
+			 input_content, output_content)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
 		userID, chartID, callType, model, providerIDPtr,
 		promptTokens, completionTokens, totalTokens,
 		reasoningTokens, cacheHitTokens, cacheMissTokens,
+		inputContent, outputContent,
 	)
 	if err != nil {
 		return fmt.Errorf("CreateTokenUsageLog: %w", err)
 	}
 	return nil
+}
+
+// GetTokenUsageContent 按 id 查询单条调用的输入/输出内容
+func GetTokenUsageContent(id string) (inputContent, outputContent string, err error) {
+	err = database.DB.QueryRow(`
+		SELECT COALESCE(input_content, ''), COALESCE(output_content, '')
+		FROM token_usage_logs WHERE id = $1`, id,
+	).Scan(&inputContent, &outputContent)
+	if err != nil {
+		return "", "", fmt.Errorf("GetTokenUsageContent: %w", err)
+	}
+	return inputContent, outputContent, nil
 }
 
 // GetTokenUsageSummary 按用户聚合 token 消耗，from/to 均为日期（含）。
