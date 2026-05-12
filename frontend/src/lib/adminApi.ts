@@ -122,6 +122,8 @@ export const adminTokenUsageAPI = {
     adminApi.get(
       `/api/admin/token-usage/detail?user_id=${userId}&from=${from}&to=${to}&page=${page}&limit=${limit}${model ? `&model=${encodeURIComponent(model)}` : ''}`
     ),
+  content: (id: string) =>
+    adminApi.get<{ input_content: string; output_content: string }>(`/api/admin/token-usage/content/${id}`),
 }
 
 export default adminApi
