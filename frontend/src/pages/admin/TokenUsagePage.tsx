@@ -33,6 +33,13 @@ interface DetailData {
   items: DetailRow[]
 }
 
+interface ContentModal {
+  id: string
+  loading: boolean
+  inputContent: string
+  outputContent: string
+}
+
 function fmt(n: number) {
   return n.toLocaleString('zh-CN')
 }
@@ -100,6 +107,7 @@ export default function TokenUsagePage() {
   const [detailPage, setDetailPage] = useState(1)
   const [detailLoading, setDetailLoading] = useState(false)
   const detailLimit = 20
+  const [contentModal, setContentModal] = useState<ContentModal | null>(null)
 
   const handleQuery = async () => {
     setLoading(true)
@@ -128,6 +136,16 @@ export default function TokenUsagePage() {
     setDrawerUser(null)
     setDetail(null)
     setDrawerModel('')
+  }
+
+  const openContent = async (id: string) => {
+    setContentModal({ id, loading: true, inputContent: '', outputContent: '' })
+    try {
+      const res = await adminTokenUsageAPI.content(id)
+      setContentModal({ id, loading: false, inputContent: res.data.input_content, outputContent: res.data.output_content })
+    } catch {
+      setContentModal(prev => prev ? { ...prev, loading: false, inputContent: '加载失败', outputContent: '' } : null)
+    }
   }
 
   const callTypeLabel: Record<string, string> = {
@@ -323,6 +341,7 @@ export default function TokenUsagePage() {
                       <th style={{ textAlign: 'right' }}>缓存命中</th>
                       <th style={{ textAlign: 'right' }}>费用</th>
                       <th style={{ textAlign: 'right' }}>总计</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -345,6 +364,15 @@ export default function TokenUsagePage() {
                           ¥ {item.estimated_cost_cny.toFixed(4)}
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(item.total_tokens)}</td>
+                        <td>
+                          <button
+                            className="admin-btn"
+                            style={{ padding: '2px 10px', fontSize: 12 }}
+                            onClick={() => openContent(item.id)}
+                          >
+                            查看
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -376,6 +404,72 @@ export default function TokenUsagePage() {
                 )}
               </>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* 内容查看 Modal */}
+      {contentModal && (
+        <div
+          onClick={() => setContentModal(null)}
+          style={{
+            position: 'fixed', inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            zIndex: 2000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#1a1f2e',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 12,
+              width: '90vw', maxWidth: 1100,
+              maxHeight: '85vh',
+              display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, color: '#e8e4d8' }}>调用内容详情</span>
+              <button className="admin-btn" onClick={() => setContentModal(null)}>关闭</button>
+            </div>
+            {contentModal.loading ? (
+              <div className="admin-loading" style={{ padding: 40 }}>加载中…</div>
+            ) : (
+              <div style={{ display: 'flex', flex: 1, overflow: 'hidden', gap: 1, background: 'rgba(255,255,255,0.05)' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1a1f2e' }}>
+                  <div style={{ padding: '10px 16px', fontSize: 12, color: '#9e9a8a', borderBottom: '1px solid rgba(255,255,255,0.06)', fontWeight: 600 }}>
+                    输入（Prompt）
+                  </div>
+                  <pre style={{
+                    flex: 1, overflowY: 'auto', margin: 0,
+                    padding: '12px 16px',
+                    fontSize: 12, color: '#c8c0b0',
+                    lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    fontFamily: 'monospace',
+                  }}>
+                    {contentModal.inputContent || '（无内容）'}
+                  </pre>
+                </div>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1a1f2e' }}>
+                  <div style={{ padding: '10px 16px', fontSize: 12, color: '#9e9a8a', borderBottom: '1px solid rgba(255,255,255,0.06)', fontWeight: 600 }}>
+                    输出（Response）
+                  </div>
+                  <pre style={{
+                    flex: 1, overflowY: 'auto', margin: 0,
+                    padding: '12px 16px',
+                    fontSize: 12, color: '#c8c0b0',
+                    lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    fontFamily: 'monospace',
+                  }}>
+                    {contentModal.outputContent || '（无内容）'}
+                  </pre>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
