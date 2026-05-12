@@ -170,7 +170,7 @@ export default function PastEventsPage() {
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
             {!yearsLoaded ? '正在加载年份时间轴……' :
              streamDone ? '已完成，所有大运总结已生成' :
-             '年份已就绪 · 大运 AI 总结正在后台生成'}
+             '年份已就绪 · 大运总结正在后台生成'}
           </div>
         </div>
       </div>
@@ -205,7 +205,7 @@ export default function PastEventsPage() {
         {yearsLoaded && events.length > 0 && (
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 20, textAlign: 'center' }}>
-              共推算 {events.length} 个年份 · 算法即时生成 · 大运总结由 AI 后台生成
+              共推算 {events.length} 个年份 · 算法即时生成 · 大运总结后台生成
             </div>
 
             {grouped.map(({ meta, years }) => {
@@ -244,7 +244,7 @@ export default function PastEventsPage() {
                       {dySum.loading && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                           <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                          AI 正在生成本段大运总结……
+                          正在生成本段大运总结……
                         </div>
                       )}
                       {dySum.error && (
@@ -376,7 +376,7 @@ export default function PastEventsPage() {
                 fontSize: '0.78rem',
                 color: '#e77',
               }}>
-                AI 大运总结流中断：{streamError}
+                大运总结生成中断：{streamError}
                 <button
                   onClick={loadAll}
                   style={{
@@ -397,7 +397,7 @@ export default function PastEventsPage() {
               color: 'var(--text-muted)',
               lineHeight: 1.6,
             }}>
-              本推算基于八字命理算法与 AI 语言生成，仅供参考，不构成任何决策建议。
+              本推算内容仅供参考，不构成任何决策建议。
             </div>
           </div>
         )}
