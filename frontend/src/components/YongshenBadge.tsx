@@ -67,7 +67,7 @@ export default function YongshenBadge({ yongshen, jishen }: YongshenBadgeProps) 
 
   return (
     <div className="yongshen-badge card">
-      <h3 className="yongshen-badge-title serif">✦ 命元特质</h3>
+      <h3 className="yongshen-badge-title serif">命元特质</h3>
 
       {/* 喜用神 */}
       {yongList.length > 0 && (

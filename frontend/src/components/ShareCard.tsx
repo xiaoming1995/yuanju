@@ -132,7 +132,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           fontFamily: '"Noto Serif SC", serif',
           marginBottom: 6,
         }}>
-          ✦ 缘 聚 命 理 ✦
+          缘 聚 命 理
         </div>
         <div style={{
           color: '#c4a06a',

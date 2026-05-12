@@ -216,13 +216,13 @@ export default function LiuYueDrawer({
             overflow: 'hidden'
           }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              ✨ {year}年运势精批
+              {year}年运势精批
             </h3>
             
             {!report && !reportLoading && (
               <div style={{ textAlign: 'center', padding: '10px 0' }}>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>
-                  让 AI 结合你的原局喜忌，详细推演本年运势全景
+                  结合原局喜忌，详细推演本年运势全景
                 </p>
                 <button
                   onClick={handleGenerateReport}
