@@ -313,3 +313,10 @@ body {
     padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important;
   }
 }
+
+@media print {
+  .navbar,
+  .bottom-nav,
+  canvas,
+  .particle-background { display: none !important; }
+}
