@@ -635,95 +635,19 @@
   margin-bottom: 0;
 }
 
-/* ===== 打印/导出 PDF 样式 ===== */
-@media print {
+/* ===== 打印 / PDF 样式 ===== */
 
-  /* 2.2 重置 CSS Variables 为明色主题（兼容深色主题打印） */
-  :root {
-    --bg-main: #fff !important;
-    --bg-surface: #f9f8f6 !important;
-    --text-color: #111 !important;
-    --text-muted: #555 !important;
-    --border-color: #ddd !important;
-    --accent-color: #8b6e4e !important;
-    --card-bg: #fff !important;
-    --card-border: #e0dcd6 !important;
-  }
-
-  /* 2.3 白底黑字 */
-  body {
-    background: #fff !important;
-    color: #111 !important;
-  }
-
-  /* 3.1 隐藏交互元素 */
-  .navbar,
-  .result-footer,
-  .report-mode-switcher,
-  .report-cta,
-  .guest-banner,
-  #export-report-btn,
-  .report-loading-area,
-  .form-error {
+/* 屏幕视图：隐藏打印布局 */
+@media screen {
+  .print-only {
     display: none !important;
   }
+}
 
-  /* 3.2 消除动画残留 */
-  .animate-fade-up {
-    animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  /* 4.1 卡片不跨页截断 */
-  .card {
-    page-break-inside: avoid;
-    break-inside: avoid;
-    box-shadow: none !important;
-    border: 1px solid #e0dcd6 !important;
-  }
-
-  /* 4.2 报告章节不截断 */
-  .report-block {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* 4.3 大运时间轴独立成页 */
-  .dayun-section {
-    page-break-before: always;
-    break-before: always;
-  }
-
-  /* 容器宽度适配打印 */
-  .container {
-    max-width: 100% !important;
-    padding: 0 16px !important;
-  }
-
-  .result-page {
-    padding-top: 0 !important;
-  }
-
-  .page {
-    padding-top: 0 !important;
-  }
-
-  /* 报告区标题行打印时不需要 flex */
-  .report-section-header {
-    margin-bottom: 12px;
-  }
-
-  /* 5.1 品牌页脚 */
-  .result-page::after {
-    content: "缘聚命理 · 本报告由 AI 辅助生成，仅供参考 · yuanju.com";
-    display: block;
-    text-align: center;
-    font-size: 11px;
-    color: #999;
-    margin-top: 32px;
-    border-top: 1px solid #eee;
-    padding-top: 12px;
+/* 打印时：隐藏屏幕内容，仅渲染打印布局 */
+@media print {
+  .screen-only {
+    display: none !important;
   }
 }
 
