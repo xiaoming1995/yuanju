@@ -173,9 +173,11 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 	if aiErr != nil {
 		return nil, aiErr
 	}
+	compatPrompt := parsed.String()
 	go func(uid string) {
 		if logErr := repository.CreateTokenUsageLog(&uid, nil, "compatibility", modelName, providerID,
-			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, usage.ReasoningTokens, usage.CacheHitTokens, usage.CacheMissTokens); logErr != nil {
+			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, usage.ReasoningTokens, usage.CacheHitTokens, usage.CacheMissTokens,
+			compatPrompt, rawContent); logErr != nil {
 			log.Printf("[TokenUsage] compatibility 写入失败: %v", logErr)
 		}
 	}(userID)

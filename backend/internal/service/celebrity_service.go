@@ -30,7 +30,8 @@ JSON 数组中每一个对象的结构必须完全符合以下要求：
 	}
 	go func() {
 		if logErr := repository.CreateTokenUsageLog(nil, nil, "celebrity", modelName, providerID,
-			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, usage.ReasoningTokens, usage.CacheHitTokens, usage.CacheMissTokens); logErr != nil {
+			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, usage.ReasoningTokens, usage.CacheHitTokens, usage.CacheMissTokens,
+			prompt, content); logErr != nil {
 			log.Printf("[TokenUsage] celebrity 写入失败: %v", logErr)
 		}
 	}()
