@@ -109,7 +109,7 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
     <div className="dayun-timeline-container">
       {startYunSolar && (
         <div style={{ textAlign: 'center', marginBottom: 16, color: 'var(--text-muted)', fontSize: 13, letterSpacing: 1 }}>
-          ✦ 精确交运时间：{startYunSolar} ✦
+          精确交运时间：{startYunSolar}
         </div>
       )}
       
@@ -218,9 +218,8 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
           border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-md)',
         }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-accent)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>✦</span>
-            <span>{activeDayun.gan}{activeDayun.zhi}大运流年</span>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-accent)', marginBottom: 16 }}>
+            {activeDayun.gan}{activeDayun.zhi}大运流年
           </div>
           
           <div className="liunian-grid">
@@ -271,11 +270,11 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
                       
                       {/* 分割与交脱提示 */}
                       <div style={{ width: '100%', borderTop: '1px dashed var(--border-subtle)', position: 'relative', display: 'flex', justifyContent: 'center' }}>
-                        <div style={{ 
-                          position: 'absolute', top: -8, background: 'var(--bg-elevated)', padding: '0 4px', fontSize: 9, 
-                          color: 'var(--wu-jin)', display: 'flex', alignItems: 'center', gap: 2, borderRadius: 2
+                        <div style={{
+                          position: 'absolute', top: -8, background: 'var(--bg-elevated)', padding: '0 4px', fontSize: 9,
+                          color: 'var(--wu-jin)', borderRadius: 2
                         }}>
-                          <span>⚡</span>{ln.trans_month}月{ln.trans_day}日交脱
+                          {ln.trans_month}月{ln.trans_day}日交脱
                         </div>
                       </div>
                       
