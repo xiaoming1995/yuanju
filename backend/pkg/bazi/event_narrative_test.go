@@ -71,6 +71,71 @@ func TestRenderYearNarrative_YoungAgeUsesSchoolAndPersonalityWording(t *testing.
 	}
 }
 
+func TestRenderYearNarrative_AdjacentYoungYearsDoNotRepeatGenericChangeOpening(t *testing.T) {
+	years := []YearSignals{
+		{
+			Year:   2004,
+			Age:    9,
+			GanZhi: "甲申",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年地支申合年支巳（祖荫/根基），家族/根基方面易有正向事件", Polarity: PolarityJi, Source: SourceZhuwei},
+				{Type: TypeXueYeYaLi, Evidence: "甲透干为七杀，少年期官星临运，学业上有规则约束或重大考核", Polarity: PolarityNeutral, Source: SourceZhuwei},
+			},
+		},
+		{
+			Year:   2005,
+			Age:    10,
+			GanZhi: "乙酉",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年地支酉合时柱丁辰（子女/晚景宫）", Polarity: PolarityJi, Source: SourceZhuwei},
+				{Type: TypeXingGeQingYi, Evidence: "流年地支酉为桃花星临命，少年期人缘旺 / 同窗喜事多", Polarity: PolarityNeutral, Source: SourceZhuwei},
+			},
+		},
+		{
+			Year:   2006,
+			Age:    11,
+			GanZhi: "丙戌",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年地支戌落日柱旬空（戌亥空），事件虚而不实/过而不留", Polarity: PolarityNeutral, Source: SourceKongwang},
+				{Type: "健康", Evidence: "流年天干丙（火）克制日干庚（金），日主元气受损，需注意身体健康", Polarity: PolarityXiong, Source: SourceZhuwei},
+			},
+		},
+	}
+
+	openings := map[string]bool{}
+	for _, ys := range years {
+		narrative := RenderYearNarrative(ys)
+		if strings.Contains(narrative, "变化感会比较强") {
+			t.Fatalf("young-age narrative used generic repeated change opening: %s", narrative)
+		}
+		opening := firstSentence(narrative)
+		if openings[opening] {
+			t.Fatalf("repeated opening sentence %q for narrative: %s", opening, narrative)
+		}
+		openings[opening] = true
+	}
+}
+
+func TestRenderYearNarrative_StrongChangeStillDominates(t *testing.T) {
+	ys := YearSignals{
+		Year:   2012,
+		Age:    17,
+		GanZhi: "壬辰",
+		Signals: []EventSignal{
+			{Type: TypeXueYeGuiRen, Evidence: "壬透干为正印，少年期印星护身，得师长指点", Polarity: PolarityJi, Source: SourceZhuwei},
+			{Type: "伏吟", Evidence: "流年壬辰伏吟日柱壬辰，主同类事件重现/旧事重提", Polarity: PolarityXiong, Source: SourceFuyin},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if !strings.Contains(got, "旧事") && !strings.Contains(got, "反复") && !strings.Contains(got, "重复") {
+		t.Fatalf("expected strong change wording for fuyin, got: %s", got)
+	}
+	if strings.Contains(got, "伏吟") {
+		t.Fatalf("narrative leaked technical fuyin term: %s", got)
+	}
+}
+
 func TestRenderEvidenceSummary_SelectsTechnicalEvidence(t *testing.T) {
 	ys := YearSignals{
 		Year:   2025,
@@ -93,4 +158,12 @@ func TestRenderEvidenceSummary_SelectsTechnicalEvidence(t *testing.T) {
 	if len(got) > 5 {
 		t.Fatalf("expected at most 5 evidence items, got %d: %#v", len(got), got)
 	}
+}
+
+func firstSentence(s string) string {
+	idx := strings.Index(s, "。")
+	if idx < 0 {
+		return s
+	}
+	return s[:idx+len("。")]
 }
