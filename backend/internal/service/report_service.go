@@ -944,13 +944,14 @@ func GeneratePastEventsStream(chartID string, userID *string, onData func(string
 
 // PastEventsYearItem 单个年份的算法+模板叙述
 type PastEventsYearItem struct {
-	Year        int      `json:"year"`
-	Age         int      `json:"age"`
-	GanZhi      string   `json:"gan_zhi"`
-	DayunGanZhi string   `json:"dayun_gan_zhi"`
-	DayunIndex  int      `json:"dayun_index"`
-	Signals     []string `json:"signals"`
-	Narrative   string   `json:"narrative"`
+	Year            int      `json:"year"`
+	Age             int      `json:"age"`
+	GanZhi          string   `json:"gan_zhi"`
+	DayunGanZhi     string   `json:"dayun_gan_zhi"`
+	DayunIndex      int      `json:"dayun_index"`
+	Signals         []string `json:"signals"`
+	Narrative       string   `json:"narrative"`
+	EvidenceSummary []string `json:"evidence_summary,omitempty"`
 }
 
 // PastEventsYearsResponse 一次性返回所有年份的算法叙述（无 AI）
@@ -1007,13 +1008,14 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 	years := make([]PastEventsYearItem, 0, len(yearSignals))
 	for _, ys := range yearSignals {
 		years = append(years, PastEventsYearItem{
-			Year:        ys.Year,
-			Age:         ys.Age,
-			GanZhi:      ys.GanZhi,
-			DayunGanZhi: ys.DayunGanZhi,
-			DayunIndex:  dyIndex[ys.DayunGanZhi],
-			Signals:     bazi.ExtractYearSignalTypes(ys),
-			Narrative:   bazi.RenderYearNarrative(ys),
+			Year:            ys.Year,
+			Age:             ys.Age,
+			GanZhi:          ys.GanZhi,
+			DayunGanZhi:     ys.DayunGanZhi,
+			DayunIndex:      dyIndex[ys.DayunGanZhi],
+			Signals:         bazi.ExtractYearSignalTypes(ys),
+			Narrative:       bazi.RenderYearNarrative(ys),
+			EvidenceSummary: bazi.RenderEvidenceSummary(ys),
 		})
 	}
 

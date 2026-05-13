@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronLeft, Loader2 } from 'lucide-react'
 import { baziAPI } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -12,6 +12,7 @@ interface YearEvent {
   dayun_index: number
   signals: string[]
   narrative: string
+  evidence_summary?: string[]
 }
 
 interface DayunMeta {
@@ -71,6 +72,7 @@ export default function PastEventsPage() {
   const [events, setEvents] = useState<YearEvent[]>([])
   const [dayunMeta, setDayunMeta] = useState<DayunMeta[]>([])
   const [summaries, setSummaries] = useState<Record<number, DayunSummary>>({})
+  const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({})
   const [streamDone, setStreamDone] = useState(false)
   const [streamError, setStreamError] = useState('')
   const inflightRef = useRef(false)
@@ -92,6 +94,7 @@ export default function PastEventsPage() {
     setYearsError('')
     setStreamDone(false)
     setStreamError('')
+    setExpandedEvidence({})
 
     // Stage 1: 即时拿所有年份（毫秒级）
     try {
@@ -300,6 +303,9 @@ export default function PastEventsPage() {
                       const wx = WUXING_GAN[gan] || 'tu'
                       const hasSignals = y.signals && y.signals.length > 0
                       const isFuture = y.year > currentYear
+                      const evidenceKey = `${meta.index}-${y.year}`
+                      const hasEvidence = Boolean(y.evidence_summary?.length)
+                      const evidenceOpen = Boolean(expandedEvidence[evidenceKey])
                       return (
                         <div
                           key={y.year}
@@ -359,6 +365,51 @@ export default function PastEventsPage() {
                           <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
                             {y.narrative}
                           </div>
+                          {hasEvidence && (
+                            <div style={{ marginTop: 10 }}>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedEvidence((prev) => ({
+                                  ...prev,
+                                  [evidenceKey]: !prev[evidenceKey],
+                                }))}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  border: 'none',
+                                  background: 'transparent',
+                                  color: 'var(--text-muted)',
+                                  fontSize: '0.72rem',
+                                  padding: '2px 0',
+                                  cursor: 'pointer',
+                                }}
+                                aria-expanded={evidenceOpen}
+                              >
+                                <ChevronDown
+                                  size={14}
+                                  style={{
+                                    transform: evidenceOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                    transition: 'transform 0.16s ease',
+                                  }}
+                                />
+                                命理依据
+                              </button>
+                              {evidenceOpen && (
+                                <ul style={{
+                                  margin: '8px 0 0',
+                                  paddingLeft: 18,
+                                  color: 'var(--text-muted)',
+                                  fontSize: '0.72rem',
+                                  lineHeight: 1.65,
+                                }}>
+                                  {y.evidence_summary!.map((ev, idx) => (
+                                    <li key={`${evidenceKey}-${idx}`}>{ev}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
