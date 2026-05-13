@@ -102,6 +102,10 @@ type BaziResult struct {
 	// 调候用神（基于《穷通宝鉴》查表精算）
 	Tiaohou *TiaohouResult `json:"tiaohou"`
 
+	// 命格（月令透干取格法）
+	MingGe     string `json:"ming_ge"`
+	MingGeDesc string `json:"ming_ge_desc"`
+
 	Dayun         []DayunItem `json:"dayun"`
 	StartYunSolar string      `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
 	Gender        string      `json:"gender"`
@@ -453,6 +457,9 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 
 	// 计算调候用神
 	res.Tiaohou = calcTiaohou(res)
+
+	// 计算命格（七优先级透干取格）
+	res.MingGe, res.MingGeDesc = DetectMingGe(res)
 
 	return res
 }

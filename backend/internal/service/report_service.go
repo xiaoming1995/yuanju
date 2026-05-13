@@ -122,7 +122,7 @@ type structuredReport struct {
 // v2 优化：现代解读风格、月令格局推断CoT（子平真诠）、调候用神注入（穷通宝鉴）、
 //
 //	章节数据锚点、大运时间定位（注入当前年份）
-func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string {
+func buildBaziPrompt(r *bazi.BaziResult) string {
 	currentYear := time.Now().Year()
 
 	joinOrNone := func(ss []string) string {
@@ -233,16 +233,101 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		)
 	}
 
-	// ===名人参考库===
-	celebStr := ""
-	if len(celebs) > 0 {
-		celebStr = "\n[名人参考库]\n"
-		for _, c := range celebs {
-			celebStr += fmt.Sprintf("- %s（%s）: 特征=[%s]\n", c.Name, c.Career, c.Traits)
+	// ===系统定格结果===
+	minggeStr := ""
+	hasSystemMingge := strings.TrimSpace(r.MingGe) != ""
+	if hasSystemMingge {
+		minggeDesc := strings.TrimSpace(r.MingGeDesc)
+		if minggeDesc == "" {
+			minggeDesc = "该格局由后端命格引擎按月令透干优先法自动判定。"
 		}
+		minggeStr = fmt.Sprintf(
+			"\n[系统定格结果]\n"+
+				"本命局已由后端命格引擎完成定格，以下格局结论为唯一有效主格，请严格以此为准，不得重新改判格名。\n"+
+				"主格：%s\n"+
+				"格局说明：%s\n"+
+				"解释边界：\n"+
+				"1. 你可以判断此格局在原局中属于成格、破格、有救、偏弱，或受杂气干扰。\n"+
+				"2. 你可以说明该格局与调候、用神、神煞之间的关系。\n"+
+				"3. 你可以写“兼带某某倾向”或“局中亦见某某气象”，但不得把主格改写成其他格局。\n"+
+				"4. 若你认为传统流派存在其他取格可能，只能作为补充说明，不得覆盖主格结论。\n",
+			r.MingGe,
+			minggeDesc,
+		)
 	}
 
 	dayunYear := fmt.Sprintf("%d", currentYear)
+
+	var stepOnePrompt string
+	var stepTwoPrompt string
+	if hasSystemMingge {
+		stepOnePrompt = fmt.Sprintf("[第一步：三模块综合解释（在心中完成，不要在报告中输出计算过程）]\n"+
+			"⚠️ 必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
+			"a. 【调候判断 — 主导依据】\n"+
+			"   月支=%s%s，主气十神=%s\n"+
+			"   读取[调候用神-穷通宝鉴精算]区块，判断命局寒暖燥湿是否平衡；\n"+
+			"   判断调候用神是否透干、是否得地、是否仍需大运补足；\n"+
+			"   若调候明显失衡，需在最终分析中明确指出“调候优先”。\n\n"+
+			"b. 【格局解释 — 以系统定格为准】\n"+
+			"   主格固定为[系统定格结果]中的格局，不得改判；\n"+
+			"   你只需判断该格局在原局中是否成格、是否受破、是否有救、是否偏弱；\n"+
+			"   结合月令、透干、生扶、制化关系，解释此格为何成立、为何受损、为何仍可用或不可尽信；\n"+
+			"   若局中同时存在其它明显结构，必须明确写出“兼带某某倾向”或“局中亦见某某气象”一句，再继续解释主次关系；\n"+
+			"   格局模块用于解释主格，不再重新决定格局名称。\n\n"+
+			"c. 【神煞修饰 — 辅助依据】\n"+
+			"   扫描命盘全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
+			"   判断关键神煞如何修饰人格特征、事件色彩与运势表现；\n"+
+			"   神煞不得推翻系统定格结果，也不得单独决定最终喜忌。\n\n"+
+			"d. 【综合结论】\n"+
+			"   先确认系统主格的成立程度，再结合调候与全局五行，判断最终喜用神与忌神；\n"+
+			"   若格局倾向与调候方向不一致，必须明确说明主次，例如：“虽以某格立局，但原局寒湿偏重，仍当先取火土调候为先。”\n\n",
+			r.MonthGan, r.MonthZhi, firstShiShen(r.MonthZhiShiShen),
+		)
+		stepTwoPrompt = "[第二步：生成命局分析总览 analysis.logic]\n" +
+			"写一段整体分析（300-500字），专业命理分析风格，如实批断，不偏不倚，并严格遵循以下结构：\n" +
+			"- 开头必须先写系统主格，使用“此命以【X格】立局”或同义表达；\n" +
+			"- 紧接着说明该格局在原局中属于成格、破格、有救、偏弱中的哪一种；\n" +
+			"- 然后说明该格局与调候、最终喜用神之间的关系；\n" +
+			"- 首段直接说明命盘的核心喜用神与忌神。阐述依据时，需通过自然语言融合调候、格局与神煞的结论。绝对禁止出现“百分比”、“加权”、“权重”、“65%”等机械化算分词汇。\n" +
+			"- 若模块存在冲突（如格局倾向与调候方向不一致），请用专业口吻解释主次取舍（例如：“虽以正官格立局，但命局偏寒，首当以火土暖局为要”）。\n" +
+			"- 若局中兼象明显，必须显式写出“兼带某某倾向”或“局中亦见某某气象”，但不得覆盖系统主格。\n" +
+			"- 接续说明日干强弱依据（月令得令、失令状态）\n" +
+			"- 提取1~2个最亮眼的特征或神煞进行个性点评\n" +
+			"- 若命局存在明显缺陷（如格局遭破、用神缺失、忌神过重），必须如实指出，不可回避或美化。\n\n" +
+			"[格局一致性约束]\n" +
+			"最终输出中，凡涉及格局主名的表述，必须与[系统定格结果]一致。\n" +
+			"若存在其它结构，只能写为“兼带某某倾向”或“局中亦见某某气象”，不得覆盖系统主格。\n\n"
+	} else {
+		stepOnePrompt = fmt.Sprintf("[第一步：三模块加权推断（在心中完成，不要在报告中输出计算过程）]\n"+
+			"⚠️ 必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
+			"a. 【调候用神评分 — 权重65票】\n"+
+			"   月支=%s%s，主气十神=%s\n"+
+			"   读取[调候用神-穷通宝鉴精算]区块的精算数据和大运征兆；\n"+
+			"   对每个五行/天干判断方向：喜→该五行 +65票，忌→该五行 -65票。\n\n"+
+			"b. 【格局评分 — 权重25票】\n"+
+			"   严格按 System Prompt 中的【格局判断规则】公式执行：\n"+
+			"   ①查月支藏干权重表，按权重顺序检查是否透出天干；\n"+
+			"   ②有透干者以透干十神定格，无透干者以月令本气定格（弱格）；\n"+
+			"   ③按知识库「格局高低」判断成格/破格；\n"+
+			"   ④按知识库「用神取法」确定格局喜用神；\n"+
+			"   对格局喜用神五行 +25票，忌神五行 -25票。\n\n"+
+			"c. 【神煞综合评分 — 权重10票】\n"+
+			"   扫描命盘全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
+			"   判断每个神煞对各五行的影响方向：利→ +10票，不利→ -10票，中性→ 0票。\n\n"+
+			"d. 【加权合并】\n"+
+			"   对每个五行汇总 a+b+c 的总票数；\n"+
+			"   总分为正 → 喜用神；总分为负 → 忌神；\n"+
+			"   若模块间方向矛盾，以票数高者为准，标注「[模块]与调候存在出入，以调候优先」。\n\n",
+			r.MonthGan, r.MonthZhi, firstShiShen(r.MonthZhiShiShen),
+		)
+		stepTwoPrompt = "[第二步：生成命局分析总览 analysis.logic]\n" +
+			"写一段整体分析（300-500字），专业命理分析风格，如实批断，不偏不倚：\n" +
+			"- 首段直接说明命盘的核心喜用神与忌神。阐述依据时，需通过自然语言融合调候、格局与神煞的结论。绝对禁止出现“百分比”、“加权”、“权重”、“65%”等机械化算分词汇。\n" +
+			"- 若模块存在冲突（如格局用神与调候用神不一致），请用专业口吻解释主次取舍（例如：“虽因格局喜水木，但命局偏寒，首当以火土暖局为要”）。\n" +
+			"- 接续说明日干强弱依据（月令得令、失令状态）\n" +
+			"- 提取1~2个最亮眼的特征或神煞进行个性点评\n" +
+			"- 若命局存在明显缺陷（如用神缺失、忌神过重、格局遭破），必须如实指出，不可回避或美化。\n\n"
+	}
 
 	prompt := "以下命盘数据已由算法精确计算，请基于精算结果进行深度命理解读。\n\n" +
 		fmt.Sprintf("[八字命盘]\n"+
@@ -289,45 +374,17 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		) +
 		yongshenHint +
 		tiaohouStr +
-		celebStr +
+		minggeStr +
 		"\n" +
-		fmt.Sprintf("[第一步：三模块加权推断（在心中完成，不要在报告中输出计算过程）]\n"+
-			"⚠️ 必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
-			"a. 【调候用神评分 — 权重65票】\n"+
-			"   月支=%s%s，主气十神=%s\n"+
-			"   读取[调候用神-穷通宝鉴精算]区块的精算数据和大运征兆；\n"+
-			"   对每个五行/天干判断方向：喜→该五行 +65票，忌→该五行 -65票。\n\n"+
-			"b. 【格局评分 — 权重25票】\n"+
-			"   严格按 System Prompt 中的【格局判断规则】公式执行：\n"+
-			"   ①查月支藏干权重表，按权重顺序检查是否透出天干；\n"+
-			"   ②有透干者以透干十神定格，无透干者以月令本气定格（弱格）；\n"+
-			"   ③按知识库「格局高低」判断成格/破格；\n"+
-			"   ④按知识库「用神取法」确定格局喜用神；\n"+
-			"   对格局喜用神五行 +25票，忌神五行 -25票。\n\n"+
-			"c. 【神煞综合评分 — 权重10票】\n"+
-			"   扫描命盘全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
-			"   判断每个神煞对各五行的影响方向：利→ +10票，不利→ -10票，中性→ 0票。\n\n"+
-			"d. 【加权合并】\n"+
-			"   对每个五行汇总 a+b+c 的总票数；\n"+
-			"   总分为正 → 喜用神；总分为负 → 忌神；\n"+
-			"   若模块间方向矛盾，以票数高者为准，标注「[模块]与调候存在出入，以调候优先」。\n\n",
-			r.MonthGan, r.MonthZhi, firstShiShen(r.MonthZhiShiShen),
-		) +
-		"[第二步：生成命局分析总览 analysis.logic]\n" +
-		"写一段整体分析（300-500字），专业命理分析风格，如实批断，不偏不倚：\n" +
-		"- 首段直接说明命盘的核心喜用神与忌神。阐述依据时，需通过自然语言融合调候、格局与神煞的结论。绝对禁止出现“百分比”、“加权”、“权重”、“65%”等机械化算分词汇。\n" +
-		"- 若模块存在冲突（如格局用神与调候用神不一致），请用专业口吻解释主次取舍（例如：“虽因格局喜水木，但命局偏寒，首当以火土暖局为要”）。\n" +
-		"- 接续说明日干强弱依据（月令得令、失令状态）\n" +
-		"- 提取1~2个最亮眼的特征或神煞进行个性点评\n" +
-		"- 若命局存在明显缺陷（如用神缺失、忌神过重、格局遭破），必须如实指出，不可回避或美化。\n\n" +
+		stepOnePrompt +
+		stepTwoPrompt +
 		"[第三步：六章节报告指引]\n" +
 		"各个章节在进行深度分析时，请务必参考以下依据（每部分不仅要写精简版结论，还要写专业版拆解）：\n" +
 		"- 【性格特质】参考日干天性、日支十二长生、关键神煞等，既指出优势也需指出潜在短板。\n" +
 		"- 【感情运势】男看财女看官，结合配偶宫（日支）与桃花红鸾等神煞，分析婚姻稳定性。\n" +
 		"- 【事业财运】看官杀与食伤透出情况、财星旺衰、天乙与驿马等，指明职业方向与瓶颈。\n" +
 		"- 【健康提示】看全局五行最旺与最弱项对应的脏腑（木肝胆/火心脑/土脾胃/金肺肠/水肾膀），给出养生建议。\n" +
-		"- 【大运走势】当前年份=" + dayunYear + "年，结合给出的大运序列推算所处步次。请重点解读上一步大运（回顾）、当前大运（现状）和下一步大运（展望）。\n" +
-		"- 【命理分身】根据日主五行特质与格局神煞，与上方[名人参考库]中最相近的名人匹配，剖析相似点并给出寄语。\n\n" +
+		"- 【大运走势】当前年份=" + dayunYear + "年，结合给出的大运序列推算所处步次。请重点解读上一步大运（回顾）、当前大运（现状）和下一步大运（展望）。\n\n" +
 		"[第四步：严格输出 Markdown 格式]\n" +
 		"请必须使用以下严格的 Markdown 标题结构来输出最终结果。必须包含以下所有二级标题，并且标题名称必须一字不差，不要输出额外的多余信息或开头语：\n\n" +
 		"## 【喜用神】\n" +
@@ -342,8 +399,7 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 		"## 【感情运势-精简版】\n\n## 【感情运势-专业版】\n\n" +
 		"## 【事业财运-精简版】\n\n## 【事业财运-专业版】\n\n" +
 		"## 【健康提示-精简版】\n\n## 【健康提示-专业版】\n\n" +
-		"## 【大运走势-精简版】\n\n## 【大运走势-专业版】\n\n" +
-		"## 【命理分身-精简版】\n一句话提炼相似名人核心特质\n\n## 【命理分身-专业版】\n相似度剖析与寄语\n"
+		"## 【大运走势-精简版】\n\n## 【大运走势-专业版】\n"
 
 	return prompt
 }
@@ -351,8 +407,7 @@ func buildBaziPrompt(r *bazi.BaziResult, celebs []model.CelebrityRecord) string 
 // GenerateAIReport 生成 AI 报告（始终调 LLM，生成后覆盖存库）
 func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (*model.AIReport, error) {
 	// 构建 Prompt 并调用 AI
-	celebs, _ := repository.ListCelebrities(true)
-	prompt := buildBaziPrompt(result, celebs)
+	prompt := buildBaziPrompt(result)
 	rawContent, modelName, providerID, durationMs, usage, aiErr := callAIWithSystem(prompt)
 
 	// 记录调用日志（无论成功失败）
@@ -396,81 +451,14 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (
 		cleanJSON = cleanJSON[firstBrace : lastBrace+1]
 	}
 
-	var parsed structuredReport
-	var contentStructured *json.RawMessage
-	briefContent := ""
-
-	// 尝试解析新结构化格式（第一次：原始内容）
-	trimmedJSON := strings.TrimSpace(cleanJSON)
-	if errParse := json.Unmarshal([]byte(trimmedJSON), &parsed); errParse != nil {
-		// 第一次失败：用状态机修复字符串内的非法控制字符（如真实换行）
-		fixedJSON := fixJSONStrings(trimmedJSON)
-		if errFix := json.Unmarshal([]byte(fixedJSON), &parsed); errFix == nil {
-			cleanJSON = fixedJSON // 用修复后的版本继续
-		}
-		// 无论修复是否成功，继续走下面的条件判断
-	}
-	if len(parsed.Chapters) > 0 && parsed.Analysis.Logic != "" {
-		// 新格式解析成功：拼接 brief 作为兜底 content
-		parts := []string{}
-		if parsed.Analysis.Summary != "" {
-			parts = append(parts, "【命局概要】\n"+parsed.Analysis.Summary)
-		}
-		for _, ch := range parsed.Chapters {
-			if ch.Brief != "" {
-				parts = append(parts, "【"+ch.Title+"】\n"+ch.Brief)
-			} else if ch.Detail != "" {
-				parts = append(parts, "【"+ch.Title+"】\n"+ch.Detail)
-			}
-		}
-		briefContent = strings.Join(parts, "\n\n")
-
-		// 写入结构化 JSON
-		raw, _ := json.Marshal(parsed)
-		rawMsg := json.RawMessage(raw)
-		contentStructured = &rawMsg
-	} else {
-		// 降级：尝试旧格式（{yongshen, jishen, report}）
-		type legacyResult struct {
-			Yongshen string `json:"yongshen"`
-			Jishen   string `json:"jishen"`
-			Report   string `json:"report"`
-		}
-		var legacy legacyResult
-		if errLegacy := json.Unmarshal([]byte(strings.TrimSpace(cleanJSON)), &legacy); errLegacy == nil && legacy.Report != "" {
-			parsed.Yongshen = legacy.Yongshen
-			parsed.Jishen = legacy.Jishen
-			briefContent = legacy.Report
-		} else {
-			// 正则兜底提取
-			importRegexp := regexp.MustCompile(`"yongshen"\s*:\s*"([^"]+)"`)
-			matchY := importRegexp.FindStringSubmatch(cleanJSON)
-			if len(matchY) > 1 {
-				parsed.Yongshen = matchY[1]
-			}
-			jishenRegexp := regexp.MustCompile(`"jishen"\s*:\s*"([^"]+)"`)
-			matchJ := jishenRegexp.FindStringSubmatch(cleanJSON)
-			if len(matchJ) > 1 {
-				parsed.Jishen = matchJ[1]
-			}
-			reportRegexp := regexp.MustCompile(`(?s)"report"\s*:\s*"(.*?)"\s*}`)
-			matchR := reportRegexp.FindStringSubmatch(cleanJSON)
-			if len(matchR) > 1 && strings.TrimSpace(matchR[1]) != "" {
-				briefContent = strings.TrimSpace(matchR[1])
-			}
-		}
-
-		// 全部失败：原始文本作为报告
-		if briefContent == "" {
-			fmt.Printf("[AI Report] 解析失败，使用原始内容。原始返回（前200字）：%s\n", rawContent[:min(200, len(rawContent))])
-			briefContent = rawContent
-		}
-		// 降级路径：content_structured 置 nil
-		contentStructured = nil
+	parsed, briefContent, contentStructured := parseAIReportContent(rawContent, cleanJSON)
+	if briefContent == "" {
+		fmt.Printf("[AI Report] 解析失败，使用原始内容。原始返回（前200字）：%s\n", rawContent[:min(200, len(rawContent))])
+		briefContent = rawContent
 	}
 
 	// 回写喜忌到 chart
-	if chartID != "" && (parsed.Yongshen != "" || parsed.Jishen != "") {
+	if chartID != "" && parsed != nil && (parsed.Yongshen != "" || parsed.Jishen != "") {
 		repository.UpdateChartYongshenJishen(chartID, parsed.Yongshen, parsed.Jishen)
 		result.Yongshen = parsed.Yongshen
 		result.Jishen = parsed.Jishen
@@ -492,8 +480,7 @@ func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *str
 	t0 := time.Now()
 
 	// 构建 Prompt
-	celebs, _ := repository.ListCelebrities(true)
-	prompt := buildBaziPrompt(result, celebs)
+	prompt := buildBaziPrompt(result)
 	log.Printf("[ReportStream T+%dms] Prompt 构建完成 (长度=%d 字符)", time.Since(t0).Milliseconds(), len(prompt))
 
 	rawContent, modelName, providerID, durationMs, usage, aiErr := StreamAIWithSystem(prompt, onData, onThinking)
@@ -521,13 +508,8 @@ func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *str
 	}
 
 	// 流结束后，异步或同步将 rawContent 处理成 JSON 持久化，供分享和旧接口使用
-	parsed, briefContent := ParseMarkdownToStructured(rawContent)
-	var contentStructured *json.RawMessage
-	if parsed != nil && len(parsed.Chapters) > 0 {
-		raw, _ := json.Marshal(parsed)
-		rawMsg := json.RawMessage(raw)
-		contentStructured = &rawMsg
-
+	parsed, briefContent, contentStructured := parseAIReportContent(rawContent, "")
+	if parsed != nil && contentStructured != nil {
 		if chartID != "" && (parsed.Yongshen != "" || parsed.Jishen != "") {
 			repository.UpdateChartYongshenJishen(chartID, parsed.Yongshen, parsed.Jishen)
 		}
@@ -565,7 +547,7 @@ func ParseMarkdownToStructured(md string) (*structuredReport, string) {
 	parsed.Analysis.Summary = extractSection(md, "命理摘要")
 	parsed.Analysis.Logic = extractSection(md, "命局分析总览")
 
-	chapters := []string{"性格特质", "感情运势", "事业财运", "健康提示", "大运走势", "命理分身"}
+	chapters := []string{"性格特质", "感情运势", "事业财运", "健康提示", "大运走势"}
 	for _, title := range chapters {
 		brief := extractSection(md, title+"-精简版")
 		detail := extractSection(md, title+"-专业版")
@@ -590,10 +572,68 @@ func ParseMarkdownToStructured(md string) (*structuredReport, string) {
 			parts = append(parts, "【"+ch.Title+"】\n"+ch.Detail)
 		}
 	}
-	
+
 	briefText := strings.Join(parts, "\n\n")
 
 	return &parsed, briefText
+}
+
+func parseAIReportContent(rawContent, cleanJSON string) (*structuredReport, string, *json.RawMessage) {
+	if parsed, brief := ParseMarkdownToStructured(rawContent); parsed != nil && len(parsed.Chapters) > 0 && parsed.Analysis.Logic != "" {
+		raw, _ := json.Marshal(parsed)
+		rawMsg := json.RawMessage(raw)
+		return parsed, brief, &rawMsg
+	}
+
+	var parsed structuredReport
+	trimmedJSON := strings.TrimSpace(cleanJSON)
+	if trimmedJSON == "" {
+		return &parsed, "", nil
+	}
+
+	if errParse := json.Unmarshal([]byte(trimmedJSON), &parsed); errParse != nil {
+		fixedJSON := fixJSONStrings(trimmedJSON)
+		if errFix := json.Unmarshal([]byte(fixedJSON), &parsed); errFix == nil {
+			trimmedJSON = fixedJSON
+		}
+	}
+	if len(parsed.Chapters) > 0 && parsed.Analysis.Logic != "" {
+		_, brief := ParseMarkdownToStructured(rawContent)
+		raw, _ := json.Marshal(parsed)
+		rawMsg := json.RawMessage(raw)
+		return &parsed, brief, &rawMsg
+	}
+
+	type legacyResult struct {
+		Yongshen string `json:"yongshen"`
+		Jishen   string `json:"jishen"`
+		Report   string `json:"report"`
+	}
+	var legacy legacyResult
+	briefContent := ""
+	if errLegacy := json.Unmarshal([]byte(trimmedJSON), &legacy); errLegacy == nil && legacy.Report != "" {
+		parsed.Yongshen = legacy.Yongshen
+		parsed.Jishen = legacy.Jishen
+		briefContent = legacy.Report
+	} else {
+		importRegexp := regexp.MustCompile(`"yongshen"\s*:\s*"([^"]+)"`)
+		matchY := importRegexp.FindStringSubmatch(trimmedJSON)
+		if len(matchY) > 1 {
+			parsed.Yongshen = matchY[1]
+		}
+		jishenRegexp := regexp.MustCompile(`"jishen"\s*:\s*"([^"]+)"`)
+		matchJ := jishenRegexp.FindStringSubmatch(trimmedJSON)
+		if len(matchJ) > 1 {
+			parsed.Jishen = matchJ[1]
+		}
+		reportRegexp := regexp.MustCompile(`(?s)"report"\s*:\s*"(.*?)"\s*}`)
+		matchR := reportRegexp.FindStringSubmatch(trimmedJSON)
+		if len(matchR) > 1 && strings.TrimSpace(matchR[1]) != "" {
+			briefContent = strings.TrimSpace(matchR[1])
+		}
+	}
+
+	return &parsed, briefContent, nil
 }
 
 // fixJSONStrings 用状态机扫描 JSON，将字符串字段内的真实控制字符（\n \r \t）
@@ -915,9 +955,9 @@ type PastEventsYearItem struct {
 
 // PastEventsYearsResponse 一次性返回所有年份的算法叙述（无 AI）
 type PastEventsYearsResponse struct {
-	Years      []PastEventsYearItem `json:"years"`
-	DayunMeta  []DayunMetaItem      `json:"dayun_meta"`
-	Generated  string               `json:"generated_by"`
+	Years     []PastEventsYearItem `json:"years"`
+	DayunMeta []DayunMetaItem      `json:"dayun_meta"`
+	Generated string               `json:"generated_by"`
 }
 
 type DayunMetaItem struct {

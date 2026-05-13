@@ -28,6 +28,50 @@
   flex-wrap: wrap;
 }
 
+/* 命格 Badge */
+.mingge-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-serif);
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  cursor: pointer;
+  transition: background 0.18s, transform 0.15s;
+  letter-spacing: 0.08em;
+}
+
+.mingge-badge:hover {
+  background: rgba(167, 139, 250, 0.22);
+  transform: translateY(-1px);
+}
+
+/* 命格 Modal 点缀元素 */
+.mingge-modal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #a78bfa;
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.6);
+}
+
+.mingge-modal-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.15);
+  border: 1px solid rgba(167, 139, 250, 0.3);
+}
+
 /* 游客提示横幅 */
 .guest-banner {
   display: flex;
@@ -426,6 +470,7 @@
 /* 底部操作 */
 .result-footer {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: center;
   padding-top: 8px;

@@ -97,6 +97,9 @@ interface BaziResult {
     }>;
   }>
   birth_year: number; birth_month: number; birth_day: number; birth_hour: number; gender: string
+  // 命格
+  ming_ge?: string
+  ming_ge_desc?: string
 }
 
 
@@ -118,6 +121,7 @@ export default function ResultPage() {
   // 神煞注解状态
   const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
   const [activeAnnotation, setActiveAnnotation] = useState<ShenshaAnnotation | null>(null)
+  const [activeMingGe, setActiveMingGe] = useState<{ name: string; desc: string } | null>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 预加载神煞注解
@@ -396,6 +400,15 @@ export default function ResultPage() {
             <span className={`wuxing-badge ${result.jishen ? 'wuxing-' + (WUXING_MAP[result.jishen?.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
               忌：{result.jishen || (reportLoading ? '测算中...' : '待生成')}
             </span>
+            {result.ming_ge && (
+              <span
+                className="mingge-badge"
+                onClick={() => setActiveMingGe({ name: result.ming_ge!, desc: result.ming_ge_desc || '' })}
+                title="点击查看格局说明"
+              >
+                {result.ming_ge}
+              </span>
+            )}
           </div>
         </div>
 
@@ -770,6 +783,38 @@ export default function ResultPage() {
           </div>
         </div>
       )}
+
+      {/* 命格说明 Modal */}
+      {activeMingGe && (
+        <div
+          className="shensha-modal-overlay"
+          onClick={() => setActiveMingGe(null)}
+        >
+          <div
+            className="shensha-modal-card"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="shensha-modal-header">
+              <div className="shensha-modal-title">
+                <span className="mingge-modal-dot" />
+                <span className="shensha-modal-name">{activeMingGe.name}</span>
+                <span className="mingge-modal-badge">格局</span>
+              </div>
+              <button
+                className="shensha-modal-close"
+                onClick={() => setActiveMingGe(null)}
+                aria-label="关闭"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="shensha-modal-divider" />
+            <div className="shensha-modal-body">
+              <p className="shensha-modal-description">{activeMingGe.desc}</p>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
       <PrintLayout
         birthYear={result.birth_year}
@@ -779,6 +824,8 @@ export default function ResultPage() {
         gender={result.gender}
         yongshen={result.yongshen || ''}
         jishen={result.jishen || ''}
+        mingGe={result.ming_ge || ''}
+        mingGeDesc={result.ming_ge_desc || ''}
         pillars={pillars}
         dayun={result.dayun}
         structured={structured}

@@ -38,6 +38,8 @@ interface ReportChapter {
 interface PrintLayoutProps {
   birthYear: number; birthMonth: number; birthDay: number; birthHour: number; gender: string
   yongshen: string; jishen: string
+  mingGe?: string
+  mingGeDesc?: string
   pillars: Pillar[]
   dayun: DayunItem[]
   structured: { chapters: ReportChapter[]; analysis?: { logic: string; summary: string } | null } | null
@@ -68,10 +70,18 @@ const sectionTitle = (text: string) => (
 
 export default function PrintLayout({
   birthYear, birthMonth, birthDay, birthHour, gender,
-  yongshen, jishen, pillars, dayun, structured, shenshaMap,
+  yongshen, jishen, mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
 }: PrintLayoutProps) {
   const chapters = structured?.chapters ?? []
   const analysis = structured?.analysis ?? null
+  const localVerdict = (() => {
+    const logic = analysis?.logic?.trim()
+    if (!logic) return ''
+    const firstSentence = logic.match(/^.*?[。！？]/)?.[0]?.trim() || logic
+    if (!firstSentence) return ''
+    if (firstSentence.length <= 72) return firstSentence
+    return firstSentence.slice(0, 72).trim() + '...'
+  })()
 
   const allShensha: Array<{
     pillarLabel: string
@@ -121,7 +131,6 @@ export default function PrintLayout({
           <tr>
             <td>
               <div className="print-page-header">
-                <span className="print-page-header-brand">缘 聚 命 理</span>
                 <span className="print-page-header-center">命　理　命　书</span>
                 <span className="print-page-header-info">
                   {birthYear}年{birthMonth}月{birthDay}日&nbsp;·&nbsp;{gender === 'male' ? '男命' : '女命'}
@@ -289,6 +298,51 @@ export default function PrintLayout({
       {/* ── 命理解读 ── */}
       <div style={{ marginBottom: 16, pageBreakBefore: 'always', breakBefore: 'page' }}>
         {sectionTitle('命　理　解　读')}
+
+        {mingGe && (
+          <div style={{
+            marginBottom: 14,
+            padding: '10px 14px',
+            background: '#fcf7ea',
+            border: `1px solid ${borderColor}`,
+            borderRadius: 3,
+            breakInside: 'avoid',
+            pageBreakInside: 'avoid',
+          }}>
+            <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, marginBottom: 7, letterSpacing: 2 }}>
+              ▍ 命格解读
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 12, color: darkBrown, lineHeight: 1.8 }}>
+                <span style={{ color: midBrown, fontWeight: 700, marginRight: 6 }}>主格</span>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '1px 8px',
+                  borderRadius: 2,
+                  border: `1px solid ${gold}`,
+                  color: darkBrown,
+                  background: '#fffaf0',
+                  fontWeight: 700,
+                  letterSpacing: 1,
+                }}>
+                  {mingGe}
+                </span>
+              </div>
+              {mingGeDesc && (
+                <div style={{ fontSize: 12, color: darkBrown, lineHeight: 1.85 }}>
+                  <span style={{ color: midBrown, fontWeight: 700, marginRight: 6 }}>格义</span>
+                  <span>{mingGeDesc}</span>
+                </div>
+              )}
+              {localVerdict && (
+                <div style={{ fontSize: 12, color: darkBrown, lineHeight: 1.85 }}>
+                  <span style={{ color: midBrown, fontWeight: 700, marginRight: 6 }}>本局落点</span>
+                  <span>{localVerdict}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 命局分析总览 */}
         {analysis?.logic && (
