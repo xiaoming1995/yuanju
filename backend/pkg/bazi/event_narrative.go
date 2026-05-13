@@ -20,6 +20,9 @@ func RenderYearNarrative(ys YearSignals) string {
 	if hasSecondary {
 		parts = append(parts, plainThemeSentence(secondary, false))
 	}
+	if phase, hasPhase := findDayunPhaseSignal(ys.Signals); hasPhase && primary.Type != TypeDayunPhase && (!hasSecondary || secondary.Type != TypeDayunPhase) {
+		parts = append(parts, plainThemeSentence(phase, false))
+	}
 	parts = append(parts, practicalReminder(ys.Signals))
 
 	return strings.Join(parts, "")
@@ -82,6 +85,15 @@ func pickDominantSignal(signals []EventSignal, excludeTheme string, age int) (Ev
 	return best, found
 }
 
+func findDayunPhaseSignal(signals []EventSignal) (EventSignal, bool) {
+	for _, s := range signals {
+		if s.Type == TypeDayunPhase {
+			return s, true
+		}
+	}
+	return EventSignal{}, false
+}
+
 func themeOf(typ string) string {
 	switch typ {
 	case "综合变动", "伏吟", "反吟", "大运合化", TypeJuShiZhong:
@@ -98,6 +110,8 @@ func themeOf(typ string) string {
 		return "movement"
 	case "喜神临运":
 		return "support"
+	case TypeDayunPhase:
+		return "phase"
 	default:
 		return ""
 	}
@@ -122,6 +136,8 @@ func themeRank(theme string, sig EventSignal, isYoung bool) int {
 			return 7
 		case theme == "support":
 			return 8
+		case theme == "phase":
+			return 9
 		default:
 			return 99
 		}
@@ -144,6 +160,8 @@ func themeRank(theme string, sig EventSignal, isYoung bool) int {
 		return 6
 	case "support":
 		return 8
+	case "phase":
+		return 9
 	default:
 		return 99
 	}
@@ -229,8 +247,30 @@ func plainThemeSentence(sig EventSignal, primary bool) string {
 		return prefix + "出行、搬动、岗位或生活环境有变化机会，提前规划会更从容。"
 	case "support":
 		return prefix + "外部助力会比平时明显，适合借势推进重要事项。"
+	case "phase":
+		return prefix + dayunPhaseSentence(sig)
 	default:
 		return prefix + "整体运势有起伏，宜多观察、少冒进。"
+	}
+}
+
+func dayunPhaseSentence(sig EventSignal) string {
+	period := "这步大运"
+	focus := "阶段节奏"
+	if strings.Contains(sig.Evidence, "天干主事") || strings.Contains(sig.Evidence, "前5年") || strings.Contains(sig.Evidence, "前五年") {
+		period = "本步大运前五年"
+		focus = "天干主事"
+	} else if strings.Contains(sig.Evidence, "地支主事") || strings.Contains(sig.Evidence, "后5年") || strings.Contains(sig.Evidence, "后五年") {
+		period = "本步大运后五年"
+		focus = "地支主事"
+	}
+	switch sig.Polarity {
+	case PolarityJi:
+		return period + "进入" + focus + "，整体底色偏顺，适合稳稳承接机会，不必急于冒进。"
+	case PolarityXiong:
+		return period + "进入" + focus + "，整体底色偏紧，安排上宜保守一些，先控制压力和风险。"
+	default:
+		return period + "进入" + focus + "，整体底色中平，关键仍在于把日常节奏守稳。"
 	}
 }
 
@@ -345,7 +385,7 @@ func compactEvidence(ev string) string {
 
 // ExtractYearSignalTypes 提取 signal types（用于前端徽标显示），去除"用神基底"等内部 type
 func ExtractYearSignalTypes(ys YearSignals) []string {
-	hide := map[string]bool{"用神基底": true, "综合变动": false}
+	hide := map[string]bool{"用神基底": true, TypeDayunPhase: true, "综合变动": false}
 	out := []string{}
 	seen := map[string]bool{}
 	for _, s := range ys.Signals {

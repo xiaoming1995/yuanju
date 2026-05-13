@@ -10,6 +10,8 @@ interface YearEvent {
   gan_zhi: string
   dayun_gan_zhi: string
   dayun_index: number
+  year_in_dayun?: number
+  dayun_phase?: string
   signals: string[]
   narrative: string
   evidence_summary?: string[]
@@ -306,6 +308,11 @@ export default function PastEventsPage() {
                       const evidenceKey = `${meta.index}-${y.year}`
                       const hasEvidence = Boolean(y.evidence_summary?.length)
                       const evidenceOpen = Boolean(expandedEvidence[evidenceKey])
+                      const phaseLabel = y.dayun_phase === 'gan'
+                        ? `大运第${y.year_in_dayun || ''}年 · 天干主事`
+                        : y.dayun_phase === 'zhi'
+                          ? `大运第${y.year_in_dayun || ''}年 · 地支主事`
+                          : ''
                       return (
                         <div
                           key={y.year}
@@ -344,6 +351,19 @@ export default function PastEventsPage() {
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                               {y.year}年 · {y.age}岁
                             </span>
+                            {phaseLabel && (
+                              <span
+                                style={{
+                                  fontSize: '0.65rem',
+                                  padding: '2px 6px',
+                                  borderRadius: 4,
+                                  border: '1px solid var(--border-subtle)',
+                                  color: 'var(--text-muted)',
+                                  whiteSpace: 'nowrap',
+                                  background: 'var(--bg-elevated)',
+                                }}
+                              >{phaseLabel}</span>
+                            )}
                             {y.signals?.map((sig) => {
                               const meta = SIGNAL_LABEL[sig]
                               if (!meta) return null

@@ -240,6 +240,101 @@ func TestGetYearEventSignals_NoBaselineSignal(t *testing.T) {
 	}
 }
 
+func TestDayunPhaseForLiuNianIndex(t *testing.T) {
+	tests := []struct {
+		index     int
+		wantYear  int
+		wantPhase string
+	}{
+		{index: 0, wantYear: 1, wantPhase: DayunPhaseGan},
+		{index: 4, wantYear: 5, wantPhase: DayunPhaseGan},
+		{index: 5, wantYear: 6, wantPhase: DayunPhaseZhi},
+		{index: 9, wantYear: 10, wantPhase: DayunPhaseZhi},
+	}
+	for _, tt := range tests {
+		gotYear, gotPhase, ok := dayunPhaseForLiuNianIndex(tt.index)
+		if !ok {
+			t.Fatalf("index %d should be valid", tt.index)
+		}
+		if gotYear != tt.wantYear || gotPhase != tt.wantPhase {
+			t.Fatalf("index %d got year=%d phase=%q, want year=%d phase=%q",
+				tt.index, gotYear, gotPhase, tt.wantYear, tt.wantPhase)
+		}
+	}
+
+	for _, idx := range []int{-1, 10} {
+		if _, _, ok := dayunPhaseForLiuNianIndex(idx); ok {
+			t.Fatalf("index %d should be invalid", idx)
+		}
+	}
+}
+
+func TestNewYearSignalContextForDayunPhaseUsesQianAndHou(t *testing.T) {
+	jbh := &JinBuHuanResult{
+		QianLevel: "吉",
+		QianDesc:  "甲为调候喜用天干，前5年顺遂吉利。",
+		HouLevel:  "凶",
+		HouDesc:   "申为金不换忌神地支，后5年运势不利。",
+	}
+
+	front, ok := NewYearSignalContextForDayunIndex(2, jbh)
+	if !ok {
+		t.Fatal("front phase context should be valid")
+	}
+	if front.YearInDayun != 3 || front.DayunPhase != DayunPhaseGan {
+		t.Fatalf("unexpected front context: %+v", front)
+	}
+	if front.DayunPhaseLevel != "吉" || !strings.Contains(front.DayunPhaseDesc, "前5年") {
+		t.Fatalf("front context should use qian rating, got: %+v", front)
+	}
+	if strings.Contains(front.DayunPhaseDesc, "后5年") {
+		t.Fatalf("front context leaked hou desc: %+v", front)
+	}
+
+	back, ok := NewYearSignalContextForDayunIndex(6, jbh)
+	if !ok {
+		t.Fatal("back phase context should be valid")
+	}
+	if back.YearInDayun != 7 || back.DayunPhase != DayunPhaseZhi {
+		t.Fatalf("unexpected back context: %+v", back)
+	}
+	if back.DayunPhaseLevel != "凶" || !strings.Contains(back.DayunPhaseDesc, "后5年") {
+		t.Fatalf("back context should use hou rating, got: %+v", back)
+	}
+	if strings.Contains(back.DayunPhaseDesc, "前5年") {
+		t.Fatalf("back context leaked qian desc: %+v", back)
+	}
+}
+
+func TestGetYearEventSignalsWithContextAddsDayunPhaseSignal(t *testing.T) {
+	natal := makeNatal("甲子", "丁卯", "丙午", "戊子", "木火", "金水土")
+	natal.Tiaohou = nil
+	ctx := YearSignalContext{
+		YearInDayun:      7,
+		DayunPhase:       DayunPhaseZhi,
+		DayunPhaseLevel:  "凶",
+		DayunPhaseDesc:   "申为金不换忌神地支，后5年运势不利。",
+		DayunPhaseSource: "金不换后5年",
+	}
+
+	signals := GetYearEventSignalsWithContext(natal, "甲", "寅", "丁申", "male", 30, ctx)
+	found := false
+	for _, s := range signals {
+		if s.Type == TypeDayunPhase {
+			found = true
+			if s.Polarity != PolarityXiong {
+				t.Fatalf("expected adverse dayun phase polarity, got %+v", s)
+			}
+			if !strings.Contains(s.Evidence, "后5年") || strings.Contains(s.Evidence, "前5年") {
+				t.Fatalf("expected hou phase evidence only, got %+v", s)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected %s signal in %+v", TypeDayunPhase, signals)
+	}
+}
+
 // ─── collectYingqiSignals 单元测试 ─────────────────────────────────────────
 
 // TestYingqi_KeYong 流年天干克原局用神天干位 → 凶

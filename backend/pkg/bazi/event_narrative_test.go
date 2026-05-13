@@ -136,6 +136,74 @@ func TestRenderYearNarrative_StrongChangeStillDominates(t *testing.T) {
 	}
 }
 
+func TestRenderYearNarrative_DayunPhaseDoesNotDominateSpecificTheme(t *testing.T) {
+	ys := YearSignals{
+		Year:        2028,
+		Age:         32,
+		GanZhi:      "戊申",
+		DayunGanZhi: "丁申",
+		YearInDayun: 7,
+		DayunPhase:  DayunPhaseZhi,
+		Signals: []EventSignal{
+			{Type: TypeDayunPhase, Evidence: "大运第7年进入地支主事阶段：申为金不换忌神地支，后5年运势不利。", Polarity: PolarityXiong, Source: SourceDayunPhase},
+			{Type: "健康", Evidence: "流年地支申冲日支寅，日柱受冲，体力精神有下滑风险", Polarity: PolarityXiong, Source: SourceZhuwei},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	opening := firstSentence(got)
+	if !strings.Contains(opening, "健康") && !strings.Contains(opening, "身体") && !strings.Contains(opening, "出行安全") && !strings.Contains(opening, "作息") {
+		t.Fatalf("specific health theme should dominate opening, got: %s", got)
+	}
+	if strings.Contains(opening, "大运") || strings.Contains(opening, "前5年") || strings.Contains(opening, "后5年") {
+		t.Fatalf("dayun phase should not dominate or leak technical wording, got: %s", got)
+	}
+}
+
+func TestRenderYearNarrative_AdverseDayunPhaseCanBeSecondaryCaution(t *testing.T) {
+	ys := YearSignals{
+		Year:        2028,
+		Age:         32,
+		GanZhi:      "戊申",
+		DayunGanZhi: "丁申",
+		YearInDayun: 7,
+		DayunPhase:  DayunPhaseZhi,
+		Signals: []EventSignal{
+			{Type: "迁变", Evidence: "流年地支申为驿马星，主奔波变动、出行迁移或职位调动", Polarity: PolarityNeutral, Source: SourceZhuwei},
+			{Type: TypeDayunPhase, Evidence: "大运第7年进入地支主事阶段：申为金不换忌神地支，后5年运势不利。", Polarity: PolarityXiong, Source: SourceDayunPhase},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if !strings.Contains(got, "底色") && !strings.Contains(got, "保守") && !strings.Contains(got, "压力") {
+		t.Fatalf("expected adverse phase caution as secondary context, got: %s", got)
+	}
+	if strings.Contains(got, "金不换") || strings.Contains(got, "后5年") {
+		t.Fatalf("narrative leaked technical phase evidence: %s", got)
+	}
+}
+
+func TestRenderYearNarrative_AlwaysShowsDayunPhaseWhenPresent(t *testing.T) {
+	ys := YearSignals{
+		Year:        2009,
+		Age:         14,
+		GanZhi:      "己丑",
+		DayunGanZhi: "辛卯",
+		YearInDayun: 6,
+		DayunPhase:  DayunPhaseZhi,
+		Signals: []EventSignal{
+			{Type: "健康", Evidence: "流年天干己（土）克制日干癸（水），日主元气受损，需注意身体健康", Polarity: PolarityXiong, Source: SourceZhuwei},
+			{Type: TypeXueYeZiYuan, Evidence: "己透干为偏财，少年期家庭资源或学习投入受关注", Polarity: PolarityNeutral, Source: SourceZhuwei},
+			{Type: TypeDayunPhase, Evidence: "大运第6年进入地支主事阶段：卯不在金不换喜忌地支之列，后5年中平论之。", Polarity: PolarityNeutral, Source: SourceDayunPhase},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if !strings.Contains(got, "后五年") || !strings.Contains(got, "地支") {
+		t.Fatalf("expected visible late dayun phase wording, got: %s", got)
+	}
+}
+
 func TestRenderEvidenceSummary_SelectsTechnicalEvidence(t *testing.T) {
 	ys := YearSignals{
 		Year:   2025,

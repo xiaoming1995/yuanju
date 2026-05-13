@@ -949,6 +949,8 @@ type PastEventsYearItem struct {
 	GanZhi          string   `json:"gan_zhi"`
 	DayunGanZhi     string   `json:"dayun_gan_zhi"`
 	DayunIndex      int      `json:"dayun_index"`
+	YearInDayun     int      `json:"year_in_dayun,omitempty"`
+	DayunPhase      string   `json:"dayun_phase,omitempty"`
 	Signals         []string `json:"signals"`
 	Narrative       string   `json:"narrative"`
 	EvidenceSummary []string `json:"evidence_summary,omitempty"`
@@ -1013,6 +1015,8 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 			GanZhi:          ys.GanZhi,
 			DayunGanZhi:     ys.DayunGanZhi,
 			DayunIndex:      dyIndex[ys.DayunGanZhi],
+			YearInDayun:     ys.YearInDayun,
+			DayunPhase:      ys.DayunPhase,
 			Signals:         bazi.ExtractYearSignalTypes(ys),
 			Narrative:       bazi.RenderYearNarrative(ys),
 			EvidenceSummary: bazi.RenderEvidenceSummary(ys),
@@ -1080,14 +1084,14 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 当前大运：{{.DayunInfo}}
 {{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
 
-本段大运 10 年的算法信号摘要（JSON，每年含 type/evidence/polarity/source）：
+本段大运 10 年的算法信号摘要（JSON，每年含 type/evidence/polarity/source/year_in_dayun/dayun_phase/dayun_phase_level；dayun_phase=gan 表示前5年天干主事，zhi 表示后5年地支主事）：
 {{.YearsData}}
 {{if .LifeStageHint}}
 人生阶段提示：{{.LifeStageHint}}{{end}}
 
 输出要求：
 1. themes：2-4 个主题词（如"事业↑""感情动荡""贵人扶持"；读书期可用"学业突破""同窗情谊""叛逆"）
-2. summary：80-120 字，综合评述这 10 年整体走势、关键转折、注意事项
+2. summary：80-120 字，综合评述这 10 年整体走势、关键转折、注意事项；若前5年与后5年信号明显不同，要点出早段/后段气质差异
 3. 严格输出以下 JSON，不要 Markdown 围栏：
 {"themes":["主题1","主题2"],"summary":"..."}`
 
@@ -1101,7 +1105,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 
 		// 取该段大运的 10 年信号
 		var dySignals []bazi.YearSignals
-		for _, ln := range dy.LiuNian {
+		for i, ln := range dy.LiuNian {
 			if ln.Age < 1 {
 				continue
 			}
@@ -1109,9 +1113,17 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			if len(lnRunes) < 2 {
 				continue
 			}
-			sigs := bazi.GetYearEventSignals(result, string(lnRunes[0]), string(lnRunes[1]), gz, chart.Gender, ln.Age)
+			ctx, _ := bazi.NewYearSignalContextForDayunIndex(i, dy.JinBuHuan)
+			sigs := bazi.GetYearEventSignalsWithContext(result, string(lnRunes[0]), string(lnRunes[1]), gz, chart.Gender, ln.Age, ctx)
 			dySignals = append(dySignals, bazi.YearSignals{
-				Year: ln.Year, Age: ln.Age, GanZhi: ln.GanZhi, DayunGanZhi: gz, Signals: sigs,
+				Year:            ln.Year,
+				Age:             ln.Age,
+				GanZhi:          ln.GanZhi,
+				DayunGanZhi:     gz,
+				YearInDayun:     ctx.YearInDayun,
+				DayunPhase:      ctx.DayunPhase,
+				DayunPhaseLevel: ctx.DayunPhaseLevel,
+				Signals:         sigs,
 			})
 		}
 		dySigsJSON, _ := json.Marshal(dySignals)

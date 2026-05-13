@@ -8,14 +8,15 @@ import (
 // ─── 信号 Source 常量 ────────────────────────────────────────────────────────
 
 const (
-	SourceShensha  = "神煞"
-	SourceZhuwei   = "柱位互动"
-	SourceHehua    = "合化"
-	SourceKongwang = "空亡"
-	SourceXing     = "刑"
-	SourceHui      = "会"
-	SourceFuyin    = "伏吟"
-	SourceYongshen = "用神基底"
+	SourceShensha    = "神煞"
+	SourceZhuwei     = "柱位互动"
+	SourceHehua      = "合化"
+	SourceKongwang   = "空亡"
+	SourceXing       = "刑"
+	SourceHui        = "会"
+	SourceFuyin      = "伏吟"
+	SourceYongshen   = "用神基底"
+	SourceDayunPhase = "大运阶段"
 )
 
 // 信号 Polarity 常量
@@ -43,6 +44,12 @@ const (
 // TypeJuShiZhong 三合/三会忌神局极凶标星信号
 const TypeJuShiZhong = "局势_重"
 
+const (
+	DayunPhaseGan  = "gan"
+	DayunPhaseZhi  = "zhi"
+	TypeDayunPhase = "大运阶段"
+)
+
 // EventSignal 单个事件信号
 type EventSignal struct {
 	Type     string `json:"type"`               // 婚恋_合/冲/变 | 事业 | 财运_得/损 | 健康 | 迁变 | 喜神临运 | 综合变动 | 用神基底 | 大运合化 | 伏吟 | 反吟
@@ -53,11 +60,83 @@ type EventSignal struct {
 
 // YearSignals 某流年的信号集合
 type YearSignals struct {
-	Year        int           `json:"year"`
-	Age         int           `json:"age"`
-	GanZhi      string        `json:"gan_zhi"`
-	DayunGanZhi string        `json:"dayun_gan_zhi"`
-	Signals     []EventSignal `json:"signals"`
+	Year            int           `json:"year"`
+	Age             int           `json:"age"`
+	GanZhi          string        `json:"gan_zhi"`
+	DayunGanZhi     string        `json:"dayun_gan_zhi"`
+	YearInDayun     int           `json:"year_in_dayun,omitempty"`
+	DayunPhase      string        `json:"dayun_phase,omitempty"`
+	DayunPhaseLevel string        `json:"dayun_phase_level,omitempty"`
+	Signals         []EventSignal `json:"signals"`
+}
+
+// YearSignalContext carries dayun front/back five-year context for yearly signals.
+type YearSignalContext struct {
+	YearInDayun      int
+	DayunPhase       string
+	DayunPhaseLevel  string
+	DayunPhaseDesc   string
+	DayunPhaseSource string
+}
+
+func dayunPhaseForLiuNianIndex(index int) (int, string, bool) {
+	if index < 0 || index > 9 {
+		return 0, "", false
+	}
+	yearInDayun := index + 1
+	if index < 5 {
+		return yearInDayun, DayunPhaseGan, true
+	}
+	return yearInDayun, DayunPhaseZhi, true
+}
+
+func NewYearSignalContextForDayunIndex(index int, jbh *JinBuHuanResult) (YearSignalContext, bool) {
+	yearInDayun, phase, ok := dayunPhaseForLiuNianIndex(index)
+	if !ok {
+		return YearSignalContext{}, false
+	}
+	ctx := YearSignalContext{
+		YearInDayun: yearInDayun,
+		DayunPhase:  phase,
+	}
+	if jbh == nil {
+		return ctx, true
+	}
+	if phase == DayunPhaseGan {
+		ctx.DayunPhaseLevel = jbh.QianLevel
+		ctx.DayunPhaseDesc = jbh.QianDesc
+		ctx.DayunPhaseSource = "金不换前5年"
+	} else {
+		ctx.DayunPhaseLevel = jbh.HouLevel
+		ctx.DayunPhaseDesc = jbh.HouDesc
+		ctx.DayunPhaseSource = "金不换后5年"
+	}
+	return ctx, true
+}
+
+func buildDayunPhaseSignal(ctx YearSignalContext) EventSignal {
+	phaseLabel := "天干主事"
+	if ctx.DayunPhase == DayunPhaseZhi {
+		phaseLabel = "地支主事"
+	}
+	evidence := fmt.Sprintf("大运第%d年进入%s阶段：%s", ctx.YearInDayun, phaseLabel, ctx.DayunPhaseDesc)
+	return EventSignal{
+		Type:     TypeDayunPhase,
+		Evidence: evidence,
+		Polarity: dayunPhasePolarity(ctx.DayunPhaseLevel),
+		Source:   SourceDayunPhase,
+	}
+}
+
+func dayunPhasePolarity(level string) string {
+	switch level {
+	case "吉":
+		return PolarityJi
+	case "凶":
+		return PolarityXiong
+	default:
+		return PolarityNeutral
+	}
 }
 
 // ─── 关系表 ───────────────────────────────────────────────────────────────────
@@ -106,7 +185,7 @@ var zhiLiuheHua = map[[2]string]string{
 var sixXing = map[string]string{
 	"寅": "巳", "巳": "申", "申": "寅", // 无礼之刑
 	"丑": "戌", "戌": "未", "未": "丑", // 无恩之刑
-	"子": "卯", "卯": "子",             // 无义之刑
+	"子": "卯", "卯": "子", // 无义之刑
 	// 自刑（辰午酉亥）：在健康检测中特别处理
 }
 
@@ -1251,9 +1330,14 @@ func shenshaSignal(name, baseline string) (EventSignal, bool) {
 
 // ─── 核心信号检测 ──────────────────────────────────────────────────────────────
 
-// GetYearEventSignals 计算某一流年激活的事件信号
-// age：流年虚岁；当 age < YoungAgeCutoff 时启用读书期语义重映射
+// GetYearEventSignals 计算某一流年激活的事件信号。
+// age：流年虚岁；当 age < YoungAgeCutoff 时启用读书期语义重映射。
 func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender string, age int) []EventSignal {
+	return GetYearEventSignalsWithContext(natal, lnGan, lnZhi, dayunGanZhi, gender, age, YearSignalContext{})
+}
+
+// GetYearEventSignalsWithContext 计算某一流年激活的事件信号，并附加大运前后五年阶段背景。
+func GetYearEventSignalsWithContext(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender string, age int, ctx YearSignalContext) []EventSignal {
 	if natal == nil {
 		return nil
 	}
@@ -1301,6 +1385,10 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 		signals = append(signals, sig)
 	}
 	_ = add // 保留兼容引用以避免未使用警告
+
+	if ctx.DayunPhaseDesc != "" {
+		signals = append(signals, buildDayunPhaseSignal(ctx))
+	}
 
 	dayGan := natal.DayGan
 	dayZhi := natal.DayZhi
@@ -1724,7 +1812,7 @@ func GetYearEventSignals(natal *BaziResult, lnGan, lnZhi, dayunGanZhi, gender st
 			})
 			// 在已有信号 evidence 上注明降权
 			for i := range signals {
-				if signals[i].Source == SourceKongwang || signals[i].Source == SourceYongshen {
+				if signals[i].Source == SourceKongwang || signals[i].Source == SourceYongshen || signals[i].Source == SourceDayunPhase {
 					continue
 				}
 				if !strings.Contains(signals[i].Evidence, "受空亡影响") {
@@ -1834,7 +1922,7 @@ func GetAllYearSignals(result *BaziResult, gender string, currentYear, minAge in
 	var out []YearSignals
 	for _, dy := range result.Dayun {
 		dyGanZhi := dy.Gan + dy.Zhi
-		for _, ln := range dy.LiuNian {
+		for i, ln := range dy.LiuNian {
 			if ln.Age < minAge {
 				continue
 			}
@@ -1842,13 +1930,17 @@ func GetAllYearSignals(result *BaziResult, gender string, currentYear, minAge in
 			if len(lnRunes) < 2 {
 				continue
 			}
-			sigs := GetYearEventSignals(result, string(lnRunes[0]), string(lnRunes[1]), dyGanZhi, gender, ln.Age)
+			ctx, _ := NewYearSignalContextForDayunIndex(i, dy.JinBuHuan)
+			sigs := GetYearEventSignalsWithContext(result, string(lnRunes[0]), string(lnRunes[1]), dyGanZhi, gender, ln.Age, ctx)
 			out = append(out, YearSignals{
-				Year:        ln.Year,
-				Age:         ln.Age,
-				GanZhi:      ln.GanZhi,
-				DayunGanZhi: dyGanZhi,
-				Signals:     sigs,
+				Year:            ln.Year,
+				Age:             ln.Age,
+				GanZhi:          ln.GanZhi,
+				DayunGanZhi:     dyGanZhi,
+				YearInDayun:     ctx.YearInDayun,
+				DayunPhase:      ctx.DayunPhase,
+				DayunPhaseLevel: ctx.DayunPhaseLevel,
+				Signals:         sigs,
 			})
 		}
 	}
