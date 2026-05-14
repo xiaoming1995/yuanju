@@ -40,6 +40,65 @@ export const authAPI = {
   me: () => api.get('/api/auth/me'),
 }
 
+export interface UserProfileStats {
+  chart_count: number
+  ai_report_count: number
+  compatibility_count: number
+}
+
+export interface UserProfileChartSummary {
+  id: string
+  birth_year: number
+  birth_month: number
+  birth_day: number
+  birth_hour: number
+  gender: string
+  year_gan: string
+  year_zhi: string
+  month_gan: string
+  month_zhi: string
+  day_gan: string
+  day_zhi: string
+  hour_gan: string
+  hour_zhi: string
+  yongshen: string
+  jishen: string
+  created_at: string
+}
+
+export interface UserProfileCompatibilitySummary {
+  id: string
+  overall_level: string
+  self_name: string
+  partner_name: string
+  summary_tags: string[]
+  created_at: string
+}
+
+export interface UserProfileFeatureEntry {
+  key: string
+  title: string
+  description: string
+  status: 'coming_soon' | 'disabled' | 'enabled'
+}
+
+export interface UserProfileOverview {
+  user: {
+    id: string
+    email: string
+    nickname: string
+    created_at: string
+  }
+  stats: UserProfileStats
+  recent_charts: UserProfileChartSummary[]
+  recent_compatibility: UserProfileCompatibilitySummary[]
+  features: UserProfileFeatureEntry[]
+}
+
+export const userAPI = {
+  profile: () => api.get('/api/user/profile'),
+}
+
 // ======= 结构化报告类型 =======
 export interface ReportChapter {
   title: string

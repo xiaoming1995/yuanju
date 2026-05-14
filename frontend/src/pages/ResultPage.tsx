@@ -113,7 +113,7 @@ export default function ResultPage() {
   const [report, setReport] = useState<AIReport | null>(location.state?.report || null)
   const [isGuest] = useState(location.state?.isGuest ?? !user)
   const [loading, setLoading] = useState(!result && !!id)
-  const [reportMode, setReportMode] = useState<'brief' | 'detail'>('brief')
+  const [reportMode, setReportMode] = useState<'brief' | 'detail'>('detail')
   const [savingImage, setSavingImage] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
@@ -589,11 +589,11 @@ export default function ResultPage() {
                   <button
                     className={`mode-btn${reportMode === 'brief' ? ' active' : ''}`}
                     onClick={() => setReportMode('brief')}
-                  >精简</button>
+                  >精简版</button>
                   <button
                     className={`mode-btn${reportMode === 'detail' ? ' active' : ''}`}
                     onClick={() => setReportMode('detail')}
-                  >专业</button>
+                  >完整解读</button>
                 </div>
               )}
 

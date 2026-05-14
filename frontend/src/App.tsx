@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ResultPage from './pages/ResultPage'
 import HistoryPage from './pages/HistoryPage'
+import ProfilePage from './pages/ProfilePage'
 import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminLLMPage from './pages/admin/AdminLLMPage'
@@ -50,6 +51,7 @@ export default function App() {
             <Route path="/result" element={<><Navbar /><BottomNav /><ResultPage /></>} />
             <Route path="/history" element={<><Navbar /><BottomNav /><HistoryPage /></>} />
             <Route path="/history/:id" element={<><Navbar /><BottomNav /><ResultPage /></>} />
+            <Route path="/profile" element={<><Navbar /><BottomNav /><ProfilePage /></>} />
             <Route path="/bazi/:chartId/past-events" element={<><Navbar /><BottomNav /><PastEventsPage /></>} />
             <Route path="/compatibility" element={<><Navbar /><BottomNav /><CompatibilityPage /></>} />
             <Route path="/compatibility/history" element={<><Navbar /><BottomNav /><CompatibilityHistoryPage /></>} />

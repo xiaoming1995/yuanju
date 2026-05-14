@@ -107,30 +107,32 @@
 }
 
 .report-block {
-  padding: 20px;
+  padding: 22px;
   background: var(--bg-elevated);
   border-radius: var(--radius-md);
   border-left: 3px solid var(--border-accent);
 }
 
 .report-block-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--wu-jin);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .report-block-content {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-secondary);
-  line-height: 1.8;
+  line-height: 1.9;
+  letter-spacing: 0;
 }
 
 .report-content {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-secondary);
   line-height: 1.9;
   white-space: pre-wrap;
+  letter-spacing: 0;
 }
 
 .report-disclaimer {
@@ -610,12 +612,12 @@
 }
 
 .mode-btn {
-  padding: 6px 20px;
+  padding: 7px 18px;
   border-radius: 8px;
   border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;

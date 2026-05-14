@@ -67,6 +67,11 @@
 .navbar-nickname {
   font-size: 14px;
   color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.navbar-nickname:hover {
+  color: var(--text-primary);
 }
 
 .navbar-actions {

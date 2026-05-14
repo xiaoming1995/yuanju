@@ -274,10 +274,216 @@ func TestRenderYearNarrative_HardEvidenceNotOverriddenByTenGodPower(t *testing.T
 	}
 }
 
+func TestRenderYearNarrative_RichSignalYearHasMediumDetail(t *testing.T) {
+	ys := YearSignals{
+		Year:   2025,
+		Age:    30,
+		GanZhi: "乙巳",
+		TenGodPower: TenGodPowerProfile{
+			PlainTitle: "钱财压力明显",
+			PlainText:  "钱财、资源和现实事务更突出，也容易伴随支出压力。",
+		},
+		Signals: []EventSignal{
+			{Type: "事业", Evidence: "流年地支巳冲月柱亥（提纲），易有行业/职位变动", Polarity: PolarityXiong, Source: SourceZhuwei},
+			{Type: "财运_损", Evidence: "乙透干为偏财，财星为忌神，容易财来财去", Polarity: PolarityXiong, Source: SourceZhuwei},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if runeLen(got) < 120 {
+		t.Fatalf("expected richer medium-detail narrative, got %d chars: %s", runeLen(got), got)
+	}
+	for _, want := range []string{"乙巳年", "工作", "钱财", "取舍"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected narrative to include %q, got: %s", want, got)
+		}
+	}
+}
+
+func TestRenderYearNarrative_WeakSignalYearDoesNotUseFiller(t *testing.T) {
+	ys := YearSignals{
+		Year:   2022,
+		Age:    27,
+		GanZhi: "壬寅",
+	}
+
+	got := RenderYearNarrative(ys)
+	if runeLen(got) > 90 {
+		t.Fatalf("weak-signal year should stay concise, got %d chars: %s", runeLen(got), got)
+	}
+	for _, filler := range []string{"年度定调", "触发来源", "现实落点", "十神力量"} {
+		if strings.Contains(got, filler) {
+			t.Fatalf("weak-signal narrative used structural filler %q: %s", filler, got)
+		}
+	}
+}
+
+func TestRenderYearNarrative_RichHardEvidenceLeadsWithPracticalMeaning(t *testing.T) {
+	ys := YearSignals{
+		Year:   2026,
+		Age:    31,
+		GanZhi: "丙午",
+		TenGodPower: TenGodPowerProfile{
+			PlainTitle: "钱财资源明显",
+			PlainText:  "钱财、资源、合作回报和现实机会更容易被看见。",
+		},
+		Signals: []EventSignal{
+			{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲，体力精神有下滑风险", Polarity: PolarityXiong, Source: SourceZhuwei},
+			{Type: "财运_得", Evidence: "丙透干为正财，现实资源被带动", Polarity: PolarityJi, Source: SourceZhuwei},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	opening := firstSentence(got)
+	if !strings.Contains(opening, "健康") && !strings.Contains(opening, "身体") && !strings.Contains(opening, "出行安全") {
+		t.Fatalf("hard evidence should lead with practical health meaning, got: %s", got)
+	}
+	if strings.Contains(opening, "钱财") || strings.Contains(opening, "资源") {
+		t.Fatalf("money force should not lead hard-health year, got: %s", got)
+	}
+	if runeLen(got) < 120 {
+		t.Fatalf("hard-evidence year should still be detailed, got %d chars: %s", runeLen(got), got)
+	}
+}
+
+func TestRenderYearNarrative_DifferentSignalsDoNotReuseTenGodSentenceAsMainBody(t *testing.T) {
+	power := TenGodPowerProfile{
+		PlainTitle: "学习贵人明显",
+		PlainText:  "学习、证书、师长贵人和保护性资源更容易出现。",
+	}
+	years := []YearSignals{
+		{
+			Year:        2024,
+			Age:         29,
+			GanZhi:      "甲辰",
+			TenGodPower: power,
+			Signals: []EventSignal{
+				{Type: "婚恋_冲", Evidence: "流年地支辰冲日支戌，感情和家庭沟通受触动", Polarity: PolarityXiong, Source: SourceZhuwei},
+			},
+		},
+		{
+			Year:        2025,
+			Age:         30,
+			GanZhi:      "乙巳",
+			TenGodPower: power,
+			Signals: []EventSignal{
+				{Type: "财运_损", Evidence: "乙透干为偏财，财星为忌神，容易财来财去", Polarity: PolarityXiong, Source: SourceZhuwei},
+			},
+		},
+	}
+
+	bodies := map[string]bool{}
+	for _, ys := range years {
+		got := RenderYearNarrative(ys)
+		if strings.HasPrefix(strings.TrimPrefix(got, ys.GanZhi+"年，"), "学习贵人明显") {
+			t.Fatalf("narrative should not rely on standalone ten-god sentence first, got: %s", got)
+		}
+		if bodies[got] {
+			t.Fatalf("different signal years produced identical body: %s", got)
+		}
+		bodies[got] = true
+	}
+}
+
+func TestRenderYearNarrative_RichYoungAgeUsesConcreteSchoolContext(t *testing.T) {
+	ys := YearSignals{
+		Year:   2011,
+		Age:    16,
+		GanZhi: "辛卯",
+		TenGodPower: TenGodPowerProfile{
+			PlainTitle: "学习贵人明显",
+			PlainText:  "学习、证书、师长贵人和保护性资源更容易出现。",
+		},
+		Signals: []EventSignal{
+			{Type: TypeXueYeGuiRen, Evidence: "辛透干为正印，少年期印星护身，得师长指点", Polarity: PolarityJi, Source: SourceZhuwei},
+			{Type: TypeXingGePanNi, Evidence: "流年地支卯冲日支酉（自我宫位），少年期情绪波动", Polarity: PolarityXiong, Source: SourceZhuwei},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	for _, bad := range []string{"事业", "财运", "婚恋", "职位"} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("young-age rich narrative used adult wording %q: %s", bad, got)
+		}
+	}
+	for _, want := range []string{"学习", "师长", "同学", "情绪"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected school-age detail %q, got: %s", want, got)
+		}
+	}
+	if runeLen(got) < 120 {
+		t.Fatalf("expected richer school-age narrative, got %d chars: %s", runeLen(got), got)
+	}
+}
+
+func TestRenderYearNarrative_1996ChartRecentYearsStayDetailedAndDistinct(t *testing.T) {
+	result := Calculate(1996, 2, 8, 20, "male", false, 0, "solar", false)
+	years := GetAllYearSignals(result, "male", 2026, 0)
+	targets := map[int]string{}
+	for _, ys := range years {
+		if ys.Year < 2024 || ys.Year > 2026 {
+			continue
+		}
+		narrative := RenderYearNarrative(ys)
+		if runeLen(narrative) < 100 {
+			t.Fatalf("expected detailed narrative for %d, got %d chars: %s", ys.Year, runeLen(narrative), narrative)
+		}
+		targets[ys.Year] = narrative
+	}
+
+	if len(targets) != 3 {
+		t.Fatalf("expected 2024-2026 narratives, got years: %#v", targets)
+	}
+	if targets[2024] == targets[2025] || targets[2025] == targets[2026] || targets[2024] == targets[2026] {
+		t.Fatalf("recent year narratives should be distinct, got: %#v", targets)
+	}
+}
+
+func TestRenderYearNarrative_1996RecentYearsAvoidRepeatedToneAndStance(t *testing.T) {
+	result := Calculate(1996, 2, 8, 20, "male", false, 0, "solar", false)
+	years := GetAllYearSignals(result, "male", 2026, 0)
+	openings := map[string]int{}
+	closings := map[string]int{}
+
+	for _, ys := range years {
+		if ys.Year < 2024 || ys.Year > 2026 {
+			continue
+		}
+		narrative := RenderYearNarrative(ys)
+		openings[firstSentence(narrative)]++
+		closings[lastSentence(narrative)]++
+	}
+
+	for opening, count := range openings {
+		if count > 1 {
+			t.Fatalf("recent years repeated opening %q", opening)
+		}
+	}
+	for closing, count := range closings {
+		if count > 1 {
+			t.Fatalf("recent years repeated closing %q", closing)
+		}
+	}
+}
+
 func firstSentence(s string) string {
 	idx := strings.Index(s, "。")
 	if idx < 0 {
 		return s
 	}
 	return s[:idx+len("。")]
+}
+
+func lastSentence(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.TrimSuffix(s, "。")
+	idx := strings.LastIndex(s, "。")
+	if idx < 0 {
+		return s + "。"
+	}
+	return s[idx+len("。"):] + "。"
+}
+
+func runeLen(s string) int {
+	return len([]rune(s))
 }

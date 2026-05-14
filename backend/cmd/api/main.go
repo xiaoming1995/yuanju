@@ -75,6 +75,11 @@ func main() {
 			compatibility.POST("/readings/:id/report", handler.GenerateCompatibilityReport)
 		}
 
+		user := api.Group("/user", middleware.Auth())
+		{
+			user.GET("/profile", handler.GetUserProfile)
+		}
+
 		// 神煞注解（公开）
 		api.GET("/shensha/annotations", handler.GetShenshaAnnotations)
 

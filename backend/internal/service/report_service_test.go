@@ -250,6 +250,27 @@ func TestBuildBaziPrompt_DegradesWhenMingGeMissing(t *testing.T) {
 	}
 }
 
+func TestBuildBaziPrompt_ReadabilityDepthConstraints(t *testing.T) {
+	result := bazi.Calculate(1996, 2, 8, 20, "male", false, 0, "solar", false)
+	prompt := buildBaziPrompt(result)
+
+	for _, want := range []string{
+		"500-800字",
+		"精简版：每章约80-120字",
+		"专业版：每章约220-350字",
+		"结论、命理依据、现实表现、建议",
+		"术语出现后必须紧跟白话解释",
+		"印星、官杀、食伤、财星、用神、忌神、调候、格局",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("expected prompt to contain readability constraint %q", want)
+		}
+	}
+	if strings.Contains(prompt, "写一段整体分析（300-500字）") {
+		t.Fatalf("prompt should no longer keep the terse 300-500 character analysis limit")
+	}
+}
+
 func TestParseMarkdownToStructured_ExcludesPersonaChapter(t *testing.T) {
 	md := strings.Join([]string{
 		"## 【喜用神】",

@@ -26,13 +26,14 @@ export default function Navbar() {
             <HeartHandshake size={16} style={{ marginRight: 6, verticalAlign: 'text-bottom' }} />
             合盘
           </Link>
+          {user && <Link to="/profile" className="navbar-link">我的</Link>}
           {user && <Link to="/history" className="navbar-link">历史</Link>}
         </div>
 
         <div className="navbar-auth">
           {user ? (
             <div className="navbar-user">
-              <span className="navbar-nickname">{user.nickname}</span>
+              <Link to="/profile" className="navbar-nickname">{user.nickname}</Link>
               <button className="btn btn-ghost btn-sm" onClick={handleLogout}>退出</button>
             </div>
           ) : (
