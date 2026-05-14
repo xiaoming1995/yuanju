@@ -60,14 +60,15 @@ type EventSignal struct {
 
 // YearSignals 某流年的信号集合
 type YearSignals struct {
-	Year            int           `json:"year"`
-	Age             int           `json:"age"`
-	GanZhi          string        `json:"gan_zhi"`
-	DayunGanZhi     string        `json:"dayun_gan_zhi"`
-	YearInDayun     int           `json:"year_in_dayun,omitempty"`
-	DayunPhase      string        `json:"dayun_phase,omitempty"`
-	DayunPhaseLevel string        `json:"dayun_phase_level,omitempty"`
-	Signals         []EventSignal `json:"signals"`
+	Year            int                `json:"year"`
+	Age             int                `json:"age"`
+	GanZhi          string             `json:"gan_zhi"`
+	DayunGanZhi     string             `json:"dayun_gan_zhi"`
+	YearInDayun     int                `json:"year_in_dayun,omitempty"`
+	DayunPhase      string             `json:"dayun_phase,omitempty"`
+	DayunPhaseLevel string             `json:"dayun_phase_level,omitempty"`
+	TenGodPower     TenGodPowerProfile `json:"ten_god_power,omitempty"`
+	Signals         []EventSignal      `json:"signals"`
 }
 
 // YearSignalContext carries dayun front/back five-year context for yearly signals.
@@ -1922,6 +1923,7 @@ func GetAllYearSignals(result *BaziResult, gender string, currentYear, minAge in
 	var out []YearSignals
 	for _, dy := range result.Dayun {
 		dyGanZhi := dy.Gan + dy.Zhi
+		dayunPower := BuildDayunTenGodPower(result, dy)
 		for i, ln := range dy.LiuNian {
 			if ln.Age < minAge {
 				continue
@@ -1932,6 +1934,7 @@ func GetAllYearSignals(result *BaziResult, gender string, currentYear, minAge in
 			}
 			ctx, _ := NewYearSignalContextForDayunIndex(i, dy.JinBuHuan)
 			sigs := GetYearEventSignalsWithContext(result, string(lnRunes[0]), string(lnRunes[1]), dyGanZhi, gender, ln.Age, ctx)
+			tenGodPower := BuildYearTenGodPower(result, dy, ln, ctx, dayunPower)
 			out = append(out, YearSignals{
 				Year:            ln.Year,
 				Age:             ln.Age,
@@ -1940,6 +1943,7 @@ func GetAllYearSignals(result *BaziResult, gender string, currentYear, minAge in
 				YearInDayun:     ctx.YearInDayun,
 				DayunPhase:      ctx.DayunPhase,
 				DayunPhaseLevel: ctx.DayunPhaseLevel,
+				TenGodPower:     tenGodPower,
 				Signals:         sigs,
 			})
 		}

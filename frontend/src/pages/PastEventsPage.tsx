@@ -12,9 +12,22 @@ interface YearEvent {
   dayun_index: number
   year_in_dayun?: number
   dayun_phase?: string
+  ten_god_power?: TenGodPower
   signals: string[]
   narrative: string
   evidence_summary?: string[]
+}
+
+interface TenGodPower {
+  dominant: string
+  group: string
+  group_label: string
+  strength: string
+  polarity: string
+  plain_title: string
+  plain_text: string
+  score: number
+  reason?: string
 }
 
 interface DayunMeta {
@@ -24,6 +37,7 @@ interface DayunMeta {
   end_age: number
   start_year: number
   end_year: number
+  ten_god_power?: TenGodPower
 }
 
 interface DayunSummary {
@@ -251,6 +265,22 @@ export default function PastEventsPage() {
                       <span style={{ opacity: 0.55 }}>·</span>
                       <span>后五年地支主事</span>
                     </div>
+                    {meta.ten_god_power?.plain_title && (
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: '0.66rem',
+                        color: `var(--wu-${dyWx})`,
+                        border: `1px solid color-mix(in srgb, var(--wu-${dyWx}) 42%, transparent)`,
+                        borderRadius: 4,
+                        padding: '2px 6px',
+                        background: `color-mix(in srgb, var(--wu-${dyWx}) 8%, transparent)`,
+                        whiteSpace: 'nowrap',
+                      }}>
+                        主导：{meta.ten_god_power.plain_title}
+                      </div>
+                    )}
                   </div>
 
                   {/* 大运整体总结块 */}
@@ -383,6 +413,16 @@ export default function PastEventsPage() {
                           <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
                             {y.narrative}
                           </div>
+                          {y.ten_god_power?.plain_title && (
+                            <div style={{
+                              marginTop: 8,
+                              color: 'var(--text-muted)',
+                              fontSize: '0.74rem',
+                              lineHeight: 1.55,
+                            }}>
+                              年度力量：{y.ten_god_power.plain_title} - {y.ten_god_power.plain_text}
+                            </div>
+                          )}
                           {hasEvidence && (
                             <div style={{ marginTop: 10 }}>
                               <button

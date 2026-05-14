@@ -6,11 +6,17 @@ import "strings"
 // 底层 Evidence 保留给 RenderEvidenceSummary，不直接暴露在默认正文中。
 func RenderYearNarrative(ys YearSignals) string {
 	if len(ys.Signals) == 0 {
+		if s := tenGodContextSentence(ys.TenGodPower); s != "" {
+			return ys.GanZhi + "年，" + s + "整体节奏不必急，适合顺着这股力量稳步安排。"
+		}
 		return "本年命理信号较弱，运势相对平稳，无明显重大变动。"
 	}
 
 	primary, ok := pickDominantSignal(ys.Signals, "", ys.Age)
 	if !ok {
+		if s := tenGodContextSentence(ys.TenGodPower); s != "" {
+			return ys.GanZhi + "年，" + s + "整体动象不算强，但方向感会更清楚。"
+		}
 		return ys.GanZhi + "年整体动象不强，适合按部就班推进，保持稳定节奏。"
 	}
 	secondary, hasSecondary := pickDominantSignal(ys.Signals, themeOf(primary.Type), ys.Age)
@@ -19,6 +25,8 @@ func RenderYearNarrative(ys YearSignals) string {
 	parts = append(parts, ys.GanZhi+"年，"+plainThemeSentence(primary, true))
 	if hasSecondary {
 		parts = append(parts, plainThemeSentence(secondary, false))
+	} else if s := tenGodContextSentence(ys.TenGodPower); s != "" && !isHardEventSignal(primary) {
+		parts = append(parts, s)
 	}
 	parts = append(parts, practicalReminder(ys.Signals))
 
@@ -27,7 +35,7 @@ func RenderYearNarrative(ys YearSignals) string {
 
 // RenderEvidenceSummary 提取专业用户可展开查看的命理依据。
 func RenderEvidenceSummary(ys YearSignals) []string {
-	if len(ys.Signals) == 0 {
+	if len(ys.Signals) == 0 && ys.TenGodPower.Reason == "" {
 		return nil
 	}
 	pools := [][]EventSignal{
@@ -53,7 +61,29 @@ func RenderEvidenceSummary(ys YearSignals) []string {
 			}
 		}
 	}
+	if ys.TenGodPower.Reason != "" && len(out) < 5 {
+		out = append(out, "十神力量："+ys.TenGodPower.Reason)
+	}
 	return out
+}
+
+func tenGodContextSentence(power TenGodPowerProfile) string {
+	if power.PlainTitle == "" || power.PlainText == "" {
+		return ""
+	}
+	return power.PlainTitle + "，" + strings.TrimSuffix(power.PlainText, "。") + "。"
+}
+
+func isHardEventSignal(sig EventSignal) bool {
+	if sig.Source == SourceKongwang || sig.Source == SourceXing || sig.Source == SourceFuyin || sig.Source == SourceHehua {
+		return true
+	}
+	return strings.Contains(sig.Evidence, "用神位") ||
+		strings.Contains(sig.Evidence, "忌神位") ||
+		strings.Contains(sig.Evidence, "大运流年双重命中") ||
+		strings.Contains(sig.Evidence, "受冲") ||
+		strings.Contains(sig.Evidence, "受刑") ||
+		strings.Contains(sig.Evidence, "力度倍增")
 }
 
 func pickDominantSignal(signals []EventSignal, excludeTheme string, age int) (EventSignal, bool) {

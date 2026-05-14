@@ -229,6 +229,51 @@ func TestRenderEvidenceSummary_SelectsTechnicalEvidence(t *testing.T) {
 	}
 }
 
+func TestRenderYearNarrative_TenGodPowerEnrichesGenericYear(t *testing.T) {
+	ys := YearSignals{
+		Year:   2024,
+		Age:    29,
+		GanZhi: "甲辰",
+		TenGodPower: TenGodPowerProfile{
+			PlainTitle: "官杀偏旺",
+			PlainText:  "规则、考核、责任和外部压力更明显，宜稳住节奏。",
+			Reason:     "流年天干为七杀",
+		},
+		Signals: []EventSignal{
+			{Type: "综合变动", Evidence: "流年节奏变化", Polarity: PolarityNeutral, Source: SourceZhuwei},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if !strings.Contains(got, "官杀偏旺") || !strings.Contains(got, "规则") {
+		t.Fatalf("expected ten-god force to enrich generic year, got: %s", got)
+	}
+}
+
+func TestRenderYearNarrative_HardEvidenceNotOverriddenByTenGodPower(t *testing.T) {
+	ys := YearSignals{
+		Year:   2026,
+		Age:    31,
+		GanZhi: "丙午",
+		TenGodPower: TenGodPowerProfile{
+			PlainTitle: "财星偏旺",
+			PlainText:  "钱财、资源、合作回报和现实机会更容易被看见。",
+		},
+		Signals: []EventSignal{
+			{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲，体力精神有下滑风险", Polarity: PolarityXiong, Source: SourceZhuwei},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	opening := firstSentence(got)
+	if strings.Contains(opening, "财星") {
+		t.Fatalf("hard health evidence should dominate opening, got: %s", got)
+	}
+	if !strings.Contains(opening, "身体") && !strings.Contains(opening, "健康") && !strings.Contains(opening, "作息") {
+		t.Fatalf("expected health wording to remain dominant, got: %s", got)
+	}
+}
+
 func firstSentence(s string) string {
 	idx := strings.Index(s, "。")
 	if idx < 0 {

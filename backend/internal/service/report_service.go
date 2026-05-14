@@ -944,16 +944,17 @@ func GeneratePastEventsStream(chartID string, userID *string, onData func(string
 
 // PastEventsYearItem 单个年份的算法+模板叙述
 type PastEventsYearItem struct {
-	Year            int      `json:"year"`
-	Age             int      `json:"age"`
-	GanZhi          string   `json:"gan_zhi"`
-	DayunGanZhi     string   `json:"dayun_gan_zhi"`
-	DayunIndex      int      `json:"dayun_index"`
-	YearInDayun     int      `json:"year_in_dayun,omitempty"`
-	DayunPhase      string   `json:"dayun_phase,omitempty"`
-	Signals         []string `json:"signals"`
-	Narrative       string   `json:"narrative"`
-	EvidenceSummary []string `json:"evidence_summary,omitempty"`
+	Year            int                     `json:"year"`
+	Age             int                     `json:"age"`
+	GanZhi          string                  `json:"gan_zhi"`
+	DayunGanZhi     string                  `json:"dayun_gan_zhi"`
+	DayunIndex      int                     `json:"dayun_index"`
+	YearInDayun     int                     `json:"year_in_dayun,omitempty"`
+	DayunPhase      string                  `json:"dayun_phase,omitempty"`
+	TenGodPower     bazi.TenGodPowerProfile `json:"ten_god_power,omitempty"`
+	Signals         []string                `json:"signals"`
+	Narrative       string                  `json:"narrative"`
+	EvidenceSummary []string                `json:"evidence_summary,omitempty"`
 }
 
 // PastEventsYearsResponse 一次性返回所有年份的算法叙述（无 AI）
@@ -964,12 +965,13 @@ type PastEventsYearsResponse struct {
 }
 
 type DayunMetaItem struct {
-	Index    int    `json:"index"`
-	GanZhi   string `json:"gan_zhi"`
-	StartAge int    `json:"start_age"`
-	EndAge   int    `json:"end_age"`
-	StartYr  int    `json:"start_year"`
-	EndYr    int    `json:"end_year"`
+	Index       int                     `json:"index"`
+	GanZhi      string                  `json:"gan_zhi"`
+	StartAge    int                     `json:"start_age"`
+	EndAge      int                     `json:"end_age"`
+	StartYr     int                     `json:"start_year"`
+	EndYr       int                     `json:"end_year"`
+	TenGodPower bazi.TenGodPowerProfile `json:"ten_god_power,omitempty"`
 }
 
 // GeneratePastEventsYears 根据算法 + 模板生成所有年份叙述（毫秒级，无 AI）
@@ -998,12 +1000,13 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 		gz := dy.Gan + dy.Zhi
 		dyIndex[gz] = dy.Index
 		dayunMeta = append(dayunMeta, DayunMetaItem{
-			Index:    dy.Index,
-			GanZhi:   gz,
-			StartAge: dy.StartAge,
-			EndAge:   dy.StartAge + 9,
-			StartYr:  dy.StartYear,
-			EndYr:    dy.EndYear,
+			Index:       dy.Index,
+			GanZhi:      gz,
+			StartAge:    dy.StartAge,
+			EndAge:      dy.StartAge + 9,
+			StartYr:     dy.StartYear,
+			EndYr:       dy.EndYear,
+			TenGodPower: bazi.BuildDayunTenGodPower(result, dy),
 		})
 	}
 
@@ -1017,6 +1020,7 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 			DayunIndex:      dyIndex[ys.DayunGanZhi],
 			YearInDayun:     ys.YearInDayun,
 			DayunPhase:      ys.DayunPhase,
+			TenGodPower:     ys.TenGodPower,
 			Signals:         bazi.ExtractYearSignalTypes(ys),
 			Narrative:       bazi.RenderYearNarrative(ys),
 			EvidenceSummary: bazi.RenderEvidenceSummary(ys),
@@ -1128,6 +1132,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 
 	for _, dy := range result.Dayun {
 		gz := dy.Gan + dy.Zhi
+		dayunPower := bazi.BuildDayunTenGodPower(result, dy)
 
 		cached, cacheErr := repository.GetDayunSummary(chartID, dy.Index)
 		if cacheErr == nil {
@@ -1151,6 +1156,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			}
 			ctx, _ := bazi.NewYearSignalContextForDayunIndex(i, dy.JinBuHuan)
 			sigs := bazi.GetYearEventSignalsWithContext(result, string(lnRunes[0]), string(lnRunes[1]), gz, chart.Gender, ln.Age, ctx)
+			tenGodPower := bazi.BuildYearTenGodPower(result, dy, ln, ctx, dayunPower)
 			dySignals = append(dySignals, bazi.YearSignals{
 				Year:            ln.Year,
 				Age:             ln.Age,
@@ -1159,6 +1165,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 				YearInDayun:     ctx.YearInDayun,
 				DayunPhase:      ctx.DayunPhase,
 				DayunPhaseLevel: ctx.DayunPhaseLevel,
+				TenGodPower:     tenGodPower,
 				Signals:         sigs,
 			})
 		}
@@ -1166,6 +1173,9 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 
 		dayunInfo := fmt.Sprintf("%s %d-%d岁（%d-%d年）[%s/%s]",
 			gz, dy.StartAge, dy.StartAge+9, dy.StartYear, dy.EndYear, dy.GanShiShen, dy.ZhiShiShen)
+		if dayunPower.PlainTitle != "" {
+			dayunInfo += "；主导力量：" + dayunPower.PlainTitle + "（" + strings.TrimSuffix(dayunPower.PlainText, "。") + "）"
+		}
 
 		// 计算 youngRatio：本段大运中 age<18 的年份占比（起运前年份不计）
 		youngCount, totalCount := 0, 0
