@@ -1040,6 +1040,32 @@ type DayunSummaryStreamItem struct {
 	Error      string   `json:"error,omitempty"`
 }
 
+func cachedDayunSummaryToStreamItem(cached *model.AIDayunSummary, fallbackGanZhi string) (DayunSummaryStreamItem, bool) {
+	if cached == nil || strings.TrimSpace(cached.Summary) == "" {
+		return DayunSummaryStreamItem{}, false
+	}
+
+	var themes []string
+	if cached.Themes != nil && len(*cached.Themes) > 0 {
+		if err := json.Unmarshal(*cached.Themes, &themes); err != nil {
+			return DayunSummaryStreamItem{}, false
+		}
+	}
+
+	gz := strings.TrimSpace(cached.DayunGanZhi)
+	if gz == "" {
+		gz = fallbackGanZhi
+	}
+
+	return DayunSummaryStreamItem{
+		DayunIndex: cached.DayunIndex,
+		GanZhi:     gz,
+		Themes:     themes,
+		Summary:    cached.Summary,
+		Cached:     true,
+	}, true
+}
+
 // GenerateDayunSummariesStream 按大运分段调 AI 生成 themes + summary，每段独立缓存与推送
 func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(item DayunSummaryStreamItem) error) error {
 	chart, err := repository.GetChartByID(chartID)
@@ -1102,6 +1128,16 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 
 	for _, dy := range result.Dayun {
 		gz := dy.Gan + dy.Zhi
+
+		cached, cacheErr := repository.GetDayunSummary(chartID, dy.Index)
+		if cacheErr == nil {
+			if item, ok := cachedDayunSummaryToStreamItem(cached, gz); ok {
+				_ = onItem(item)
+				continue
+			}
+		} else {
+			log.Printf("[GenerateDayunSummariesStream] 读取大运总结缓存失败 chart=%s dayun=%d: %v", chartID, dy.Index, cacheErr)
+		}
 
 		// 取该段大运的 10 年信号
 		var dySignals []bazi.YearSignals

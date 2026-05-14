@@ -235,6 +235,22 @@ export default function PastEventsPage() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       大运 {meta.start_age}-{meta.end_age}岁
                     </div>
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontSize: '0.66rem',
+                      color: 'var(--text-muted)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 4,
+                      padding: '2px 6px',
+                      background: 'var(--bg-elevated)',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <span>前五年天干主事</span>
+                      <span style={{ opacity: 0.55 }}>·</span>
+                      <span>后五年地支主事</span>
+                    </div>
                   </div>
 
                   {/* 大运整体总结块 */}
@@ -308,11 +324,6 @@ export default function PastEventsPage() {
                       const evidenceKey = `${meta.index}-${y.year}`
                       const hasEvidence = Boolean(y.evidence_summary?.length)
                       const evidenceOpen = Boolean(expandedEvidence[evidenceKey])
-                      const phaseLabel = y.dayun_phase === 'gan'
-                        ? `大运第${y.year_in_dayun || ''}年 · 天干主事`
-                        : y.dayun_phase === 'zhi'
-                          ? `大运第${y.year_in_dayun || ''}年 · 地支主事`
-                          : ''
                       return (
                         <div
                           key={y.year}
@@ -351,19 +362,6 @@ export default function PastEventsPage() {
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                               {y.year}年 · {y.age}岁
                             </span>
-                            {phaseLabel && (
-                              <span
-                                style={{
-                                  fontSize: '0.65rem',
-                                  padding: '2px 6px',
-                                  borderRadius: 4,
-                                  border: '1px solid var(--border-subtle)',
-                                  color: 'var(--text-muted)',
-                                  whiteSpace: 'nowrap',
-                                  background: 'var(--bg-elevated)',
-                                }}
-                              >{phaseLabel}</span>
-                            )}
                             {y.signals?.map((sig) => {
                               const meta = SIGNAL_LABEL[sig]
                               if (!meta) return null

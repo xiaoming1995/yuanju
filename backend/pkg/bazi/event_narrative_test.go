@@ -160,7 +160,7 @@ func TestRenderYearNarrative_DayunPhaseDoesNotDominateSpecificTheme(t *testing.T
 	}
 }
 
-func TestRenderYearNarrative_AdverseDayunPhaseCanBeSecondaryCaution(t *testing.T) {
+func TestRenderYearNarrative_DayunPhaseStaysOutOfYearlyBody(t *testing.T) {
 	ys := YearSignals{
 		Year:        2028,
 		Age:         32,
@@ -175,15 +175,14 @@ func TestRenderYearNarrative_AdverseDayunPhaseCanBeSecondaryCaution(t *testing.T
 	}
 
 	got := RenderYearNarrative(ys)
-	if !strings.Contains(got, "底色") && !strings.Contains(got, "保守") && !strings.Contains(got, "压力") {
-		t.Fatalf("expected adverse phase caution as secondary context, got: %s", got)
-	}
-	if strings.Contains(got, "金不换") || strings.Contains(got, "后5年") {
-		t.Fatalf("narrative leaked technical phase evidence: %s", got)
+	for _, term := range []string{"本步大运", "前五年", "后五年", "天干主事", "地支主事", "金不换"} {
+		if strings.Contains(got, term) {
+			t.Fatalf("yearly body should not repeat dayun phase term %q: %s", term, got)
+		}
 	}
 }
 
-func TestRenderYearNarrative_AlwaysShowsDayunPhaseWhenPresent(t *testing.T) {
+func TestRenderYearNarrative_DayunPhaseEvidenceDoesNotForceVisibleBodyText(t *testing.T) {
 	ys := YearSignals{
 		Year:        2009,
 		Age:         14,
@@ -199,8 +198,10 @@ func TestRenderYearNarrative_AlwaysShowsDayunPhaseWhenPresent(t *testing.T) {
 	}
 
 	got := RenderYearNarrative(ys)
-	if !strings.Contains(got, "后五年") || !strings.Contains(got, "地支") {
-		t.Fatalf("expected visible late dayun phase wording, got: %s", got)
+	for _, term := range []string{"本步大运", "前五年", "后五年", "天干主事", "地支主事", "金不换"} {
+		if strings.Contains(got, term) {
+			t.Fatalf("yearly body should stay focused on yearly events, leaked %q: %s", term, got)
+		}
 	}
 }
 

@@ -5,8 +5,40 @@ import (
 	"strings"
 	"testing"
 
+	"yuanju/internal/model"
 	"yuanju/pkg/bazi"
 )
+
+func TestCachedDayunSummaryToStreamItemReturnsCachedItem(t *testing.T) {
+	themes := json.RawMessage(`["学业突破","贵人扶持"]`)
+	cached := &model.AIDayunSummary{
+		DayunIndex:  2,
+		DayunGanZhi: "乙卯",
+		Themes:      &themes,
+		Summary:     "早年学习有助力，后段适合稳扎稳打。",
+	}
+
+	item, ok := cachedDayunSummaryToStreamItem(cached, "甲寅")
+
+	if !ok {
+		t.Fatalf("expected valid cached summary to be usable")
+	}
+	if !item.Cached {
+		t.Fatalf("expected item to be marked cached")
+	}
+	if item.DayunIndex != 2 {
+		t.Fatalf("unexpected dayun index: %d", item.DayunIndex)
+	}
+	if item.GanZhi != "乙卯" {
+		t.Fatalf("expected cached gan-zhi to be preserved, got %q", item.GanZhi)
+	}
+	if item.Summary != cached.Summary {
+		t.Fatalf("unexpected summary: %q", item.Summary)
+	}
+	if got := strings.Join(item.Themes, ","); got != "学业突破,贵人扶持" {
+		t.Fatalf("unexpected themes: %q", got)
+	}
+}
 
 func TestBuildBaziPrompt_ExcludesCelebritySectionAndPersonaChapter(t *testing.T) {
 	result := &bazi.BaziResult{

@@ -20,9 +20,6 @@ func RenderYearNarrative(ys YearSignals) string {
 	if hasSecondary {
 		parts = append(parts, plainThemeSentence(secondary, false))
 	}
-	if phase, hasPhase := findDayunPhaseSignal(ys.Signals); hasPhase && primary.Type != TypeDayunPhase && (!hasSecondary || secondary.Type != TypeDayunPhase) {
-		parts = append(parts, plainThemeSentence(phase, false))
-	}
 	parts = append(parts, practicalReminder(ys.Signals))
 
 	return strings.Join(parts, "")
@@ -66,7 +63,7 @@ func pickDominantSignal(signals []EventSignal, excludeTheme string, age int) (Ev
 	bestPol := 999
 	isYoung := age > 0 && age < YoungAgeCutoff
 	for _, s := range signals {
-		if s.Type == "用神基底" {
+		if s.Type == "用神基底" || s.Type == TypeDayunPhase {
 			continue
 		}
 		theme := themeOf(s.Type)
@@ -83,15 +80,6 @@ func pickDominantSignal(signals []EventSignal, excludeTheme string, age int) (Ev
 		}
 	}
 	return best, found
-}
-
-func findDayunPhaseSignal(signals []EventSignal) (EventSignal, bool) {
-	for _, s := range signals {
-		if s.Type == TypeDayunPhase {
-			return s, true
-		}
-	}
-	return EventSignal{}, false
 }
 
 func themeOf(typ string) string {
