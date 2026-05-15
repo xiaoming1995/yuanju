@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { adminAlgoConfigAPI, adminAlgoTiaohouAPI } from '../../lib/adminApi'
 
+function errorMessage(e: unknown, fallback: string) {
+  return e instanceof Error ? e.message : fallback
+}
+
 interface AlgoConfigItem {
   key: string
   value: string
@@ -45,8 +49,8 @@ const AlgoConfigPage: React.FC = () => {
     try {
       const { data } = await adminAlgoConfigAPI.list()
       setParams(data || [])
-    } catch (e: any) {
-      alert(e.message || '获取参数失败')
+    } catch (e: unknown) {
+      alert(errorMessage(e, '获取参数失败'))
     } finally {
       setLoadingParams(false)
     }
@@ -57,8 +61,8 @@ const AlgoConfigPage: React.FC = () => {
     try {
       const { data } = await adminAlgoTiaohouAPI.list(dayGan)
       setTiaohouRows(data || [])
-    } catch (e: any) {
-      alert(e.message || '获取调候规则失败')
+    } catch (e: unknown) {
+      alert(errorMessage(e, '获取调候规则失败'))
     } finally {
       setLoadingTiaohou(false)
     }
@@ -73,8 +77,8 @@ const AlgoConfigPage: React.FC = () => {
       await adminAlgoConfigAPI.update(key, { value: editValue })
       setEditingKey(null)
       fetchParams()
-    } catch (e: any) {
-      alert(e.message || '保存失败')
+    } catch (e: unknown) {
+      alert(errorMessage(e, '保存失败'))
     } finally {
       setSavingKey(null)
     }
@@ -85,8 +89,8 @@ const AlgoConfigPage: React.FC = () => {
     try {
       await adminAlgoConfigAPI.reload()
       alert('算法配置已重载')
-    } catch (e: any) {
-      alert(e.message || '重载失败')
+    } catch (e: unknown) {
+      alert(errorMessage(e, '重载失败'))
     } finally {
       setReloading(false)
     }
@@ -101,8 +105,8 @@ const AlgoConfigPage: React.FC = () => {
       })
       setEditingTiaohou(null)
       fetchTiaohou(activeGan)
-    } catch (e: any) {
-      alert(e.message || '保存失败')
+    } catch (e: unknown) {
+      alert(errorMessage(e, '保存失败'))
     } finally {
       setSavingTiaohou(false)
     }

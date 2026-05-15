@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { adminPromptsAPI } from '../../lib/adminApi'
 
+function errorMessage(e: unknown, fallback: string) {
+  return e instanceof Error ? e.message : fallback
+}
+
 interface PromptRecord {
   id: string
   module: string
@@ -36,8 +40,8 @@ const PromptSettings: React.FC = () => {
     try {
       const { data } = await adminPromptsAPI.list()
       setPrompts(data || [])
-    } catch (e: any) {
-      alert(e.message || '获取配置失败')
+    } catch (e: unknown) {
+      alert(errorMessage(e, '获取配置失败'))
     } finally {
       setLoading(false)
     }
@@ -58,8 +62,8 @@ const PromptSettings: React.FC = () => {
       alert('保存成功')
       setEditingModule(null)
       fetchPrompts()
-    } catch (e: any) {
-      alert(e.message || '保存失败')
+    } catch (e: unknown) {
+      alert(errorMessage(e, '保存失败'))
     } finally {
       setSaving(false)
     }

@@ -1,20 +1,16 @@
+import { useId } from 'react'
 import { LunarMonth, LunarYear } from 'lunar-javascript'
+import type { BirthProfileFormValue, ZiHourMode } from './birthProfile'
 import './BirthProfileForm.css'
-
-export interface BirthProfileFormValue {
-  year: number
-  month: number
-  day: number
-  hour: number
-  gender: 'male' | 'female'
-  calendarType: 'solar' | 'lunar'
-  isLeapMonth: boolean
-}
 
 interface BirthProfileFormProps {
   title?: string
   value: BirthProfileFormValue
   onChange: (next: BirthProfileFormValue) => void
+  showSummary?: boolean
+  summaryCalibrationText?: string
+  ziHourMode?: ZiHourMode
+  onZiHourModeChange?: (mode: ZiHourMode) => void
 }
 
 const SHICHEN = [
@@ -31,18 +27,6 @@ const SHICHEN = [
   { value: 20, label: '戌时（19:00 - 20:59）' },
   { value: 22, label: '亥时（21:00 - 22:59）' },
 ]
-
-export function initialBirthProfile(gender: 'male' | 'female'): BirthProfileFormValue {
-  return {
-    year: new Date().getFullYear() - 25,
-    month: 1,
-    day: 1,
-    hour: 12,
-    gender,
-    calendarType: 'solar',
-    isLeapMonth: false,
-  }
-}
 
 function getSolarDaysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate()
@@ -67,6 +51,11 @@ function buildLunarMonthOptions(year: number) {
   return options
 }
 
+function formatYearOption(year: number, currentYear: number) {
+  const age = currentYear - year
+  return age > 0 ? `${year} 年（${age}岁）` : `${year} 年`
+}
+
 function normalizeDate(next: BirthProfileFormValue) {
   const maxDay = getMaxDay(next)
   return {
@@ -75,7 +64,35 @@ function normalizeDate(next: BirthProfileFormValue) {
   }
 }
 
-export default function BirthProfileForm({ title, value, onChange }: BirthProfileFormProps) {
+function getShichenLabel(hour: number) {
+  return SHICHEN.find(item => item.value === hour)?.label.split('（')[0] || `${hour}时`
+}
+
+function formatBirthProfileSummary(
+  value: BirthProfileFormValue,
+  calibrationText = '按北京时间排盘',
+  ziHourMode: ZiHourMode = 'late',
+) {
+  const genderText = value.gender === 'male' ? '男命' : '女命'
+  const calendarText = value.calendarType === 'solar' ? '公历' : '农历'
+  const monthText = value.calendarType === 'lunar' && value.isLeapMonth ? `闰${value.month}月` : `${value.month}月`
+  const timeText = value.hour === 0
+    ? (ziHourMode === 'early' ? '子时 23:00-23:59' : '子时 00:00-00:59')
+    : getShichenLabel(value.hour)
+
+  return `${genderText} · ${calendarText} ${value.year}年${monthText}${value.day}日 · ${timeText} · ${calibrationText}`
+}
+
+export default function BirthProfileForm({
+  title,
+  value,
+  onChange,
+  showSummary = false,
+  summaryCalibrationText = '按北京时间排盘',
+  ziHourMode = 'late',
+  onZiHourModeChange,
+}: BirthProfileFormProps) {
+  const formId = useId()
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 120 }, (_, i) => currentYear - i)
   const monthOptions = value.calendarType === 'solar'
@@ -118,94 +135,150 @@ export default function BirthProfileForm({ title, value, onChange }: BirthProfil
   }
 
   return (
-    <div>
+    <div className="birth-profile-form">
       {title && <h2 className="serif birth-profile-title">{title}</h2>}
 
-      <div className="gender-selector">
-        {(['male', 'female'] as const).map(g => (
-          <button
-            key={g}
-            type="button"
-            className={`gender-btn ${value.gender === g ? 'active' : ''}`}
-            onClick={() => update({ gender: g })}
-          >
-            {g === 'male' ? '♂ 男命' : '♀ 女命'}
-          </button>
-        ))}
-      </div>
+      <div className="birth-profile-basic">
+        <div className="birth-profile-primary-grid">
+          <div className="birth-profile-fieldset">
+            <div className="form-label">性别</div>
+            <div className="birth-profile-segmented">
+              {(['male', 'female'] as const).map(g => (
+                <button
+                  key={g}
+                  type="button"
+                  className={`birth-profile-option ${value.gender === g ? 'active' : ''}`}
+                  onClick={() => update({ gender: g })}
+                >
+                  {g === 'male' ? '♂ 男命' : '♀ 女命'}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      <div className="gender-selector birth-profile-calendar-toggle">
-        {(['solar', 'lunar'] as const).map(ct => (
-          <button
-            key={ct}
-            type="button"
-            className={`gender-btn ${value.calendarType === ct ? 'active' : ''}`}
-            onClick={() => toggleCalendarType(ct)}
-          >
-            {ct === 'solar' ? '公历' : '农历'}
-          </button>
-        ))}
-      </div>
+          <div className="birth-profile-fieldset">
+            <div className="form-label">历法</div>
+            <div className="birth-profile-segmented">
+              {(['solar', 'lunar'] as const).map(ct => (
+                <button
+                  key={ct}
+                  type="button"
+                  className={`birth-profile-option ${value.calendarType === ct ? 'active' : ''}`}
+                  onClick={() => toggleCalendarType(ct)}
+                >
+                  {ct === 'solar' ? '公历' : '农历'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
-      <div className="date-row">
-        <div className="form-group">
-          <label className="form-label">出生年份</label>
+        <div className="birth-profile-fieldset">
+          <div className="form-label">出生日期</div>
+          <div className="birth-date-fields">
+            <div className="form-group birth-year-field">
+              <select
+                id={`${formId}-year`}
+                className="form-select"
+                value={value.year}
+                aria-label="出生年份"
+                onChange={e => handleDateChange({ year: Number(e.target.value) })}
+              >
+                {years.map(year => (
+                  <option key={year} value={year}>
+                    {formatYearOption(year, currentYear)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <select
+                id={`${formId}-month`}
+                className="form-select"
+                value={`${value.month}-${value.isLeapMonth}`}
+                aria-label="出生月份"
+                onChange={e => {
+                  const [month, isLeapMonth] = e.target.value.split('-')
+                  handleDateChange({
+                    month: Number(month),
+                    isLeapMonth: isLeapMonth === 'true',
+                  })
+                }}
+              >
+                {monthOptions.map(option => (
+                  <option key={`${option.value}-${option.isLeap}`} value={`${option.value}-${option.isLeap}`}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <select
+                id={`${formId}-day`}
+                className="form-select"
+                value={value.day}
+                aria-label="出生日期"
+                onChange={e => update({ day: Number(e.target.value) })}
+              >
+                {days.map(day => (
+                  <option key={day} value={day}>
+                    {day} 日
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="birth-profile-fieldset">
+          <label className="form-label" htmlFor={`${formId}-hour`}>出生时辰</label>
           <select
+            id={`${formId}-hour`}
             className="form-select"
-            value={value.year}
-            onChange={e => handleDateChange({ year: Number(e.target.value) })}
+            value={value.hour}
+            onChange={e => update({ hour: Number(e.target.value) })}
           >
-            {years.map(year => (
-              <option key={year} value={year}>
-                {year} 年
+            {SHICHEN.map(item => (
+              <option key={item.value} value={item.value}>
+                {item.label}
               </option>
             ))}
           </select>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">月</label>
-          <select
-            className="form-select"
-            value={`${value.month}-${value.isLeapMonth}`}
-            onChange={e => {
-              const [month, isLeapMonth] = e.target.value.split('-')
-              handleDateChange({
-                month: Number(month),
-                isLeapMonth: isLeapMonth === 'true',
-              })
-            }}
-          >
-            {monthOptions.map(option => (
-              <option key={`${option.value}-${option.isLeap}`} value={`${option.value}-${option.isLeap}`}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">日</label>
-          <select className="form-select" value={value.day} onChange={e => update({ day: Number(e.target.value) })}>
-            {days.map(day => (
-              <option key={day} value={day}>
-                {day} 日
-              </option>
-            ))}
-          </select>
-        </div>
+        {value.hour === 0 && onZiHourModeChange && (
+          <div className="birth-profile-fieldset zi-hour-group">
+            <div className="form-label">子时细分</div>
+            <div className="zi-hour-options">
+              <button
+                type="button"
+                className={`zi-hour-option ${ziHourMode === 'early' ? 'active' : ''}`}
+                onClick={() => onZiHourModeChange('early')}
+              >
+                <span>23:00-23:59</span>
+                <strong>按前一日</strong>
+              </button>
+              <button
+                type="button"
+                className={`zi-hour-option ${ziHourMode === 'late' ? 'active' : ''}`}
+                onClick={() => onZiHourModeChange('late')}
+              >
+                <span>00:00-00:59</span>
+                <strong>按当日</strong>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="form-group">
-        <label className="form-label">出生时辰</label>
-        <select className="form-select" value={value.hour} onChange={e => update({ hour: Number(e.target.value) })}>
-          {SHICHEN.map(item => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      {showSummary && (
+        <div className="birth-profile-summary" aria-live="polite">
+          <span className="birth-profile-summary-label">已选</span>
+          <span>{formatBirthProfileSummary(value, summaryCalibrationText, ziHourMode)}</span>
+        </div>
+      )}
     </div>
   )
 }

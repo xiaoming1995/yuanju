@@ -5,6 +5,10 @@ const api = axios.create({
   timeout: 300000, // 300s，适配最新深度推理大模型长等待
 })
 
+export function errorMessage(err: unknown, fallback = 'unknown error') {
+  return err instanceof Error ? err.message : fallback
+}
+
 // 请求拦截器：自动注入 JWT
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('yj_token')
@@ -337,8 +341,8 @@ export const baziAPI = {
         }
       }
       safeOnDone()
-    } catch (err: any) {
-      onError(err.message)
+    } catch (err: unknown) {
+      onError(errorMessage(err))
     }
   },
   generateLiunianReport: (chartId: string, targetYear: number) =>
@@ -406,8 +410,8 @@ export const baziAPI = {
         }
       }
       safeOnDone()
-    } catch (err: any) {
-      onError(err?.message || 'unknown error')
+    } catch (err: unknown) {
+      onError(errorMessage(err))
     }
   },
 
@@ -455,8 +459,8 @@ export const baziAPI = {
         }
       }
       safeOnDone()
-    } catch (err: any) {
-      onError(err.message)
+    } catch (err: unknown) {
+      onError(errorMessage(err))
     }
   },
   getHistory: (page = 1) => api.get(`/api/bazi/history?page=${page}`),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { baziAPI } from '../lib/api'
+import { baziAPI, errorMessage } from '../lib/api'
 import type { LiuYueItem, LiuYueResponse } from '../lib/api'
 
 interface LiuYueDrawerProps {
@@ -9,6 +9,20 @@ interface LiuYueDrawerProps {
   dayGan: string
   liuNianGanZhi: string // 例如 "丙午"，用于标题
   chartId?: string
+}
+
+interface LiuNianReportContent {
+  career?: string
+  romance?: string
+  health?: string
+  advice?: string
+}
+
+interface LiuNianReport {
+  content_structured?: LiuNianReportContent | null
+  content?: string
+  model?: string
+  created_at?: string
 }
 
 const GAN_WUXING: Record<string, string> = {
@@ -37,7 +51,7 @@ export default function LiuYueDrawer({
   const [error, setError] = useState<string | null>(null)
 
   // 流年 AI 报告状态
-  const [report, setReport] = useState<any>(null)
+  const [report, setReport] = useState<LiuNianReport | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
 
@@ -79,8 +93,8 @@ export default function LiuYueDrawer({
     try {
       const { data } = await baziAPI.generateLiunianReport(chartId, year)
       setReport(data.report)
-    } catch (e: any) {
-      setReportError(e.message || '生成失败')
+    } catch (e: unknown) {
+      setReportError(errorMessage(e, '生成失败'))
     } finally {
       setReportLoading(false)
     }

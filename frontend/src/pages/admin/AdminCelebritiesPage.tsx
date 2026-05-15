@@ -242,8 +242,8 @@ export default function AdminCelebritiesPage() {
                     alert(`成功生成并入库 ${res.data.data.inserted_count} 条名人记录！`);
                     setShowAIModal(false);
                     load();
-                  } catch (e: any) {
-                    setAiError(e.message || '生成失败');
+                  } catch (e: unknown) {
+                    setAiError(e instanceof Error ? e.message : '生成失败');
                   } finally {
                     setAIGenerating(false);
                   }

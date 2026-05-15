@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI } from '../lib/api'
 import type { CalculateInput } from '../lib/api'
-import BirthProfileForm, { initialBirthProfile, type BirthProfileFormValue } from '../components/BirthProfileForm'
+import BirthProfileForm from '../components/BirthProfileForm'
+import { initialBirthProfile, type BirthProfileFormValue, type ZiHourMode } from '../components/birthProfile'
 import './HomePage.css'
 
 // 省份 → 中心经度映射（东8区标准为120°E）
@@ -27,8 +28,11 @@ export default function HomePage() {
   const [error, setError] = useState('')
 
   const [birthProfile, setBirthProfile] = useState<BirthProfileFormValue>(initialBirthProfile('male'))
-  const [isEarlyZishi, setIsEarlyZishi] = useState(false)
+  const [ziHourMode, setZiHourMode] = useState<ZiHourMode>('late')
   const [province, setProvince] = useState('')
+  const [showAdvancedCalibration, setShowAdvancedCalibration] = useState(false)
+
+  const calibrationSummary = province ? `${province}真太阳时校准` : '按北京时间排盘'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,6 +45,7 @@ export default function HomePage() {
       // 如果是晚子时，只需发 0。
       const rawHour = Number(birthProfile.hour)
       const isZishi = rawHour === 0
+      const isEarlyZishi = ziHourMode === 'early'
       const finalHour = isZishi && isEarlyZishi ? 23 : rawHour
       const input: CalculateInput = {
         year: Number(birthProfile.year),
@@ -91,39 +96,47 @@ export default function HomePage() {
             </div>
 
             <form onSubmit={handleSubmit} id="bazi-form">
-              <BirthProfileForm value={birthProfile} onChange={setBirthProfile} />
+              <BirthProfileForm
+                value={birthProfile}
+                onChange={setBirthProfile}
+                showSummary
+                summaryCalibrationText={calibrationSummary}
+                ziHourMode={ziHourMode}
+                onZiHourModeChange={setZiHourMode}
+              />
 
-              {/* 早子时选项（仅子时显示）*/}
-              {birthProfile.hour === 0 && (
-                <div className="early-zishi-hint">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={isEarlyZishi}
-                      onChange={e => setIsEarlyZishi(e.target.checked)}
-                    />
-                    <span>早子时（23:00 前，日柱按前一天算）</span>
-                  </label>
-                </div>
-              )}
-
-              {/* 出生省份（可选，用于真太阳时修正）*/}
-              <div className="form-group">
-                <label className="form-label">
-                  出生省份
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '6px' }}>（可选，用于真太阳时修正）</span>
-                </label>
-                <select
-                  id="birth-province"
-                  className="form-select"
-                  value={province}
-                  onChange={e => setProvince(e.target.value)}
+              <div className="advanced-calibration">
+                <button
+                  type="button"
+                  className="advanced-calibration-toggle"
+                  onClick={() => setShowAdvancedCalibration(open => !open)}
+                  aria-expanded={showAdvancedCalibration}
                 >
-                  <option value="">不选择（按北京时间）</option>
-                  {Object.keys(PROVINCE_LONGITUDE).filter(k => k !== '').map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
+                  <span>{showAdvancedCalibration ? '收起高级校准' : '高级校准'}</span>
+                  <span aria-hidden="true">{showAdvancedCalibration ? '▴' : '▾'}</span>
+                </button>
+
+                {showAdvancedCalibration && (
+                  <div className="advanced-calibration-panel">
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="birth-province">
+                        出生地校准
+                        <span className="field-note">用于真太阳时修正，不选择则按北京时间</span>
+                      </label>
+                      <select
+                        id="birth-province"
+                        className="form-select"
+                        value={province}
+                        onChange={e => setProvince(e.target.value)}
+                      >
+                        <option value="">不选择，按北京时间</option>
+                        {Object.keys(PROVINCE_LONGITUDE).filter(k => k !== '').map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {error && <p className="form-error">{error}</p>}

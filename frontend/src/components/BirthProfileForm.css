@@ -3,19 +3,36 @@
   margin-bottom: 16px;
 }
 
-.birth-profile-calendar-toggle {
-  margin-bottom: 1.5rem;
-  margin-top: 1rem;
+.birth-profile-form {
+  display: grid;
+  gap: 20px;
 }
 
-.gender-selector {
+.birth-profile-basic {
+  display: grid;
+  gap: 20px;
+}
+
+.birth-profile-primary-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 14px;
 }
 
-.gender-btn {
+.birth-profile-fieldset {
+  display: grid;
+  gap: 10px;
+}
+
+.birth-profile-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.birth-profile-option,
+.zi-hour-option {
+  min-height: 44px;
   padding: 14px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
@@ -27,56 +44,116 @@
   font-family: var(--font-sans);
 }
 
-.gender-btn.active {
+.birth-profile-option.active,
+.zi-hour-option.active {
   border-color: var(--primary);
   color: var(--primary);
   background: var(--primary-glow);
 }
 
-.gender-btn:hover:not(.active) {
+.birth-profile-option:hover:not(.active),
+.zi-hour-option:hover:not(.active) {
   border-color: var(--border-default);
   color: var(--text-primary);
   background: var(--bg-card-hover);
 }
 
-.date-row {
+.birth-date-fields {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr;
   gap: 12px;
-  margin-bottom: 20px;
 }
 
-.form-group {
-  margin-bottom: 20px;
+.birth-year-field {
+  min-width: 0;
 }
 
-.form-group:last-of-type {
-  margin-bottom: 0;
-}
-
-.early-zishi-hint {
-  padding: 12px 16px;
+.zi-hour-group {
+  padding: 14px;
   background: rgba(91, 155, 213, 0.08);
   border: 1px solid rgba(91, 155, 213, 0.2);
   border-radius: var(--radius-md);
-  margin-bottom: 20px;
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
+.zi-hour-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
-  font-size: 13px;
-  color: var(--wu-shui);
-  cursor: pointer;
 }
 
-.checkbox-label input {
-  accent-color: var(--wu-shui);
+.zi-hour-option {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.zi-hour-option span {
+  font-size: 13px;
+}
+
+.zi-hour-option strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.birth-profile-summary {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  background: rgba(201, 168, 76, 0.08);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.birth-profile-summary-label {
+  font-size: 13px;
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+.birth-profile-form .form-select {
+  min-height: 44px;
 }
 
 @media (max-width: 768px) {
-  .date-row {
-    grid-template-columns: 1fr;
+  .birth-profile-form,
+  .birth-profile-basic {
+    gap: 16px;
+  }
+
+  .birth-profile-primary-grid {
+    gap: 10px;
+  }
+
+  .birth-profile-primary-grid .birth-profile-segmented {
+    gap: 6px;
+  }
+
+  .birth-profile-primary-grid .birth-profile-option {
+    padding: 11px 8px;
+    font-size: 14px;
+  }
+
+  .birth-date-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .birth-year-field {
+    grid-column: 1 / -1;
+  }
+
+  .birth-profile-option,
+  .zi-hour-option {
+    padding: 13px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .birth-profile-segmented,
+  .zi-hour-options {
+    gap: 8px;
   }
 }

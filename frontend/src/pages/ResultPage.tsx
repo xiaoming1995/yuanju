@@ -41,6 +41,14 @@ const SHENSHA_POLARITY: Record<string, string> = {
   '桃花': 'zhong', '驿马': 'zhong', '华盖': 'zhong', '红艳': 'zhong',
 }
 
+const LOADING_STEPS = [
+  '提取四柱大运神煞...',
+  '结合真太阳时精确校准星运...',
+  '依据典籍推断月令与格局...',
+  '深度分析抓取全局调候用神...',
+  '正在汇总专属呈现命局详析...'
+]
+
 
 interface BaziResult {
   year_gan: string; year_zhi: string
@@ -257,14 +265,6 @@ export default function ResultPage() {
   const [streamingText, setStreamingText] = useState('')
   const [reportError, setReportError] = useState('')
   const [loadingStepIndex, setLoadingStepIndex] = useState(0)
-
-  const LOADING_STEPS = [
-    '提取四柱大运神煞...',
-    '结合真太阳时精确校准星运...',
-    '依据典籍推断月令与格局...',
-    '深度分析抓取全局调候用神...',
-    '正在汇总专属呈现命局详析...'
-  ]
 
   useEffect(() => {
     let timer: number

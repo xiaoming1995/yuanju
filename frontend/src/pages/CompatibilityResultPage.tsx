@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -226,11 +226,11 @@ export default function CompatibilityResultPage() {
   const [reportLoading, setReportLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!id) return
     const res = await compatibilityAPI.getDetail(id)
     setDetail(res.data.data)
-  }
+  }, [id])
 
   useEffect(() => {
     if (isLoading) {
@@ -241,9 +241,9 @@ export default function CompatibilityResultPage() {
       return
     }
     load()
-      .catch((err: any) => setError(err?.message || '加载失败'))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : '加载失败'))
       .finally(() => setLoading(false))
-  }, [id, user, isLoading, navigate])
+  }, [user, isLoading, navigate, load])
 
   const handleGenerateReport = async () => {
     if (!id) return
@@ -252,8 +252,8 @@ export default function CompatibilityResultPage() {
     try {
       await compatibilityAPI.generateReport(id)
       await load()
-    } catch (err: any) {
-      setError(err?.message || '生成合盘解读失败')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '生成合盘解读失败')
     } finally {
       setReportLoading(false)
     }

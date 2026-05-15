@@ -131,7 +131,7 @@ export default function PrintLayout({
           <tr>
             <td>
               <div className="print-page-header">
-                <span className="print-page-header-center">命　理　命　书</span>
+                <span className="print-page-header-center">命 理 命 书</span>
                 <span className="print-page-header-info">
                   {birthYear}年{birthMonth}月{birthDay}日&nbsp;·&nbsp;{gender === 'male' ? '男命' : '女命'}
                 </span>
@@ -167,11 +167,11 @@ export default function PrintLayout({
           YUAN JU MING LI
         </div>
         <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 10, color: darkBrown, marginBottom: 8 }}>
-          命　理　命　书
+          命 理 命 书
         </div>
         <div style={{ fontSize: 13, color: midBrown, letterSpacing: 2 }}>
           {birthYear} 年 {birthMonth} 月 {birthDay} 日 {birthHour} 时
-          &nbsp;·&nbsp;{gender === 'male' ? '男　命' : '女　命'}
+          &nbsp;·&nbsp;{gender === 'male' ? '男 命' : '女 命'}
         </div>
         {(yongshen || jishen) && (
           <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 16 }}>
@@ -182,7 +182,7 @@ export default function PrintLayout({
             )}
             {jishen && (
               <span style={{ fontSize: 11, color: '#8b1a1a', background: '#fdf0f0', padding: '3px 12px', borderRadius: 2, border: '1px solid #f5c6c6' }}>
-                忌　神：{jishen}
+                忌 神：{jishen}
               </span>
             )}
           </div>

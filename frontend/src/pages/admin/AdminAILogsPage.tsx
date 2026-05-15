@@ -34,7 +34,6 @@ export default function AdminAILogsPage() {
   const pageSize = 20
 
   useEffect(() => {
-    setLoading(true)
     adminAILogsAPI.list(page, statusFilter)
       .then(r => {
         setLogs(r.data.logs || [])

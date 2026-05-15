@@ -1,0 +1,119 @@
+.compatibility-page {
+  padding-bottom: 96px;
+}
+
+.compatibility-container {
+  padding-bottom: 96px;
+}
+
+.compatibility-intro {
+  padding: 24px;
+  margin-top: 28px;
+  margin-bottom: 20px;
+}
+
+.compatibility-intro-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.compatibility-intro-title h1 {
+  font-size: 30px;
+  margin: 0;
+}
+
+.compatibility-intro p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.7;
+}
+
+.compatibility-mobile-tabs {
+  display: none;
+}
+
+.compatibility-forms {
+  display: grid;
+  gap: 16px;
+}
+
+.compatibility-profile-panel {
+  padding: 20px;
+}
+
+.compatibility-error {
+  color: #e77;
+  margin-top: 16px;
+}
+
+.compatibility-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .compatibility-page.page {
+    padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .compatibility-container {
+    padding-bottom: 24px;
+  }
+
+  .compatibility-intro {
+    padding: 18px;
+    margin-top: 16px;
+    margin-bottom: 14px;
+  }
+
+  .compatibility-intro-title h1 {
+    font-size: 24px;
+  }
+
+  .compatibility-intro p {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .compatibility-mobile-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .compatibility-mobile-tab {
+    min-height: 44px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+  }
+
+  .compatibility-mobile-tab.active {
+    border-color: var(--primary);
+    background: var(--primary-glow);
+    color: var(--primary);
+  }
+
+  .compatibility-profile-panel {
+    display: none;
+  }
+
+  .compatibility-profile-panel--active {
+    display: block;
+  }
+
+  .compatibility-actions {
+    flex-direction: column;
+  }
+
+  .compatibility-actions .btn {
+    width: 100%;
+  }
+}

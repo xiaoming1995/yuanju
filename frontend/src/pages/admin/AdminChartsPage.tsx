@@ -42,12 +42,22 @@ interface AdminLiunianReport {
   chart_id: string
   target_year: number
   dayun_ganzhi: string
-  content_structured: any
+  content_structured?: {
+    career?: string
+    romance?: string
+    health?: string
+    advice?: string
+  } | null
   model: string
   created_at: string
 }
 
 const genderLabel = (g: string) => g === 'male' ? '男' : '女'
+
+function adminErrorMessage(err: unknown, fallback = '操作失败') {
+  if (err instanceof Error) return err.message
+  return fallback
+}
 
 export default function AdminChartsPage() {
   const [charts, setCharts] = useState<ChartRecord[]>([])
@@ -65,7 +75,7 @@ export default function AdminChartsPage() {
       const res = await adminChartsAPI.list(pageNum, pageSize)
       setCharts(res.data?.data || [])
       setTotal(res.data?.total || 0)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('获取起盘流水失败:', err)
     } finally {
       setLoading(false)
@@ -97,8 +107,8 @@ export default function AdminChartsPage() {
         ...prev,
         [chartId]: (prev[chartId] || []).filter(r => r.id !== id)
       }));
-    } catch (err: any) {
-      alert('清除失败: ' + (err.response?.data?.error || err.message));
+    } catch (err: unknown) {
+      alert('清除失败: ' + adminErrorMessage(err, '清除失败'));
     }
   }
 

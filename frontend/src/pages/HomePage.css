@@ -50,6 +50,51 @@
   color: var(--text-secondary);
 }
 
+.advanced-calibration {
+  margin-top: 18px;
+}
+
+.advanced-calibration-toggle {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.advanced-calibration-toggle:hover {
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+  background: var(--bg-elevated);
+}
+
+.advanced-calibration-panel {
+  margin-top: 12px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.field-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
 /* 提交按钮 */
 .submit-btn {
   width: 100%;
@@ -116,4 +161,22 @@
 
 @media (max-width: 768px) {
   .features-grid { grid-template-columns: 1fr; }
+
+  .home-page.page { padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important; }
+  .hero { padding: 16px 0 10px; }
+  .hero-badge { display: none; }
+  .hero-title {
+    font-size: 28px;
+    margin-bottom: 6px;
+    letter-spacing: 0;
+  }
+  .hero-desc {
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 320px;
+  }
+  .form-section { padding: 8px 0 36px; }
+  .form-card-header { margin-bottom: 22px; }
+  .submit-btn { margin-top: 22px; min-height: 52px; }
+  .guest-hint { padding-bottom: 8px; }
 }

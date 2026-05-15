@@ -73,20 +73,17 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
   const currentYear = new Date().getFullYear()
   
   // 找出当前年份所在的大运索引
-  const initialActiveIndex = dayun.findIndex(d => currentYear >= d.start_year && currentYear <= d.end_year)
-  const [activeIndex, setActiveIndex] = useState(initialActiveIndex !== -1 ? initialActiveIndex : 0)
+  const currentDayunIndex = dayun.findIndex(d => currentYear >= d.start_year && currentYear <= d.end_year)
+  const defaultActiveIndex = currentDayunIndex !== -1 ? currentDayunIndex : 0
+  const [activeIndex, setActiveIndex] = useState(defaultActiveIndex)
+  const resolvedActiveIndex = dayun[activeIndex] ? activeIndex : defaultActiveIndex
 
   // 流月抽屉状态
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [drawerYear, setDrawerYear] = useState(currentYear)
   const [drawerGanZhi, setDrawerGanZhi] = useState('')
 
-  useEffect(() => {
-    const idx = dayun.findIndex(d => currentYear >= d.start_year && currentYear <= d.end_year)
-    setActiveIndex(idx !== -1 ? idx : 0)
-  }, [dayun, currentYear])
-
-  const activeDayun = dayun[activeIndex]
+  const activeDayun = dayun[resolvedActiveIndex]
   // 神煞注解数据
   const [ssAnnotations, setSsAnnotations] = useState<Record<string, ShenshaAnnotation>>({})
   const [ssModalOpen, setSsModalOpen] = useState(false)
@@ -117,7 +114,7 @@ export default function DayunTimeline({ dayun, startYunSolar, dayGan, chartId }:
         <div style={{ display: 'flex', gap: 12, minWidth: 'max-content' }}>
           {dayun.map((d, i) => {
             const isCurrent = currentYear >= d.start_year && currentYear <= d.end_year
-            const isActive = i === activeIndex
+            const isActive = i === resolvedActiveIndex
             const wx = GAN_WUXING[d.gan] || 'jin'
             return (
               <div

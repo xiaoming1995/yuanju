@@ -23,7 +23,6 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false)
       return
     }
     userAPI.profile()

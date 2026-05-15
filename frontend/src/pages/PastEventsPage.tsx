@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronLeft, Loader2 } from 'lucide-react'
 import { baziAPI } from '../lib/api'
@@ -93,19 +93,10 @@ export default function PastEventsPage() {
   const [streamError, setStreamError] = useState('')
   const inflightRef = useRef(false)
 
-  useEffect(() => {
-    if (isLoading) return
-    if (!user) {
-      navigate('/login')
-      return
-    }
-    if (!chartId) return
-    loadAll()
-  }, [chartId, user, isLoading])
-
-  async function loadAll() {
-    if (inflightRef.current) return
+  const loadAll = useCallback(async () => {
+    if (!chartId || inflightRef.current) return
     inflightRef.current = true
+    await Promise.resolve()
     setYearsLoaded(false)
     setYearsError('')
     setStreamDone(false)
@@ -114,7 +105,7 @@ export default function PastEventsPage() {
 
     // Stage 1: 即时拿所有年份（毫秒级）
     try {
-      const resp = await baziAPI.fetchPastEventsYears(chartId!)
+      const resp = await baziAPI.fetchPastEventsYears(chartId)
       const data = resp.data
       setEvents(data.years || [])
       setDayunMeta(data.dayun_meta || [])
@@ -125,15 +116,15 @@ export default function PastEventsPage() {
       }
       setSummaries(init)
       setYearsLoaded(true)
-    } catch (e: any) {
-      setYearsError(e?.message || '年份加载失败')
+    } catch (e: unknown) {
+      setYearsError(e instanceof Error ? e.message : '年份加载失败')
       inflightRef.current = false
       return
     }
 
     // Stage 2: 后台流式拉大运 AI 总结
     baziAPI.streamDayunSummaries(
-      chartId!,
+      chartId,
       (item) => {
         setSummaries((prev) => {
           const next = { ...prev }
@@ -158,7 +149,20 @@ export default function PastEventsPage() {
         inflightRef.current = false
       },
     )
-  }
+  }, [chartId])
+
+  useEffect(() => {
+    if (isLoading) return
+    if (!user) {
+      navigate('/login')
+      return
+    }
+    if (!chartId) return
+    const timer = window.setTimeout(() => {
+      void loadAll()
+    }, 0)
+    return () => window.clearTimeout(timer)
+  }, [chartId, user, isLoading, navigate, loadAll])
 
   // 按 dayun_index 分组（保持原顺序）
   const grouped: Array<{ meta: DayunMeta; years: YearEvent[] }> = dayunMeta.map((dm) => ({
