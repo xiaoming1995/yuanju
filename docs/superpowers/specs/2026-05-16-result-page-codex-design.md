@@ -101,45 +101,39 @@ H3（卡片）      15px  sans    weight 600
 
 **章末微提示**：低调快闪式 —— 滚到当前章底部出现淡色 `──→ 滑向《下章名》`，3 秒后渐隐。
 
-### 3 · 章内内容模式（解决密集数据网格）
+### 3 · 章内内容模式 · 保留现状结构 · 修排版
 
-抽出一个共享组件 `<SnapStrip>` 覆盖所有"多项数据"场景，保证手感统一：
-
-```
-┌─────────────────────────────┐
-│  子标题       [全表/卡片] ◐  │ 章内 H2 + 视图切换
-├─────────────────────────────┤
-│  ┌────┐ ┌────┐ ┌────┐ →     │
-│  │卡 1│ │卡 2│ │卡 3│  ...   │ 横滑、snap 单项
-│  │    │ │    │ │    │       │ 左右邻居露 16px
-│  └────┘ └────┘ └────┘       │
-│   · · ● · · · ·             │ 当前点放大
-│                              │
-│  ▽ 当前项详情区               │ 跟随选中
-└─────────────────────────────┘
-```
-
-实现：`overflow-x:auto + scroll-snap-type:x mandatory`，每张卡 `flex:0 0 calc(100% - 32px)`。当前项用 `IntersectionObserver` 侦测。视图切换默认卡片，可切「全表」（同样 snap 的传统横向溢出表格），切换偏好存 `localStorage`。
+> **设计原则更新（视觉验收后）**：放弃 SnapStrip / tap-to-zoom / 卡片化四柱等"重新发明"信息架构的方案。所有章节保留现状的结构与阅读习惯（八字老用户一眼看懂），仅在字号、行距、触控、字体、色彩、强调元素上做扎实。验收的视觉对比参见 `.superpowers/brainstorm/.../06-all-chapters-before-after.html`。
 
 **五章具体形态**：
 
-| 章 | 主体 | SnapStrip 用法 | 章内继续展开 |
-|---|---|---|---|
-| **命** | 四柱 + 十神矩阵 | 4 柱大卡 carousel（年/月/日/时）— 单柱大字：60px 衬线干/支、十神、藏干、神煞 | 命格徽 + 神煞汇总（标签 14px / 8px padding，44pt 触控） |
-| **性** | 五行 / 用神 | **不用** SnapStrip — 五行雷达全宽展示，下接用神/调候/格局垂直堆叠卡 | 短，单屏可见 |
-| **运** | 大运十段 | 10 个大运卡 SnapStrip，默认 snap 到当前大运 | 当前大运的十神来源、起讫、本运观察垂直展开 |
-| **年** | 流年 | 10 个流年卡 SnapStrip（属选中大运），默认 snap 到当前流年 | 流月 drawer 入口 + 过往年事入口 |
-| **述** | AI 报告 | **不用** SnapStrip — serif 古书排版 + 章节折叠 | 词典从 4 列降到 2 列 + 工具栏（导出/分享/打印） |
+| 章 | 主体结构（保留） | 排版改动（新做） |
+|---|---|---|
+| **命** | 5 行 × 4 列传统排盘表（天干/地支/十神/藏干/神煞 × 年/月/日/时） | 行标签从 36px 横排改 28px 竖排（writing-mode: vertical-rl），省宽给柱列；干支 22px → 26-30px 衬线；藏干由 `戊乙癸` 横挤改为 `戊\n乙\n癸` 纵排；神煞 9px 文字改 11px 圆角徽章（≥24×52px 触控）；日柱列头朱红下划线 + 整列白底高亮，不再用包边框 |
+| **性** | 五行雷达 + 用神 + 调候 + 格局（垂直堆叠） | 雷达加 polygon 填色；用神由纯文本改金色（喜）/ 朱红（忌）pill；调候、格局合并为两张古典 `n-th-card`（米黄底 + 1px 边 + 小标签 + 宋体正文） |
+| **运** | 大运十段 · 2 列 × 5 行网格（保持现状不变） | 卡内字号 16 → 22-24px 衬线干支；当下运 `1.5px #6b1e1e` 朱红边 + 白底 + 右上"当下"红角标；网格下方新增"本运观察"古书卡（左 2px 朱红条 + 米黄底 + 宋体观察文本） |
+| **年** | 流年十段 · 2 × 5 网格（同运章） | 同运章处理 + 本年红角标；网格下方"本年观察"卡 + 流月十二段 / 过往年事入口（两个 entry-tile） |
+| **述** | AI 报告 + 词典 + 工具栏（线性堆叠） | 流式正文 `monospace + pre-wrap` 改 `Songti SC + line-height 1.85 + 段间距 1em`，每段渲染完淡入；光标 `▍` 衬线 600ms 柔闪；旧 2 列 digest 直接去掉、进入正文；词典从 4 列改 2 列；工具栏 4 按钮 → 3 工具（导出 / 分享 / 打印） |
+
+**全局放弃的"新发明"**：
+- ❌ SnapStrip 横滑卡带（用户明确反对，希望"一眼看完"）
+- ❌ tap-to-zoom 单柱放大模态（同上）
+- ❌ 卡片化四柱（破坏传统横看一行/纵看一柱的阅读习惯）
+- ❌ "全表/卡片"视图切换 toggle（无视图切换需求）
+
+**全局保留的"新东西"**：
+- ✅ 章节胶囊条吸顶 + 章节横向 scroll-snap 切章（章 ↔ 章之间的翻页交互）
+- ✅ URL hash 双向同步（`#ming` / `#xing` / `#yun` / `#nian` / `#shu`）
+- ✅ 章末快闪提示 `──→ 滑向《下章名》` + 浮动回顶按钮
+- ✅ 桌面 ≥1024px 线性滚动 fallback + 章节锚点条
+- ✅ 标题层级 H1·24 / H2·18 / H3·15 全局收口（替换现 18/20/22 混用）
 
 **关键小决定**：
-
-- **流式 AI 排版**：从 `monospace + pre-wrap` 改成 `serif + line-height 1.85 + 段间距 1em`；光标用 `▍` 字符 600ms 闪烁；每段渲染完淡入
-- **神煞 tag 触控**：9px / 2-3px padding → 12px / 6-8px padding；包成 `<button>`；可点的加微下划线提示
-- **章间状态联动**：在「运」选某段大运 → 切到「年」自动显示该大运下的流年（state 走 ResultPage 顶层，不进 URL）
-- **回顶按钮**：右下浮动，位于 BottomNav 之上、章末提示之下；仅滚动当前章
+- **流式 AI 排版**：宋体 + line-height 1.85 + 段间距，光标 `▍` 衬线柔闪；段落整段 fade-in
+- **神煞徽章触控**：从 9px / 2-3px padding 提升到 11px / 5-6px padding；可点的加微下划线 hover 提示；包成 `<button>` 元素
+- **章间状态联动**：在「运」选某段大运 → 切到「年」自动显示该大运下的流年（state 走 ResultPage 顶层组件，不进 URL）
+- **回顶按钮**：右下浮动，位于 BottomNav 之上；仅滚动当前章
 - **LiuYueDrawer**：宽度 `100vw → min(85vw, 360px)`，露出左 15vw 用于关闭手势 + 视觉提示
-
-**桌面端 (≥1024px) fallback**：不应用 SnapStrip，4 柱 / 10 大运 / 10 流年直接平铺。SnapStrip 是手机适配，桌面屏宽足够。
 
 ### 4 · 反馈状态
 
@@ -157,27 +151,25 @@ H3（卡片）      15px  sans    weight 600
 frontend/src/components/
   CodexShell.tsx            最外层翻页容器 + 胶囊条 + 章节状态 + URL hash sync
   CodexShell.css
-  SnapStrip.tsx             共享横滑组件
-  SnapStrip.css
   result-chapters/
-    Ming.tsx                命章
+    Ming.tsx                命章（排盘表 + 命格/神煞汇总）
     Ming.css
-    Xing.tsx                性章
+    Xing.tsx                性章（五行雷达 + 用神 pill + 调候/格局古典卡）
     Xing.css
-    Yun.tsx                 运章
+    Yun.tsx                 运章（2×5 大运网格 + 本运观察卡）
     Yun.css
-    Nian.tsx                年章
+    Nian.tsx                年章（2×5 流年网格 + 本年观察卡 + 流月/过往年事入口）
     Nian.css
-    Shu.tsx                 述章
+    Shu.tsx                 述章（宋体 AI 报告 + 词典 + 工具栏）
     Shu.css
 
 frontend/src/pages/
   ResultPage.tsx            从 1200 行降到 ~300 行（仅外层数据加载 + 路由 + CodexShell 装配）
-  ResultPage.css            从 38K 降到 ~10K（仅 page shell 级样式）
+  ResultPage.css            从 38K 降到 ~10K（仅 page shell 级样式 + 章节胶囊条 + 共享 token）
 
 frontend/tests/
-  result-codex-shell.test.mjs      章节存在 / 胶囊条 / hash 同步 / 章切换
-  snap-strip-behavior.test.mjs     SnapStrip 单组件横滑 / snap / 指示点 / 视图切换
+  result-codex-shell.test.mjs      章节存在 / 胶囊条 / hash 同步 / 章切换 / 章末提示
+  result-paipan-classical.test.mjs 命章排盘表：5×4 结构、字号、神煞触控 ≥44pt、日柱高亮
   result-codex-desktop.test.mjs    ≥1024px 走线性 fallback
   mobilePageQaMatrix.mjs           扩展 ResultPage 检查项
 ```
@@ -186,17 +178,19 @@ frontend/tests/
 
 | 风险 | 缓解 |
 |---|---|
-| iOS Safari `scroll-snap` 抖动 | feature-detect 失败时降级线性滚动；加 `-webkit-overflow-scrolling: touch` |
+| iOS Safari 章节级 `scroll-snap` 抖动 | feature-detect 失败时降级线性滚动 + 章节锚点条；加 `-webkit-overflow-scrolling: touch` |
 | LiuYueDrawer 右滑同向冲突 | drawer 打开时 CodexShell 容器 `pointer-events: none`；drawer 宽度从 100vw 改 `min(85vw, 360px)` |
 | 打印格式破坏 | `@media print` 下章节铺平 + 每章 `page-break-before`；PrintLayout 不动；新增打印测试 |
 | 1200 行 ResultPage 拆 5 个章组件 | 先「搬」后「优化」：第一步仅搬迁现有 JSX 到对应 chapter 组件，不动样式；后续 PR 才动样式 |
+| 行标签 `writing-mode: vertical-rl` 兼容性 | 主流移动浏览器都支持（Chrome 48+ / Safari 5.1+），降级为正常横向标签亦可接受 |
+| 神煞徽章 click 区域与 hover 提示冲突 | 移动端无 hover，下划线仅在 `@media (hover: hover)` 出现；移动端用持续浅色 background 暗示可点 |
 | in-flight 两个 change 冲突 | 见「实现顺序」 |
 
 ## 测试 / 验收
 
 **自动化**：
-- 新增 4 个 e2e/UX 测试文件（位置见上）
-- 扩展 `mobilePageQaMatrix.mjs` 加：胶囊条吸顶检测、SnapStrip 无溢出、回顶按钮存在
+- 新增 3 个 e2e/UX 测试文件（位置见上）
+- 扩展 `mobilePageQaMatrix.mjs` 加：胶囊条吸顶、章节横滑 hash 同步、回顶按钮存在、神煞徽章触控 ≥44pt
 
 **人工验收**：
 - 真机：iPhone 12/13、iPhone X/11、Android 360px 各跑一遍
@@ -209,20 +203,26 @@ frontend/tests/
 1. **先合并**：`bazi-ten-god-relation-matrix` + `replicate-dayun-timeline-design` 两个 in-flight change 落地
 2. **再起新 change**：`redesign-result-page-codex-shell`（OpenSpec 方式）
 3. **该 change 内的 task 拆分**（具体细节交给后续 writing-plans 阶段）：
-   - 构建 `CodexShell` + `SnapStrip` 基础组件 + 测试
+   - 构建 `CodexShell` 章节翻页容器 + 章节胶囊条 + URL hash 同步 + 测试
    - 拆 ResultPage 渲染到 5 个 chapter 组件（不动样式，纯搬迁）
-   - 章 1 / 2 / 3 / 4 / 5 各自的内部 SnapStrip / 视图切换 / 触控 / 视觉
-   - 标题层级全局收口
-   - 流式排版 + 反馈状态 + 章节骨架
-   - 桌面 fallback
-   - 打印验证
-   - 真机 QA
+   - 命章：排盘表行标签竖排 + 字号提升 + 藏干纵排 + 神煞徽章 + 日柱高亮
+   - 性章：雷达 polygon 填色 + 用神 pill + 调候/格局古典卡
+   - 运章：2×5 网格字号提升 + 当下运朱红边/角标 + 本运观察卡
+   - 年章：同运章 + 流月/过往年事入口 + 章间状态联动（选大运 → 流年跟）
+   - 述章：宋体 AI 流式 + 行距/段间距 + ▍ 衬线光标 + 词典 2 列 + 工具栏 3 项
+   - 标题层级全局收口（H1·24 / H2·18 / H3·15 替换现 18/20/22）
+   - 反馈状态：章节骨架 / 错误 inline 卡 / 流式中断重试
+   - 桌面 ≥1024px 线性 fallback + 章节锚点条
+   - 打印验证：5 章铺平 + page-break + PrintLayout 不变
+   - 真机 QA：iPhone 12/13、iPhone X/11、Android 360 各跑一遍
 
 ## 验收即"完成"的标准
 
-- 视觉：在 390×844 真机上首屏不需要捏放就能读所有四柱信息；切章像翻书
-- 功能：5 章可横滑、可点跳、可深链；流式 AI 排版古雅、可重试；打印不破
-- 代码：ResultPage.tsx ≤ 400 行；全部新组件单独可测；既有 12 个 UX 测试不退化
+- 视觉：在 390×844 真机上首屏不需要捏放就能读完四柱表（含十神/藏干/神煞），切章像翻书
+- 功能：5 章可横滑、可点跳、可深链（hash）；运 ↔ 年 状态联动；流式 AI 古雅、可重试；打印不破
+- 触控：所有可点元素（神煞徽章、章节胶囊、用神 pill）≥44pt 触控
+- 代码：ResultPage.tsx ≤ 400 行；5 个 chapter 组件 + CodexShell 单独可测；既有 12 个 UX 测试不退化
+- 视觉验收基线：与 `.superpowers/brainstorm/.../06-all-chapters-before-after.html` 中"新设计"侧的形态视觉一致
 
 ## 不在本次范围
 
