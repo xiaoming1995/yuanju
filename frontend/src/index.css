@@ -93,7 +93,8 @@ body {
 
 .page {
   min-height: 100vh;
-  padding-top: 80px;
+  padding-top: 96px;
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
 }
 
 /* ======= 通用卡片 ======= */
@@ -309,8 +310,8 @@ body {
 
 @media (max-width: 640px) {
   .page {
-    /* 为底部的 BottomNav 留出空间，防止遮挡内容 */
-    padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+    padding-top: 84px;
+    padding-bottom: calc(150px + env(safe-area-inset-bottom)) !important;
   }
 }
 

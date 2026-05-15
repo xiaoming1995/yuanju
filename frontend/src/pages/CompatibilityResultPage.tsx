@@ -6,6 +6,7 @@ import {
   compatibilityAPI,
   type CompatibilityChartSnapshot,
   type CompatibilityDetail,
+  type CompatibilityDimensionScores,
   type CompatibilityDurationAssessment,
   type CompatibilityEvidence,
   type CompatibilityParticipant,
@@ -29,6 +30,13 @@ const dimensionText: Record<string, string> = {
   stability: '稳定度',
   communication: '沟通协同',
   practicality: '现实磨合',
+}
+
+const dimensionHint: Record<keyof CompatibilityDimensionScores, string> = {
+  attraction: '初期靠近感',
+  stability: '长期承接力',
+  communication: '相处理解度',
+  practicality: '现实落地度',
 }
 
 const polarityText: Record<string, string> = {
@@ -127,31 +135,57 @@ function normalizeDurationAssessment(
   }
 }
 
+function clampScore(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function scoreTone(value: number) {
+  if (value >= 78) return 'high'
+  if (value >= 62) return 'medium'
+  return 'low'
+}
+
+function getDimensionItems(scores: CompatibilityDimensionScores) {
+  return ([
+    ['attraction', scores.attraction],
+    ['stability', scores.stability],
+    ['communication', scores.communication],
+    ['practicality', scores.practicality],
+  ] as Array<[keyof CompatibilityDimensionScores, number]>).map(([key, value]) => ({
+    key,
+    label: dimensionText[key],
+    hint: dimensionHint[key],
+    value: clampScore(value),
+    tone: scoreTone(value),
+  }))
+}
+
+function fallbackAdvice(level: string) {
+  if (level === 'high') {
+    return '这组关系有继续推进的基础，建议把优势落到稳定沟通、现实安排和共同节奏上。'
+  }
+  if (level === 'low') {
+    return '这组关系需要先处理边界、沟通方式和现实压力，再判断是否适合长期投入。'
+  }
+  return '这组关系可以继续观察，但要把吸引感和现实磨合分开看，先建立稳定的沟通规则。'
+}
+
 function EvidenceCard({ evidence }: { evidence: CompatibilityEvidence }) {
   const badgeColor = polarityColor[evidence.polarity] || 'var(--text-muted)'
 
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-        <div className="serif" style={{ fontSize: 18 }}>{evidence.title}</div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <div className="card compatibility-evidence-card">
+      <div className="compatibility-evidence-header">
+        <div className="serif compatibility-evidence-title">{evidence.title}</div>
+        <div className="compatibility-evidence-badges">
           <span
-            style={{
-              fontSize: 12,
-              padding: '4px 10px',
-              borderRadius: 999,
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-secondary)',
-              background: 'rgba(255,255,255,0.03)',
-            }}
+            className="compatibility-evidence-badge"
           >
             {dimensionText[evidence.dimension] || evidence.dimension}
           </span>
           <span
+            className="compatibility-evidence-badge"
             style={{
-              fontSize: 12,
-              padding: '4px 10px',
-              borderRadius: 999,
               border: `1px solid ${badgeColor}33`,
               color: badgeColor,
               background: `${badgeColor}14`,
@@ -161,7 +195,66 @@ function EvidenceCard({ evidence }: { evidence: CompatibilityEvidence }) {
           </span>
         </div>
       </div>
-      <div style={{ color: 'var(--text-secondary)', lineHeight: 1.7 }}>{evidence.detail}</div>
+      <div className="compatibility-evidence-detail">{evidence.detail}</div>
+    </div>
+  )
+}
+
+function ScoreOverview({ scores }: { scores: CompatibilityDimensionScores }) {
+  return (
+    <div className="card compatibility-quick-score">
+      <div className="compatibility-section-header compatibility-section-header--stacked">
+        <h2 className="serif compatibility-section-title">关系速览</h2>
+        <p className="compatibility-section-desc">先看四个关键维度的强弱，再展开专业依据。</p>
+      </div>
+      <div className="compatibility-quick-score-list">
+        {getDimensionItems(scores).map(item => (
+          <div key={item.key} className={`compatibility-quick-score-row compatibility-quick-score-row--${item.tone}`}>
+            <div className="compatibility-quick-score-copy">
+              <div className="compatibility-quick-score-label">{item.label}</div>
+              <div className="compatibility-quick-score-hint">{item.hint}</div>
+            </div>
+            <div className="compatibility-quick-score-meter">
+              <div className="compatibility-quick-score-value serif">{item.value}</div>
+              <div className="compatibility-quick-score-bar" aria-hidden="true">
+                <div className="compatibility-quick-score-fill" style={{ width: `${item.value}%` }} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function InsightPanel({
+  risks,
+  advice,
+  hasStructuredReport,
+}: {
+  risks: string[]
+  advice: string
+  hasStructuredReport: boolean
+}) {
+  return (
+    <div className="compatibility-insight-grid">
+      <div className="card compatibility-insight-card">
+        <div className="compatibility-insight-kicker">关键风险</div>
+        {risks.length > 0 ? (
+          <ul className="compatibility-insight-list">
+            {risks.slice(0, 3).map(risk => <li key={risk}>{risk}</li>)}
+          </ul>
+        ) : (
+          <p className="compatibility-insight-empty">当前结构中没有特别突出的单点风险，仍建议结合现实相处节奏判断。</p>
+        )}
+      </div>
+      <div className="card compatibility-insight-card compatibility-insight-card--advice">
+        <div className="compatibility-insight-kicker">行动建议</div>
+        <p className="compatibility-insight-advice">{advice}</p>
+        {!hasStructuredReport && (
+          <p className="compatibility-insight-note">生成完整解读后，会补充更具体的沟通与长期关系建议。</p>
+        )}
+      </div>
     </div>
   )
 }
@@ -275,10 +368,15 @@ export default function CompatibilityResultPage() {
   const summaryTags = Array.isArray(reading.summary_tags) ? reading.summary_tags : []
   const reportDimensions = Array.isArray(structuredReport?.dimensions) ? structuredReport.dimensions : []
   const reportRisks = Array.isArray(structuredReport?.risks) ? structuredReport.risks.filter(Boolean) : []
+  const fallbackRisks = detail.evidences
+    .filter(evidence => evidence.polarity === 'negative')
+    .map(evidence => `${evidence.title}：${evidence.detail}`)
+  const insightRisks = reportRisks.length > 0 ? reportRisks : fallbackRisks
+  const insightAdvice = structuredReport?.advice?.trim() || fallbackAdvice(reading.overall_level)
 
   return (
-    <div className="page">
-      <div className="container" style={{ paddingBottom: 96 }}>
+    <div className="page compatibility-result-page">
+      <div className="container compatibility-result-container">
         <div className="card compatibility-hero-card">
           <div className="compatibility-hero-header">
             <HeartHandshake size={24} />
@@ -295,38 +393,16 @@ export default function CompatibilityResultPage() {
               <span key={tag} className="compatibility-tag">{tag}</span>
             ))}
           </div>
-        </div>
-
-        <div className="compatibility-section">
-          <div className="compatibility-section-header">
-            <h2 className="serif compatibility-section-title">双方命盘摘要</h2>
-            <p className="compatibility-section-desc">先确认双方四柱与命盘核心信息，再看匹配维度和证据。</p>
-          </div>
-          <div className="compatibility-summary-grid">
-            {selfP && <ParticipantSummaryCard participant={selfP} />}
-            {partnerP && <ParticipantSummaryCard participant={partnerP} />}
-          </div>
-        </div>
-
-        <div className="compatibility-section">
-          <div className="compatibility-section-header">
-            <h2 className="serif compatibility-section-title">四维评分</h2>
-            <p className="compatibility-section-desc">从吸引、稳定、沟通和现实磨合四个维度看这段关系的整体结构。</p>
-          </div>
-          <div className="compatibility-score-grid">
-          {[
-            ['吸引力', reading.dimension_scores.attraction],
-            ['稳定度', reading.dimension_scores.stability],
-            ['沟通协同', reading.dimension_scores.communication],
-            ['现实磨合', reading.dimension_scores.practicality],
-          ].map(([label, value]) => (
-            <div key={label} className="card compatibility-score-card">
-              <div className="compatibility-score-label">{label}</div>
-              <div className="serif compatibility-score-value">{value}</div>
+          {!detail.latest_report && (
+            <div className="compatibility-hero-action">
+              <button className="btn btn-primary" onClick={handleGenerateReport} disabled={reportLoading}>
+                {reportLoading ? '生成中...' : '生成完整解读'}
+              </button>
             </div>
-          ))}
+          )}
         </div>
-        </div>
+
+        <ScoreOverview scores={reading.dimension_scores} />
 
         <div className="compatibility-section">
           <div className="compatibility-section-header">
@@ -356,18 +432,49 @@ export default function CompatibilityResultPage() {
         </div>
 
         <div className="compatibility-section">
-          <div className="compatibility-section-header">
-            <h2 className="serif compatibility-section-title">关键依据</h2>
-            <p className="compatibility-section-desc">这些结构化证据是合盘结论的主要命理依据。</p>
+          <div className="compatibility-section-header compatibility-section-header--stacked">
+            <h2 className="serif compatibility-section-title">关系洞察</h2>
+            <p className="compatibility-section-desc">把风险和建议单独提出来，避免被专业术语淹没。</p>
           </div>
-          <div style={{ display: 'grid', gap: 12 }}>
-          {detail.evidences.map(evidence => <EvidenceCard key={evidence.id} evidence={evidence} />)}
+          <InsightPanel
+            risks={insightRisks}
+            advice={insightAdvice}
+            hasStructuredReport={Boolean(structuredReport)}
+          />
         </div>
-        </div>
+
+        <details className="compatibility-professional-details">
+          <summary className="compatibility-professional-summary">
+            <span className="serif">专业命盘细节</span>
+            <span>四柱、五行与结构化依据</span>
+          </summary>
+          <div className="compatibility-professional-body">
+            <div className="compatibility-section">
+              <div className="compatibility-section-header">
+                <h2 className="serif compatibility-section-title">双方命盘摘要</h2>
+                <p className="compatibility-section-desc">确认双方四柱与命盘核心信息。</p>
+              </div>
+              <div className="compatibility-summary-grid">
+                {selfP && <ParticipantSummaryCard participant={selfP} />}
+                {partnerP && <ParticipantSummaryCard participant={partnerP} />}
+              </div>
+            </div>
+
+            <div className="compatibility-section">
+              <div className="compatibility-section-header">
+                <h2 className="serif compatibility-section-title">关键依据</h2>
+                <p className="compatibility-section-desc">这些结构化证据是合盘结论的主要命理依据。</p>
+              </div>
+              <div className="compatibility-evidence-grid">
+                {detail.evidences.map(evidence => <EvidenceCard key={evidence.id} evidence={evidence} />)}
+              </div>
+            </div>
+          </div>
+        </details>
 
         <div className="card compatibility-ai-card">
           <div className="compatibility-ai-header">
-            <h2 className="serif compatibility-section-title" style={{ margin: 0 }}>合盘解读</h2>
+            <h2 className="serif compatibility-section-title">合盘解读</h2>
             {!detail.latest_report && (
               <button className="btn btn-primary" onClick={handleGenerateReport} disabled={reportLoading}>
                 {reportLoading ? '生成中...' : '生成解读'}
@@ -378,31 +485,31 @@ export default function CompatibilityResultPage() {
           {error && <p style={{ color: '#e77' }}>{error}</p>}
 
           {structuredReport ? (
-            <div style={{ display: 'grid', gap: 12 }}>
-              <p style={{ margin: 0, lineHeight: 1.8 }}>{structuredReport.summary}</p>
+            <div className="compatibility-report-content">
+              <p className="compatibility-report-summary">{structuredReport.summary}</p>
               {reportDimensions.map(item => (
-                <div key={item.key}>
-                  <div className="serif" style={{ fontSize: 18, marginBottom: 6 }}>{item.title}</div>
-                  <div style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>{item.content}</div>
+                <div key={item.key} className="compatibility-report-section">
+                  <div className="serif compatibility-report-title">{item.title}</div>
+                  <div className="compatibility-report-text">{item.content}</div>
                 </div>
               ))}
               {reportRisks.length > 0 && (
-                <div>
-                  <div className="serif" style={{ fontSize: 18, marginBottom: 6 }}>风险点</div>
-                  <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--text-secondary)' }}>
+                <div className="compatibility-report-section">
+                  <div className="serif compatibility-report-title">风险点</div>
+                  <ul className="compatibility-report-list">
                     {reportRisks.map(risk => <li key={risk}>{risk}</li>)}
                   </ul>
                 </div>
               )}
-              <div>
-                <div className="serif" style={{ fontSize: 18, marginBottom: 6 }}>建议</div>
-                <div style={{ color: 'var(--text-secondary)', lineHeight: 1.75 }}>{structuredReport.advice}</div>
+              <div className="compatibility-report-section">
+                <div className="serif compatibility-report-title">建议</div>
+                <div className="compatibility-report-text">{structuredReport.advice}</div>
               </div>
             </div>
           ) : detail.latest_report ? (
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{detail.latest_report.content}</div>
+            <div className="compatibility-report-raw">{detail.latest_report.content}</div>
           ) : (
-            <p style={{ margin: 0, color: 'var(--text-muted)' }}>尚未生成合盘解读。</p>
+            <p className="compatibility-report-empty">尚未生成合盘解读。</p>
           )}
         </div>
       </div>

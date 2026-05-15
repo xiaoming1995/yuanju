@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Diamond, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, fetchShenshaAnnotations } from '../lib/api'
-import type { AIReport, ShenshaAnnotation } from '../lib/api'
+import type { AIReport, ShenshaAnnotation, StructuredReport } from '../lib/api'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
@@ -48,6 +48,35 @@ const LOADING_STEPS = [
   '深度分析抓取全局调候用神...',
   '正在汇总专属呈现命局详析...'
 ]
+
+const REPORT_TERMS = [
+  { term: '用神', desc: '命局中最需要扶助或调节的关键五行。' },
+  { term: '忌神', desc: '容易加重失衡，需要节制或避开的五行。' },
+  { term: '格局', desc: '月令与十神形成的命局主结构。' },
+  { term: '大运', desc: '每十年一段的人生阶段性趋势。' },
+]
+
+function buildReportDigestItems(structured: StructuredReport, result: BaziResult) {
+  const firstChapter = structured.chapters?.[0]
+  return [
+    {
+      label: '总体判断',
+      value: structured.analysis?.summary || firstChapter?.brief || '已生成完整命理解读，可继续查看各章节。',
+    },
+    {
+      label: '喜用重点',
+      value: `${structured.yongshen || result.yongshen || '待判定'}：优先观察能补足命局平衡的方向。`,
+    },
+    {
+      label: '主要风险',
+      value: `${structured.jishen || result.jishen || '待判定'}：相关五行过旺或失衡时，需要在选择与节奏上更谨慎。`,
+    },
+    {
+      label: '行动建议',
+      value: firstChapter?.brief || '先读摘要，再展开与当前问题最相关的章节。',
+    },
+  ]
+}
 
 
 interface BaziResult {
@@ -217,6 +246,10 @@ export default function ResultPage() {
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
   const handleExportPDF = async () => {
+    if (!report) {
+      setReportError('请先生成命理解读，再导出 PDF 报告')
+      return
+    }
     if (!isMobileDevice) {
       window.print()
       return
@@ -376,6 +409,7 @@ export default function ResultPage() {
   ]
 
   const structured = report?.content_structured ?? null
+  const reportDigestItems = structured ? buildReportDigestItems(structured, result) : []
   // 旧报告降级：解析纯文字 content
   const reportSections = structured ? [] : parseReport(report?.content || '')
 
@@ -558,25 +592,27 @@ export default function ResultPage() {
         <div className="report-section card animate-fade-up">
           <div className="report-section-header">
             <h2 className="section-title serif">命理解读</h2>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <div className="report-header-actions">
               {report && (
-                <button
-                  id="save-card-btn"
-                  className="btn btn-ghost btn-sm"
-                  onClick={handleSaveImage}
-                  disabled={savingImage}
-                >
-                  {savingImage ? '生成中...' : '保存分享图'}
-                </button>
+                <>
+                  <button
+                    id="save-card-btn"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleSaveImage}
+                    disabled={savingImage}
+                  >
+                    {savingImage ? '生成中...' : '保存分享图'}
+                  </button>
+                  <button
+                    id="export-report-btn"
+                    className="btn btn-ghost btn-sm"
+                    onClick={handleExportPDF}
+                    disabled={exportingPDF}
+                  >
+                    {exportingPDF ? '生成中...' : '导出 PDF'}
+                  </button>
+                </>
               )}
-              <button
-                id="export-report-btn"
-                className="btn btn-ghost btn-sm"
-                onClick={handleExportPDF}
-                disabled={exportingPDF}
-              >
-                {exportingPDF ? '生成中...' : '导出 PDF'}
-              </button>
             </div>
           </div>
 
@@ -585,16 +621,42 @@ export default function ResultPage() {
             <div className="report-sections">
               {/* 精简/专业切换按钮（仅新格式报告显示） */}
               {structured && (
-                <div className="report-mode-switcher">
-                  <button
-                    className={`mode-btn${reportMode === 'brief' ? ' active' : ''}`}
-                    onClick={() => setReportMode('brief')}
-                  >精简版</button>
-                  <button
-                    className={`mode-btn${reportMode === 'detail' ? ' active' : ''}`}
-                    onClick={() => setReportMode('detail')}
-                  >完整解读</button>
-                </div>
+                <>
+                  <div className="report-digest-card">
+                    <div className="report-digest-heading">
+                      <span>阅读摘要</span>
+                      <strong className="serif">{structured.yongshen || result.yongshen || '命局'}为线索</strong>
+                    </div>
+                    <div className="report-digest-grid">
+                      {reportDigestItems.map(item => (
+                        <div key={item.label} className="report-digest-item">
+                          <span>{item.label}</span>
+                          <p>{item.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="report-mode-switcher">
+                    <button
+                      className={`mode-btn${reportMode === 'brief' ? ' active' : ''}`}
+                      onClick={() => setReportMode('brief')}
+                    >精简版</button>
+                    <button
+                      className={`mode-btn${reportMode === 'detail' ? ' active' : ''}`}
+                      onClick={() => setReportMode('detail')}
+                    >完整解读</button>
+                  </div>
+
+                  <div className="report-term-glossary" aria-label="命理术语解释">
+                    {REPORT_TERMS.map(item => (
+                      <div key={item.term} className="report-term-item">
+                        <strong>{item.term}</strong>
+                        <span>{item.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
 
               {/* 新格式：结构化渲染 */}
@@ -611,14 +673,19 @@ export default function ResultPage() {
                       <span>{structured.analysis.summary}</span>
                     </div>
                   )}
-                  {(structured.chapters || []).map((ch, i) => (
-                    <div key={i} className="report-block">
-                      <h3 className="report-block-title serif">【{ch.title}】</h3>
-                      <p className="report-block-content">
-                        {reportMode === 'brief' ? ch.brief : ch.detail}
-                      </p>
-                    </div>
-                  ))}
+                  <div className="report-chapter-list">
+                    {(structured.chapters || []).map((ch, i) => (
+                      <details key={i} className="report-chapter-detail" open={i === 0}>
+                        <summary>
+                          <span className="serif">【{ch.title}】</span>
+                          <em>{ch.brief}</em>
+                        </summary>
+                        <p className="report-block-content">
+                          {reportMode === 'brief' ? ch.brief : ch.detail}
+                        </p>
+                      </details>
+                    ))}
+                  </div>
                 </>
               ) : (
                 /* 旧格式：降级渲染 */
@@ -704,17 +771,25 @@ export default function ResultPage() {
               )}
             </>
           )}
-        </div>
 
-        <div className="result-footer">
-          <button className="btn btn-ghost" onClick={() => navigate('/')}>← 重新起盘</button>
-          {user && <a href="/history" className="btn btn-ghost">查看历史记录</a>}
-          {user && targetId && (
-            <button
-              className="btn btn-ghost"
-              onClick={() => navigate(`/bazi/${targetId}/past-events`)}
-              style={{ borderColor: 'var(--wu-jin)', color: 'var(--wu-jin)' }}
-            >过往事件推算</button>
+          {report && (
+            <div className="report-action-bar">
+              <button className="btn btn-ghost" onClick={() => navigate('/')}>重新起盘</button>
+              {user && <a href="/history" className="btn btn-ghost">查看历史</a>}
+              {user && targetId && (
+                <button
+                  className="btn btn-ghost report-action-highlight"
+                  onClick={() => navigate(`/bazi/${targetId}/past-events`)}
+                >过往事件</button>
+              )}
+              <button
+                className="btn btn-ghost"
+                onClick={handleExportPDF}
+                disabled={exportingPDF}
+              >
+                {exportingPDF ? '生成中...' : '导出 PDF'}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -816,21 +891,23 @@ export default function ResultPage() {
         </div>
       )}
       </div>
-      <PrintLayout
-        birthYear={result.birth_year}
-        birthMonth={result.birth_month}
-        birthDay={result.birth_day}
-        birthHour={result.birth_hour}
-        gender={result.gender}
-        yongshen={result.yongshen || ''}
-        jishen={result.jishen || ''}
-        mingGe={result.ming_ge || ''}
-        mingGeDesc={result.ming_ge_desc || ''}
-        pillars={pillars}
-        dayun={result.dayun}
-        structured={structured}
-        shenshaMap={shenshaMap}
-      />
+      {report && (
+        <PrintLayout
+          birthYear={result.birth_year}
+          birthMonth={result.birth_month}
+          birthDay={result.birth_day}
+          birthHour={result.birth_hour}
+          gender={result.gender}
+          yongshen={result.yongshen || ''}
+          jishen={result.jishen || ''}
+          mingGe={result.ming_ge || ''}
+          mingGeDesc={result.ming_ge_desc || ''}
+          pillars={pillars}
+          dayun={result.dayun}
+          structured={structured}
+          shenshaMap={shenshaMap}
+        />
+      )}
     </>
   )
 }

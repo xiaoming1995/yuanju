@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { CalendarDays, CreditCard, FileText, HeartHandshake, History, Sparkles, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarDays, CreditCard, FileText, HeartHandshake, History, Sparkles, UserRound } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userAPI } from '../lib/api'
 import type { UserProfileOverview } from '../lib/api'
@@ -37,7 +37,7 @@ export default function ProfilePage() {
 
   if (isLoading || loading) {
     return (
-      <main className="profile-page container page-container">
+      <main className="profile-page container page">
         <div className="profile-loading">正在进入个人中心...</div>
       </main>
     )
@@ -45,7 +45,7 @@ export default function ProfilePage() {
 
   if (error) {
     return (
-      <main className="profile-page container page-container">
+      <main className="profile-page container page">
         <section className="profile-panel profile-error">
           <h1>个人中心</h1>
           <p>{error}</p>
@@ -57,7 +57,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <main className="profile-page container page-container">
+      <main className="profile-page container page">
         <section className="profile-panel profile-empty">
           <h1>个人中心</h1>
           <p>暂时没有账户数据。</p>
@@ -67,13 +67,35 @@ export default function ProfilePage() {
   }
 
   const stats = [
-    { label: '命盘记录', value: profile.stats.chart_count, icon: CalendarDays },
+    { label: '命盘记录', value: profile.stats.chart_count, icon: CalendarDays, to: '/history' },
     { label: 'AI 报告', value: profile.stats.ai_report_count, icon: FileText },
-    { label: '合盘记录', value: profile.stats.compatibility_count, icon: HeartHandshake },
+    { label: '合盘记录', value: profile.stats.compatibility_count, icon: HeartHandshake, to: '/compatibility/history' },
   ]
+  const latestChart = profile.recent_charts[0]
+  const latestCompatibility = profile.recent_compatibility[0]
+  const continueTarget = latestChart
+    ? {
+        label: '最近命盘',
+        title: `${latestChart.year_gan}${latestChart.year_zhi} · ${latestChart.month_gan}${latestChart.month_zhi} · ${latestChart.day_gan}${latestChart.day_zhi} · ${latestChart.hour_gan}${latestChart.hour_zhi}`,
+        desc: `${latestChart.birth_year}年${latestChart.birth_month}月${latestChart.birth_day}日 ${latestChart.birth_hour}时 · ${genderText(latestChart.gender)}`,
+        href: `/history/${latestChart.id}`,
+      }
+    : latestCompatibility
+      ? {
+          label: '最近合盘',
+          title: `${latestCompatibility.self_name || '我'} 与 ${latestCompatibility.partner_name || '对方'}`,
+          desc: latestCompatibility.summary_tags.length > 0 ? latestCompatibility.summary_tags.join(' · ') : latestCompatibility.overall_level,
+          href: `/compatibility/${latestCompatibility.id}`,
+        }
+      : {
+          label: '新的分析',
+          title: '创建新的八字命盘',
+          desc: '填写生辰信息，开始一次新的命理分析',
+          href: '/',
+        }
 
   return (
-    <main className="profile-page container page-container">
+    <main className="profile-page container page">
       <section className="profile-header profile-panel">
         <div className="profile-avatar"><UserRound size={28} /></div>
         <div>
@@ -83,14 +105,35 @@ export default function ProfilePage() {
         </div>
       </section>
 
+      <section className="profile-workbench profile-panel">
+        <div>
+          <span className="profile-workbench-kicker">{continueTarget.label}</span>
+          <h2>继续上次分析</h2>
+          <p>{continueTarget.title}</p>
+          <small>{continueTarget.desc}</small>
+        </div>
+        <Link className="btn btn-primary profile-workbench-action" to={continueTarget.href}>
+          继续查看 <ArrowRight size={16} />
+        </Link>
+      </section>
+
       <section className="profile-stats">
         {stats.map(item => {
           const Icon = item.icon
-          return (
-            <div className="profile-stat-card" key={item.label}>
+          const content = (
+            <>
               <Icon size={18} />
               <strong>{item.value}</strong>
               <span>{item.label}</span>
+            </>
+          )
+          return item.to ? (
+            <Link className="profile-stat-card profile-stat-card--link" key={item.label} to={item.to}>
+              {content}
+            </Link>
+          ) : (
+            <div className="profile-stat-card profile-stat-card--static" key={item.label}>
+              {content}
             </div>
           )
         })}
@@ -172,7 +215,7 @@ export default function ProfilePage() {
                 <strong>{feature.title}</strong>
                 <span>{feature.description}</span>
               </div>
-              <em>即将开放</em>
+              <em className="profile-feature-status">即将开放</em>
             </div>
           ))}
         </div>

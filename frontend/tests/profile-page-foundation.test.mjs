@@ -23,5 +23,49 @@ test('profile page reserves inactive recharge and PDF template entrypoints', () 
   assert.match(page, /充值|点数/)
   assert.match(page, /PDF.*模板|模板.*PDF/)
   assert.match(page, /即将开放/)
+  assert.match(page, /profile-feature-status/)
   assert.doesNotMatch(page, /\/pay|\/payment|createOrder|支付成功/)
+})
+
+test('profile page provides a continuation workbench', () => {
+  const page = read('src/pages/ProfilePage.tsx')
+  const css = read('src/pages/ProfilePage.css')
+  assert.match(page, /profile-workbench/)
+  assert.match(page, /continueTarget/)
+  assert.match(page, /继续上次分析/)
+  assert.match(page, /最近命盘/)
+  assert.match(page, /最近合盘/)
+  assert.match(page, /to=\{continueTarget\.href\}/)
+  assert.match(css, /\.profile-workbench/)
+})
+
+test('profile stats link to existing archive destinations', () => {
+  const page = read('src/pages/ProfilePage.tsx')
+  assert.match(page, /to: '\/history'/)
+  assert.match(page, /to: '\/compatibility\/history'/)
+  assert.match(page, /profile-stat-card--link/)
+  assert.match(page, /profile-stat-card--static/)
+})
+
+test('profile page reserves mobile bottom navigation safe area', () => {
+  const css = read('src/index.css')
+  const page = read('src/pages/ProfilePage.tsx')
+  assert.match(page, /className="profile-page container page"/)
+  assert.doesNotMatch(page, /page-container/)
+  assert.match(
+    css,
+    /\.page\s*\{[^}]*padding-bottom:\s*calc\(140px \+ env\(safe-area-inset-bottom\)\);/s,
+  )
+  assert.match(
+    css,
+    /\.page\s*\{[^}]*padding-top:\s*96px;/s,
+  )
+  assert.match(
+    css,
+    /@media \(max-width: 640px\)[\s\S]*\.page\s*\{[^}]*padding-bottom:\s*calc\(150px \+ env\(safe-area-inset-bottom\)\)\s*!important;/s,
+  )
+  assert.match(
+    css,
+    /@media \(max-width: 640px\)[\s\S]*\.page\s*\{[^}]*padding-top:\s*84px;/s,
+  )
 })
