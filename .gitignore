@@ -98,3 +98,5 @@ Thumbs.db
 *.test
 *.out
 /backend/vendor/
+
+.superpowers/

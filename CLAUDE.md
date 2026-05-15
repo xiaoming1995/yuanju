@@ -39,12 +39,20 @@ docker-compose logs -f
 
 ```
 frontend (React 19 + TS + Vite)
-  └── src/lib/api.ts, adminApi.ts    # Axios clients
-      src/contexts/                  # AuthContext, AdminAuthContext
-      src/pages/                     # User pages + src/pages/admin/
-      src/components/                # Shared UI components
-        DayunTimeline, LiuYueDrawer, TiaohouCard, WuxingRadar,
-        YongshenBadge, MingpanAvatar, BottomNav, ParticleBackground
+  └── src/lib/api.ts, adminApi.ts        # Axios clients
+      src/lib/wuxingColorSystem.ts       # 五行 color mapping utility
+      src/contexts/                      # AuthContext, AdminAuthContext
+      src/pages/                         # User pages
+        ResultPage, HistoryPage, PastEventsPage
+        CompatibilityPage, CompatibilityHistoryPage, CompatibilityResultPage
+      src/pages/admin/                   # Admin pages
+        AdminDashboardPage, AdminLLMPage, AdminUsersPage
+        AdminCelebritiesPage, AdminChartsPage, AdminAILogsPage
+        PromptSettings, AlgoConfigPage, TokenUsagePage, ShenshaAnnotationsPage
+      src/components/                    # Shared UI components
+        DayunTimeline, LiuYueDrawer, TiaohouCard, WuxingRadar
+        YongshenBadge, MingpanAvatar, BottomNav, Navbar
+        PrintLayout, ShareCard, ParticleBackground
 
 backend (Go + Gin)
   └── cmd/api/main.go                # Entry point, route registration
@@ -54,18 +62,22 @@ backend (Go + Gin)
         admin_handler.go, admin_prompt.go
         celebrity_handler.go, shensha_handler.go
         algo_config_handler.go, algo_tiaohou_handler.go
-        compatibility_handler.go
+        compatibility_handler.go, token_usage_handler.go
       internal/middleware/           # JWT auth (user vs admin are separate)
-      internal/model/                # Data structs
+      internal/model/                # Data structs (model.go, admin.go, compatibility.go, prompt.go)
       internal/repository/           # All SQL — no SQL outside this layer
         repository.go, admin_repository.go, prompt_repository.go
-        compatibility_repository.go
-        celebrity_repository.go, liunian_repository.go
-        shensha_repo.go, algo_config_repository.go, algo_tiaohou_repository.go
+        compatibility_repository.go, celebrity_repository.go
+        liunian_repository.go, shensha_repo.go
+        algo_config_repository.go, algo_tiaohou_repository.go
+        past_events_repository.go    # ai_past_events table cache
+        dayun_summary_repository.go  # ai_dayun_summaries table cache
+        token_usage_repository.go    # token usage tracking + LLM pricing
       internal/service/              # Business logic, AI client
         ai_client.go, auth_service.go, report_service.go
         celebrity_service.go, algo_config_service.go
         compatibility_service.go
+        llm_pricing.go               # CalcCost(): CNY cost estimate per model + token count
       pkg/bazi/                      # Numerology algorithm engine
         engine.go                    # Core 四柱 calculation (lunar-go)
         shishen.go                   # 十神 (Ten Gods) classification
@@ -76,9 +88,12 @@ backend (Go + Gin)
         jin_bu_huan_dict.go          # 进不换 lookup table
         algo_config.go               # Algorithmic configuration management
         event_signals.go             # 过往年份事件信号引擎（神煞/用神基底/三会三刑/伏吟反吟/空亡/大运合化/加权身强弱）
+        event_narrative.go           # RenderYearNarrative(): structured signals → 白话批语 prose
+        mingge.go                    # 命格（格局）推算 — 七优先级透干取格法
+        compatibility.go             # 合盘双命盘信号引擎
       pkg/crypto/crypto.go           # AES-256-GCM for API key storage
       pkg/database/database.go       # PostgreSQL connection + DDL migrations
-      pkg/seed/seed.go               # Seeds LLM providers from .env on startup
+      pkg/seed/seed.go               # Seeds LLM providers + pricing from .env on startup
 ```
 
 **Data flow (core features):**
