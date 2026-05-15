@@ -56,6 +56,43 @@ const REPORT_TERMS = [
   { term: '大运', desc: '每十年一段的人生阶段性趋势。' },
 ]
 
+const GAN_WUXING: Record<string, string> = {
+  '甲': '木', '乙': '木',
+  '丙': '火', '丁': '火',
+  '戊': '土', '己': '土',
+  '庚': '金', '辛': '金',
+  '壬': '水', '癸': '水',
+}
+
+const GAN_YINYANG: Record<string, number> = {
+  '甲': 1, '乙': 0,
+  '丙': 1, '丁': 0,
+  '戊': 1, '己': 0,
+  '庚': 1, '辛': 0,
+  '壬': 1, '癸': 0,
+}
+
+const WUXING_SHENG: Record<string, string> = {
+  '木': '火', '火': '土', '土': '金', '金': '水', '水': '木',
+}
+
+const WUXING_KE: Record<string, string> = {
+  '木': '土', '火': '金', '土': '水', '金': '木', '水': '火',
+}
+
+const TEN_GOD_META: Record<string, { relation: string; group: string; group_label: string; summary: string }> = {
+  '比肩': { relation: '同我', group: 'peer', group_label: '比劫', summary: '自我、同类、独立意识与同辈协作。' },
+  '劫财': { relation: '同我', group: 'peer', group_label: '比劫', summary: '同辈竞争、资源分配、行动冲劲与合作博弈。' },
+  '食神': { relation: '我生', group: 'output', group_label: '食伤', summary: '表达、才艺、稳定输出、口福与享受。' },
+  '伤官': { relation: '我生', group: 'output', group_label: '食伤', summary: '创意表达、突破规则、才华外放与锋芒。' },
+  '正财': { relation: '我克', group: 'wealth', group_label: '财星', summary: '稳定财富、务实经营、责任感与现实积累。' },
+  '偏财': { relation: '我克', group: 'wealth', group_label: '财星', summary: '机会资源、流动财富、人情经营与商业嗅觉。' },
+  '正官': { relation: '克我', group: 'official', group_label: '官杀', summary: '规则、职位、责任、名誉与秩序感。' },
+  '七杀': { relation: '克我', group: 'official', group_label: '官杀', summary: '外部压力、竞争、规则挑战与行动魄力。' },
+  '正印': { relation: '生我', group: 'seal', group_label: '印星', summary: '学习、贵人、保护、资质与正统资源。' },
+  '偏印': { relation: '生我', group: 'seal', group_label: '印星', summary: '灵感、研究、特殊资源、独特思维与保护。' },
+}
+
 function buildReportDigestItems(structured: StructuredReport, result: BaziResult) {
   const firstChapter = structured.chapters?.[0]
   return [
@@ -78,6 +115,47 @@ function buildReportDigestItems(structured: StructuredReport, result: BaziResult
   ]
 }
 
+
+interface TenGodDayMaster {
+  gan: string
+  wuxing: string
+  label: string
+}
+
+interface TenGodRelationItem {
+  pillar: string
+  pillar_label: string
+  gan: string
+  wuxing: string
+  ten_god: string
+  group?: string
+  group_label?: string
+  relation: string
+  summary: string
+}
+
+interface TenGodHiddenStemItem {
+  gan: string
+  wuxing: string
+  ten_god: string
+  group?: string
+  group_label?: string
+  relation: string
+  summary: string
+}
+
+interface TenGodHiddenStemGroup {
+  pillar: string
+  pillar_label: string
+  branch: string
+  items: TenGodHiddenStemItem[]
+}
+
+interface TenGodRelationMatrix {
+  day_master: TenGodDayMaster
+  heavenly_stems: TenGodRelationItem[]
+  hidden_stems: TenGodHiddenStemGroup[]
+}
 
 interface BaziResult {
   year_gan: string; year_zhi: string
@@ -137,6 +215,115 @@ interface BaziResult {
   // 命格
   ming_ge?: string
   ming_ge_desc?: string
+  ten_god_relation?: TenGodRelationMatrix
+}
+
+function getShiShen(dayGan: string, targetGan: string) {
+  const dayWx = GAN_WUXING[dayGan]
+  const targetWx = GAN_WUXING[targetGan]
+  if (!dayWx || !targetWx) return ''
+
+  const sameYinyang = GAN_YINYANG[dayGan] === GAN_YINYANG[targetGan]
+  if (dayWx === targetWx) return sameYinyang ? '比肩' : '劫财'
+  if (WUXING_SHENG[dayWx] === targetWx) return sameYinyang ? '食神' : '伤官'
+  if (WUXING_KE[dayWx] === targetWx) return sameYinyang ? '偏财' : '正财'
+  if (WUXING_KE[targetWx] === dayWx) return sameYinyang ? '七杀' : '正官'
+  if (WUXING_SHENG[targetWx] === dayWx) return sameYinyang ? '偏印' : '正印'
+  return ''
+}
+
+function relationFromTenGod(tenGod: string) {
+  return TEN_GOD_META[tenGod] || { relation: '', group: '', group_label: '', summary: '' }
+}
+
+function tenGodSummary(tenGod: string) {
+  return relationFromTenGod(tenGod).summary
+}
+
+function buildStemRelation(
+  dayGan: string,
+  pillar: string,
+  pillarLabel: string,
+  gan: string,
+  wuxing: string,
+  tenGod: string,
+  isDayMaster = false,
+): TenGodRelationItem {
+  if (isDayMaster) {
+    return {
+      pillar,
+      pillar_label: pillarLabel,
+      gan,
+      wuxing: wuxing || GAN_WUXING[gan] || '',
+      ten_god: '日主 / 日元',
+      relation: '命主自身',
+      summary: '这是命盘的参照点，其他十神都以此天干为中心推导。',
+    }
+  }
+  const resolvedTenGod = tenGod || getShiShen(dayGan, gan)
+  const meta = relationFromTenGod(resolvedTenGod)
+  return {
+    pillar,
+    pillar_label: pillarLabel,
+    gan,
+    wuxing: wuxing || GAN_WUXING[gan] || '',
+    ten_god: resolvedTenGod,
+    group: meta.group,
+    group_label: meta.group_label,
+    relation: meta.relation,
+    summary: tenGodSummary(resolvedTenGod),
+  }
+}
+
+function buildHiddenStemGroup(
+  dayGan: string,
+  pillar: string,
+  pillarLabel: string,
+  branch: string,
+  hiddenGans: string[],
+): TenGodHiddenStemGroup {
+  return {
+    pillar,
+    pillar_label: pillarLabel,
+    branch,
+    items: hiddenGans
+      .map((gan) => {
+        const tenGod = getShiShen(dayGan, gan)
+        const meta = relationFromTenGod(tenGod)
+        return {
+          gan,
+          wuxing: GAN_WUXING[gan] || '',
+          ten_god: tenGod,
+          group: meta.group,
+          group_label: meta.group_label,
+          relation: meta.relation,
+          summary: tenGodSummary(tenGod),
+        }
+      })
+      .filter(item => item.ten_god),
+  }
+}
+
+function buildTenGodRelationMatrix(result: BaziResult): TenGodRelationMatrix {
+  return {
+    day_master: {
+      gan: result.day_gan,
+      wuxing: result.day_gan_wuxing || GAN_WUXING[result.day_gan] || '',
+      label: `${result.day_gan}${result.day_gan_wuxing || GAN_WUXING[result.day_gan] || ''}`,
+    },
+    heavenly_stems: [
+      buildStemRelation(result.day_gan, 'year', '年干', result.year_gan, result.year_gan_wuxing, result.year_gan_shishen),
+      buildStemRelation(result.day_gan, 'month', '月干', result.month_gan, result.month_gan_wuxing, result.month_gan_shishen),
+      buildStemRelation(result.day_gan, 'day', '日干', result.day_gan, result.day_gan_wuxing, result.day_gan_shishen, true),
+      buildStemRelation(result.day_gan, 'hour', '时干', result.hour_gan, result.hour_gan_wuxing, result.hour_gan_shishen),
+    ],
+    hidden_stems: [
+      buildHiddenStemGroup(result.day_gan, 'year', '年支', result.year_zhi, result.year_hide_gan || []),
+      buildHiddenStemGroup(result.day_gan, 'month', '月支', result.month_zhi, result.month_hide_gan || []),
+      buildHiddenStemGroup(result.day_gan, 'day', '日支', result.day_zhi, result.day_hide_gan || []),
+      buildHiddenStemGroup(result.day_gan, 'hour', '时支', result.hour_zhi, result.hour_hide_gan || []),
+    ],
+  }
 }
 
 
@@ -407,6 +594,10 @@ export default function ResultPage() {
     { label: '日柱', gan: result.day_gan, zhi: result.day_zhi, ganWx: result.day_gan_wuxing, zhiWx: result.day_zhi_wuxing, hideGan: result.day_hide_gan || [], naYin: result.day_na_yin || '', ganShiShen: result.day_gan_shishen, zhiShiShen: result.day_zhi_shishen || [], diShi: result.day_di_shi, xingYun: result.day_xing_yun, xunKong: result.day_xun_kong, shenSha: result.day_shen_sha || [] },
     { label: '时柱', gan: result.hour_gan, zhi: result.hour_zhi, ganWx: result.hour_gan_wuxing, zhiWx: result.hour_zhi_wuxing, hideGan: result.hour_hide_gan || [], naYin: result.hour_na_yin || '', ganShiShen: result.hour_gan_shishen, zhiShiShen: result.hour_zhi_shishen || [], diShi: result.hour_di_shi, xingYun: result.hour_xing_yun, xunKong: result.hour_xun_kong, shenSha: result.hour_shen_sha || [] },
   ]
+  const relation = result.ten_god_relation ?? buildTenGodRelationMatrix(result)
+  const hiddenStemGroups = relation.hidden_stems.filter(group => group.items.length > 0)
+  const dayPillarCellClass = (index: number) => index === 2 ? ' is-day-pillar-cell' : ''
+  const dayunPillarsLabel = `${result.year_gan}${result.year_zhi} ${result.month_gan}${result.month_zhi} ${result.day_gan}${result.day_zhi} ${result.hour_gan}${result.hour_zhi}`
 
   const structured = report?.content_structured ?? null
   const reportDigestItems = structured ? buildReportDigestItems(structured, result) : []
@@ -450,22 +641,28 @@ export default function ResultPage() {
         <div className="professional-view animate-fade-up">
 
             {/* 四柱数据网格 (Professional Data Grid) */}
-            <div className="pillars-section card">
-              <h2 className="section-title serif">基本排盘</h2>
-              <div className="bazi-data-grid">
+            <div className="pillars-section card bazi-primary-panel">
+              <div className="result-panel-heading">
+                <div>
+                  <span className="result-panel-kicker">排盘核心</span>
+                  <h2 className="section-title serif">基本排盘</h2>
+                </div>
+                <p>先确认四柱主盘，再向下查看十神、五行与调候结构。</p>
+              </div>
+              <div className="bazi-data-grid bazi-data-grid--primary">
                 
                 {/* 标尺列1：列头 */}
                 <div className="grid-cell row-label">日期</div>
-                {pillars.map((p, i) => <div key={i} className={`grid-cell col-header ${i === 2 ? 'is-day-pillar' : ''}`}>{p.label}</div>)}
+                {pillars.map((p, i) => <div key={i} className={`grid-cell col-header${i === 2 ? ' is-day-pillar' : ''}${dayPillarCellClass(i)}`}>{p.label}</div>)}
 
                 {/* 主星行 */}
                 <div className="grid-cell row-label">主星</div>
-                {pillars.map((p, i) => <div key={i} className="grid-cell top-shishen text-muted">{p.ganShiShen}</div>)}
+                {pillars.map((p, i) => <div key={i} className={`grid-cell top-shishen text-muted${dayPillarCellClass(i)}`}>{p.ganShiShen}</div>)}
 
                 {/* 天干行 */}
                 <div className="grid-cell row-label">天干</div>
                 {pillars.map((p, i) => (
-                  <div key={i} className={`grid-cell main-char gan wuxing-text-${WUXING_MAP[p.ganWx] || 'jin'}`}>
+                  <div key={i} className={`grid-cell main-char gan wuxing-text-${WUXING_MAP[p.ganWx] || 'jin'}${dayPillarCellClass(i)}`}>
                     <span>{p.gan}</span><span className="wx-tag">{p.ganWx}</span>
                   </div>
                 ))}
@@ -473,7 +670,7 @@ export default function ResultPage() {
                 {/* 地支行 */}
                 <div className="grid-cell row-label">地支</div>
                 {pillars.map((p, i) => (
-                  <div key={i} className={`grid-cell main-char zhi wuxing-text-${WUXING_MAP[p.zhiWx] || 'jin'}`}>
+                  <div key={i} className={`grid-cell main-char zhi wuxing-text-${WUXING_MAP[p.zhiWx] || 'jin'}${dayPillarCellClass(i)}`}>
                     <span>{p.zhi}</span><span className="wx-tag">{p.zhiWx}</span>
                   </div>
                 ))}
@@ -481,9 +678,9 @@ export default function ResultPage() {
                 {/* 藏干行 */}
                 <div className="grid-cell row-label">藏干</div>
                 {pillars.map((p, i) => (
-                  <div key={i} className="grid-cell hide-gan-cell">
+                  <div key={i} className={`grid-cell hide-gan-cell${dayPillarCellClass(i)}`}>
                     {p.hideGan.map((g, idx) => (
-                       <div key={idx} className={`hg-row wuxing-text-${WUXING_MAP['TODO'] || 'shui'}`} style={{ color: 'var(--text-color)' }}>{g}</div>
+                       <div key={idx} className={`hg-row wuxing-text-${WUXING_MAP[GAN_WUXING[g]] || 'shui'}`} style={{ color: 'var(--text-color)' }}>{g}</div>
                     ))}
                   </div>
                 ))}
@@ -491,31 +688,31 @@ export default function ResultPage() {
                 {/* 副星行 */}
                 <div className="grid-cell row-label">副星</div>
                 {pillars.map((p, i) => (
-                  <div key={i} className="grid-cell hide-gan-cell text-muted">
+                  <div key={i} className={`grid-cell hide-gan-cell text-muted${dayPillarCellClass(i)}`}>
                     {p.zhiShiShen.map((ss, idx) => <div key={idx} className="hg-row">{ss}</div>)}
                   </div>
                 ))}
 
                 {/* 星运行 */}
                 <div className="grid-cell row-label">星运</div>
-                {pillars.map((p, i) => <div key={i} className="grid-cell text-muted">{p.xingYun || p.diShi}</div>)}
+                {pillars.map((p, i) => <div key={i} className={`grid-cell text-muted${dayPillarCellClass(i)}`}>{p.xingYun || p.diShi}</div>)}
 
                 {/* 自坐行 */}
                 <div className="grid-cell row-label">自坐</div>
-                {pillars.map((p, i) => <div key={i} className="grid-cell text-muted">{p.diShi}</div>)}
+                {pillars.map((p, i) => <div key={i} className={`grid-cell text-muted${dayPillarCellClass(i)}`}>{p.diShi}</div>)}
 
                 {/* 空亡行 */}
                 <div className="grid-cell row-label">空亡</div>
-                {pillars.map((p, i) => <div key={i} className="grid-cell text-muted">{p.xunKong}</div>)}
+                {pillars.map((p, i) => <div key={i} className={`grid-cell text-muted${dayPillarCellClass(i)}`}>{p.xunKong}</div>)}
 
                 {/* 纳音行 */}
                 <div className="grid-cell row-label">纳音</div>
-                {pillars.map((p, i) => <div key={i} className="grid-cell text-muted nayin">{p.naYin}</div>)}
+                {pillars.map((p, i) => <div key={i} className={`grid-cell text-muted nayin${dayPillarCellClass(i)}`}>{p.naYin}</div>)}
 
                 {/* 神煞行 */}
                 <div className="grid-cell row-label shensha-label">神煞</div>
                 {pillars.map((p, i) => (
-                  <div key={i} className="grid-cell shensha-cell">
+                  <div key={i} className={`grid-cell shensha-cell${dayPillarCellClass(i)}`}>
                     {p.shenSha.map((sh, idx) => {
                       const polarity = SHENSHA_POLARITY[sh] || 'zhong'
                       const hasAnnotation = shenshaMap.has(sh)
@@ -546,26 +743,86 @@ export default function ResultPage() {
               </div>
             </div>
 
-            {/* 调候用神提示 */}
-            {result.tiaohou && (
-              <TiaohouCard 
-                dayGan={result.day_gan} 
-                monthZhi={result.month_zhi} 
-                tiaohou={result.tiaohou} 
-              />
-            )}
+            <section className="ten-god-relation-section" aria-labelledby="ten-god-relation-title">
+              <div className="ten-god-relation-header">
+                <div>
+                  <h2 id="ten-god-relation-title" className="section-title serif">命主十神关系</h2>
+                  <p>命主日元：<strong>{relation.day_master.label}</strong></p>
+                </div>
+                <span>以日干为参照点，查看其他天干与藏干对应的十神。</span>
+              </div>
 
-            {/* 五行雷达图 */}
-            <div className="wuxing-section card">
-              <h2 className="section-title serif">五行分布</h2>
-              <WuxingRadar wuxing={result.wuxing} />
-            </div>
+              <div className="ten-god-stem-grid">
+                {relation.heavenly_stems.map((item) => (
+                  <article key={item.pillar} className={`ten-god-relation-card ${item.pillar === 'day' ? 'is-day-master' : ''}`}>
+                    <div className="ten-god-card-topline">
+                      <span>{item.pillar_label}</span>
+                      {item.group_label && <em>{item.group_label}</em>}
+                    </div>
+                    <div className="ten-god-card-main">
+                      <strong className={`wuxing-text-${WUXING_MAP[item.wuxing] || 'jin'}`}>{item.gan}</strong>
+                      <span>{item.ten_god}</span>
+                    </div>
+                    <p>{item.relation} · {item.summary}</p>
+                  </article>
+                ))}
+              </div>
 
-            {/* 喜用神命元特质 */}
-            <div className="yongshen-section">
-              <h2 className="section-title serif">命元特质</h2>
-              <YongshenBadge yongshen={result.yongshen || ''} jishen={result.jishen || ''} />
-            </div>
+              {hiddenStemGroups.length > 0 && (
+                <div className="ten-god-hidden-block">
+                  <h3>地支藏干关系</h3>
+                  <div className="ten-god-hidden-grid">
+                    {hiddenStemGroups.map((group) => (
+                      <article key={group.pillar} className="ten-god-hidden-card">
+                        <div className="ten-god-hidden-title">
+                          <span>{group.pillar_label}</span>
+                          <strong>{group.branch}</strong>
+                        </div>
+                        <div className="ten-god-hidden-list">
+                          {group.items.map((item) => (
+                            <div key={`${group.pillar}-${item.gan}`} className="ten-god-hidden-item">
+                              <span className={`wuxing-text-${WUXING_MAP[item.wuxing] || 'jin'}`}>{item.gan}</span>
+                              <strong>{item.ten_god}</strong>
+                              <em>{item.relation}</em>
+                              <small>{item.summary}</small>
+                            </div>
+                          ))}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="result-structure-section" aria-labelledby="structure-title">
+              <div className="result-section-heading">
+                <span className="result-section-kicker">结构判断</span>
+                <h2 id="structure-title" className="section-title serif">命局结构</h2>
+                <p>把五行强弱、喜忌倾向与调候线索放在同一组里看，信息更集中。</p>
+              </div>
+
+              <div className="result-structure-grid">
+                <div className="structure-card structure-card--wuxing card">
+                  <h3 className="structure-card-title serif">五行分布</h3>
+                  <WuxingRadar wuxing={result.wuxing} />
+                </div>
+
+                <div className="structure-card structure-card--yongshen">
+                  <YongshenBadge yongshen={result.yongshen || ''} jishen={result.jishen || ''} />
+                </div>
+
+                {result.tiaohou && (
+                  <div className="structure-card structure-card--tiaohou card">
+                    <TiaohouCard
+                      dayGan={result.day_gan}
+                      monthZhi={result.month_zhi}
+                      tiaohou={result.tiaohou}
+                    />
+                  </div>
+                )}
+              </div>
+            </section>
 
 
             {/* 命理专属头像 (Feature Flag 控制) */}
@@ -582,10 +839,17 @@ export default function ResultPage() {
             )}
 
             {/* 大运时间轴 */}
-            <div className="dayun-section card">
-              <h2 className="section-title serif">大运时间轴</h2>
-              <DayunTimeline dayun={result.dayun} birthYear={result.birth_year} startYunSolar={result.start_yun_solar} dayGan={result.day_gan || ''} chartId={targetId} />
-            </div>
+            <section className="dayun-section">
+              <DayunTimeline
+                dayun={result.dayun}
+                birthYear={result.birth_year}
+                startYunSolar={result.start_yun_solar}
+                dayGan={result.day_gan || ''}
+                gender={result.gender}
+                pillarsLabel={dayunPillarsLabel}
+                chartId={targetId}
+              />
+            </section>
           </div>
 
         {/* AI 解读区域 */}

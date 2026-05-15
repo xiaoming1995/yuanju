@@ -52,6 +52,7 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 	if len(raw) > 0 {
 		var cached bazi.BaziResult
 		if err := json.Unmarshal(raw, &cached); err == nil {
+			bazi.EnsureTenGodRelation(&cached)
 			return &cached, nil
 		}
 		// 反序列化失败：日志告警后回退到重新计算（防止脏数据卡死）

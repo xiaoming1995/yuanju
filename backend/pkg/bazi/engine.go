@@ -94,10 +94,10 @@ type BaziResult struct {
 	Jishen   string `json:"jishen"`
 
 	// yongshen 推算来源诊断字段（t0 调候优先，t1 扶抑 fallback）
-	YongshenStatus  string   `json:"yongshen_status"`             // tiaohou_hit / tiaohou_miss_fallback_fuyi / tiaohou_dict_missing / fuyi
-	YongshenGans    []string `json:"yongshen_gans,omitempty"`     // t0 命中的具体调候用神天干
-	JishenGans      []string `json:"jishen_gans,omitempty"`       // 与 YongshenGans 对应的克/泄天干集（暂留作后续扩展，本轮未填充）
-	YongshenMissing []string `json:"yongshen_missing,omitempty"`  // t0 缺位的调候用神天干
+	YongshenStatus  string   `json:"yongshen_status"`            // tiaohou_hit / tiaohou_miss_fallback_fuyi / tiaohou_dict_missing / fuyi
+	YongshenGans    []string `json:"yongshen_gans,omitempty"`    // t0 命中的具体调候用神天干
+	JishenGans      []string `json:"jishen_gans,omitempty"`      // 与 YongshenGans 对应的克/泄天干集（暂留作后续扩展，本轮未填充）
+	YongshenMissing []string `json:"yongshen_missing,omitempty"` // t0 缺位的调候用神天干
 
 	// 调候用神（基于《穷通宝鉴》查表精算）
 	Tiaohou *TiaohouResult `json:"tiaohou"`
@@ -105,6 +105,9 @@ type BaziResult struct {
 	// 命格（月令透干取格法）
 	MingGe     string `json:"ming_ge"`
 	MingGeDesc string `json:"ming_ge_desc"`
+
+	// 命主十神关系矩阵（日主为参照点）
+	TenGodRelation *TenGodRelationMatrix `json:"ten_god_relation,omitempty"`
 
 	Dayun         []DayunItem `json:"dayun"`
 	StartYunSolar string      `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
@@ -460,6 +463,8 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 
 	// 计算命格（七优先级透干取格）
 	res.MingGe, res.MingGeDesc = DetectMingGe(res)
+
+	EnsureTenGodRelation(res)
 
 	return res
 }
