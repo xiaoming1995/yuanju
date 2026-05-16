@@ -132,6 +132,20 @@ export interface AIReport {
   created_at: string
 }
 
+export interface PolishedReport {
+  id: string
+  chart_id: string
+  user_situation: string
+  content: string
+  content_structured?: StructuredReport | null
+  model: string
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  created_at: string
+  updated_at: string
+}
+
 export interface CompatibilityProfileInput {
   year: number
   month: number
@@ -274,6 +288,13 @@ export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   generateReport: (chartId: string) =>
     api.post(`/api/bazi/report/${chartId}`, {}, { timeout: 300000 }), // 推理模型最长 300s
+  getPolishedReport: (chartId: string) =>
+    api.get<{ polished_report: PolishedReport | null }>(`/api/bazi/polished-report/${chartId}`),
+  generatePolishedReport: (chartId: string, userSituation: string) =>
+    api.post<{ polished_report: PolishedReport }>(
+      `/api/bazi/polished-report/${chartId}`,
+      { user_situation: userSituation },
+    ),
   generateReportStream: async (chartId: string, onMessage: (msg: string) => void, onError: (err: string) => void, onDone: () => void, onThinking?: () => void) => {
     const token = localStorage.getItem('yj_token')
     const baseURL = import.meta.env.VITE_API_URL || ''
