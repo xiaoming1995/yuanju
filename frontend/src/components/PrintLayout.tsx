@@ -1,4 +1,5 @@
 import type { ShenshaAnnotation } from '../lib/api'
+import { cleanReportText, splitParagraphs } from '../lib/reportText'
 
 const WX_COLOR: Record<string, string> = {
   木: '#3d6b3a', 火: '#9b2c2c', 土: '#7a5c2e', 金: '#6b5a1e', 水: '#2c4a7a',
@@ -29,6 +30,7 @@ interface DayunItem {
   gan: string; zhi: string
   start_age: number; start_year: number; end_year: number
   gan_shishen: string; zhi_shishen: string; di_shi: string
+  liu_nian?: Array<{ year: number; gan_zhi: string }>
 }
 
 interface ReportChapter {
@@ -42,7 +44,7 @@ interface PrintLayoutProps {
   mingGeDesc?: string
   pillars: Pillar[]
   dayun: DayunItem[]
-  structured: { chapters: ReportChapter[]; analysis?: { logic: string; summary: string } | null } | null
+  structured: { chapters: ReportChapter[]; analysis?: { logic: string; summary: string; advice?: string } | null } | null
   shenshaMap: Map<string, ShenshaAnnotation>
 }
 
@@ -358,8 +360,30 @@ export default function PrintLayout({
             <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, marginBottom: 5, letterSpacing: 2 }}>
               ▍ 命局分析总览
             </div>
-            <p style={{ fontSize: 12, color: darkBrown, lineHeight: 1.9, margin: 0 }}>
-              {analysis.logic}
+            {splitParagraphs(analysis.logic).map((para, idx) => (
+              <p key={idx} style={{ fontSize: 12, color: darkBrown, lineHeight: 1.9, margin: idx === 0 ? 0 : '0.6em 0 0' }}>
+                {para}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* 行动建议 */}
+        {analysis?.advice && (
+          <div style={{
+            marginBottom: 14,
+            padding: '10px 14px',
+            background: '#fdf8f0',
+            border: `1px solid ${borderColor}`,
+            borderRadius: 3,
+            breakInside: 'avoid',
+            pageBreakInside: 'avoid',
+          }}>
+            <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, marginBottom: 5, letterSpacing: 2 }}>
+              ▍ 行 动 建 议
+            </div>
+            <p style={{ fontSize: 12, color: darkBrown, lineHeight: 1.85, margin: 0 }}>
+              {cleanReportText(analysis.advice)}
             </p>
           </div>
         )}
@@ -370,26 +394,44 @@ export default function PrintLayout({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {chapters.map((ch, i) => (
-              <div key={i} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                <div style={{
-                  fontSize: 12, fontWeight: 700, color: midBrown,
-                  marginBottom: 5,
-                  paddingBottom: 4,
-                  borderBottom: `1px dashed ${borderColor}`,
-                  letterSpacing: 1,
-                }}>
-                  【{ch.title}】
+            {chapters.map((ch, i) => {
+              const paragraphs = splitParagraphs(ch.detail || ch.brief)
+              return (
+                <div key={i} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                  <div style={{
+                    fontSize: 12, fontWeight: 700, color: midBrown,
+                    marginBottom: 5,
+                    paddingBottom: 4,
+                    borderBottom: `1px dashed ${borderColor}`,
+                    letterSpacing: 1,
+                  }}>
+                    【{ch.title}】
+                  </div>
+                  {paragraphs.length > 0 ? (
+                    paragraphs.map((para, pIdx) => (
+                      <p
+                        key={pIdx}
+                        style={{
+                          fontSize: 12, color: darkBrown, lineHeight: 1.85,
+                          margin: pIdx === 0 ? 0 : '0.6em 0 0',
+                          fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+                        }}
+                      >
+                        {para}
+                      </p>
+                    ))
+                  ) : (
+                    <p style={{
+                      fontSize: 12, color: darkBrown, lineHeight: 1.85,
+                      margin: 0,
+                      fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+                    }}>
+                      {cleanReportText(ch.detail || ch.brief)}
+                    </p>
+                  )}
                 </div>
-                <p style={{
-                  fontSize: 12, color: darkBrown, lineHeight: 1.85,
-                  margin: 0,
-                  fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
-                }}>
-                  {ch.detail || ch.brief}
-                </p>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -406,19 +448,75 @@ export default function PrintLayout({
             </tr>
           </thead>
           <tbody>
-            {dayun.map((d, idx) => (
-              <tr key={d.index} style={{ background: idx % 2 === 0 ? '#fff' : lightBg }}>
-                <td style={{ ...tdS, color: midBrown, fontWeight: 700 }}>第{d.index + 1}运</td>
-                <td style={tdS}>{d.start_age}—{d.start_age + 9}岁</td>
-                <td style={{ ...tdS, fontSize: 10, color: '#777' }}>{d.start_year}—{d.end_year}</td>
-                <td style={{ ...tdS, fontWeight: 900, fontSize: 17, letterSpacing: 2 }}>{d.gan}{d.zhi}</td>
-                <td style={tdS}>{d.gan_shishen}</td>
-                <td style={tdS}>{d.zhi_shishen}</td>
-                <td style={tdS}>{d.di_shi}</td>
-              </tr>
-            ))}
+            {dayun.map((d, idx) => {
+              const currentYear = new Date().getFullYear()
+              const isCurrentDayun = currentYear >= d.start_year && currentYear <= d.end_year
+              const currentLiuNianGz = isCurrentDayun
+                ? d.liu_nian?.find(ln => ln.year === currentYear)?.gan_zhi
+                : undefined
+              const rowBg = isCurrentDayun ? '#fff8e0' : (idx % 2 === 0 ? '#fff' : lightBg)
+              return (
+                <tr key={d.index} style={{ background: rowBg }}>
+                  <td style={{ ...tdS, color: isCurrentDayun ? '#8b1a1a' : midBrown, fontWeight: 700 }}>
+                    {isCurrentDayun && <span style={{ marginRight: 3, color: '#8b1a1a' }}>●</span>}
+                    第{d.index + 1}运
+                  </td>
+                  <td style={tdS}>{d.start_age}—{d.start_age + 9}岁</td>
+                  <td style={{ ...tdS, fontSize: 10, color: '#777' }}>
+                    {d.start_year}—{d.end_year}
+                    {isCurrentDayun && (
+                      <div style={{ fontSize: 9, color: '#8b1a1a', marginTop: 2, letterSpacing: 0.5 }}>
+                        本年 · {currentLiuNianGz ? `${currentLiuNianGz}(${currentYear})` : currentYear}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ ...tdS, fontWeight: 900, fontSize: 17, letterSpacing: 2 }}>{d.gan}{d.zhi}</td>
+                  <td style={tdS}>{d.gan_shishen}</td>
+                  <td style={tdS}>{d.zhi_shishen}</td>
+                  <td style={tdS}>{d.di_shi}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
+      </div>
+
+      {/* ── 附 · 术语释义 ── */}
+      <div style={{ marginBottom: 16, pageBreakBefore: 'always', breakBefore: 'page' }}>
+        {sectionTitle('附 · 术 语 释 义')}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '10px 20px',
+          padding: '4px 0',
+        }}>
+          {[
+            { term: '用神', desc: '命局中最需要扶助或调节的关键五行。' },
+            { term: '忌神', desc: '容易加重失衡、需要节制或避开的五行。' },
+            { term: '日主', desc: '日干代表本人，是命盘的参照中心。' },
+            { term: '十神', desc: '日干与其它干支之间的十种生克关系。' },
+            { term: '调候', desc: '寒暖燥湿平衡的命局要素，决定气候适应力。' },
+            { term: '格局', desc: '月令与十神形成的命局主结构。' },
+            { term: '大运', desc: '每十年一段的人生阶段性趋势。' },
+            { term: '流年', desc: '每年的运势变化，与大运叠加产生具体事件。' },
+          ].map(item => (
+            <div key={item.term} style={{
+              padding: '6px 10px',
+              background: '#fdfaf2',
+              border: `1px solid ${borderColor}`,
+              borderRadius: 3,
+              breakInside: 'avoid',
+              pageBreakInside: 'avoid',
+            }}>
+              <div style={{ fontSize: 11, color: gold, fontWeight: 700, letterSpacing: 2, marginBottom: 3 }}>
+                {item.term}
+              </div>
+              <div style={{ fontSize: 10, color: darkBrown, lineHeight: 1.7 }}>
+                {item.desc}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── 落款 ── */}

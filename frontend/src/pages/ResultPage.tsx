@@ -4,6 +4,7 @@ import { Diamond, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, fetchShenshaAnnotations } from '../lib/api'
 import type { AIReport, ShenshaAnnotation, StructuredReport } from '../lib/api'
+import { cleanReportText } from '../lib/reportText'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
@@ -91,16 +92,6 @@ const TEN_GOD_META: Record<string, { relation: string; group: string; group_labe
   '七杀': { relation: '克我', group: 'official', group_label: '官杀', summary: '外部压力、竞争、规则挑战与行动魄力。' },
   '正印': { relation: '生我', group: 'seal', group_label: '印星', summary: '学习、贵人、保护、资质与正统资源。' },
   '偏印': { relation: '生我', group: 'seal', group_label: '印星', summary: '灵感、研究、特殊资源、独特思维与保护。' },
-}
-
-// 去除 AI 输出文本中遗留的 Markdown 标记（** __ * 斜体加粗符等），保留正文
-function cleanReportText(s: string | undefined | null): string {
-  if (!s) return ''
-  return s
-    .replace(/\*\*/g, '')   // 加粗 **
-    .replace(/__/g, '')     // 加粗 __
-    .replace(/(?<!\w)\*(?!\s)|(?<!\s)\*(?!\w)/g, '')  // 单 * 斜体（保守，不误删数学符号）
-    .trim()
 }
 
 function buildReportDigestItems(structured: StructuredReport, result: BaziResult) {
