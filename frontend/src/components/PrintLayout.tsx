@@ -481,8 +481,8 @@ export default function PrintLayout({
         </table>
       </div>
 
-      {/* ── 附 · 术语释义 ── */}
-      <div style={{ marginBottom: 16, pageBreakBefore: 'always', breakBefore: 'page' }}>
+      {/* ── 附 · 术语释义（接大运总览自然流，不强制换页）── */}
+      <div style={{ marginBottom: 16 }}>
         {sectionTitle('附 · 术 语 释 义')}
         <div style={{
           display: 'grid',
