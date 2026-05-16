@@ -969,7 +969,7 @@ export default function ResultPage() {
                         .map(p => p.trim())
                         .filter(Boolean)
                       return (
-                        <details key={i} className="report-chapter-detail" open={i === 0}>
+                        <details key={i} className="report-chapter-detail" open>
                           <summary>
                             <span className="serif">【{ch.title}】</span>
                             <em>{cleanReportText(ch.brief)}</em>
