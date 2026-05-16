@@ -139,6 +139,22 @@ func Migrate() {
 	CREATE INDEX IF NOT EXISTS idx_bazi_charts_hash ON bazi_charts(chart_hash);
 	CREATE INDEX IF NOT EXISTS idx_ai_reports_chart_id ON ai_reports(chart_id);
 
+	CREATE TABLE IF NOT EXISTS ai_polished_reports (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		chart_id UUID UNIQUE NOT NULL REFERENCES bazi_charts(id) ON DELETE CASCADE,
+		user_situation TEXT NOT NULL,
+		content TEXT NOT NULL,
+		content_structured JSONB,
+		model VARCHAR(50),
+		prompt_tokens INT DEFAULT 0,
+		completion_tokens INT DEFAULT 0,
+		total_tokens INT DEFAULT 0,
+		created_at TIMESTAMPTZ DEFAULT NOW(),
+		updated_at TIMESTAMPTZ DEFAULT NOW()
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_ai_polished_reports_chart_id ON ai_polished_reports(chart_id);
+
 	CREATE TABLE IF NOT EXISTS admins (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 		email VARCHAR(255) UNIQUE NOT NULL,
