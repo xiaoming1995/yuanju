@@ -434,8 +434,8 @@ export default function PrintLayout({
         </div>
       )}
 
-      {/* ── 命理解读 ── */}
-      <div style={{ marginBottom: 16, pageBreakBefore: 'always', breakBefore: 'page' }}>
+      {/* ── 命理解读（接十神关系自然流，不强制换页）── */}
+      <div style={{ marginBottom: 16 }}>
         {sectionTitle('命　理　解　读')}
 
         {mingGe && (
