@@ -765,7 +765,8 @@
     radial-gradient(circle at 18% 8%, rgba(201, 168, 76, 0.08), transparent 30%),
     linear-gradient(180deg, rgba(8, 22, 38, 0.92), rgba(8, 14, 26, 0.94));
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
-  overflow: hidden;
+  /* 不能加 overflow: hidden —— 会裁切 .dayun-shensha-list 弹层。
+     shell 自身的 radial-gradient / box-shadow 不需要 overflow 也能正确收口。 */
 }
 
 .dayun-mobile-topbar {
@@ -867,6 +868,14 @@
   transform: translateY(-1px);
 }
 
+/* 当神煞弹层展开时，把卡片自身提升到同级卡片之上，
+   防止 transform 创建的 stacking context 让弹层被相邻卡覆盖 */
+.dayun-step-card:hover,
+.dayun-step-card:focus-visible,
+.dayun-step-card.is-active {
+  z-index: 10;
+}
+
 .dayun-step-card.is-active {
   border-color: var(--border-accent);
   background:
@@ -945,8 +954,10 @@
   transition: opacity 0.16s ease, max-height 0.16s ease, padding 0.16s ease, transform 0.16s ease;
 }
 
+/* 展开触发：桌面 hover / 键盘 focus / 触屏点击（→ .is-active） */
 .dayun-step-card:hover .dayun-shensha-list,
-.dayun-step-card:focus-visible .dayun-shensha-list {
+.dayun-step-card:focus-visible .dayun-shensha-list,
+.dayun-step-card.is-active .dayun-shensha-list {
   max-height: 96px;
   padding: 8px;
   opacity: 1;
