@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Diamond, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, fetchShenshaAnnotations } from '../lib/api'
-import type { AIReport, ShenshaAnnotation, StructuredReport } from '../lib/api'
+import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport } from '../lib/api'
 import { cleanReportText } from '../lib/reportText'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
@@ -12,6 +12,7 @@ import MingpanAvatar from '../components/MingpanAvatar'
 import TiaohouCard from '../components/TiaohouCard'
 import ShareCard from '../components/ShareCard'
 import PrintLayout from '../components/PrintLayout'
+import PolishedPanel from '../components/PolishedPanel'
 import { toPng, toBlob } from 'html-to-image'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -348,6 +349,10 @@ export default function ResultPage() {
   const [isGuest] = useState(location.state?.isGuest ?? !user)
   const [loading, setLoading] = useState(!result && !!id)
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('detail')
+  const [reportTab, setReportTab] = useState<'original' | 'polished'>('original')
+  const [polishedReport, setPolishedReport] = useState<PolishedReport | null>(null)
+  const [polishing, setPolishing] = useState(false)
+  const [polishError, setPolishError] = useState<string | null>(null)
   const [savingImage, setSavingImage] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
@@ -529,6 +534,14 @@ export default function ResultPage() {
   // 此页面核心判定是 targetId
   const targetId = id || location.state?.chartId
 
+  // 加载润色版报告
+  useEffect(() => {
+    if (!targetId) return
+    baziAPI.getPolishedReport(targetId)
+      .then(res => setPolishedReport(res.data.polished_report || null))
+      .catch(() => setPolishedReport(null))
+  }, [targetId])
+
   // 从历史记录加载
   useEffect(() => {
     if (id && !result) {
@@ -593,6 +606,21 @@ export default function ResultPage() {
         setReportLoading(false) // 关闭普通 loading，显示 thinking UI
       }
     )
+  }
+
+  const submitPolish = async (userSituation: string) => {
+    if (!targetId) return
+    setPolishing(true)
+    setPolishError(null)
+    try {
+      const res = await baziAPI.generatePolishedReport(targetId, userSituation)
+      setPolishedReport(res.data.polished_report)
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || (e instanceof Error ? e.message : '润色失败，请稍后重试')
+      setPolishError(msg)
+    } finally {
+      setPolishing(false)
+    }
   }
 
   if (loading) return <LoadingSkeleton />
@@ -890,8 +918,25 @@ export default function ResultPage() {
             </div>
           </div>
 
-          {/* 已有报告 */}
           {report && (
+            <div className="report-tab-row">
+              <button
+                className={`report-tab${reportTab === 'original' ? ' is-active' : ''}`}
+                onClick={() => setReportTab('original')}
+              >
+                原版
+              </button>
+              <button
+                className={`report-tab${reportTab === 'polished' ? ' is-active' : ''}`}
+                onClick={() => setReportTab('polished')}
+              >
+                润色版
+              </button>
+            </div>
+          )}
+
+          {/* 已有报告 */}
+          {reportTab === 'original' && report && (
             <div className="report-sections">
               {/* 精简/专业切换按钮（仅新格式报告显示） */}
               {structured && (
@@ -992,72 +1037,86 @@ export default function ResultPage() {
             </div>
           )}
 
-          {/* 流式生成中 */}
-          {isStreaming && (
-            <div className="report-sections animate-fade-in">
-              <div className="report-content" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', lineHeight: 1.8 }}>
-                {streamingText}
-                <span className="cursor-blink">|</span>
-              </div>
-            </div>
-          )}
-
-          {/* 推理模型正在思考 */}
-          {isThinking && !isStreaming && (
-            <div className="ai-loading-container animate-fade-in">
-              <div className="ai-loading-icon">
-                <div className="spinner"></div>
-              </div>
-              <div className="ai-loading-step">
-                <div className="ai-loading-text">
-                  正在深度推演中...  已思考 {thinkingSeconds} 秒
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 初始加载等待动画（SSE连接建立前） */}
-          {reportLoading && !isStreaming && !isThinking && (
-            <div className="ai-loading-container animate-fade-in">
-              <div className="ai-loading-icon">
-                <div className="spinner"></div>
-              </div>
-              <div className="ai-loading-step">
-                <div key={loadingStepIndex} className="ai-loading-text">
-                  {LOADING_STEPS[loadingStepIndex]}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 报错 */}
-          {reportError && !reportLoading && !isStreaming && (
-            <p className="form-error" style={{ margin: '12px 0' }}>{reportError}</p>
-          )}
-
-          {/* 未生成：显示按钮或引导 */}
-          {!report && !reportLoading && !isStreaming && !isThinking && (
+          {reportTab === 'original' && (
             <>
-              {!isGuest ? (
-                <div className="report-cta">
-                  <p className="report-cta-desc">
-                    点击下方按钮，生成性格、感情、事业、健康四维解读
-                  </p>
-                  <button
-                    id="generate-ai-report"
-                    className="btn btn-primary"
-                    onClick={handleGenerateReport}
-                  >
-                    生成命理解读
-                  </button>
-                </div>
-              ) : (
-                <div className="guest-banner">
-                  <span>登录后可获得完整解读报告，并保存命盘记录</span>
-                  <a href="/register" className="btn btn-primary btn-sm">立即注册</a>
+              {/* 流式生成中 */}
+              {isStreaming && (
+                <div className="report-sections animate-fade-in">
+                  <div className="report-content" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', lineHeight: 1.8 }}>
+                    {streamingText}
+                    <span className="cursor-blink">|</span>
+                  </div>
                 </div>
               )}
+
+              {/* 推理模型正在思考 */}
+              {isThinking && !isStreaming && (
+                <div className="ai-loading-container animate-fade-in">
+                  <div className="ai-loading-icon">
+                    <div className="spinner"></div>
+                  </div>
+                  <div className="ai-loading-step">
+                    <div className="ai-loading-text">
+                      正在深度推演中...  已思考 {thinkingSeconds} 秒
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 初始加载等待动画（SSE连接建立前） */}
+              {reportLoading && !isStreaming && !isThinking && (
+                <div className="ai-loading-container animate-fade-in">
+                  <div className="ai-loading-icon">
+                    <div className="spinner"></div>
+                  </div>
+                  <div className="ai-loading-step">
+                    <div key={loadingStepIndex} className="ai-loading-text">
+                      {LOADING_STEPS[loadingStepIndex]}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 报错 */}
+              {reportError && !reportLoading && !isStreaming && (
+                <p className="form-error" style={{ margin: '12px 0' }}>{reportError}</p>
+              )}
+
+              {/* 未生成：显示按钮或引导 */}
+              {!report && !reportLoading && !isStreaming && !isThinking && (
+                <>
+                  {!isGuest ? (
+                    <div className="report-cta">
+                      <p className="report-cta-desc">
+                        点击下方按钮，生成性格、感情、事业、健康四维解读
+                      </p>
+                      <button
+                        id="generate-ai-report"
+                        className="btn btn-primary"
+                        onClick={handleGenerateReport}
+                      >
+                        生成命理解读
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="guest-banner">
+                      <span>登录后可获得完整解读报告，并保存命盘记录</span>
+                      <a href="/register" className="btn btn-primary btn-sm">立即注册</a>
+                    </div>
+                  )}
+                </>
+              )}
             </>
+          )}
+
+          {reportTab === 'polished' && (
+            <PolishedPanel
+              polishedReport={polishedReport}
+              hasOriginalReport={!!report}
+              loading={polishing}
+              errorMsg={polishError}
+              onSubmit={submitPolish}
+            />
           )}
 
           {report && (

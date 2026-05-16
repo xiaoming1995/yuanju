@@ -1628,6 +1628,40 @@
 
 /* Old pillar footer styles removed to support new data grid layout */
 
+/* ===== 原版 / 润色版 tab 切换 ===== */
+.report-tab-row {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  width: max-content;
+}
+
+.report-tab {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  letter-spacing: 1px;
+  min-height: 36px;
+}
+
+.report-tab.is-active {
+  background: var(--primary);
+  color: #0d0f14;
+  font-weight: 700;
+}
+
+.report-tab:not(.is-active):hover {
+  color: var(--text-primary);
+}
+
 /* ===== 精简/专业切换 ===== */
 .report-mode-switcher {
   display: flex;
