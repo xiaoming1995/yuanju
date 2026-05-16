@@ -1194,6 +1194,7 @@ export default function ResultPage() {
           dayun={result.dayun}
           structured={structured}
           shenshaMap={shenshaMap}
+          tenGodRelation={relation}
         />
       )}
     </>

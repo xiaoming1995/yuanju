@@ -37,6 +37,30 @@ interface ReportChapter {
   title: string; detail: string; brief: string
 }
 
+// 十神关系矩阵（结构与 ResultPage.tsx 中 TenGodRelationMatrix 兼容）
+interface TenGodStemItem {
+  pillar: string; pillar_label: string
+  gan: string; wuxing: string
+  ten_god: string
+  relation: string
+  summary?: string
+}
+interface TenGodHiddenItem {
+  gan: string; wuxing: string
+  ten_god: string
+  relation: string
+}
+interface TenGodHiddenGroup {
+  pillar: string; pillar_label: string
+  branch: string
+  items: TenGodHiddenItem[]
+}
+interface TenGodRelationMatrix {
+  day_master: { gan: string; wuxing: string; label: string }
+  heavenly_stems: TenGodStemItem[]
+  hidden_stems: TenGodHiddenGroup[]
+}
+
 interface PrintLayoutProps {
   birthYear: number; birthMonth: number; birthDay: number; birthHour: number; gender: string
   yongshen: string; jishen: string
@@ -46,6 +70,7 @@ interface PrintLayoutProps {
   dayun: DayunItem[]
   structured: { chapters: ReportChapter[]; analysis?: { logic: string; summary: string; advice?: string } | null } | null
   shenshaMap: Map<string, ShenshaAnnotation>
+  tenGodRelation?: TenGodRelationMatrix
 }
 
 const gold = '#b8952a'
@@ -73,6 +98,7 @@ const sectionTitle = (text: string) => (
 export default function PrintLayout({
   birthYear, birthMonth, birthDay, birthHour, gender,
   yongshen, jishen, mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
+  tenGodRelation,
 }: PrintLayoutProps) {
   const chapters = structured?.chapters ?? []
   const analysis = structured?.analysis ?? null
@@ -294,6 +320,117 @@ export default function PrintLayout({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* ── 十神关系 ── */}
+      {tenGodRelation && (tenGodRelation.heavenly_stems.length > 0 || tenGodRelation.hidden_stems.length > 0) && (
+        <div style={{ marginBottom: 16, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          {sectionTitle('十　神　关　系')}
+
+          {/* 日主标识行 */}
+          <div style={{ textAlign: 'center', margin: '4px 0 10px', fontSize: 12, color: midBrown }}>
+            <span style={{ color: midBrown, fontWeight: 700, marginRight: 8, letterSpacing: 2 }}>日　主</span>
+            <span style={{
+              display: 'inline-block', padding: '1px 8px', borderRadius: 2,
+              border: `1px solid ${gold}`, color: darkBrown, background: '#fffaf0',
+              fontWeight: 700, letterSpacing: 1,
+            }}>
+              {tenGodRelation.day_master.gan}　{tenGodRelation.day_master.wuxing}
+            </span>
+            <span style={{ marginLeft: 12, color: '#888', fontSize: 11 }}>
+              命盘参照点，其它干支均以此推算
+            </span>
+          </div>
+
+          {/* 天干十神表 */}
+          {tenGodRelation.heavenly_stems.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, letterSpacing: 2, marginBottom: 4 }}>
+                ▍ 天干十神
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, border: `1px solid ${borderColor}` }}>
+                <thead>
+                  <tr>
+                    {['柱位', '天干', '关系', '十神'].map(h => (
+                      <th key={h} style={thS}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tenGodRelation.heavenly_stems.map((item, idx) => {
+                    const isDayMaster = item.pillar === 'day'
+                    return (
+                      <tr key={item.pillar} style={{
+                        background: isDayMaster ? '#fdf3e3' : (idx % 2 === 0 ? '#fff' : lightBg),
+                      }}>
+                        <td style={{ ...tdS, color: midBrown, fontWeight: 700 }}>{item.pillar_label}</td>
+                        <td style={{ ...tdS, fontWeight: 900, fontSize: 14, color: wxColor(item.wuxing) }}>
+                          {item.gan}
+                          <span style={{ fontSize: 9, color: '#aaa', marginLeft: 2 }}>({item.wuxing})</span>
+                        </td>
+                        <td style={{ ...tdS, color: isDayMaster ? gold : '#666' }}>
+                          {isDayMaster ? '—' : item.relation}
+                        </td>
+                        <td style={{
+                          ...tdS,
+                          color: isDayMaster ? gold : darkBrown,
+                          fontWeight: isDayMaster ? 700 : 400,
+                        }}>
+                          {isDayMaster ? '日主 · 日元' : item.ten_god}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* 藏干十神表 */}
+          {tenGodRelation.hidden_stems.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, letterSpacing: 2, marginBottom: 4 }}>
+                ▍ 藏干十神
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, border: `1px solid ${borderColor}` }}>
+                <thead>
+                  <tr>
+                    {['柱位', '地支', '藏干 → 十神'].map((h, idx) => (
+                      <th key={h} style={{ ...thS, width: idx === 0 ? 60 : idx === 1 ? 80 : undefined }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tenGodRelation.hidden_stems.map((group, idx) => (
+                    <tr key={group.pillar} style={{ background: idx % 2 === 0 ? '#fff' : lightBg }}>
+                      <td style={{ ...tdS, color: midBrown, fontWeight: 700 }}>{group.pillar_label}</td>
+                      <td style={{ ...tdS, fontWeight: 900, fontSize: 14 }}>
+                        {group.branch}
+                      </td>
+                      <td style={{ ...tdS, textAlign: 'left', paddingLeft: 12 }}>
+                        {group.items.length === 0
+                          ? <span style={{ color: '#aaa' }}>—</span>
+                          : group.items.map((item, i) => (
+                              <span key={i}>
+                                <span style={{ color: wxColor(item.wuxing), fontWeight: 700 }}>{item.gan}</span>
+                                <span style={{ color: '#888', margin: '0 2px' }}> → </span>
+                                <span>{item.ten_god}</span>
+                                {i < group.items.length - 1 && <span style={{ color: '#ccc', margin: '0 6px' }}>·</span>}
+                              </span>
+                            ))
+                        }
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={{ marginTop: 8, fontSize: 10, color: '#888', textAlign: 'center', fontStyle: 'italic' }}>
+            关系：同我（比劫）· 我生（食伤）· 我克（财星）· 克我（官杀）· 生我（印星）
+          </div>
         </div>
       )}
 
