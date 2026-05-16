@@ -337,18 +337,18 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 			"日柱：%s%s（%s%s）| 藏干：%s <- 日干代表本人\n"+
 			"时柱：%s%s（%s%s）| 藏干：%s\n\n"+
 			"纳音：年柱[%s] 月柱[%s] 日柱[%s] 时柱[%s]\n\n"+
-			"五行分布：木%d个(%.0f%%) 火%d个(%.0f%%) 土%d个(%.0f%%) 金%d个(%.0f%%) 水%d个(%.0f%%)\n\n"+
+			"五行分布：木%d个 火%d个 土%d个 金%d个 水%d个\n\n"+
 			"性别：%s\n\n",
 			r.YearGan, r.YearZhi, r.YearGanWuxing, r.YearZhiWuxing, hideGanStr(r.YearHideGan),
 			r.MonthGan, r.MonthZhi, r.MonthGanWuxing, r.MonthZhiWuxing, hideGanStr(r.MonthHideGan),
 			r.DayGan, r.DayZhi, r.DayGanWuxing, r.DayZhiWuxing, hideGanStr(r.DayHideGan),
 			r.HourGan, r.HourZhi, r.HourGanWuxing, r.HourZhiWuxing, hideGanStr(r.HourHideGan),
 			r.YearNaYin, r.MonthNaYin, r.DayNaYin, r.HourNaYin,
-			r.Wuxing.Mu, r.Wuxing.MuPct,
-			r.Wuxing.Huo, r.Wuxing.HuoPct,
-			r.Wuxing.Tu, r.Wuxing.TuPct,
-			r.Wuxing.Jin, r.Wuxing.JinPct,
-			r.Wuxing.Shui, r.Wuxing.ShuiPct,
+			r.Wuxing.Mu,
+			r.Wuxing.Huo,
+			r.Wuxing.Tu,
+			r.Wuxing.Jin,
+			r.Wuxing.Shui,
 			genderText,
 		) +
 		fmt.Sprintf("[十神关系-算法精算]\n"+
@@ -384,6 +384,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		"- 精简版：每章约80-120字，结论先行，用普通用户能快速理解的话说明核心判断。\n" +
 		"- 专业版：每章约220-350字，必须自然包含结论、命理依据、现实表现、建议四类信息；不要用机械小标题堆砌，要写成连贯、可阅读的专业解读。\n" +
 		"- 术语出现后必须紧跟白话解释。遇到印星、官杀、食伤、财星、用神、忌神、调候、格局等术语时，要说明它在现实中对应学习证书、事业压力、表达才华、钱财资源、助力阻力、气候平衡或人生结构等含义。\n" +
+		"- 【全章节通用语言风格】所有章节（性格/感情/事业/健康/大运）均严禁出现「百分比」「%」「加权」「权重」「占比 N%」「N/8」「打分」「评分 N 分」等机械算分词汇；五行强弱必须用「旺/相/休/囚/死」「过旺/偏旺/平衡/偏弱/缺」等命理传统术语表达。\n" +
 		"- 【性格特质】参考日干天性、日支十二长生、关键神煞等，既指出优势也需指出潜在短板。\n" +
 		"- 【感情运势】男看财女看官，结合配偶宫（日支）与桃花红鸾等神煞，分析婚姻稳定性。\n" +
 		"- 【事业财运】看官杀与食伤透出情况、财星旺衰、天乙与驿马等，指明职业方向与瓶颈。\n" +
