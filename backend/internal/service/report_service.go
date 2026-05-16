@@ -104,6 +104,7 @@ func formatYongshenInfo(result *bazi.BaziResult) string {
 type reportAnalysis struct {
 	Logic   string `json:"logic"`
 	Summary string `json:"summary"`
+	Advice  string `json:"advice,omitempty"`
 }
 
 type reportChapter struct {
@@ -401,6 +402,8 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		"一句话命局核心特质（30字以内）\n\n" +
 		"## 【命局分析总览】\n" +
 		"第二步的命局分析总览全文\n\n" +
+		"## 【行动建议】\n" +
+		"一句具体可执行的人生指引（48字以内），必须落到「该做什么 / 不该做什么」的行动层面（如「宜以创意、文化、远行类工作发挥伤官之才，避入官场体制」），禁止只写性格描述或纯命理结论。\n\n" +
 		"## 【性格特质-精简版】\n\n## 【性格特质-专业版】\n\n" +
 		"## 【感情运势-精简版】\n\n## 【感情运势-专业版】\n\n" +
 		"## 【事业财运-精简版】\n\n## 【事业财运-专业版】\n\n" +
@@ -552,6 +555,7 @@ func ParseMarkdownToStructured(md string) (*structuredReport, string) {
 	parsed.Jishen = extractSection(md, "忌神")
 	parsed.Analysis.Summary = extractSection(md, "命理摘要")
 	parsed.Analysis.Logic = extractSection(md, "命局分析总览")
+	parsed.Analysis.Advice = extractSection(md, "行动建议")
 
 	chapters := []string{"性格特质", "感情运势", "事业财运", "健康提示", "大运走势"}
 	for _, title := range chapters {

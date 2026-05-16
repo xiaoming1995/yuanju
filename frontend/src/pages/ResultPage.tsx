@@ -129,7 +129,7 @@ function buildReportDigestItems(structured: StructuredReport, result: BaziResult
     },
     {
       label: '行动建议',
-      value: cleanReportText(adviceChapter?.brief) || fallbackAdvice,
+      value: cleanReportText(structured.analysis?.advice) || cleanReportText(adviceChapter?.brief) || fallbackAdvice,
     },
   ]
 }

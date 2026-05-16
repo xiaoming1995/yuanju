@@ -113,6 +113,7 @@ export interface ReportChapter {
 export interface ReportAnalysis {
   logic: string
   summary: string
+  advice?: string
 }
 
 export interface StructuredReport {
