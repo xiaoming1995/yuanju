@@ -947,17 +947,26 @@ export default function ResultPage() {
                     </div>
                   )}
                   <div className="report-chapter-list">
-                    {(structured.chapters || []).map((ch, i) => (
-                      <details key={i} className="report-chapter-detail" open={i === 0}>
-                        <summary>
-                          <span className="serif">【{ch.title}】</span>
-                          <em>{ch.brief}</em>
-                        </summary>
-                        <p className="report-block-content">
-                          {reportMode === 'brief' ? ch.brief : ch.detail}
-                        </p>
-                      </details>
-                    ))}
+                    {(structured.chapters || []).map((ch, i) => {
+                      const raw = reportMode === 'brief' ? ch.brief : ch.detail
+                      const paragraphs = (raw || '')
+                        .split(/\n{2,}/)
+                        .map(p => p.replace(/\*\*/g, '').trim())
+                        .filter(Boolean)
+                      return (
+                        <details key={i} className="report-chapter-detail" open={i === 0}>
+                          <summary>
+                            <span className="serif">【{ch.title}】</span>
+                            <em>{(ch.brief || '').replace(/\*\*/g, '')}</em>
+                          </summary>
+                          <div className="report-block-content">
+                            {paragraphs.length > 0
+                              ? paragraphs.map((para, idx) => <p key={idx}>{para}</p>)
+                              : <p>{(raw || '').replace(/\*\*/g, '')}</p>}
+                          </div>
+                        </details>
+                      )
+                    })}
                   </div>
                 </>
               ) : (

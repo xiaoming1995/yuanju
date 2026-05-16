@@ -1825,6 +1825,14 @@
   margin: 0;
 }
 
+.report-block-content > p {
+  margin: 0 0 0.85em;
+}
+
+.report-block-content > p:last-child {
+  margin-bottom: 0;
+}
+
 .report-action-bar {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
