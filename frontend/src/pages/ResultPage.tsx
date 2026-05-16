@@ -93,6 +93,16 @@ const TEN_GOD_META: Record<string, { relation: string; group: string; group_labe
   '偏印': { relation: '生我', group: 'seal', group_label: '印星', summary: '灵感、研究、特殊资源、独特思维与保护。' },
 }
 
+// 去除 AI 输出文本中遗留的 Markdown 标记（** __ * 斜体加粗符等），保留正文
+function cleanReportText(s: string | undefined | null): string {
+  if (!s) return ''
+  return s
+    .replace(/\*\*/g, '')   // 加粗 **
+    .replace(/__/g, '')     // 加粗 __
+    .replace(/(?<!\w)\*(?!\s)|(?<!\s)\*(?!\w)/g, '')  // 单 * 斜体（保守，不误删数学符号）
+    .trim()
+}
+
 function buildReportDigestItems(structured: StructuredReport, result: BaziResult) {
   const firstChapter = structured.chapters?.[0]
   const adviceChapter = structured.chapters?.find((c) =>
@@ -107,7 +117,7 @@ function buildReportDigestItems(structured: StructuredReport, result: BaziResult
   return [
     {
       label: '总体判断',
-      value: structured.analysis?.summary || firstChapter?.brief || '已生成完整命理解读，可继续查看各章节。',
+      value: cleanReportText(structured.analysis?.summary || firstChapter?.brief) || '已生成完整命理解读，可继续查看各章节。',
     },
     {
       label: '喜用重点',
@@ -119,7 +129,7 @@ function buildReportDigestItems(structured: StructuredReport, result: BaziResult
     },
     {
       label: '行动建议',
-      value: adviceChapter?.brief || fallbackAdvice,
+      value: cleanReportText(adviceChapter?.brief) || fallbackAdvice,
     },
   ]
 }
@@ -938,31 +948,36 @@ export default function ResultPage() {
                   {reportMode === 'detail' && structured.analysis?.logic && (
                     <div className="report-block report-analysis">
                       <h3 className="report-block-title serif"><Diamond size={16} className="title-diamond-icon" /> 命局分析总览</h3>
-                      <p className="report-block-content">{structured.analysis.logic}</p>
+                      <div className="report-block-content">
+                        {cleanReportText(structured.analysis.logic)
+                          .split(/\n{2,}/)
+                          .filter(Boolean)
+                          .map((para, idx) => <p key={idx}>{para}</p>)}
+                      </div>
                     </div>
                   )}
                   {reportMode === 'brief' && structured.analysis?.summary && (
                     <div className="report-summary">
-                      <span>{structured.analysis.summary}</span>
+                      <span>{cleanReportText(structured.analysis.summary)}</span>
                     </div>
                   )}
                   <div className="report-chapter-list">
                     {(structured.chapters || []).map((ch, i) => {
                       const raw = reportMode === 'brief' ? ch.brief : ch.detail
-                      const paragraphs = (raw || '')
+                      const paragraphs = cleanReportText(raw)
                         .split(/\n{2,}/)
-                        .map(p => p.replace(/\*\*/g, '').trim())
+                        .map(p => p.trim())
                         .filter(Boolean)
                       return (
                         <details key={i} className="report-chapter-detail" open={i === 0}>
                           <summary>
                             <span className="serif">【{ch.title}】</span>
-                            <em>{(ch.brief || '').replace(/\*\*/g, '')}</em>
+                            <em>{cleanReportText(ch.brief)}</em>
                           </summary>
                           <div className="report-block-content">
                             {paragraphs.length > 0
                               ? paragraphs.map((para, idx) => <p key={idx}>{para}</p>)
-                              : <p>{(raw || '').replace(/\*\*/g, '')}</p>}
+                              : <p>{cleanReportText(raw)}</p>}
                           </div>
                         </details>
                       )
@@ -974,10 +989,10 @@ export default function ResultPage() {
                 reportSections.length > 0 ? reportSections.map((sec, i) => (
                   <div key={i} className="report-block">
                     <h3 className="report-block-title serif">{sec.title}</h3>
-                    <p className="report-block-content">{sec.content}</p>
+                    <p className="report-block-content">{cleanReportText(sec.content)}</p>
                   </div>
                 )) : (
-                  <div className="report-content">{report.content}</div>
+                  <div className="report-content">{cleanReportText(report.content)}</div>
                 )
               )}
               <p className="report-disclaimer">
