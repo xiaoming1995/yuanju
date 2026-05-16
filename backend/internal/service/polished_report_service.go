@@ -1,11 +1,14 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"unicode/utf8"
 
 	"yuanju/internal/model"
+	"yuanju/internal/repository"
 	"yuanju/pkg/bazi"
 )
 
@@ -101,4 +104,57 @@ func strDefault(s, fallback string) string {
 		return fallback
 	}
 	return s
+}
+
+// PolishReport 执行润色：load 原版 → 构建 prompt → 调 LLM → 解析 → upsert
+//
+// 不写 user_id 参数 — token 记账只在原版调用时执行；润色版仅记 token 字段到本表。
+func PolishReport(chartID string, result *bazi.BaziResult, userSituation string) (*model.PolishedReport, error) {
+	// 1. 校验输入
+	if err := validatePolishSituation(userSituation); err != nil {
+		return nil, err
+	}
+
+	// 2. load 原版（必须存在）
+	original, err := repository.GetReportByChartID(chartID)
+	if err != nil {
+		return nil, fmt.Errorf("读取原版报告失败: %w", err)
+	}
+	if original == nil {
+		return nil, fmt.Errorf("请先生成原版命理解读，再尝试润色")
+	}
+
+	// 3. 构建 prompt
+	prompt := buildPolishPrompt(original, result, strings.TrimSpace(userSituation))
+
+	// 4. 调 LLM（非流式，复用原版 ai_client）
+	log.Printf("[Polish] 开始润色 chart_id=%s situation_len=%d", chartID, utf8.RuneCountInString(userSituation))
+	rawContent, modelName, _, durationMs, usage, aiErr := callAIWithSystem(prompt)
+	if aiErr != nil {
+		return nil, fmt.Errorf("LLM 调用失败: %w", aiErr)
+	}
+	log.Printf("[Polish] LLM 返回 chart_id=%s duration_ms=%d tokens=%d/%d/%d",
+		chartID, durationMs, usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens)
+
+	// 5. 解析 Markdown → 5 章 JSON
+	cleanContent := strings.TrimSpace(rawContent)
+	parsed, _ := ParseMarkdownToStructured(cleanContent)
+	var contentStructured *json.RawMessage
+	if parsed != nil && len(parsed.Chapters) > 0 {
+		raw, _ := json.Marshal(parsed)
+		rawMsg := json.RawMessage(raw)
+		contentStructured = &rawMsg
+	}
+
+	// 6. UPSERT 到 ai_polished_reports
+	report, err := repository.UpsertPolishedReport(
+		chartID, strings.TrimSpace(userSituation), cleanContent, modelName,
+		contentStructured,
+		usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("保存润色版失败: %w", err)
+	}
+
+	return report, nil
 }
