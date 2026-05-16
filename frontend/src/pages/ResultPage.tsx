@@ -95,6 +95,15 @@ const TEN_GOD_META: Record<string, { relation: string; group: string; group_labe
 
 function buildReportDigestItems(structured: StructuredReport, result: BaziResult) {
   const firstChapter = structured.chapters?.[0]
+  const adviceChapter = structured.chapters?.find((c) =>
+    /建议|总结|总论|方向|展望|策略|布局/.test(c.title),
+  )
+  const yongshen = structured.yongshen || result.yongshen || ''
+  const jishen = structured.jishen || result.jishen || ''
+  const fallbackAdvice = yongshen && jishen
+    ? `优先围绕「${yongshen}」方向布局，对「${jishen}」相关领域更克制谨慎。`
+    : '先读摘要，再展开与当前问题最相关的章节。'
+
   return [
     {
       label: '总体判断',
@@ -102,15 +111,15 @@ function buildReportDigestItems(structured: StructuredReport, result: BaziResult
     },
     {
       label: '喜用重点',
-      value: `${structured.yongshen || result.yongshen || '待判定'}：优先观察能补足命局平衡的方向。`,
+      value: `${yongshen || '待判定'}：优先观察能补足命局平衡的方向。`,
     },
     {
       label: '主要风险',
-      value: `${structured.jishen || result.jishen || '待判定'}：相关五行过旺或失衡时，需要在选择与节奏上更谨慎。`,
+      value: `${jishen || '待判定'}：相关五行过旺或失衡时，需要在选择与节奏上更谨慎。`,
     },
     {
       label: '行动建议',
-      value: firstChapter?.brief || '先读摘要，再展开与当前问题最相关的章节。',
+      value: adviceChapter?.brief || fallbackAdvice,
     },
   ]
 }
