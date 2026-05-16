@@ -57,6 +57,8 @@ func main() {
 			bazi.POST("/calculate", middleware.OptionalAuth(), handler.Calculate)
 			bazi.POST("/report/:chart_id", middleware.Auth(), handler.GenerateReport)
 			bazi.POST("/report-stream/:chart_id", middleware.Auth(), handler.GenerateReportStream)
+			bazi.POST("/polished-report/:chart_id", middleware.Auth(), handler.GenerateAndSavePolishedReport)
+			bazi.GET("/polished-report/:chart_id", middleware.Auth(), handler.GetPolishedReport)
 			bazi.POST("/liunian-report/:chart_id", middleware.Auth(), handler.GenerateLiunianReport)
 			bazi.POST("/past-events-stream/:chart_id", middleware.Auth(), handler.HandlePastEventsStream)
 			// 思路 E：即时年份 + 流式大运总结
