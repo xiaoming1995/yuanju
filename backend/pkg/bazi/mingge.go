@@ -51,6 +51,52 @@ var wuxingMainGan = map[string]string{
 	"水": "壬",
 }
 
+// wuxingKe 五行相克：木→土、土→水、水→火、火→金、金→木
+var wuxingKe = map[string]string{
+	"木": "土",
+	"土": "水",
+	"水": "火",
+	"火": "金",
+	"金": "木",
+}
+
+// isKeWuxing 判断 attacker 五行是否克 defender 五行
+func isKeWuxing(attacker, defender string) bool {
+	return wuxingKe[attacker] == defender
+}
+
+// linGuanZhi 日干 → 临官地支（月禄格判定用）
+var linGuanZhi = map[string]string{
+	"甲": "寅",
+	"乙": "卯",
+	"丙": "巳",
+	"丁": "午",
+	"戊": "巳",
+	"己": "午",
+	"庚": "申",
+	"辛": "酉",
+	"壬": "亥",
+	"癸": "子",
+}
+
+// diWangZhi 日干 → 帝旺地支（月刃格判定用，仅阳干）
+var diWangZhi = map[string]string{
+	"甲": "卯",
+	"丙": "午",
+	"戊": "午",
+	"庚": "酉",
+	"壬": "子",
+}
+
+// yangGans 阳干集合（月刃格判定用）
+var yangGans = map[string]bool{
+	"甲": true,
+	"丙": true,
+	"戊": true,
+	"庚": true,
+	"壬": true,
+}
+
 // ganWuxing 天干→五行
 var ganWuxingMap = map[string]string{
 	"甲": "木", "乙": "木",
@@ -71,6 +117,7 @@ var minggeDescDict = map[string]string{
 	"正印格": "正印格月令透出正印，代表命主仁慈善良、为人厚道，学识丰富，重视精神修养与文化积累。正印格之人适合学术、教育、医疗、宗教等领域，易得长辈、师长的庇护与提携。正印格之人内心稳重，处变不惊。正印格最忌财星破印，若命中财旺克印，则学业受阻，贵人缘薄；印星有力者，名誉与才学俱佳。",
 	"偏印格": "偏印格月令透出偏印（枭神），代表命主思维独特、聪慧多思，常有异于常人的见解与创意，偏向研究型或艺术型方向。偏印格之人适合研究、策划、哲学、艺术、心理学等领域，但有时想法过多、执行力不足。偏印格最忌夺食（克食神），若命中食神被偏印所克，则口福受损、才艺难展。合理配置用神，则灵思泉涌，自成一派。",
 	"建禄格": "建禄格即月令透出比肩，日主之气聚于月令，身强有力。建禄格之人自立心强，独立自主，做事靠自身努力，不依赖他人。建禄格命主意志坚定，韧性十足，适合自主创业或独立执业。建禄格不喜比劫过多争财，需有官杀来疏导旺气。身强用官杀或财星，则功名利禄皆可期；整体而言是奋斗型命格，努力必有回报。",
+	"月禄格": "月禄格即月支临官，日主之气聚于月令，身强有力。月禄格之人自立心强，独立自主，做事靠自身努力，不依赖他人。月禄格命主意志坚定，韧性十足，适合自主创业或独立执业。月禄格不喜比劫过多争财，需有官杀来疏导旺气。身强用官杀或财星，则功名利禄皆可期；整体而言是奋斗型命格，努力必有回报。",
 	"月刃格": "月刃格即月令透出劫财，日主之气极旺，有锋芒毕露之势。月刃格之人性格刚烈、争强好胜，凡事力争上游，具有极强的竞争意识和执行力。月刃格需有官杀制刃，方能化刚为用，成就一番事业；无制则容易冲动行事，招惹纷争。月刃格适合武职、竞技、外科、法律等需要魄力与决断的领域，是一种需要驾驭的强力命格。",
 	"杂气格": "此命局四柱透干关系较为复杂，未能归入月令正格体系。格局以杂气论之，命局吉凶需结合用神、大运综合研判，不可单以格局定论。建议参考调候用神与五行分布，以喜用之五行为行运依据，综合判断人生走势。",
 }
@@ -292,4 +339,44 @@ func DetectMingGe(r *BaziResult) (name, desc string) {
 
 	// 兜底
 	return "杂气格", minggeDescDict["杂气格"]
+}
+
+// rootStrength 计算 gan 在 r 四柱地支藏干中能找到的最强单根分
+//
+// 评分表：
+//   月支主气=6, 月支中气=5, 月支余气=4
+//   他支主气=3, 他支中气=2, 他支余气=1
+//   无根=0
+//
+// 返回 4 柱中找到的最大分。如果 gan 同时在月支和他支扎根，取月支根（分高）。
+func rootStrength(gan string, r *BaziResult) int {
+	posZhis := []struct {
+		isMonth bool
+		zhi     string
+	}{
+		{true, r.MonthZhi},
+		{false, r.YearZhi},
+		{false, r.DayZhi},
+		{false, r.HourZhi},
+	}
+
+	best := 0
+	for _, pz := range posZhis {
+		hgs := zhiHideGanFull[pz.zhi]
+		for i, hg := range hgs {
+			if hg != gan {
+				continue
+			}
+			var s int
+			if pz.isMonth {
+				s = 6 - i // 主气=6, 中气=5, 余气=4
+			} else {
+				s = 3 - i // 主气=3, 中气=2, 余气=1
+			}
+			if s > best {
+				best = s
+			}
+		}
+	}
+	return best
 }
