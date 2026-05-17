@@ -417,16 +417,6 @@ export default function PastEventsPage() {
                           <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
                             {y.narrative}
                           </div>
-                          {y.ten_god_power?.plain_title && (
-                            <div style={{
-                              marginTop: 8,
-                              color: 'var(--text-muted)',
-                              fontSize: '0.74rem',
-                              lineHeight: 1.55,
-                            }}>
-                              年度力量：{y.ten_god_power.plain_title} - {y.ten_god_power.plain_text}
-                            </div>
-                          )}
                           {hasEvidence && (
                             <div style={{ marginTop: 10 }}>
                               <button
