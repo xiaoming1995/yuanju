@@ -1,6 +1,6 @@
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { Diamond, X } from 'lucide-react'
+import { Diamond, X, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, fetchShenshaAnnotations } from '../lib/api'
 import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport } from '../lib/api'
@@ -891,6 +891,26 @@ export default function ResultPage() {
                 pillarsLabel={dayunPillarsLabel}
                 chartId={targetId}
               />
+              {(isGuest || targetId) && (
+                <button
+                  type="button"
+                  className={`past-events-entry${isGuest ? ' is-disabled' : ''}`}
+                  onClick={isGuest || !targetId ? undefined : () => navigate(`/bazi/${targetId}/past-events`)}
+                  disabled={isGuest || !targetId}
+                  aria-label="过往事件推算"
+                >
+                  <History className="past-events-entry-icon" size={22} aria-hidden="true" />
+                  <span className="past-events-entry-body">
+                    <span className="past-events-entry-title">过往事件推算</span>
+                    <span className="past-events-entry-sub">
+                      {isGuest ? '登录后可查看' : '展开每个大运段，看年份信号与白话批语'}
+                    </span>
+                  </span>
+                  {!isGuest && (
+                    <span className="past-events-entry-cta" aria-hidden="true">继续 →</span>
+                  )}
+                </button>
+              )}
             </section>
           </div>
 
