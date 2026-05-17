@@ -52,6 +52,10 @@ func RequireUserID(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "未登录，请先登录"})
 		return
 	}
+	// Note: this 401s gracefully if user_id isn't a string. The existing
+	// auth pattern in other handlers (e.g. bazi_handler.go) does a panicking
+	// cast — we chose graceful degradation because the brand UI flows through
+	// this often. Keep both reads aligned if the JWT claim type ever changes.
 	s, ok := v.(string)
 	if !ok || s == "" {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "无效的认证信息"})
@@ -120,21 +124,30 @@ func logoURLFromPath(p string) string {
 	return staticURLPrefix + "/" + p
 }
 
-// GetExportBrand handles GET /api/user/export-brand.
-func GetExportBrand(c *gin.Context) {
-	userID := getUserIDStr(c)
+// buildBrandResponse loads the user's brand row and shapes it for the API response.
+// Used by both GetExportBrand and UpdateExportBrand to avoid re-entering a handler.
+func buildBrandResponse(userID string) (BrandResponse, error) {
 	b, err := repository.GetExportBrand(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取品牌设置失败"})
-		return
+		return BrandResponse{}, err
 	}
-	c.JSON(http.StatusOK, gin.H{"data": BrandResponse{
+	return BrandResponse{
 		Title:         b.Title,
 		FooterText:    b.FooterText,
 		LogoURL:       logoURLFromPath(b.LogoPath),
 		WatermarkMode: b.WatermarkMode,
 		WatermarkText: b.WatermarkText,
-	}})
+	}, nil
+}
+
+// GetExportBrand handles GET /api/user/export-brand.
+func GetExportBrand(c *gin.Context) {
+	resp, err := buildBrandResponse(getUserIDStr(c))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取品牌设置失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
 // UpdateExportBrand handles PUT /api/user/export-brand.
@@ -159,7 +172,12 @@ func UpdateExportBrand(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存品牌设置失败"})
 		return
 	}
-	GetExportBrand(c)
+	resp, err := buildBrandResponse(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取品牌设置失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
 // UploadExportBrandLogo handles POST /api/user/export-brand/logo.

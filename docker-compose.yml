@@ -45,6 +45,9 @@ services:
       # - Redis: redis
       # 不要在这里再覆盖 DATABASE_URL，否则容易与 env_file 中的密码漂移。
       REDIS_URL: redis://redis:6379
+      UPLOAD_DIR: /var/lib/yuanju/uploads
+    volumes:
+      - brand_uploads:/var/lib/yuanju/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,3 +69,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  brand_uploads:

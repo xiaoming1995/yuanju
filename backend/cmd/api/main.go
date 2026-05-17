@@ -39,11 +39,18 @@ func main() {
 	// 初始化路由
 	r := gin.Default()
 
+	// Cap multipart in-memory buffer well below Gin's 32 MiB default.
+	// The upload handler enforces 2 MiB per file; this is belt-and-suspenders
+	// against clients omitting Content-Length (chunked encoding).
+	r.MaxMultipartMemory = 4 << 20 // 4 MiB
+
 	// 跨域中间件
 	r.Use(middleware.CORS())
 
-	// 公开静态文件托管（用户上传的品牌 logo）
-	r.Static("/static/uploads", configs.AppConfig.UploadDir)
+	// Public read-only mount: ONLY the brand-logos subdirectory is exposed.
+	// Do NOT broaden this to UploadDir root — future features may put private
+	// files under UploadDir/<other-subdir> and they must not be served publicly.
+	r.Static("/static/uploads/brand-logos", filepath.Join(configs.AppConfig.UploadDir, "brand-logos"))
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
