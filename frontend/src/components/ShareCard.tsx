@@ -225,7 +225,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
         </>
       )}
 
-      {/* ┌ AI 解读章节（完整 detail 版本）── */}
+      {/* ┌ 命理解读章节（完整 detail 版本）── */}
       {chapters.length > 0 && (
         <>
           <div style={{
@@ -237,7 +237,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
               textAlign: 'center',
               fontFamily: '"Noto Serif SC", serif',
             }}>
-              ── AI 命 理 解 读 ──
+              ── 命 理 解 读 ──
             </div>
           </div>
 
@@ -262,7 +262,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           fontSize: 13,
           fontFamily: '"Noto Sans SC", sans-serif',
         }}>
-          命盘尚未生成 AI 解读，请先生成报告后再保存图片
+          命盘尚未生成命理解读，请先生成报告后再保存图片
         </div>
       )}
 
