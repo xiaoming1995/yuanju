@@ -30,18 +30,19 @@ test('result page only exposes PDF report export after AI interpretation exists'
   const page = read('src/pages/ResultPage.tsx')
   assert.match(
     page,
-    /\{report && \(\s*<>[\s\S]*id="export-report-btn"[\s\S]*导出 PDF[\s\S]*<\/>\s*\)\}/,
+    /\{report && \(\s*<>[\s\S]*id="export-report-btn"[\s\S]*导出[\s\S]*PDF[\s\S]*<\/>\s*\)\}/,
     'header PDF export should be gated by an existing AI report',
   )
   assert.match(
     page,
-    /\{report && \(\s*<div className="report-action-bar">[\s\S]*导出 PDF[\s\S]*<\/div>\s*\)\}/,
+    /\{report && \(\s*<div className="report-action-bar">[\s\S]*导出[\s\S]*PDF[\s\S]*<\/div>\s*\)\}/,
     'PDF report actions should be gated by an existing AI report',
   )
+  // PrintLayout 现在也允许在润色版存在时 mount（report 不存在但 polishedReport 存在的边缘场景）
   assert.match(
     page,
-    /\{report && \(\s*<PrintLayout[\s\S]*structured=\{structured\}/,
-    'print/PDF report template should not mount before the AI report exists',
+    /\{\(report \|\| polishedReport\) && \([\s\S]*<PrintLayout[\s\S]*structured=\{printStructured\}/,
+    'print/PDF template should mount when either original report or polished report exists',
   )
 })
 

@@ -71,6 +71,8 @@ interface PrintLayoutProps {
   structured: { chapters: ReportChapter[]; analysis?: { logic: string; summary: string; advice?: string } | null } | null
   shenshaMap: Map<string, ShenshaAnnotation>
   tenGodRelation?: TenGodRelationMatrix
+  /** 当导出润色版 PDF 时传入：用户写的当下情况，会在「命理解读」section 前以 banner 显示 */
+  polishedUserSituation?: string
 }
 
 const gold = '#b8952a'
@@ -99,6 +101,7 @@ export default function PrintLayout({
   birthYear, birthMonth, birthDay, birthHour, gender,
   yongshen, jishen, mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
   tenGodRelation,
+  polishedUserSituation,
 }: PrintLayoutProps) {
   const chapters = structured?.chapters ?? []
   const analysis = structured?.analysis ?? null
@@ -434,9 +437,28 @@ export default function PrintLayout({
         </div>
       )}
 
-      {/* ── 命理解读（接十神关系自然流，不强制换页）── */}
+      {/* ── 命理解读（润色版/原版自动适配，接十神关系自然流，不强制换页）── */}
       <div style={{ marginBottom: 16 }}>
-        {sectionTitle('命　理　解　读')}
+        {sectionTitle(polishedUserSituation ? '命　理　解　读　·　润　色　版' : '命　理　解　读')}
+
+        {polishedUserSituation && (
+          <div style={{
+            marginBottom: 14,
+            padding: '10px 14px',
+            background: '#fdf8f0',
+            border: `1px dashed ${gold}`,
+            borderRadius: 3,
+            breakInside: 'avoid',
+            pageBreakInside: 'avoid',
+          }}>
+            <div style={{ fontSize: 11, color: midBrown, fontWeight: 700, marginBottom: 5, letterSpacing: 2 }}>
+              ▍ 你的情况描述
+            </div>
+            <p style={{ fontSize: 12, color: darkBrown, lineHeight: 1.7, margin: 0, fontStyle: 'italic' }}>
+              "{polishedUserSituation}"
+            </p>
+          </div>
+        )}
 
         {mingGe && (
           <div style={{

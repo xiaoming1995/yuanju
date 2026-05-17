@@ -448,7 +448,11 @@ export default function ResultPage() {
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
   const handleExportPDF = async () => {
-    if (!report) {
+    if (reportTab === 'polished' && !polishedReport) {
+      setReportError('请先生成润色版命理解读，再导出 PDF 报告')
+      return
+    }
+    if (reportTab !== 'polished' && !report) {
       setReportError('请先生成命理解读，再导出 PDF 报告')
       return
     }
@@ -911,7 +915,7 @@ export default function ResultPage() {
                     onClick={handleExportPDF}
                     disabled={exportingPDF}
                   >
-                    {exportingPDF ? '生成中...' : '导出 PDF'}
+                    {exportingPDF ? '生成中...' : (reportTab === 'polished' && polishedReport ? '导出润色版 PDF' : '导出 PDF')}
                   </button>
                 </>
               )}
@@ -1238,24 +1242,31 @@ export default function ResultPage() {
         </div>
       )}
       </div>
-      {report && (
-        <PrintLayout
-          birthYear={result.birth_year}
-          birthMonth={result.birth_month}
-          birthDay={result.birth_day}
-          birthHour={result.birth_hour}
-          gender={result.gender}
-          yongshen={result.yongshen || ''}
-          jishen={result.jishen || ''}
-          mingGe={result.ming_ge || ''}
-          mingGeDesc={result.ming_ge_desc || ''}
-          pillars={pillars}
-          dayun={result.dayun}
-          structured={structured}
-          shenshaMap={shenshaMap}
-          tenGodRelation={relation}
-        />
-      )}
+      {(report || polishedReport) && (() => {
+        const isPolishedExport = reportTab === 'polished' && polishedReport
+        const printStructured = isPolishedExport && polishedReport.content_structured
+          ? polishedReport.content_structured
+          : structured
+        return (
+          <PrintLayout
+            birthYear={result.birth_year}
+            birthMonth={result.birth_month}
+            birthDay={result.birth_day}
+            birthHour={result.birth_hour}
+            gender={result.gender}
+            yongshen={result.yongshen || ''}
+            jishen={result.jishen || ''}
+            mingGe={result.ming_ge || ''}
+            mingGeDesc={result.ming_ge_desc || ''}
+            pillars={pillars}
+            dayun={result.dayun}
+            structured={printStructured}
+            shenshaMap={shenshaMap}
+            tenGodRelation={relation}
+            polishedUserSituation={isPolishedExport ? polishedReport.user_situation : undefined}
+          />
+        )
+      })()}
     </>
   )
 }

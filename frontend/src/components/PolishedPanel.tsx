@@ -61,16 +61,20 @@ export default function PolishedPanel({ polishedReport, hasOriginalReport, loadi
           {chapters.length === 0 ? (
             <p className="polished-empty-tip">润色版解析为空，请重新润色。</p>
           ) : (
-            <div className="polished-chapter-list">
+            <div className="report-chapter-list">
               {chapters.map((ch, i) => {
                 const paras = paragraphsOf(ch.detail)
                 return (
-                  <div key={i} className="polished-chapter">
-                    <h3 className="polished-chapter-title serif">【{cleanReportText(ch.title)}】</h3>
-                    {paras.length > 0
-                      ? paras.map((p, j) => <p key={j} className="polished-chapter-body">{p}</p>)
-                      : <p className="polished-chapter-body">{cleanReportText(ch.detail)}</p>}
-                  </div>
+                  <details key={i} className="report-chapter-detail" open>
+                    <summary>
+                      <span className="serif">【{cleanReportText(ch.title)}】</span>
+                    </summary>
+                    <div className="report-block-content">
+                      {paras.length > 0
+                        ? paras.map((p, j) => <p key={j}>{p}</p>)
+                        : <p>{cleanReportText(ch.detail)}</p>}
+                    </div>
+                  </details>
                 )
               })}
             </div>
