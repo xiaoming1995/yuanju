@@ -49,6 +49,22 @@
   margin-bottom: 16px;
   font-size: 13px;
 }
+.brand-success {
+  background: #ecfbef;
+  border: 1px solid #6cbf7a;
+  color: #2d6b3a;
+  padding: 8px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  animation: brand-success-fade 2.5s ease-out forwards;
+}
+@keyframes brand-success-fade {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  10%  { opacity: 1; transform: translateY(0); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
 .brand-section {
   background: #fdf9f2;
   border: 1px solid var(--border, #e0cca0);

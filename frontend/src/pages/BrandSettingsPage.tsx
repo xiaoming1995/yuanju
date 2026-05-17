@@ -29,8 +29,23 @@ export default function BrandSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function flashSuccess(msg: string) {
+    setError('')
+    setSuccessMsg(msg)
+    if (successTimerRef.current) clearTimeout(successTimerRef.current)
+    successTimerRef.current = setTimeout(() => setSuccessMsg(''), 2500)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -66,6 +81,7 @@ export default function BrandSettingsPage() {
       })
       setServerState(r.data.data)
       setDraft(r.data.data)
+      flashSuccess('已保存')
     } catch (e) {
       setError(e instanceof Error ? e.message : '保存失败')
     } finally {
@@ -104,6 +120,7 @@ export default function BrandSettingsPage() {
       const next = { ...serverState, logo_url: r.data.data.logo_url }
       setServerState(next)
       setDraft(d => ({ ...d, logo_url: r.data.data.logo_url }))
+      flashSuccess('Logo 已更新')
     } catch (e) {
       setError(e instanceof Error ? e.message : '上传失败')
     } finally {
@@ -119,6 +136,7 @@ export default function BrandSettingsPage() {
       const next = { ...serverState, logo_url: '' }
       setServerState(next)
       setDraft(d => ({ ...d, logo_url: '' }))
+      flashSuccess('Logo 已删除')
     } catch (e) {
       setError(e instanceof Error ? e.message : '删除失败')
     }
@@ -132,6 +150,7 @@ export default function BrandSettingsPage() {
       const fresh = await brandAPI.get()
       setServerState(fresh.data.data)
       setDraft(fresh.data.data)
+      flashSuccess('已重置为默认设置')
     } catch (e) {
       setError(e instanceof Error ? e.message : '重置失败')
     }
@@ -147,6 +166,7 @@ export default function BrandSettingsPage() {
       </header>
 
       {error && <div className="brand-error">{error}</div>}
+      {successMsg && <div className="brand-success">{successMsg}</div>}
       {dirty && <div className="brand-unsaved">有未保存的修改</div>}
 
       <section className="brand-section">
