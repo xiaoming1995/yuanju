@@ -1,4 +1,7 @@
-// Package ratelimit provides an in-process per-key sliding-window rate limiter.
+// Package ratelimit provides an in-process per-key fixed-window rate limiter.
+// Bucket entries are not actively evicted — keys that go quiet stay in the
+// map until they are next queried (acceptable for low-cardinality use like
+// per-user upload throttling; revisit if used at higher key cardinality).
 // For multi-instance deployments, swap in a Redis-backed implementation behind
 // the same Allow(key) signature.
 package ratelimit
@@ -9,7 +12,7 @@ import (
 )
 
 type bucket struct {
-	count int
+	count   int
 	resetAt time.Time
 }
 
