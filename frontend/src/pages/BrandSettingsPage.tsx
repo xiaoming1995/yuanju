@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { brandAPI } from '../lib/api'
 import type { ExportBrand } from '../lib/api'
 import BrandPreviewCard from '../components/BrandPreviewCard'
+import LogoCropModal from '../components/LogoCropModal'
 import './BrandSettingsPage.css'
 
 const DEFAULT_BRAND: ExportBrand = {
@@ -28,6 +29,7 @@ export default function BrandSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function BrandSettingsPage() {
     }
   }
 
-  async function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function onLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     e.target.value = ''
     if (!file) return
@@ -83,6 +85,18 @@ export default function BrandSettingsPage() {
       setError('仅支持 PNG / JPG / WebP 格式')
       return
     }
+    setError('')
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result === 'string') setCropSourceUrl(result)
+    }
+    reader.onerror = () => setError('读取文件失败')
+    reader.readAsDataURL(file)
+  }
+
+  async function handleCropConfirm(file: File) {
+    setCropSourceUrl(null)
     setUploading(true)
     setError('')
     try {
@@ -251,6 +265,13 @@ export default function BrandSettingsPage() {
       </p>
 
       <Link to="/profile" className="brand-bottom-link">返回个人中心</Link>
+
+      <LogoCropModal
+        sourceDataUrl={cropSourceUrl ?? ''}
+        open={!!cropSourceUrl}
+        onConfirm={handleCropConfirm}
+        onCancel={() => setCropSourceUrl(null)}
+      />
     </main>
   )
 }
