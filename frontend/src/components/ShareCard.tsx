@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import type { StructuredReport } from '../lib/api'
+import type { StructuredReport, ExportBrand } from '../lib/api'
 
 // ── 天干地支专属 Google Fonts 子集（仅22字，< 20KB，保障截图字体渲染） ──
 const PILLAR_FONT_URL =
@@ -77,6 +77,7 @@ export interface ShareCardProps {
   dayGanWx: string; dayZhiWx: string
   hourGanWx: string; hourZhiWx: string
   structured: StructuredReport | null
+  brand?: ExportBrand | null
 }
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
@@ -86,6 +87,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
     yearGanWx, yearZhiWx, monthGanWx, monthZhiWx,
     dayGanWx, dayZhiWx, hourGanWx, hourZhiWx,
     structured,
+    brand,
   } = props
 
   const pillars = [
@@ -105,6 +107,19 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
     { icon: '☽', key: 'health' },
   ]
 
+  const resolvedTitle = brand?.title || '缘 聚 命 理'
+  const resolvedFooter = (() => {
+    if (!brand) return 'yuanju.com'
+    if (brand.watermark_mode === 'bottom' && brand.watermark_text && brand.footer_text) {
+      return `${brand.footer_text} · ${brand.watermark_text}`
+    }
+    if (brand.watermark_mode === 'bottom' && brand.watermark_text) {
+      return brand.watermark_text
+    }
+    return brand.footer_text || 'yuanju.com'
+  })()
+  const showDiagonalMark = brand?.watermark_mode === 'diagonal' && (brand?.watermark_text?.length ?? 0) > 0
+
   return (
     <div ref={ref} style={{
       width: 400,
@@ -112,6 +127,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
       fontFamily: '"Noto Serif SC", serif',
       overflow: 'hidden',
       boxSizing: 'border-box',
+      position: 'relative',
     }}>
       {/* 天干地支专属字体 */}
       <style>{`@import url('${PILLAR_FONT_URL}');`}</style>
@@ -120,7 +136,24 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
       <div style={{
         background: 'linear-gradient(135deg, #2d1f14 0%, #4a3020 50%, #3a2416 100%)',
         padding: '20px 24px 18px',
+        position: 'relative',
       }}>
+        {brand?.logo_url && (
+          <img
+            src={brand.logo_url}
+            alt=""
+            crossOrigin="anonymous"
+            style={{
+              position: 'absolute',
+              left: 24,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 40,
+              height: 40,
+              objectFit: 'contain',
+            }}
+          />
+        )}
         <div style={{
           color: '#e8c97c',
           fontSize: 20,
@@ -130,7 +163,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           fontFamily: '"Noto Serif SC", serif',
           marginBottom: 6,
         }}>
-          缘 聚 命 理
+          {resolvedTitle}
         </div>
         <div style={{
           color: '#c4a06a',
@@ -285,9 +318,33 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           fontSize: 12, color: '#e8c97c', letterSpacing: 1,
           fontFamily: '"Noto Serif SC", serif',
         }}>
-          yuanju.com
+          {resolvedFooter}
         </span>
       </div>
+      {showDiagonalMark && brand && (
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          overflow: 'hidden', zIndex: 1,
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-30%', left: '-30%', right: '-30%', bottom: '-30%',
+            transform: 'rotate(-30deg)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, 180px)',
+            gap: '60px 40px',
+            opacity: 0.06,
+            color: '#000',
+            fontSize: 14,
+            fontFamily: '"Noto Sans SC", sans-serif',
+            whiteSpace: 'nowrap',
+          }}>
+            {Array.from({ length: 60 }).map((_, i) => (
+              <span key={i}>{brand.watermark_text}</span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 })
