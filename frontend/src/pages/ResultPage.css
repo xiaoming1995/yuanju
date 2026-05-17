@@ -1892,11 +1892,6 @@
   min-height: 42px;
 }
 
-.report-action-highlight {
-  border-color: var(--wu-jin) !important;
-  color: var(--wu-jin) !important;
-}
-
 @media (max-width: 640px) {
   .result-page.page {
     padding-bottom: calc(150px + env(safe-area-inset-bottom)) !important;
