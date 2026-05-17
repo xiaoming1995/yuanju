@@ -125,13 +125,13 @@ func yearToneSentence(signals []EventSignal, primary EventSignal) string {
 	if isHardEventSignal(primary) {
 		switch themeOf(primary.Type) {
 		case "health":
-			return "健康、安全或日常节奏是这一年的主线，压力点会比较直接"
+			return healthLead(primary)
 		case "change":
-			return "这一年的变动感比较强，旧问题或突发调整容易被推到眼前"
+			return changeLead(primary)
 		case "relationship":
-			return "人际、感情或家庭沟通是这一年的主线，情绪触发会比较明显"
+			return relationshipLead(primary)
 		default:
-			return "这一年不是完全平稳的年份，关键事件会比平时更容易显形"
+			return defaultHardLead(primary)
 		}
 	}
 	switch {
