@@ -63,7 +63,6 @@ interface TenGodRelationMatrix {
 
 interface PrintLayoutProps {
   birthYear: number; birthMonth: number; birthDay: number; birthHour: number; gender: string
-  yongshen: string; jishen: string
   mingGe?: string
   mingGeDesc?: string
   pillars: Pillar[]
@@ -99,7 +98,7 @@ const sectionTitle = (text: string) => (
 
 export default function PrintLayout({
   birthYear, birthMonth, birthDay, birthHour, gender,
-  yongshen, jishen, mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
+  mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
   tenGodRelation,
   polishedUserSituation,
 }: PrintLayoutProps) {
@@ -204,20 +203,6 @@ export default function PrintLayout({
           {birthYear} 年 {birthMonth} 月 {birthDay} 日 {birthHour} 时
           &nbsp;·&nbsp;{gender === 'male' ? '男 命' : '女 命'}
         </div>
-        {(yongshen || jishen) && (
-          <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center', gap: 16 }}>
-            {yongshen && (
-              <span style={{ fontSize: 11, color: '#2d5a3d', background: '#f0f7f2', padding: '3px 12px', borderRadius: 2, border: '1px solid #b5d6c3' }}>
-                喜用神：{yongshen}
-              </span>
-            )}
-            {jishen && (
-              <span style={{ fontSize: 11, color: '#8b1a1a', background: '#fdf0f0', padding: '3px 12px', borderRadius: 2, border: '1px solid #f5c6c6' }}>
-                忌 神：{jishen}
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
       {/* ── 四柱 ── */}
@@ -650,8 +635,6 @@ export default function PrintLayout({
           padding: '4px 0',
         }}>
           {[
-            { term: '用神', desc: '命局中最需要扶助或调节的关键五行。' },
-            { term: '忌神', desc: '容易加重失衡、需要节制或避开的五行。' },
             { term: '日主', desc: '日干代表本人，是命盘的参照中心。' },
             { term: '十神', desc: '日干与其它干支之间的十种生克关系。' },
             { term: '调候', desc: '寒暖燥湿平衡的命局要素，决定气候适应力。' },

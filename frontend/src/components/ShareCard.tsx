@@ -76,8 +76,6 @@ export interface ShareCardProps {
   monthGanWx: string; monthZhiWx: string
   dayGanWx: string; dayZhiWx: string
   hourGanWx: string; hourZhiWx: string
-  yongshen: string
-  jishen: string
   structured: StructuredReport | null
 }
 
@@ -87,7 +85,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
     yearGan, yearZhi, monthGan, monthZhi, dayGan, dayZhi, hourGan, hourZhi,
     yearGanWx, yearZhiWx, monthGanWx, monthZhiWx,
     dayGanWx, dayZhiWx, hourGanWx, hourZhiWx,
-    yongshen, jishen, structured,
+    structured,
   } = props
 
   const pillars = [
@@ -199,42 +197,6 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           {yearGan}{yearZhi} · {monthGan}{monthZhi} · {dayGan}{dayZhi} · {hourGan}{hourZhi}
         </div>
       </div>
-
-      {/* ┌ 喜用神 / 忌神 ── */}
-      {(yongshen || jishen) && (
-        <>
-          <div style={{
-            padding: '14px 24px',
-            display: 'flex',
-            gap: 12,
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            background: '#fdf8f0',
-            borderBottom: '1px solid #e8dcc8',
-          }}>
-            {yongshen && (
-              <span style={{
-                fontSize: 13, padding: '5px 16px', borderRadius: 20,
-                background: 'rgba(74,124,89,0.1)',
-                color: '#3d6b4f', border: '1px solid rgba(74,124,89,0.35)',
-                fontFamily: '"Noto Sans SC", sans-serif',
-              }}>
-                喜用神：{yongshen}
-              </span>
-            )}
-            {jishen && (
-              <span style={{
-                fontSize: 13, padding: '5px 16px', borderRadius: 20,
-                background: 'rgba(192,57,43,0.07)',
-                color: '#8b2c1e', border: '1px solid rgba(192,57,43,0.25)',
-                fontFamily: '"Noto Sans SC", sans-serif',
-              }}>
-                忌神：{jishen}
-              </span>
-            )}
-          </div>
-        </>
-      )}
 
       {/* ┌ 命局格局分析（专业模式）── */}
       {analysis?.logic && (

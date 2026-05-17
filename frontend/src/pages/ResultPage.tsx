@@ -1176,8 +1176,6 @@ export default function ResultPage() {
           monthGanWx={result.month_gan_wuxing} monthZhiWx={result.month_zhi_wuxing}
           dayGanWx={result.day_gan_wuxing} dayZhiWx={result.day_zhi_wuxing}
           hourGanWx={result.hour_gan_wuxing} hourZhiWx={result.hour_zhi_wuxing}
-          yongshen={result.yongshen || ''}
-          jishen={result.jishen || ''}
           structured={report?.content_structured ?? null}
         />
       </div>
@@ -1268,8 +1266,6 @@ export default function ResultPage() {
             birthDay={result.birth_day}
             birthHour={result.birth_hour}
             gender={result.gender}
-            yongshen={result.yongshen || ''}
-            jishen={result.jishen || ''}
             mingGe={result.ming_ge || ''}
             mingGeDesc={result.ming_ge_desc || ''}
             pillars={pillars}
