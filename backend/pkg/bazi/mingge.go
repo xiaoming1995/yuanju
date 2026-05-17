@@ -1,5 +1,6 @@
 // Package bazi - 命格（格局）推算引擎
-// 基于七优先级透干取格法
+// 基于命师 6 规则取格（月禄/月刃 → 候选 → 食伤同透 → 通根强度 → 地支气势 → 杂气兜底）
+// Spec: docs/superpowers/specs/2026-05-17-mingge-professional-rules-design.md
 package bazi
 
 // 地支藏干表（按主气→中气→余气排列，主气在首位）
@@ -134,38 +135,6 @@ func shiShenToGeName(shishen string) string {
 	}
 }
 
-// gansContains 检查某天干是否存在于天干列表中
-func gansContains(gans []string, target string) bool {
-	for _, g := range gans {
-		if g == target {
-			return true
-		}
-	}
-	return false
-}
-
-// countGanInGans 统计某天干在天干列表中出现次数
-func countGanInGans(gans []string, target string) int {
-	count := 0
-	for _, g := range gans {
-		if g == target {
-			count++
-		}
-	}
-	return count
-}
-
-// wuxingScore 统计某五行在天干列表中的出现次数（五行力量）
-func wuxingScore(gans []string, wx string) int {
-	count := 0
-	for _, g := range gans {
-		if ganWuxingMap[g] == wx {
-			count++
-		}
-	}
-	return count
-}
-
 // detectSanHeHui 检测四柱地支是否构成三合局或三会局
 // 返回合局五行（木/火/土/金/水），未命中返回空串
 func detectSanHeHui(zhis []string) string {
@@ -188,156 +157,99 @@ func detectSanHeHui(zhis []string) string {
 	return ""
 }
 
-// DetectMingGe 按七优先级透干取格，返回 (格名, 说明文字)
+// DetectMingGe 按命师 6 规则取格
+//
+// 规则优先级：
+//   0. 月禄/月刃 special case
+//   1. 收集天干非比劫候选
+//   4. 食伤同透 → 强制立伤官格
+//   3. 通根强度排序 → 取最强者立格
+//   6. 候选都无根 / 无候选 → 地支气势全土且为日干财 → 立财格
+//   5. 兜底 → 杂气格
+//
+// Spec: docs/superpowers/specs/2026-05-17-mingge-professional-rules-design.md
 func DetectMingGe(r *BaziResult) (name, desc string) {
 	dayGan := r.DayGan
-	monthGan := r.MonthGan
-	monthZhi := r.MonthZhi
 
-	// 四柱天干集合（用于透出检测）
-	allGans := []string{r.YearGan, r.MonthGan, r.DayGan, r.HourGan}
-	otherGans := []string{r.YearGan, r.DayGan, r.HourGan} // 除月干外
-
-	// 四柱地支
-	allZhis := []string{r.YearZhi, r.MonthZhi, r.DayZhi, r.HourZhi}
-	otherZhis := []string{r.YearZhi, r.DayZhi, r.HourZhi} // 除月支外
-
-	// 月支藏干（主气在首）
-	monthHideGans := zhiHideGanFull[monthZhi]
-	if len(monthHideGans) == 0 {
-		// 兜底：使用引擎已计算的藏干
-		monthHideGans = r.MonthHideGan
+	// ── 规则 0: 月禄/月刃 special case ───────────────────────
+	if linGuanZhi[dayGan] == r.MonthZhi {
+		return "月禄格", minggeDescDict["月禄格"]
+	}
+	if yangGans[dayGan] && diWangZhi[dayGan] == r.MonthZhi {
+		return "月刃格", minggeDescDict["月刃格"]
 	}
 
-	// ── 优先级 1：月支主气透月干（月柱自透）────────────────────
-	if len(monthHideGans) > 0 {
-		mainGan := monthHideGans[0] // 主气
-		if mainGan == monthGan {
-			ss := GetShiShen(dayGan, mainGan)
-			geName := shiShenToGeName(ss)
-			return geName, minggeDescDict[geName]
-		}
+	// ── 规则 1: 收集天干非比劫候选 ─────────────────────────
+	type cand struct {
+		gan     string
+		shishen string
 	}
-
-	// ── 优先级 2：月支任意藏干透它干（年/日/时干）────────────────
-	type candidate struct {
-		gan   string
-		count int
-		wxCnt int
-	}
-	var p2Candidates []candidate
-	for _, hg := range monthHideGans {
-		if gansContains(otherGans, hg) {
-			cnt := countGanInGans(allGans, hg)
-			wxCnt := wuxingScore(allGans, ganWuxingMap[hg])
-			p2Candidates = append(p2Candidates, candidate{hg, cnt, wxCnt})
-		}
-	}
-	if len(p2Candidates) == 1 {
-		ss := GetShiShen(dayGan, p2Candidates[0].gan)
-		geName := shiShenToGeName(ss)
-		return geName, minggeDescDict[geName]
-	} else if len(p2Candidates) > 1 {
-		// 多透取次数最多者，次数相同取五行力量最强者
-		best := p2Candidates[0]
-		for _, c := range p2Candidates[1:] {
-			if c.count > best.count || (c.count == best.count && c.wxCnt > best.wxCnt) {
-				best = c
-			}
-		}
-		ss := GetShiShen(dayGan, best.gan)
-		geName := shiShenToGeName(ss)
-		return geName, minggeDescDict[geName]
-	}
-
-	// ── 优先级 3：其它三柱地支主气透月干 ────────────────────────
-	for _, oz := range otherZhis {
-		hgs := zhiHideGanFull[oz]
-		if len(hgs) == 0 {
+	var candidates []cand
+	for _, g := range []string{r.YearGan, r.MonthGan, r.HourGan} {
+		ss := GetShiShen(dayGan, g)
+		if ss == "比肩" || ss == "劫财" || ss == "" {
 			continue
 		}
-		mainGan := hgs[0]
-		if mainGan == monthGan {
-			ss := GetShiShen(dayGan, mainGan)
+		candidates = append(candidates, cand{g, ss})
+	}
+
+	// ── 规则 4: 食伤同透 → 强制立伤官格 ────────────────────
+	hasFood, hasInjury := false, false
+	for _, c := range candidates {
+		if c.shishen == "食神" {
+			hasFood = true
+		}
+		if c.shishen == "伤官" {
+			hasInjury = true
+		}
+	}
+	if hasFood && hasInjury {
+		return "伤官格", minggeDescDict["伤官格"]
+	}
+
+	// ── 规则 3: 通根强度排序，取最强 ──────────────────────
+	if len(candidates) > 0 {
+		bestIdx := 0
+		bestRoot := rootStrength(candidates[0].gan, r)
+		for i := 1; i < len(candidates); i++ {
+			root := rootStrength(candidates[i].gan, r)
+			if root > bestRoot {
+				bestRoot = root
+				bestIdx = i
+			}
+		}
+		if bestRoot > 0 {
+			geName := shiShenToGeName(candidates[bestIdx].shishen)
+			return geName, minggeDescDict[geName]
+		}
+	}
+
+	// ── 规则 6: 地支气势全土且为日干财 → 立财格 ──────────
+	zhiMains := []string{
+		zhiHideGanFull[r.YearZhi][0],
+		zhiHideGanFull[r.MonthZhi][0],
+		zhiHideGanFull[r.DayZhi][0],
+		zhiHideGanFull[r.HourZhi][0],
+	}
+	firstWx := ganWuxingMap[zhiMains[0]]
+	allSameWx := firstWx != ""
+	for _, mg := range zhiMains[1:] {
+		if ganWuxingMap[mg] != firstWx {
+			allSameWx = false
+			break
+		}
+	}
+	if allSameWx {
+		dayWx := ganWuxingMap[dayGan]
+		if isKeWuxing(dayWx, firstWx) {
+			monthMainGan := zhiHideGanFull[r.MonthZhi][0]
+			ss := GetShiShen(dayGan, monthMainGan)
 			geName := shiShenToGeName(ss)
 			return geName, minggeDescDict[geName]
 		}
 	}
 
-	// ── 优先级 4：其它地支任意藏干透任意天干 ─────────────────────
-	var p4Candidates []candidate
-	seenGan := make(map[string]bool)
-	for _, oz := range otherZhis {
-		hgs := zhiHideGanFull[oz]
-		for _, hg := range hgs {
-			if seenGan[hg] {
-				continue
-			}
-			if gansContains(allGans, hg) {
-				seenGan[hg] = true
-				cnt := countGanInGans(allGans, hg)
-				wxCnt := wuxingScore(allGans, ganWuxingMap[hg])
-				p4Candidates = append(p4Candidates, candidate{hg, cnt, wxCnt})
-			}
-		}
-	}
-	if len(p4Candidates) == 1 {
-		ss := GetShiShen(dayGan, p4Candidates[0].gan)
-		geName := shiShenToGeName(ss)
-		return geName, minggeDescDict[geName]
-	} else if len(p4Candidates) > 1 {
-		best := p4Candidates[0]
-		for _, c := range p4Candidates[1:] {
-			if c.count > best.count || (c.count == best.count && c.wxCnt > best.wxCnt) {
-				best = c
-			}
-		}
-		ss := GetShiShen(dayGan, best.gan)
-		geName := shiShenToGeName(ss)
-		return geName, minggeDescDict[geName]
-	}
-
-	// ── 优先级 5：（已在优先级2、4中处理多透逻辑，此处不重复）────
-
-	// ── 优先级 6：无透格神，检测三合/三会局 ─────────────────────
-	if wx := detectSanHeHui(allZhis); wx != "" {
-		if repGan, ok := wuxingMainGan[wx]; ok {
-			ss := GetShiShen(dayGan, repGan)
-			geName := shiShenToGeName(ss)
-			return geName, minggeDescDict[geName]
-		}
-	}
-
-	// ── 优先级 7：统计全局干支十神频率，满4个以上取最高频者 ────────
-	// 统计所有天干 + 各地支主气中各十神出现次数
-	allSources := append([]string{}, allGans...)
-	for _, z := range allZhis {
-		hgs := zhiHideGanFull[z]
-		if len(hgs) > 0 {
-			allSources = append(allSources, hgs[0]) // 主气
-		}
-	}
-	shishenCount := make(map[string]int)
-	for _, g := range allSources {
-		ss := GetShiShen(dayGan, g)
-		if ss != "" {
-			shishenCount[ss]++
-		}
-	}
-	bestSS := ""
-	bestCnt := 0
-	for ss, cnt := range shishenCount {
-		if cnt >= 4 && cnt > bestCnt {
-			bestCnt = cnt
-			bestSS = ss
-		}
-	}
-	if bestSS != "" {
-		geName := shiShenToGeName(bestSS)
-		return geName, minggeDescDict[geName]
-	}
-
-	// 兜底
+	// ── 规则 5: 兜底 ────────────────────────────────────
 	return "杂气格", minggeDescDict["杂气格"]
 }
 
