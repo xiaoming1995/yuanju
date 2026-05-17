@@ -1147,12 +1147,6 @@ export default function ResultPage() {
             <div className="report-action-bar">
               <button className="btn btn-ghost" onClick={() => navigate('/')}>重新起盘</button>
               {user && <a href="/history" className="btn btn-ghost">查看历史</a>}
-              {user && targetId && (
-                <button
-                  className="btn btn-ghost report-action-highlight"
-                  onClick={() => navigate(`/bazi/${targetId}/past-events`)}
-                >过往事件</button>
-              )}
               <button
                 className="btn btn-ghost"
                 onClick={handleExportPDF}
