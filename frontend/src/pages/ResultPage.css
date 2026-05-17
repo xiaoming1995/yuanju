@@ -94,6 +94,7 @@
 
 /* AI 报告 */
 .report-section {
+  margin-top: 24px;
   margin-bottom: 24px;
   animation-delay: 0.1s;
 }
