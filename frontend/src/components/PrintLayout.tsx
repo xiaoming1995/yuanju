@@ -175,7 +175,17 @@ export default function PrintLayout({
           <tr>
             <td>
               <div className="print-page-header">
-                <span className="print-page-header-center">命 理 命 书</span>
+                <span className="print-page-header-left">
+                  {brand?.logo_url && (
+                    <img
+                      src={brand.logo_url}
+                      alt=""
+                      crossOrigin="anonymous"
+                      className="print-page-header-logo"
+                    />
+                  )}
+                  <span className="print-page-header-center">命 理 命 书</span>
+                </span>
                 <span className="print-page-header-info">
                   {birthYear}年{birthMonth}月{birthDay}日&nbsp;·&nbsp;{gender === 'male' ? '男命' : '女命'}
                 </span>
@@ -209,21 +219,6 @@ export default function PrintLayout({
         marginBottom: 16,
         position: 'relative',
       }}>
-        {brand?.logo_url && (
-          <img
-            src={brand.logo_url}
-            alt=""
-            crossOrigin="anonymous"
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: 40,
-              height: 40,
-              objectFit: 'contain',
-            }}
-          />
-        )}
         <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
           {resolvedTitle}
         </div>

@@ -1980,6 +1980,17 @@
     letter-spacing: 3px;
     color: #b8952a;
   }
+  .print-page-header-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .print-page-header-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
   .print-page-header-center {
     font-size: 10px;
     font-weight: 700;
