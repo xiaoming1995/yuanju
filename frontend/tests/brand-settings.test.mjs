@@ -30,3 +30,16 @@ test('vite dev proxy includes /static for backend static files', () => {
   assert.match(src, /['"]\/static['"]/)
   assert.match(src, /localhost:9002/)
 })
+
+test('LogoCropModal exists and uses react-easy-crop with 1:1 aspect', () => {
+  const src = read('src/components/LogoCropModal.tsx')
+  assert.match(src, /import\s+Cropper\s+from\s+['"]react-easy-crop['"]/)
+  assert.match(src, /aspect=\{1\}/)
+  assert.match(src, /toBlob\(/)
+})
+
+test('BrandSettingsPage routes logo upload through LogoCropModal', () => {
+  const src = read('src/pages/BrandSettingsPage.tsx')
+  assert.match(src, /import\s+LogoCropModal\s+from\s+['"]\.\.\/components\/LogoCropModal['"]/)
+  assert.match(src, /<LogoCropModal[\s\S]+?sourceDataUrl=/)
+})
