@@ -1996,6 +1996,27 @@
     height: 6mm;
   }
 
+  /* 满页对角水印：position:fixed 在 Chrome 打印模式下每页重复 */
+  .print-diagonal-watermark {
+    position: fixed;
+    top: -30%;
+    left: -30%;
+    right: -30%;
+    bottom: -30%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+    transform: rotate(-30deg);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 220px);
+    gap: 80px 50px;
+    opacity: 0.06;
+    color: #000;
+    font-size: 16px;
+    font-family: "Noto Sans SC", sans-serif;
+    white-space: nowrap;
+  }
+
   /* 防止表格行、段落在页中间被切断 */
   tr, p, li {
     break-inside: avoid;

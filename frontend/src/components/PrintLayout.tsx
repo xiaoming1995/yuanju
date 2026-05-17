@@ -1,5 +1,6 @@
 import type { ShenshaAnnotation, ExportBrand } from '../lib/api'
 import { cleanReportText, splitParagraphs } from '../lib/reportText'
+import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 
 const WX_COLOR: Record<string, string> = {
   木: '#3d6b3a', 火: '#9b2c2c', 土: '#7a5c2e', 金: '#6b5a1e', 水: '#2c4a7a',
@@ -116,17 +117,8 @@ export default function PrintLayout({
   })()
 
   const resolvedTitle = brand?.title || 'YUAN JU MING LI'
-  const resolvedFooter = (() => {
-    if (!brand) return '缘 聚 命 理'
-    if (brand.watermark_mode === 'bottom' && brand.watermark_text && brand.footer_text) {
-      return `${brand.footer_text} · ${brand.watermark_text}`
-    }
-    if (brand.watermark_mode === 'bottom' && brand.watermark_text) {
-      return brand.watermark_text
-    }
-    return brand.footer_text || '缘 聚 命 理'
-  })()
-  const showDiagonalMark = brand?.watermark_mode === 'diagonal' && (brand?.watermark_text?.length ?? 0) > 0
+  const resolvedFooter = resolveFooter(brand, '缘 聚 命 理')
+  const showDiagonalMark = showDiagonalWatermark(brand)
 
   const allShensha: Array<{
     pillarLabel: string
@@ -166,6 +158,13 @@ export default function PrintLayout({
 
   return (
     <div className="print-only">
+      {showDiagonalMark && brand && (
+        <div className="print-diagonal-watermark" aria-hidden="true">
+          {Array.from({ length: 120 }).map((_, i) => (
+            <span key={i}>{brand.watermark_text}</span>
+          ))}
+        </div>
+      )}
       {/*
         用 table/thead 实现每页重复页头：
         CSS 规范要求 thead 在分页打印时自动重复，这比 position:fixed 更可靠，
@@ -706,30 +705,6 @@ export default function PrintLayout({
         <span>本报告内容仅供参考，不构成任何决策建议。</span>
         <span style={{ color: gold, letterSpacing: 2 }}>{resolvedFooter}</span>
       </div>
-      {showDiagonalMark && brand && (
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          overflow: 'hidden', zIndex: 1,
-        }}>
-          <div style={{
-            position: 'absolute',
-            top: '-30%', left: '-30%', right: '-30%', bottom: '-30%',
-            transform: 'rotate(-30deg)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, 220px)',
-            gap: '80px 50px',
-            opacity: 0.06,
-            color: '#000',
-            fontSize: 16,
-            fontFamily: '"Noto Sans SC", sans-serif',
-            whiteSpace: 'nowrap',
-          }}>
-            {Array.from({ length: 120 }).map((_, i) => (
-              <span key={i}>{brand.watermark_text}</span>
-            ))}
-          </div>
-        </div>
-      )}
       </div>
 
             </td>

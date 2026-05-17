@@ -1,4 +1,5 @@
 import type { ExportBrand } from '../lib/api'
+import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 
 interface Props {
   brand: ExportBrand
@@ -11,8 +12,8 @@ interface Props {
  */
 export default function BrandPreviewCard({ brand }: Props) {
   const title = brand.title || '缘 聚 命 理'
-  const footer = footerRightText(brand)
-  const showDiagonal = brand.watermark_mode === 'diagonal' && brand.watermark_text.length > 0
+  const footer = resolveFooter(brand, 'yuanju.com')
+  const showDiagonal = showDiagonalWatermark(brand)
 
   return (
     <div style={{
@@ -90,16 +91,3 @@ export default function BrandPreviewCard({ brand }: Props) {
   )
 }
 
-/**
- * Footer right-side text resolution. Mirror of ShareCard/PrintLayout logic
- * so preview matches actual export.
- */
-function footerRightText(brand: ExportBrand): string {
-  if (brand.watermark_mode === 'bottom' && brand.watermark_text && brand.footer_text) {
-    return `${brand.footer_text} · ${brand.watermark_text}`
-  }
-  if (brand.watermark_mode === 'bottom' && brand.watermark_text) {
-    return brand.watermark_text
-  }
-  return brand.footer_text || 'yuanju.com'
-}

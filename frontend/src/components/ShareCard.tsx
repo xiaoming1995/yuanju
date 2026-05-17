@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import type { StructuredReport, ExportBrand } from '../lib/api'
+import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 
 // ── 天干地支专属 Google Fonts 子集（仅22字，< 20KB，保障截图字体渲染） ──
 const PILLAR_FONT_URL =
@@ -108,17 +109,8 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
   ]
 
   const resolvedTitle = brand?.title || '缘 聚 命 理'
-  const resolvedFooter = (() => {
-    if (!brand) return 'yuanju.com'
-    if (brand.watermark_mode === 'bottom' && brand.watermark_text && brand.footer_text) {
-      return `${brand.footer_text} · ${brand.watermark_text}`
-    }
-    if (brand.watermark_mode === 'bottom' && brand.watermark_text) {
-      return brand.watermark_text
-    }
-    return brand.footer_text || 'yuanju.com'
-  })()
-  const showDiagonalMark = brand?.watermark_mode === 'diagonal' && (brand?.watermark_text?.length ?? 0) > 0
+  const resolvedFooter = resolveFooter(brand, 'yuanju.com')
+  const showDiagonalMark = showDiagonalWatermark(brand)
 
   return (
     <div ref={ref} style={{

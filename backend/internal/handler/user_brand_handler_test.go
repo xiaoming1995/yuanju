@@ -2,9 +2,15 @@ package handler
 
 import (
 	"bytes"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/textproto"
+	"strings"
 	"testing"
+	"time"
+
+	"yuanju/pkg/ratelimit"
 
 	"github.com/gin-gonic/gin"
 )
@@ -95,5 +101,75 @@ func TestBrandHandler_Unauthenticated(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 for missing user_id, got %d", w.Code)
+	}
+}
+
+// TestBrandLogo_FakeMime exercises the upload handler end-to-end through
+// multipart parsing: declared image/png with non-image body should 400 at
+// the magic-bytes layer, before any DB call.
+func TestBrandLogo_FakeMime(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", "00000000-0000-0000-0000-000000000001")
+		c.Next()
+	})
+	r.POST("/upload", RequireUserID, UploadExportBrandLogo)
+
+	body := &bytes.Buffer{}
+	mw := multipart.NewWriter(body)
+	h := textproto.MIMEHeader{}
+	h.Set("Content-Disposition", `form-data; name="file"; filename="logo.png"`)
+	h.Set("Content-Type", "image/png")
+	part, _ := mw.CreatePart(h)
+	part.Write([]byte("this is not a real png, just text content that fills 12+ bytes"))
+	mw.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/upload", body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for fake mime, got %d: %s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "图片") && !strings.Contains(w.Body.String(), "类型") {
+		t.Fatalf("expected error body to mention image/type, got %q", w.Body.String())
+	}
+}
+
+// TestBrandLogo_RateLimit exercises the per-user rate limiter on the upload
+// endpoint. Eleven rapid uploads from the same user must yield exactly one 429
+// among them. Uses a *fresh* limiter instance via package var override so
+// state from prior tests in the same binary doesn't pollute this test.
+func TestBrandLogo_RateLimit(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// Override the package-global limiter for this test with a fresh instance.
+	// (Save and restore to avoid leaking state to other tests.)
+	saved := logoLimiter
+	logoLimiter = ratelimit.New(10, time.Minute)
+	defer func() { logoLimiter = saved }()
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", "00000000-0000-0000-0000-000000000002")
+		c.Next()
+	})
+	r.POST("/upload", RequireUserID, UploadExportBrandLogo)
+
+	rateLimited := 0
+	for i := 0; i < 11; i++ {
+		// Empty body — but the limiter check runs BEFORE FormFile parsing.
+		req := httptest.NewRequest(http.MethodPost, "/upload", bytes.NewReader(nil))
+		req.Header.Set("Content-Type", "multipart/form-data; boundary=x")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code == http.StatusTooManyRequests {
+			rateLimited++
+		}
+	}
+	if rateLimited != 1 {
+		t.Fatalf("expected exactly 1 of 11 calls to be 429, got %d", rateLimited)
 	}
 }
