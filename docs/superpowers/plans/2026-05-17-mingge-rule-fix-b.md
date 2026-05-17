@@ -1,5 +1,15 @@
 # 命格定格规则修正（方案 B）Implementation Plan
 
+> ## ⚠️ 状态：已实施但已废弃（SUPERSEDED）
+>
+> 此 plan 已被完整执行（5 个 commit 在 feat/mingge-rule-fix-b 分支上）。但实施后用 12 个专业命师标注的真实盘对照，发现方向偏离 —— 对齐率仅 5/12。分支已删除，未合并 main。
+>
+> **接替本 plan**：[`2026-05-17-mingge-professional-rules.md`](./2026-05-17-mingge-professional-rules.md) — 整体重写 `DetectMingGe`，实现命师 6 条隐性规则。
+>
+> 本文件保留以记录失败的实施路径。
+
+---
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 修复 `backend/pkg/bazi/mingge.go::DetectMingGe` 中 4 处与标准七优先级取格法的偏差（第 1 / 3 / 6 / 7 层），新增 `mingge_test.go` 覆盖测试。
