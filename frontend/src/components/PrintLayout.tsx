@@ -1,4 +1,4 @@
-import type { ShenshaAnnotation } from '../lib/api'
+import type { ShenshaAnnotation, ExportBrand } from '../lib/api'
 import { cleanReportText, splitParagraphs } from '../lib/reportText'
 
 const WX_COLOR: Record<string, string> = {
@@ -72,6 +72,7 @@ interface PrintLayoutProps {
   tenGodRelation?: TenGodRelationMatrix
   /** 当导出润色版 PDF 时传入：用户写的当下情况，会在「命理解读」section 前以 banner 显示 */
   polishedUserSituation?: string
+  brand?: ExportBrand | null
 }
 
 const gold = '#b8952a'
@@ -101,6 +102,7 @@ export default function PrintLayout({
   mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
   tenGodRelation,
   polishedUserSituation,
+  brand,
 }: PrintLayoutProps) {
   const chapters = structured?.chapters ?? []
   const analysis = structured?.analysis ?? null
@@ -112,6 +114,19 @@ export default function PrintLayout({
     if (firstSentence.length <= 72) return firstSentence
     return firstSentence.slice(0, 72).trim() + '...'
   })()
+
+  const resolvedTitle = brand?.title || 'YUAN JU MING LI'
+  const resolvedFooter = (() => {
+    if (!brand) return '缘 聚 命 理'
+    if (brand.watermark_mode === 'bottom' && brand.watermark_text && brand.footer_text) {
+      return `${brand.footer_text} · ${brand.watermark_text}`
+    }
+    if (brand.watermark_mode === 'bottom' && brand.watermark_text) {
+      return brand.watermark_text
+    }
+    return brand.footer_text || '缘 聚 命 理'
+  })()
+  const showDiagonalMark = brand?.watermark_mode === 'diagonal' && (brand?.watermark_text?.length ?? 0) > 0
 
   const allShensha: Array<{
     pillarLabel: string
@@ -184,6 +199,7 @@ export default function PrintLayout({
           maxWidth: 820,
           margin: '0 auto',
           lineHeight: 1.6,
+          position: 'relative',
         }}
       >
       {/* ── 封面头部 ── */}
@@ -192,9 +208,25 @@ export default function PrintLayout({
         borderBottom: `2px solid ${gold}`,
         paddingBottom: 12,
         marginBottom: 16,
+        position: 'relative',
       }}>
+        {brand?.logo_url && (
+          <img
+            src={brand.logo_url}
+            alt=""
+            crossOrigin="anonymous"
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: 40,
+              height: 40,
+              objectFit: 'contain',
+            }}
+          />
+        )}
         <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
-          YUAN JU MING LI
+          {resolvedTitle}
         </div>
         <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 10, color: darkBrown, marginBottom: 8 }}>
           命 理 命 书
@@ -672,8 +704,32 @@ export default function PrintLayout({
         color: '#bbb',
       }}>
         <span>本报告内容仅供参考，不构成任何决策建议。</span>
-        <span style={{ color: gold, letterSpacing: 2 }}>缘 聚 命 理</span>
+        <span style={{ color: gold, letterSpacing: 2 }}>{resolvedFooter}</span>
       </div>
+      {showDiagonalMark && brand && (
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          overflow: 'hidden', zIndex: 1,
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: '-30%', left: '-30%', right: '-30%', bottom: '-30%',
+            transform: 'rotate(-30deg)',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, 220px)',
+            gap: '80px 50px',
+            opacity: 0.06,
+            color: '#000',
+            fontSize: 16,
+            fontFamily: '"Noto Sans SC", sans-serif',
+            whiteSpace: 'nowrap',
+          }}>
+            {Array.from({ length: 120 }).map((_, i) => (
+              <span key={i}>{brand.watermark_text}</span>
+            ))}
+          </div>
+        </div>
+      )}
       </div>
 
             </td>
