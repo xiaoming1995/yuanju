@@ -748,3 +748,70 @@ func TestRenderYearNarrative_MeetsThresholdWhenAnchored(t *testing.T) {
 		t.Errorf("expected narrative to start with GanZhi prefix, got: %s", got)
 	}
 }
+
+func TestRenderYearNarrative_ScreenshotRegression_RepetitiveOpenerHidden(t *testing.T) {
+	// Reproduces the 2026-05-18 screenshot: three adjacent child-age years
+	// (乙酉 2005 / 丙戌 2006 / 丁亥 2007) where the old template emitted
+	// "这一年有机会也有压力，事情会同时出现可争取和需取舍的一面" as the
+	// opener for ALL THREE. Under the evidence-anchored contract, none of
+	// them carry hard signals — all three narratives should be hidden.
+	years := []YearSignals{
+		{
+			Year:   2005,
+			Age:    10,
+			GanZhi: "乙酉",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年地支酉与原局子时刑（空亡相邻）", Polarity: PolarityXiong, Source: SourceKongwang},
+				{Type: TypeXueYeJingZheng, Evidence: "乙木为命主比劫，少年期同学比较增强", Polarity: PolarityNeutral, Source: SourceZhuwei},
+				{Type: TypeXingGeQingYi, Evidence: "流年地支酉为桃花星临命", Polarity: PolarityNeutral, Source: SourceZhuwei},
+			},
+		},
+		{
+			Year:   2006,
+			Age:    11,
+			GanZhi: "丙戌",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年节奏一般变化", Polarity: PolarityNeutral, Source: SourceZhuwei},
+				{Type: TypeXueYeGuiRen, Evidence: "丙透干为食神，少年期表达能力突出", Polarity: PolarityJi, Source: SourceZhuwei},
+				{Type: TypeXingGeQingYi, Evidence: "流年地支戌合卯木", Polarity: PolarityNeutral, Source: SourceZhuwei},
+				{Type: "健康", Evidence: "流年节奏微调", Polarity: PolarityXiong, Source: SourceZhuwei},
+			},
+		},
+		{
+			Year:   2007,
+			Age:    12,
+			GanZhi: "丁亥",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年节奏一般变化", Polarity: PolarityXiong, Source: SourceZhuwei},
+				{Type: TypeXueYeGuiRen, Evidence: "丁透干印星，少年期师长缘", Polarity: PolarityJi, Source: SourceZhuwei},
+				{Type: "健康", Evidence: "流年微调", Polarity: PolarityXiong, Source: SourceZhuwei},
+			},
+		},
+	}
+
+	bannedFillers := []string{
+		"这一年有机会也有压力",
+		"触发点来自这一年的主导信号",
+		"这一年最要紧的",
+		"本年命理信号较弱",
+		"可作为理解这一年事件走向的背景力量",
+	}
+
+	openings := map[string]string{} // opening → ganzhi that emitted it
+	for _, ys := range years {
+		narrative := RenderYearNarrative(ys)
+		for _, banned := range bannedFillers {
+			if strings.Contains(narrative, banned) {
+				t.Fatalf("%s narrative contains banned filler %q: %s", ys.GanZhi, banned, narrative)
+			}
+		}
+		if narrative == "" {
+			continue // hidden cards are fine — we want that
+		}
+		opening := firstSentence(narrative)
+		if prev, seen := openings[opening]; seen {
+			t.Fatalf("repeated opening %q across years %s and %s", opening, prev, ys.GanZhi)
+		}
+		openings[opening] = ys.GanZhi
+	}
+}

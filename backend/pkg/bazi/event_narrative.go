@@ -33,12 +33,68 @@ func hasEvidenceAnchor(sig EventSignal) bool {
 	return false
 }
 
+// hasStructuralEventAnchor returns true when sig carries a structural event
+// anchor: a hard-event Source, a special event Type, or a recognised keyword
+// inside Evidence. Unlike hasEvidenceAnchor it does NOT grant anchor status
+// to signals solely because their Type carries a "学业_", "性格_", or
+// "婚恋_" prefix — those prefixes describe a domain but do not by themselves
+// constitute an event-triggered anchor. This stricter check is used as a
+// pre-flight gate in RenderYearNarrative so that years whose only signals
+// are soft SourceZhuwei baseline indicators (no structural evidence keywords)
+// are hidden rather than padded with generic prose.
+//
+// Special case: "综合变动" (general change) signals are treated as anchored
+// only when they also satisfy isStrongChangeSignal — a bare "综合变动" from
+// any source (including SourceKongwang) is a background contextual note, not
+// a specific event anchor.
+func hasStructuralEventAnchor(sig EventSignal) bool {
+	if sig.Type == "综合变动" {
+		// General change signals only anchor when they carry a strong marker.
+		return isStrongChangeSignal(sig)
+	}
+	if isHardEventSignal(sig) {
+		return true
+	}
+	switch sig.Type {
+	case "伏吟", "反吟", "大运合化", TypeJuShiZhong:
+		return true
+	}
+	keywords := []string{"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎"}
+	for _, k := range keywords {
+		if strings.Contains(sig.Evidence, k) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasAnyStructuralAnchor returns true when at least one meaningful signal
+// (excluding 用神基底 and TypeDayunPhase) passes hasStructuralEventAnchor.
+func hasAnyStructuralAnchor(signals []EventSignal) bool {
+	for _, s := range signals {
+		if s.Type == "用神基底" || s.Type == TypeDayunPhase {
+			continue
+		}
+		if hasStructuralEventAnchor(s) {
+			return true
+		}
+	}
+	return false
+}
+
 // RenderYearNarrative 根据 EventSignal 列表生成面向用户的白话批语。
 // 底层 Evidence 保留给 RenderEvidenceSummary，不直接暴露在默认正文中。
 //
 // 当能产出的"有 evidence 支撑"的句子数少于 MinSentencesForNarrative 时
 // 返回空串，前端会跳过 narrative 段落，只渲染徽标和命理依据。
+//
+// 额外前置检查：若没有任何信号通过 hasStructuralEventAnchor，年份同样
+// 返回空串。纯粹由软性 SourceZhuwei 基线信号（学业_/性格_ 前缀但无结构
+// 关键词）构成的年份不会产出兜底模板文字。
 func RenderYearNarrative(ys YearSignals) string {
+	if !hasAnyStructuralAnchor(ys.Signals) {
+		return ""
+	}
 	primary, ok := pickDominantSignal(ys.Signals, "", ys.Age)
 	if !ok {
 		return ""
