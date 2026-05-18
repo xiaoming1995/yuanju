@@ -9,6 +9,7 @@ type ExportBrand struct {
 	FooterText    string    `json:"footer_text"`
 	LogoPath      string    `json:"-"`
 	LogoURL       string    `json:"logo_url"`
+	LogoMode      string    `json:"logo_mode"`
 	WatermarkMode string    `json:"watermark_mode"`
 	WatermarkText string    `json:"watermark_text"`
 	UpdatedAt     time.Time `json:"-"`
