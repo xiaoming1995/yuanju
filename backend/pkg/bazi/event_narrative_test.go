@@ -607,6 +607,47 @@ func TestRichStudySentence_UnknownStudyTypeReturnsEmpty(t *testing.T) {
 	}
 }
 
+func TestSecondaryDetailSentence_UnanchoredSignalReturnsEmpty(t *testing.T) {
+	cases := []struct {
+		name string
+		sig  EventSignal
+	}{
+		{
+			name: "vague 综合变动 with no keyword",
+			sig:  EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+		},
+		{
+			name: "vague 喜神临运 with no anchor keyword",
+			sig:  EventSignal{Type: "喜神临运", Evidence: "印星生身", Source: SourceZhuwei, Polarity: PolarityJi},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := secondaryDetailSentence(c.sig, 30); got != "" {
+				t.Errorf("expected empty, got %q", got)
+			}
+		})
+	}
+}
+
+func TestSecondaryDetailSentence_AnchoredSignalStillEmits(t *testing.T) {
+	cases := []EventSignal{
+		// (a) hard event signal
+		{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲", Source: SourceZhuwei, Polarity: PolarityXiong},
+		// (b) evidence keyword
+		{Type: "财运_得", Evidence: "财星为忌神，破耗", Source: SourceZhuwei, Polarity: PolarityXiong},
+		// (c) signal type in allowed set
+		{Type: "伏吟", Evidence: "伏吟", Source: SourceFuyin, Polarity: PolarityXiong},
+		{Type: TypeXueYeYaLi, Evidence: "学业要求", Source: SourceZhuwei, Polarity: PolarityNeutral},
+		{Type: "婚恋_冲", Evidence: "婚恋冲", Source: SourceZhuwei, Polarity: PolarityXiong},
+	}
+	for i, c := range cases {
+		if got := secondaryDetailSentence(c, 30); got == "" {
+			t.Errorf("case %d (Type=%s): expected non-empty, got empty", i, c.Type)
+		}
+	}
+}
+
 func TestSecondaryDetailSentence_UnanchoredChangeDoesNotEmitBarePrefix(t *testing.T) {
 	// Regression: after Task 3 dropped richChangeSentence's default branch,
 	// secondaryDetailSentence's "change" case used to produce "同时，"

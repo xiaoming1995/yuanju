@@ -2,6 +2,30 @@ package bazi
 
 import "strings"
 
+// hasEvidenceAnchor returns true when sig carries a specific differentiator
+// that a sentence can cite: a hard-event Source, an allowed Type, or a
+// recognized keyword inside Evidence. Used to gate secondary-detail prose
+// so it does not pad narratives with generic theme wording.
+func hasEvidenceAnchor(sig EventSignal) bool {
+	if isHardEventSignal(sig) {
+		return true
+	}
+	switch sig.Type {
+	case "伏吟", "反吟", "大运合化", TypeJuShiZhong:
+		return true
+	}
+	if strings.HasPrefix(sig.Type, "学业_") || strings.HasPrefix(sig.Type, "性格_") || strings.HasPrefix(sig.Type, "婚恋_") {
+		return true
+	}
+	keywords := []string{"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎"}
+	for _, k := range keywords {
+		if strings.Contains(sig.Evidence, k) {
+			return true
+		}
+	}
+	return false
+}
+
 // RenderYearNarrative 根据 EventSignal 列表生成面向用户的白话批语。
 // 底层 Evidence 保留给 RenderEvidenceSummary，不直接暴露在默认正文中。
 func RenderYearNarrative(ys YearSignals) string {
@@ -201,6 +225,9 @@ func domainDetailSentence(primary EventSignal, secondary EventSignal, hasSeconda
 }
 
 func secondaryDetailSentence(sig EventSignal, age int) string {
+	if !hasEvidenceAnchor(sig) {
+		return ""
+	}
 	theme := themeOf(sig.Type)
 	switch theme {
 	case "career":
