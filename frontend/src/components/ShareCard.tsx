@@ -111,6 +111,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
   const resolvedTitle = brand?.title || '缘 聚 命 理'
   const resolvedFooter = resolveFooter(brand, 'yuanju.com')
   const showDiagonalMark = showDiagonalWatermark(brand)
+  const isWordmark = brand?.logo_mode === 'wordmark' && !!brand?.logo_url
 
   return (
     <div ref={ref} style={{
@@ -130,33 +131,50 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
         padding: '20px 24px 18px',
         position: 'relative',
       }}>
-        {brand?.logo_url && (
+        {isWordmark ? (
           <img
-            src={brand.logo_url}
+            src={brand!.logo_url}
             alt=""
             crossOrigin="anonymous"
             style={{
-              position: 'absolute',
-              left: 24,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 40,
-              height: 40,
+              display: 'block',
+              margin: '0 auto 6px',
+              maxHeight: 48,
+              maxWidth: 320,
               objectFit: 'contain',
             }}
           />
+        ) : (
+          <>
+            {brand?.logo_url && (
+              <img
+                src={brand.logo_url}
+                alt=""
+                crossOrigin="anonymous"
+                style={{
+                  position: 'absolute',
+                  left: 24,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 40,
+                  height: 40,
+                  objectFit: 'contain',
+                }}
+              />
+            )}
+            <div style={{
+              color: '#e8c97c',
+              fontSize: 20,
+              letterSpacing: 6,
+              fontWeight: 700,
+              textAlign: 'center',
+              fontFamily: '"Noto Serif SC", serif',
+              marginBottom: 6,
+            }}>
+              {resolvedTitle}
+            </div>
+          </>
         )}
-        <div style={{
-          color: '#e8c97c',
-          fontSize: 20,
-          letterSpacing: 6,
-          fontWeight: 700,
-          textAlign: 'center',
-          fontFamily: '"Noto Serif SC", serif',
-          marginBottom: 6,
-        }}>
-          {resolvedTitle}
-        </div>
         <div style={{
           color: '#c4a06a',
           fontSize: 12,
