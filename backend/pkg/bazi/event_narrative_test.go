@@ -585,3 +585,24 @@ func TestTriggerSourceSentence_KeywordStillEmits(t *testing.T) {
 		}
 	}
 }
+
+func TestDomainDetailSentence_UnknownThemeReturnsEmpty(t *testing.T) {
+	primary := EventSignal{Type: "未知类型", Evidence: "无关键词", Source: SourceZhuwei}
+	if got := domainDetailSentence(primary, EventSignal{}, false, 30); got != "" {
+		t.Errorf("expected empty for unknown theme, got %q", got)
+	}
+}
+
+func TestRichChangeSentence_NoAnchorReturnsEmpty(t *testing.T) {
+	sig := EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral}
+	if got := richChangeSentence(sig); got != "" {
+		t.Errorf("expected empty for un-anchored change signal, got %q", got)
+	}
+}
+
+func TestRichStudySentence_UnknownStudyTypeReturnsEmpty(t *testing.T) {
+	primary := EventSignal{Type: "事业", Evidence: "无关键词", Source: SourceZhuwei}
+	if got := richStudySentence(primary, EventSignal{}, false); got != "" {
+		t.Errorf("expected empty for unknown study type, got %q", got)
+	}
+}

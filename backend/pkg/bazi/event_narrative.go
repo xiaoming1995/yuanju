@@ -196,7 +196,7 @@ func domainDetailSentence(primary EventSignal, secondary EventSignal, hasSeconda
 	case "change":
 		return richChangeSentence(primary)
 	default:
-		return "现实表现上，日常安排会出现新的侧重点，适合多观察变化，再决定推进顺序。"
+		return ""
 	}
 }
 
@@ -245,7 +245,7 @@ func richStudySentence(primary EventSignal, secondary EventSignal, hasSecondary 
 	case TypeXueYeJingZheng:
 		return "现实表现上，同学比较、团队协作和竞争感会增强，适合借助集体力量，但不要被比较心带乱节奏。"
 	default:
-		return "现实表现上，学习、日常规则和个人状态会更受关注，按节奏积累比急着突破更重要。"
+		return ""
 	}
 }
 
@@ -264,7 +264,7 @@ func richChangeSentence(sig EventSignal) string {
 	case strings.Contains(sig.Evidence, "驿马") || strings.Contains(sig.Evidence, "奔波") || strings.Contains(sig.Evidence, "迁移"):
 		return "现实表现上，出行、搬动、换环境或奔波事务会增加，提前安排会更稳。"
 	default:
-		return "现实表现上，事情会被推动起来，适合顺势整理方向，把该确认的安排先确认清楚。"
+		return ""
 	}
 }
 
