@@ -73,3 +73,32 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
+.logo-crop-aspect-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.logo-crop-aspect-chip {
+  padding: 4px 12px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.18s, color 0.18s, background 0.18s;
+}
+
+.logo-crop-aspect-chip:hover {
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+}
+
+.logo-crop-aspect-chip.is-active {
+  border-color: var(--text-accent);
+  color: var(--text-accent);
+  background: rgba(201, 168, 76, 0.10);
+}

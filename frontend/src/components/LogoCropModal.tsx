@@ -5,6 +5,7 @@ import './LogoCropModal.css'
 interface Props {
   sourceDataUrl: string
   open: boolean
+  mode: 'icon' | 'wordmark'
   onConfirm: (file: File) => void
   onCancel: () => void
 }
@@ -16,15 +17,22 @@ interface PixelArea {
   height: number
 }
 
-const OUTPUT_SIZE = 256
+const ICON_OUTPUT_SIZE = 256
+const WORDMARK_OUTPUT_HEIGHT = 128
+const WORDMARK_ASPECT_PRESETS = [2, 3, 4] as const
+const DEFAULT_WORDMARK_ASPECT = 3
 const MAX_SOURCE_LONG_AXIS = 1600
 
-export default function LogoCropModal({ sourceDataUrl, open, onConfirm, onCancel }: Props) {
+export default function LogoCropModal({ sourceDataUrl, open, mode, onConfirm, onCancel }: Props) {
   const [imgUrl, setImgUrl] = useState('')
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [areaPx, setAreaPx] = useState<PixelArea | null>(null)
   const [processing, setProcessing] = useState(false)
+  const [wordmarkAspect, setWordmarkAspect] = useState<number>(DEFAULT_WORDMARK_ASPECT)
+
+  // icon mode uses aspect={1} (square); wordmark uses selected ratio
+  const cropperAspect = mode === 'icon' ? 1 : wordmarkAspect
 
   useEffect(() => {
     let cancelled = false
@@ -41,6 +49,13 @@ export default function LogoCropModal({ sourceDataUrl, open, onConfirm, onCancel
     return () => { cancelled = true }
   }, [sourceDataUrl])
 
+  // 切换比例 chip 时重置 crop 位置，让用户立刻看到新比例下的预览
+  useEffect(() => {
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    setAreaPx(null)
+  }, [cropperAspect])
+
   const onCropComplete = useCallback((_: unknown, area: PixelArea) => {
     setAreaPx(area)
   }, [])
@@ -51,7 +66,15 @@ export default function LogoCropModal({ sourceDataUrl, open, onConfirm, onCancel
     if (!areaPx || !imgUrl) return
     setProcessing(true)
     try {
-      const blob = await cropToBlob(imgUrl, areaPx)
+      let outW: number, outH: number
+      if (mode === 'icon') {
+        outW = ICON_OUTPUT_SIZE
+        outH = ICON_OUTPUT_SIZE
+      } else {
+        outH = WORDMARK_OUTPUT_HEIGHT
+        outW = Math.round(outH * wordmarkAspect)
+      }
+      const blob = await cropToBlob(imgUrl, areaPx, outW, outH)
       const file = new File([blob], 'logo.png', { type: 'image/png' })
       onConfirm(file)
     } catch (err) {
@@ -64,7 +87,26 @@ export default function LogoCropModal({ sourceDataUrl, open, onConfirm, onCancel
   return (
     <div className="logo-crop-overlay" onClick={onCancel} role="dialog" aria-modal="true">
       <div className="logo-crop-modal" onClick={e => e.stopPropagation()}>
-        <h3 className="logo-crop-title">调整 logo 裁剪区域</h3>
+        <h3 className="logo-crop-title">
+          {mode === 'wordmark' ? '调整商标裁剪区域' : '调整 logo 裁剪区域'}
+        </h3>
+
+        {mode === 'wordmark' && (
+          <div className="logo-crop-aspect-chips" role="radiogroup" aria-label="商标比例">
+            {WORDMARK_ASPECT_PRESETS.map(a => (
+              <button
+                key={a}
+                type="button"
+                role="radio"
+                aria-checked={wordmarkAspect === a}
+                className={`logo-crop-aspect-chip${wordmarkAspect === a ? ' is-active' : ''}`}
+                onClick={() => setWordmarkAspect(a)}
+              >
+                {a}:1
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="logo-crop-canvas-area">
           {imgUrl ? (
@@ -72,7 +114,7 @@ export default function LogoCropModal({ sourceDataUrl, open, onConfirm, onCancel
               image={imgUrl}
               crop={crop}
               zoom={zoom}
-              aspect={1}
+              aspect={cropperAspect}
               cropShape="rect"
               showGrid
               onCropChange={setCrop}
@@ -96,7 +138,11 @@ export default function LogoCropModal({ sourceDataUrl, open, onConfirm, onCancel
           />
         </div>
 
-        <small className="logo-crop-note">动图（GIF / 动 WebP）将仅保留第一帧。输出 256×256 PNG。</small>
+        <small className="logo-crop-note">
+          {mode === 'icon'
+            ? '动图（GIF / 动 WebP）将仅保留第一帧。输出 256×256 PNG。'
+            : '动图（GIF / 动 WebP）将仅保留第一帧。输出高 128 PNG，宽随比例（最多 512）。'}
+        </small>
 
         <div className="logo-crop-actions">
           <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={processing}>
@@ -139,17 +185,17 @@ async function downscaleIfLarge(dataUrl: string): Promise<string> {
   return canvas.toDataURL('image/png')
 }
 
-async function cropToBlob(src: string, area: PixelArea): Promise<Blob> {
+async function cropToBlob(src: string, area: PixelArea, outW: number, outH: number): Promise<Blob> {
   const img = await loadImage(src)
   const canvas = document.createElement('canvas')
-  canvas.width = OUTPUT_SIZE
-  canvas.height = OUTPUT_SIZE
+  canvas.width = outW
+  canvas.height = outH
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('canvas 2d 不可用')
   ctx.drawImage(
     img,
     area.x, area.y, area.width, area.height,
-    0, 0, OUTPUT_SIZE, OUTPUT_SIZE,
+    0, 0, outW, outH,
   )
   return new Promise((resolve, reject) => {
     canvas.toBlob(
