@@ -12,6 +12,7 @@ const DEFAULT_BRAND: ExportBrand = {
   title: '',
   footer_text: '',
   logo_url: '',
+  logo_mode: 'icon',
   watermark_mode: 'none',
   watermark_text: '',
 }
@@ -58,6 +59,24 @@ export default function BrandSettingsPage() {
       .finally(() => setLoading(false))
   }, [user])
 
+  const [logoAspect, setLogoAspect] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!serverState.logo_url) {
+      setLogoAspect(null)
+      return
+    }
+    const img = new Image()
+    img.onload = () => setLogoAspect(img.naturalWidth / img.naturalHeight)
+    img.onerror = () => setLogoAspect(null)
+    img.src = serverState.logo_url
+  }, [serverState.logo_url])
+
+  const aspectMismatch = logoAspect != null && (
+    (draft.logo_mode === 'icon' && Math.abs(logoAspect - 1) > 0.1) ||
+    (draft.logo_mode === 'wordmark' && logoAspect < 1.5)
+  )
+
   if (!authLoading && !user) return <Navigate to="/login" replace />
   if (authLoading || loading) {
     return <main className="brand-page container page"><div className="brand-loading">加载中...</div></main>
@@ -66,6 +85,7 @@ export default function BrandSettingsPage() {
   const dirty =
     draft.title !== serverState.title ||
     draft.footer_text !== serverState.footer_text ||
+    draft.logo_mode !== serverState.logo_mode ||
     draft.watermark_mode !== serverState.watermark_mode ||
     draft.watermark_text !== serverState.watermark_text
 
@@ -76,6 +96,7 @@ export default function BrandSettingsPage() {
       const r = await brandAPI.update({
         title: draft.title,
         footer_text: draft.footer_text,
+        logo_mode: draft.logo_mode,
         watermark_mode: draft.watermark_mode,
         watermark_text: draft.watermark_text,
       })
@@ -145,7 +166,7 @@ export default function BrandSettingsPage() {
   async function onReset() {
     if (!window.confirm('重置为默认设置？已上传的 logo 也会被删除。')) return
     try {
-      await brandAPI.update({ title: '', footer_text: '', watermark_mode: 'none', watermark_text: '' })
+      await brandAPI.update({ title: '', footer_text: '', logo_mode: 'icon', watermark_mode: 'none', watermark_text: '' })
       if (serverState.logo_url) await brandAPI.deleteLogo()
       const fresh = await brandAPI.get()
       setServerState(fresh.data.data)
@@ -171,6 +192,31 @@ export default function BrandSettingsPage() {
 
       <section className="brand-section">
         <h2>顶部品牌</h2>
+        <div className="brand-radio-row" role="radiogroup" aria-label="Logo 模式">
+          <label>
+            <input
+              type="radio"
+              name="logo_mode"
+              value="icon"
+              checked={draft.logo_mode === 'icon'}
+              onChange={() => setDraft(d => ({ ...d, logo_mode: 'icon' }))}
+            />
+            图标（方形 1:1）
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="logo_mode"
+              value="wordmark"
+              checked={draft.logo_mode === 'wordmark'}
+              onChange={() => setDraft(d => ({ ...d, logo_mode: 'wordmark' }))}
+            />
+            商标（横版）
+          </label>
+        </div>
+        <small className="brand-mode-hint">
+          图标：方形 logo + 文字标题。商标：横版 logo 取代文字标题。
+        </small>
         <label className="brand-field">
           <span>品牌标题</span>
           <input
@@ -220,6 +266,9 @@ export default function BrandSettingsPage() {
             onChange={onLogoChange}
           />
         </div>
+        {aspectMismatch && (
+          <div className="brand-warning">建议重新上传符合当前模式的 logo</div>
+        )}
       </section>
 
       <section className="brand-section">
@@ -297,6 +346,7 @@ export default function BrandSettingsPage() {
       <LogoCropModal
         sourceDataUrl={cropSourceUrl ?? ''}
         open={!!cropSourceUrl}
+        mode={draft.logo_mode}
         onConfirm={handleCropConfirm}
         onCancel={() => setCropSourceUrl(null)}
       />
