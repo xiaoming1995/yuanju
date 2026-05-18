@@ -694,3 +694,48 @@ func TestPracticalStanceSentence_UnknownThemeReturnsEmpty(t *testing.T) {
 		t.Errorf("expected empty for unknown theme, got %q", got)
 	}
 }
+
+func TestRenderYearNarrative_HiddenWhenBelowThreshold(t *testing.T) {
+	// Two signals, both un-anchored — every builder returns "".
+	ys := YearSignals{
+		Year:   2010,
+		Age:    11,
+		GanZhi: "庚寅",
+		Signals: []EventSignal{
+			{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			{Type: "综合变动", Evidence: "另一个变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+		},
+	}
+	if got := RenderYearNarrative(ys); got != "" {
+		t.Errorf("expected empty narrative below threshold, got %q", got)
+	}
+}
+
+func TestRenderYearNarrative_NoSignalsReturnsEmpty(t *testing.T) {
+	// No meaningful signals at all — old code emitted a tengod context fallback
+	// or "本年命理信号较弱" stub; new code returns "".
+	ys := YearSignals{Year: 2022, Age: 27, GanZhi: "壬寅"}
+	if got := RenderYearNarrative(ys); got != "" {
+		t.Errorf("expected empty narrative for no-signals year, got %q", got)
+	}
+}
+
+func TestRenderYearNarrative_MeetsThresholdWhenAnchored(t *testing.T) {
+	// Hard health signal: yearTone (healthLead), trigger (冲), domain (health
+	// with 冲 keyword), practical (health) — at least 3 anchored sentences.
+	ys := YearSignals{
+		Year:   2026,
+		Age:    31,
+		GanZhi: "丙午",
+		Signals: []EventSignal{
+			{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲，体力精神有下滑风险", Polarity: PolarityXiong, Source: SourceZhuwei},
+		},
+	}
+	got := RenderYearNarrative(ys)
+	if got == "" {
+		t.Fatal("expected narrative to render for hard health signal year")
+	}
+	if !strings.HasPrefix(got, "丙午年，") {
+		t.Errorf("expected narrative to start with GanZhi prefix, got: %s", got)
+	}
+}

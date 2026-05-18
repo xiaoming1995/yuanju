@@ -2,6 +2,13 @@ package bazi
 
 import "strings"
 
+// MinSentencesForNarrative is the minimum number of non-empty
+// evidence-anchored sentences required before RenderYearNarrative
+// returns a paragraph. Below this threshold the narrative is hidden
+// (returns ""), and the frontend renders only the signal chips and
+// evidence summary for that year.
+const MinSentencesForNarrative = 3
+
 // hasEvidenceAnchor returns true when sig carries a specific differentiator
 // that a sentence can cite: a hard-event Source, an allowed Type, or a
 // recognized keyword inside Evidence. Used to gate secondary-detail prose
@@ -28,37 +35,42 @@ func hasEvidenceAnchor(sig EventSignal) bool {
 
 // RenderYearNarrative 根据 EventSignal 列表生成面向用户的白话批语。
 // 底层 Evidence 保留给 RenderEvidenceSummary，不直接暴露在默认正文中。
+//
+// 当能产出的"有 evidence 支撑"的句子数少于 MinSentencesForNarrative 时
+// 返回空串，前端会跳过 narrative 段落，只渲染徽标和命理依据。
 func RenderYearNarrative(ys YearSignals) string {
-	if len(meaningfulSignals(ys.Signals)) == 0 {
-		if s := tenGodContextSentence(ys.TenGodPower); s != "" {
-			return ys.GanZhi + "年，" + s + "整体节奏不必急，适合顺着这股力量稳步安排。"
-		}
-		return "本年命理信号较弱，运势相对平稳，无明显重大变动。"
-	}
-
 	primary, ok := pickDominantSignal(ys.Signals, "", ys.Age)
 	if !ok {
-		if s := tenGodContextSentence(ys.TenGodPower); s != "" {
-			return ys.GanZhi + "年，" + s + "整体动象不算强，但方向感会更清楚。"
-		}
-		return ys.GanZhi + "年整体动象不强，适合按部就班推进，保持稳定节奏。"
+		return ""
 	}
 	secondary, hasSecondary := pickDominantSignal(ys.Signals, themeOf(primary.Type), ys.Age)
 
-	parts := []string{
-		ys.GanZhi + "年，" + yearToneSentence(ys.Signals, primary),
-		triggerSourceSentence(primary, ys.Age),
-		domainDetailSentence(primary, secondary, hasSecondary, ys.Age),
+	sentences := make([]string, 0, 6)
+	if s := yearToneSentence(ys.Signals, primary); s != "" {
+		sentences = append(sentences, s)
+	}
+	if s := triggerSourceSentence(primary, ys.Age); s != "" {
+		sentences = append(sentences, s)
+	}
+	if s := domainDetailSentence(primary, secondary, hasSecondary, ys.Age); s != "" {
+		sentences = append(sentences, s)
 	}
 	if hasSecondary {
-		parts = append(parts, secondaryDetailSentence(secondary, ys.Age))
+		if s := secondaryDetailSentence(secondary, ys.Age); s != "" {
+			sentences = append(sentences, s)
+		}
 	}
 	if s := tenGodNarrativeSentence(ys.TenGodPower, primary, secondary, hasSecondary); s != "" {
-		parts = append(parts, s)
+		sentences = append(sentences, s)
 	}
-	parts = append(parts, practicalStanceSentence(ys.Signals, primary, ys.Age))
+	if s := practicalStanceSentence(ys.Signals, primary, ys.Age); s != "" {
+		sentences = append(sentences, s)
+	}
 
-	return joinNarrativeParts(parts)
+	if len(sentences) < MinSentencesForNarrative {
+		return ""
+	}
+	return joinNarrativeParts(append([]string{ys.GanZhi + "年，" + sentences[0]}, sentences[1:]...))
 }
 
 // RenderEvidenceSummary 提取专业用户可展开查看的命理依据。
