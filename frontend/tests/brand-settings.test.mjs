@@ -31,10 +31,11 @@ test('vite dev proxy includes /static for backend static files', () => {
   assert.match(src, /localhost:9002/)
 })
 
-test('LogoCropModal exists and uses react-easy-crop with 1:1 aspect', () => {
+test('LogoCropModal exists and locks aspect to 1 in icon mode', () => {
   const src = read('src/components/LogoCropModal.tsx')
   assert.match(src, /import\s+Cropper\s+from\s+['"]react-easy-crop['"]/)
-  assert.match(src, /aspect=\{1\}/)
+  // icon mode resolves aspect to 1; wordmark uses preset chip
+  assert.match(src, /mode === 'icon' \? 1 : wordmarkAspect/)
   assert.match(src, /toBlob\(/)
 })
 

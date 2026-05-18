@@ -31,7 +31,6 @@ export default function LogoCropModal({ sourceDataUrl, open, mode, onConfirm, on
   const [processing, setProcessing] = useState(false)
   const [wordmarkAspect, setWordmarkAspect] = useState<number>(DEFAULT_WORDMARK_ASPECT)
 
-  // icon mode uses aspect={1} (square); wordmark uses selected ratio
   const cropperAspect = mode === 'icon' ? 1 : wordmarkAspect
 
   useEffect(() => {
