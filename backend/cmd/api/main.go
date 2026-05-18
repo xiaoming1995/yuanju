@@ -196,6 +196,10 @@ func main() {
 				adminAuth.PUT("/algo-config/:key", handler.AdminUpdateAlgoConfig)
 				adminAuth.POST("/algo-config/reload", handler.AdminReloadAlgoConfig)
 
+				// 数据清理任务配置
+				adminAuth.GET("/cleanup-config", handler.AdminGetCleanupConfig)
+				adminAuth.PUT("/cleanup-config", handler.AdminUpdateCleanupConfig)
+
 				// 调候用神规则管理
 				adminAuth.GET("/algo-tiaohou", handler.AdminGetAlgoTiaohou)
 				adminAuth.PUT("/algo-tiaohou/:day_gan/:month_zhi", handler.AdminUpdateAlgoTiaohou)

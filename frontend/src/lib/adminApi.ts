@@ -100,6 +100,17 @@ export const adminAlgoConfigAPI = {
   reload: () => adminApi.post('/api/admin/algo-config/reload'),
 }
 
+export interface CleanupConfig {
+  enabled: boolean
+  retention_days: number
+  run_hour: number
+}
+
+export const adminCleanupConfigAPI = {
+  get: () => adminApi.get<CleanupConfig>('/api/admin/cleanup-config'),
+  update: (data: CleanupConfig) => adminApi.put<CleanupConfig>('/api/admin/cleanup-config', data),
+}
+
 export const adminAlgoTiaohouAPI = {
   list: (dayGan?: string) =>
     adminApi.get('/api/admin/algo-tiaohou' + (dayGan ? `?day_gan=${dayGan}` : '')),

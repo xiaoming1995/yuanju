@@ -9,17 +9,37 @@ function read(path) {
   return readFileSync(join(root, path), 'utf8')
 }
 
-test('AlgoConfigPage exposes cleanup_enabled label', () => {
-  const src = read('src/pages/admin/AlgoConfigPage.tsx')
-  assert.match(src, /cleanup_enabled:/)
+test('CleanupConfigPage exists and uses adminCleanupConfigAPI', () => {
+  const src = read('src/pages/admin/CleanupConfigPage.tsx')
+  assert.match(src, /adminCleanupConfigAPI/)
+  assert.match(src, /retention_days/)
+  assert.match(src, /run_hour/)
+  assert.match(src, /enabled/)
 })
 
-test('AlgoConfigPage exposes cleanup_retention_days label', () => {
-  const src = read('src/pages/admin/AlgoConfigPage.tsx')
-  assert.match(src, /cleanup_retention_days:/)
+test('adminApi exposes adminCleanupConfigAPI with get + update', () => {
+  const src = read('src/lib/adminApi.ts')
+  assert.match(src, /adminCleanupConfigAPI/)
+  assert.match(src, /\/api\/admin\/cleanup-config/)
+  assert.match(src, /\bget:\s*\(\)/)
+  assert.match(src, /\bupdate:\s*\(data:/)
 })
 
-test('AlgoConfigPage exposes cleanup_run_hour label', () => {
+test('App.tsx registers /admin/cleanup-config route', () => {
+  const src = read('src/App.tsx')
+  assert.match(src, /path="cleanup-config"/)
+  assert.match(src, /import CleanupConfigPage/)
+})
+
+test('AdminLayout nav includes 数据清理配置 entry', () => {
+  const src = read('src/components/AdminLayout.tsx')
+  assert.match(src, /\/admin\/cleanup-config/)
+  assert.match(src, /数据清理配置/)
+})
+
+test('AlgoConfigPage PARAM_LABELS no longer contains cleanup_* keys', () => {
   const src = read('src/pages/admin/AlgoConfigPage.tsx')
-  assert.match(src, /cleanup_run_hour:/)
+  assert.doesNotMatch(src, /cleanup_enabled/)
+  assert.doesNotMatch(src, /cleanup_retention_days/)
+  assert.doesNotMatch(src, /cleanup_run_hour/)
 })
