@@ -304,13 +304,16 @@ func tenGodNarrativeSentence(power TenGodPowerProfile, primary EventSignal, seco
 		return ""
 	}
 	groupTheme := tenGodGroupTheme(power.Group)
-	if isHardEventSignal(primary) && (groupTheme == "" || groupTheme == themeOf(primary.Type)) {
+	if groupTheme == "" {
 		return ""
 	}
-	if groupTheme != "" && (groupTheme == themeOf(primary.Type) || (hasSecondary && groupTheme == themeOf(secondary.Type))) {
+	if isHardEventSignal(primary) && groupTheme == themeOf(primary.Type) {
+		return ""
+	}
+	if groupTheme == themeOf(primary.Type) || (hasSecondary && groupTheme == themeOf(secondary.Type)) {
 		return "这股年度力量会把" + tenGodPlainDomain(power.Group, power.Polarity) + "推到台前，处理得好可以成为助力，处理得急则容易变成压力。"
 	}
-	return power.PlainTitle + "，" + strings.TrimSuffix(power.PlainText, "。") + "，可作为理解这一年事件走向的背景力量。"
+	return ""
 }
 
 func tenGodGroupTheme(group string) string {

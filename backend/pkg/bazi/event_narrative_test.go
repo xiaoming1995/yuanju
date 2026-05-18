@@ -663,3 +663,27 @@ func TestSecondaryDetailSentence_UnanchoredChangeDoesNotEmitBarePrefix(t *testin
 		t.Errorf("non-empty result lacks meaningful body: %q", got)
 	}
 }
+
+func TestTenGodNarrativeSentence_NoGroupAlignmentReturnsEmpty(t *testing.T) {
+	power := TenGodPowerProfile{
+		PlainTitle: "官杀偏旺",
+		PlainText:  "规则、责任和外部压力更明显",
+		Group:      "", // no group → tenGodGroupTheme returns ""
+	}
+	primary := EventSignal{Type: "综合变动", Evidence: "节奏变化", Source: SourceZhuwei}
+	if got := tenGodNarrativeSentence(power, primary, EventSignal{}, false); got != "" {
+		t.Errorf("expected empty when 10-god group has no theme alignment, got %q", got)
+	}
+}
+
+func TestTenGodNarrativeSentence_GroupAlignedStillEmits(t *testing.T) {
+	power := TenGodPowerProfile{
+		PlainTitle: "财星偏旺",
+		PlainText:  "钱财、资源、合作回报更明显",
+		Group:      TenGodGroupWealth, // wealth → money theme
+	}
+	primary := EventSignal{Type: "财运_得", Evidence: "财来财去", Source: SourceZhuwei}
+	if got := tenGodNarrativeSentence(power, primary, EventSignal{}, false); got == "" {
+		t.Error("expected non-empty when 10-god group aligns with primary theme")
+	}
+}
