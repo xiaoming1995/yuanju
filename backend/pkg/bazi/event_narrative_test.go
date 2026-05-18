@@ -687,3 +687,10 @@ func TestTenGodNarrativeSentence_GroupAlignedStillEmits(t *testing.T) {
 		t.Error("expected non-empty when 10-god group aligns with primary theme")
 	}
 }
+
+func TestPracticalStanceSentence_UnknownThemeReturnsEmpty(t *testing.T) {
+	primary := EventSignal{Type: "未知类型", Polarity: PolarityXiong, Source: SourceZhuwei}
+	if got := practicalStanceSentence([]EventSignal{primary}, primary, 30); got != "" {
+		t.Errorf("expected empty for unknown theme, got %q", got)
+	}
+}

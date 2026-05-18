@@ -704,7 +704,7 @@ func practicalStanceSentence(signals []EventSignal, primary EventSignal, age int
 	case "support":
 		return "这一年可以借助外力，但关键选择仍要自己拿稳，不宜完全依赖他人安排。"
 	}
-	return practicalReminder(signals)
+	return ""
 }
 
 func filterEvidenceSignals(signals []EventSignal, polarity string, shensha bool) []EventSignal {
