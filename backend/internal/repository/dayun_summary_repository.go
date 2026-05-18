@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
@@ -66,4 +67,13 @@ func UpsertDayunSummary(chartID string, dayunIndex int, dayunGanZhi string, them
 func DeleteDayunSummariesByChart(chartID string) error {
 	_, err := database.DB.Exec(`DELETE FROM ai_dayun_summaries WHERE chart_id = $1`, chartID)
 	return err
+}
+
+// DeleteDayunSummariesOlderThan 删除超期大运 summary。
+func DeleteDayunSummariesOlderThan(cutoff time.Time) (int64, error) {
+	res, err := database.DB.Exec(`DELETE FROM ai_dayun_summaries WHERE created_at < $1`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }

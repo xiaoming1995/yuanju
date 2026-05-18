@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
@@ -258,4 +259,14 @@ func DeleteReportByChartID(chartID string) (int64, error) {
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+// DeleteAIReportsOlderThan 删除 created_at 早于 cutoff 的 ai_reports 行。
+// 返回删除条数。
+func DeleteAIReportsOlderThan(cutoff time.Time) (int64, error) {
+	res, err := database.DB.Exec(`DELETE FROM ai_reports WHERE created_at < $1`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }

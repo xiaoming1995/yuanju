@@ -271,3 +271,12 @@ func ListCompatibilityReportsByReadingID(readingID string) ([]model.AICompatibil
 func CompatibilityNow() time.Time {
 	return time.Now()
 }
+
+// DeleteAICompatibilityReportsOlderThan 删除超期合盘 AI 报告（不动业务表）。
+func DeleteAICompatibilityReportsOlderThan(cutoff time.Time) (int64, error) {
+	res, err := database.DB.Exec(`DELETE FROM ai_compatibility_reports WHERE created_at < $1`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
