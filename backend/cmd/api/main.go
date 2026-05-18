@@ -23,6 +23,8 @@ import (
 
 func main() {
 	cleanupOnce := flag.Bool("cleanup-once", false, "运行一次清理任务后退出，不启动 HTTP server")
+	migrateDryRun := flag.Bool("migrate-dry-run", false, "打印 pending migration 后退出，不动 DB")
+	migrateApply := flag.Bool("migrate-apply", false, "强制跑一次 migration 后退出，不启动 HTTP server")
 	flag.Parse()
 
 	// 加载配置
@@ -30,7 +32,29 @@ func main() {
 
 	// 连接数据库
 	database.Connect()
-	database.RunDDL()
+
+	// CLI 分支：迁移工具命令在 Migrate 之前处理，避免重复迁移
+	if *migrateDryRun {
+		rep, err := database.Migrate(database.ModeDryRun)
+		if err != nil {
+			log.Fatalf("dry-run 失败: %v", err)
+		}
+		fmt.Println(string(database.MarshalMigrationReport(rep)))
+		os.Exit(0)
+	}
+	if *migrateApply {
+		rep, err := database.Migrate(database.ModeApply)
+		fmt.Println(string(database.MarshalMigrationReport(rep)))
+		if err != nil {
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
+	// 默认启动路径：跑 ModeStartup 迁移（0001 fatal、0002+ warn-only）
+	if _, err := database.Migrate(database.ModeStartup); err != nil {
+		log.Printf("[migrate] startup unexpected error: %v", err)
+	}
 
 	// 确保 logo 上传目录存在
 	if err := os.MkdirAll(filepath.Join(configs.AppConfig.UploadDir, "brand-logos"), 0755); err != nil {
