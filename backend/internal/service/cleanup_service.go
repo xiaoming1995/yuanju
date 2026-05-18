@@ -147,7 +147,11 @@ func (s *CleanupService) RunOnce(ctx context.Context) RunReport {
 // StartScheduler 每天在 RunHour:00 跑一次 RunOnce。ctx.Done() 退出。
 func (s *CleanupService) StartScheduler(ctx context.Context) {
 	for {
-		cfg, _ := s.config()
+		cfg, err := s.config()
+		if err != nil {
+			s.logger.Printf("[cleanup] load config in scheduler: %v; using default RunHour=3", err)
+			cfg.RunHour = 3
+		}
 		next := s.nextRunAt(cfg.RunHour)
 		wait := next.Sub(s.clock.Now())
 		s.logger.Printf("[cleanup] next run at %s (in %s)", next.Format(time.RFC3339), wait)
