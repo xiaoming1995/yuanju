@@ -108,6 +108,7 @@ export interface ExportBrand {
   title: string
   footer_text: string
   logo_url: string
+  logo_mode: 'icon' | 'wordmark'
   watermark_mode: 'none' | 'bottom' | 'diagonal'
   watermark_text: string
 }
@@ -115,6 +116,7 @@ export interface ExportBrand {
 export interface BrandUpdateInput {
   title: string
   footer_text: string
+  logo_mode: 'icon' | 'wordmark'
   watermark_mode: 'none' | 'bottom' | 'diagonal'
   watermark_text: string
 }
