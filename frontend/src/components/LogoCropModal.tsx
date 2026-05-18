@@ -99,12 +99,12 @@ export default function LogoCropModal({ sourceDataUrl, open, onConfirm, onCancel
         <small className="logo-crop-note">动图（GIF / 动 WebP）将仅保留第一帧。输出 256×256 PNG。</small>
 
         <div className="logo-crop-actions">
-          <button type="button" className="logo-crop-btn-ghost" onClick={onCancel} disabled={processing}>
+          <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={processing}>
             取消
           </button>
           <button
             type="button"
-            className="logo-crop-btn-primary"
+            className="btn btn-primary"
             onClick={handleConfirm}
             disabled={processing || !areaPx || !imgUrl}
           >
