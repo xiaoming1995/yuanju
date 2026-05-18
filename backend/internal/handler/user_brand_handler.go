@@ -32,6 +32,7 @@ type BrandUpdateReq struct {
 	FooterText    string `json:"footer_text"`
 	WatermarkMode string `json:"watermark_mode"`
 	WatermarkText string `json:"watermark_text"`
+	LogoMode      string `json:"logo_mode"`
 }
 
 // BrandResponse is the GET / PUT response shape.
@@ -39,6 +40,7 @@ type BrandResponse struct {
 	Title         string `json:"title"`
 	FooterText    string `json:"footer_text"`
 	LogoURL       string `json:"logo_url"`
+	LogoMode      string `json:"logo_mode"`
 	WatermarkMode string `json:"watermark_mode"`
 	WatermarkText string `json:"watermark_text"`
 }
@@ -85,6 +87,11 @@ func validateBrandUpdate(req BrandUpdateReq) error {
 	case "none", "bottom", "diagonal":
 	default:
 		return errors.New("水印模式不合法")
+	}
+	switch req.LogoMode {
+	case "", "icon", "wordmark":
+	default:
+		return errors.New("logo 模式不合法")
 	}
 	for _, s := range []string{req.Title, req.FooterText, req.WatermarkText} {
 		if strings.ContainsAny(s, `<>"'&`) {
@@ -135,6 +142,7 @@ func buildBrandResponse(userID string) (BrandResponse, error) {
 		Title:         b.Title,
 		FooterText:    b.FooterText,
 		LogoURL:       logoURLFromPath(b.LogoPath),
+		LogoMode:      b.LogoMode,
 		WatermarkMode: b.WatermarkMode,
 		WatermarkText: b.WatermarkText,
 	}, nil
@@ -164,11 +172,14 @@ func UpdateExportBrand(c *gin.Context) {
 	if req.WatermarkMode == "" {
 		req.WatermarkMode = "none"
 	}
+	if req.LogoMode == "" {
+		req.LogoMode = "icon"
+	}
 	if err := validateBrandUpdate(req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := repository.UpsertExportBrandText(userID, req.Title, req.FooterText, req.WatermarkMode, req.WatermarkText); err != nil {
+	if err := repository.UpsertExportBrandText(userID, req.Title, req.FooterText, req.WatermarkMode, req.WatermarkText, req.LogoMode); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存品牌设置失败"})
 		return
 	}
