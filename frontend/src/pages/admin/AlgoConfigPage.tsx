@@ -23,6 +23,9 @@ const PARAM_LABELS: Record<string, string> = {
   jixiong_jiHan_min: '极寒阈值（寒性元素最低数量）',
   jixiong_jiRe_min: '极热阈值（暖性元素最低数量）',
   jixiong_shenQiang_pct: '身强判定阈值（生助比例 %）',
+  cleanup_enabled: '自动清理任务是否启用（true / false）',
+  cleanup_retention_days: 'AI 缓存与请求日志保留天数（默认 90，clamp 到 [1, 3650]）',
+  cleanup_run_hour: '清理任务每日执行时刻（小时，clamp 到 [0, 23]）',
 }
 
 const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
