@@ -30,7 +30,7 @@ func main() {
 
 	// 连接数据库
 	database.Connect()
-	database.Migrate()
+	database.RunDDL()
 
 	// 确保 logo 上传目录存在
 	if err := os.MkdirAll(filepath.Join(configs.AppConfig.UploadDir, "brand-logos"), 0755); err != nil {

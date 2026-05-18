@@ -92,7 +92,7 @@ func Connect() {
 	log.Println("✅ 数据库连接成功")
 }
 
-func Migrate() {
+func RunDDL() {
 	schema := `
 	CREATE TABLE IF NOT EXISTS users (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
