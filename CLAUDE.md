@@ -21,6 +21,8 @@ npm run preview  # Preview production build
 ### Backend (`cd backend`)
 ```bash
 go run ./cmd/api                           # Run API server (port 9002 by default)
+go run ./cmd/api --migrate-dry-run         # List pending migrations as JSON, no DB writes
+go run ./cmd/api --migrate-apply           # Apply all pending migrations (fatal-on-error), then exit
 go test ./...                              # Run all tests
 go test ./pkg/bazi/...                     # Run bazi-specific tests
 go test ./pkg/bazi/... -run TestFuncName   # Run a single test
@@ -92,7 +94,9 @@ backend (Go + Gin)
         mingge.go                    # 命格（格局）推算 — 七优先级透干取格法
         compatibility.go             # 合盘双命盘信号引擎
       pkg/crypto/crypto.go           # AES-256-GCM for API key storage
-      pkg/database/database.go       # PostgreSQL connection + DDL migrations
+      pkg/database/database.go       # PostgreSQL connection (Connect/Close, exposes *sql.DB)
+      pkg/database/migrations.go     # goose-based Migrate(mode): ModeStartup/ModeDryRun/ModeApply
+      pkg/database/migrations/       # NNNN_name.sql migration files (baseline = 00001_baseline.sql)
       pkg/seed/seed.go               # Seeds LLM providers + pricing from .env on startup
 ```
 
@@ -112,7 +116,7 @@ backend (Go + Gin)
 
 ### Backend
 - **No ORM.** All DB access via `lib/pq` directly in `internal/repository/`. Never write SQL in handlers or services.
-- **All DDL migrations** are in `pkg/database/database.go`. Add new tables/columns there.
+- **DDL migrations live in `pkg/database/migrations/NNNN_name.sql`** (goose, embedded via `//go:embed`). Add new tables/columns by creating the next-numbered file — never edit `00001_baseline.sql` or hand-write SQL in `database.go`. Startup runs `Migrate(ModeStartup)`: baseline (0001) is fatal-on-error, but later migrations are warn-only so the app still boots if one breaks. CLI flags `--migrate-dry-run` / `--migrate-apply` give fatal-on-error semantics for ops. `runMigrations` uses goose's package-global state and is **not goroutine-safe** — only call from `main()` / CLI paths.
 - **API keys** must be encrypted with `pkg/crypto` (AES-256-GCM) before storing. Never store plaintext keys.
 - **Config** is read exclusively via `configs/config.go` `Config` struct — no direct `os.Getenv` elsewhere.
 - Error response: `{"error": "message"}` — Success response: `{"data": ...}` or direct object.
@@ -130,7 +134,7 @@ Per `ENGINEERING.md`: always scan existing code first.
 - New backend feature → check `internal/handler/`, `internal/service/`, `internal/repository/`
 - New bazi algorithm → check `pkg/bazi/` (engine.go, shishen.go, shensha.go, tiaohou.go)
 - New frontend component → check `src/components/`, `src/lib/`
-- DB changes → only modify `pkg/database/database.go`
+- DB changes → add a new `pkg/database/migrations/NNNN_*.sql` file (do **not** edit `database.go` or the baseline)
 
 ### OpenSpec Change Management
 New features use the OpenSpec workflow:
