@@ -874,5 +874,13 @@ CREATE TABLE IF NOT EXISTS user_export_brand (
 		log.Fatalf("增量迁移失败 (user_export_brand): %v", err)
 	}
 
+	// 增量迁移：user_export_brand.logo_mode（icon = 方形 1:1，wordmark = 横版）
+	brandLogoModeMigration := `
+ALTER TABLE user_export_brand
+    ADD COLUMN IF NOT EXISTS logo_mode VARCHAR(16) NOT NULL DEFAULT 'icon' CHECK (logo_mode IN ('icon', 'wordmark'));`
+	if _, err := DB.Exec(brandLogoModeMigration); err != nil {
+		log.Fatalf("增量迁移失败 (user_export_brand.logo_mode): %v", err)
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }
