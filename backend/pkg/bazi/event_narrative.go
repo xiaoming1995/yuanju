@@ -113,38 +113,18 @@ func joinNarrativeParts(parts []string) string {
 }
 
 func yearToneSentence(signals []EventSignal, primary EventSignal) string {
-	xiong, ji := 0, 0
-	for _, s := range meaningfulSignals(signals) {
-		switch s.Polarity {
-		case PolarityXiong:
-			xiong++
-		case PolarityJi:
-			ji++
-		}
+	if !isHardEventSignal(primary) {
+		return ""
 	}
-	if isHardEventSignal(primary) {
-		switch themeOf(primary.Type) {
-		case "health":
-			return healthLead(primary)
-		case "change":
-			return changeLead(primary)
-		case "relationship":
-			return relationshipLead(primary)
-		default:
-			return defaultHardLead(primary)
-		}
-	}
-	switch {
-	case xiong >= 2 && ji > 0:
-		return "这一年有机会也有压力，事情会同时出现可争取和需取舍的一面"
-	case xiong >= 2:
-		return "这一年整体偏紧，外部要求、消耗或阻力会比平时更明显"
-	case ji >= 2:
-		return "这一年整体偏顺，资源、机会或外部助力更容易被看见"
-	case xiong > 0:
-		return "这一年有一定压力点，适合稳住节奏后再处理关键选择"
+	switch themeOf(primary.Type) {
+	case "health":
+		return healthLead(primary)
+	case "change":
+		return changeLead(primary)
+	case "relationship":
+		return relationshipLead(primary)
 	default:
-		return "这一年整体动象不算极端，但具体事务会比平时更有方向感"
+		return defaultHardLead(primary)
 	}
 }
 

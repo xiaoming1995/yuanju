@@ -487,3 +487,62 @@ func lastSentence(s string) string {
 func runeLen(s string) int {
 	return len([]rune(s))
 }
+
+func TestYearToneSentence_PolarityOnlyReturnsEmpty(t *testing.T) {
+	cases := []struct {
+		name    string
+		signals []EventSignal
+		primary EventSignal
+	}{
+		{
+			name: "xiong>=2 ji>0 without hard primary",
+			signals: []EventSignal{
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+			},
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+		{
+			name: "all xiong without hard primary",
+			signals: []EventSignal{
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+			},
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+		{
+			name: "all ji without hard primary",
+			signals: []EventSignal{
+				{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+			},
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+		{
+			name:    "no signals",
+			signals: nil,
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityNeutral, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := yearToneSentence(c.signals, c.primary); got != "" {
+				t.Errorf("expected empty string, got %q", got)
+			}
+		})
+	}
+}
+
+func TestYearToneSentence_HardSignalStillEmits(t *testing.T) {
+	primary := EventSignal{
+		Type:     "健康",
+		Polarity: PolarityXiong,
+		Source:   SourceZhuwei,
+		Evidence: "流年地支午冲日支子，日柱受冲",
+	}
+	got := yearToneSentence([]EventSignal{primary}, primary)
+	if got == "" {
+		t.Fatal("expected non-empty hard-signal lead, got empty")
+	}
+}
