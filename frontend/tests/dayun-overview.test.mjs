@@ -54,7 +54,7 @@ test('身旺喜杀: 七杀 chip 取 xi', () => {
     dayun: { gan: '丙', zhi: '寅', gan_shishen: '七杀', zhi_shishen: '偏印', di_shi: '长生' },
     yongshen: '丙火',
     jishen: '壬癸水',
-    wuxing: { mu: 30, huo: 25, tu: 20, jin: 15, shui: 10 },
+    wuxing: { mu: 15, huo: 25, tu: 20, jin: 30, shui: 10 },
     dayGanWuxing: '金',
     tiaohou: null,
   })

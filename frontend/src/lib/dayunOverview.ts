@@ -217,8 +217,7 @@ export function buildDayunOverview(input: DayunOverviewInput): DayunOverviewOutp
 
   const ganPolarity = resolvePolarity(ganWx, input.yongshen, input.jishen)
   const zhiPolarity = resolvePolarity(zhiWx, input.yongshen, input.jishen)
-  const baseStrength = resolveDayStrength(input.wuxing, input.dayGanWuxing)
-  const dayStrength: Strength = ganPolarity === 'xi' ? 'wang' : baseStrength
+  const dayStrength = resolveDayStrength(input.wuxing, input.dayGanWuxing)
   const relation = resolveGanZhiRelation(ganWx, zhiWx)
   const { fit, missingWx, matchedGan, coverGan } = resolveTiaohouFit(input, relation)
 
