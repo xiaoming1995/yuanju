@@ -1,12 +1,19 @@
 package main
 
 import (
+	"context"
+	"flag"
+	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 	"yuanju/configs"
 	"yuanju/internal/handler"
 	"yuanju/internal/middleware"
+	"yuanju/internal/repository"
 	"yuanju/internal/service"
 	"yuanju/pkg/database"
 	"yuanju/pkg/seed"
@@ -15,6 +22,9 @@ import (
 )
 
 func main() {
+	cleanupOnce := flag.Bool("cleanup-once", false, "运行一次清理任务后退出，不启动 HTTP server")
+	flag.Parse()
+
 	// 加载配置
 	configs.Load()
 
@@ -35,6 +45,29 @@ func main() {
 	if err := service.LoadAlgoConfig(); err != nil {
 		log.Printf("算法配置加载失败（使用默认值）: %v", err)
 	}
+
+	// 构造 cleanup 服务（在判断 --cleanup-once 之前，因为两种模式都用到）
+	cleanupSvc := service.NewCleanupService(makeCleanupDeps())
+
+	if *cleanupOnce {
+		rep := cleanupSvc.RunOnce(context.Background())
+		fmt.Println(string(service.MarshalRunReport(rep)))
+		os.Exit(0)
+	}
+
+	// 起 cleanup scheduler（后台 goroutine）
+	schedCtx, cancelSched := context.WithCancel(context.Background())
+	go cleanupSvc.StartScheduler(schedCtx)
+	defer cancelSched()
+
+	// SIGTERM/SIGINT 触发 cancelSched 让 scheduler 干净退出
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+		<-sigCh
+		log.Println("收到退出信号，取消 cleanup scheduler")
+		cancelSched()
+	}()
 
 	// 初始化路由
 	r := gin.Default()
@@ -178,5 +211,32 @@ func main() {
 	log.Printf("🚀 缘聚命理服务启动，端口：%s", port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("服务启动失败: %v", err)
+	}
+}
+
+// makeCleanupDeps 把 repository 层的具体函数 wrap 成 service.CleanupDeps，
+// 同时把 repository.RollupReport 适配成 service.RollupReport（结构等价）。
+func makeCleanupDeps() service.CleanupDeps {
+	wrapTime := func(f func(time.Time) (int64, error)) service.TableCleaner {
+		return func(_ context.Context, cutoff time.Time) (int64, error) {
+			return f(cutoff)
+		}
+	}
+	return service.CleanupDeps{
+		AIReports:     wrapTime(repository.DeleteAIReportsOlderThan),
+		Polished:      wrapTime(repository.DeletePolishedReportsOlderThan),
+		Liunian:       wrapTime(repository.DeleteLiunianReportsOlderThan),
+		PastEvents:    wrapTime(repository.DeletePastEventsOlderThan),
+		DayunSummary:  wrapTime(repository.DeleteDayunSummariesOlderThan),
+		CompatReports: wrapTime(repository.DeleteAICompatibilityReportsOlderThan),
+		RequestLogs:   wrapTime(repository.DeleteRequestLogsOlderThan),
+		TokenRollup: func(_ context.Context) (service.RollupReport, error) {
+			r, err := repository.RollupClosedMonthsAndDelete()
+			return service.RollupReport{
+				MonthsAggregated:      r.MonthsAggregated,
+				RowsInsertedOrUpdated: r.RowsInsertedOrUpdated,
+				SourceRowsDeleted:     r.SourceRowsDeleted,
+			}, err
+		},
 	}
 }
