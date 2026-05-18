@@ -225,7 +225,11 @@ func secondaryDetailSentence(sig EventSignal, age int) string {
 	case "support":
 		return "同时，外部助力可以借用，但关键决定仍要回到自己的节奏。"
 	case "change":
-		return "同时，" + richChangeSentence(sig)
+		s := richChangeSentence(sig)
+		if s == "" {
+			return ""
+		}
+		return "同时，" + s
 	default:
 		return ""
 	}

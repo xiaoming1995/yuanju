@@ -606,3 +606,19 @@ func TestRichStudySentence_UnknownStudyTypeReturnsEmpty(t *testing.T) {
 		t.Errorf("expected empty for unknown study type, got %q", got)
 	}
 }
+
+func TestSecondaryDetailSentence_UnanchoredChangeDoesNotEmitBarePrefix(t *testing.T) {
+	// Regression: after Task 3 dropped richChangeSentence's default branch,
+	// secondaryDetailSentence's "change" case used to produce "同时，"
+	// (just the prefix). Must return "" instead so joinNarrativeParts can
+	// drop it cleanly.
+	sig := EventSignal{Type: "综合变动", Evidence: "财来财去为忌神", Source: SourceZhuwei, Polarity: PolarityXiong}
+	got := secondaryDetailSentence(sig, 30)
+	if got == "同时，" || got == "同时，。" {
+		t.Fatalf("bare prefix emitted: %q", got)
+	}
+	// Allowed: either truly empty, or a fully-formed sentence — never just the prefix.
+	if got != "" && !strings.Contains(got, "现实表现上") && !strings.Contains(got, "钱财") && !strings.Contains(got, "资源") && !strings.Contains(got, "情绪") && !strings.Contains(got, "出行") && !strings.Contains(got, "外部") && !strings.Contains(got, "作息") && !strings.Contains(got, "感情") && !strings.Contains(got, "工作") && !strings.Contains(got, "学习") && !strings.Contains(got, "同学") {
+		t.Errorf("non-empty result lacks meaningful body: %q", got)
+	}
+}
