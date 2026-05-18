@@ -105,6 +105,7 @@ export default function DayunTimeline({
   const activeDayun = displayDayun[resolvedActiveIndex]
 
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [showExpert, setShowExpert] = useState(false)
   const [drawerYear, setDrawerYear] = useState(currentYear)
   const [drawerGanZhi, setDrawerGanZhi] = useState('')
   const [ssAnnotations, setSsAnnotations] = useState<Record<string, ShenshaAnnotation>>({})
@@ -299,7 +300,19 @@ export default function DayunTimeline({
               <div className="dayun-summary-strip">
                 <div className="dayun-summary-copy">
                   <strong>大运总览</strong>
-                  <span>{overview.prose}</span>
+                  <span className="dayun-summary-body">
+                    <span>{overview.proseLay}</span>
+                    <button
+                      type="button"
+                      className="dayun-summary-toggle"
+                      onClick={() => setShowExpert(s => !s)}
+                    >
+                      {showExpert ? '收起专业表述 ‹' : '查看专业表述 ›'}
+                    </button>
+                    {showExpert && (
+                      <span className="dayun-summary-expert">{overview.prose}</span>
+                    )}
+                  </span>
                 </div>
                 <div className="dayun-summary-tags">
                   <span>十神主气：{activeDayun.gan_shishen}</span>

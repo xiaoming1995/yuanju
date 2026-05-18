@@ -1080,6 +1080,42 @@
   white-space: nowrap;
 }
 
+.dayun-summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dayun-summary-toggle {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--wu-jin);
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.dayun-summary-toggle:hover {
+  opacity: 1;
+}
+
+.dayun-summary-expert {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(201, 168, 76, 0.35);
+  background: rgba(12, 24, 38, 0.4);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+  opacity: 0.85;
+}
+
 .dayun-summary-tags {
   display: flex;
   flex-wrap: wrap;

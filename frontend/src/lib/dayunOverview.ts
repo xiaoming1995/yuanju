@@ -25,6 +25,7 @@ export interface DayunOverviewInput {
 
 export interface DayunOverviewOutput {
   prose: string
+  proseLay: string
   trendKeywords: string
   ganPolarity: Polarity
   zhiPolarity: Polarity
@@ -101,6 +102,47 @@ const TREND: Record<string, { xi: string; ji: string }> = {
 }
 
 const POL_LABEL: Record<Polarity, string> = { xi: '喜', ji: '忌', zhong: '中' }
+
+const HEADING_TONE: Record<string, Record<Polarity, string>> = {
+  比肩: { xi: '同道协作的十年',     ji: '竞争分薄的十年',     zhong: '节奏中性的十年' },
+  劫财: { xi: '合作分担的十年',     ji: '损财争夺的十年',     zhong: '节奏中性的十年' },
+  食神: { xi: '表达与享受的十年',   ji: '易分心耗神的十年',   zhong: '节奏中性的十年' },
+  伤官: { xi: '突破创新的十年',     ji: '锋芒易招是非的十年', zhong: '节奏中性的十年' },
+  正财: { xi: '稳健积累的十年',     ji: '量力守财的十年',     zhong: '节奏中性的十年' },
+  偏财: { xi: '机会与人脉的十年',   ji: '财来财去的十年',     zhong: '节奏中性的十年' },
+  正官: { xi: '事业晋升的十年',     ji: '规则约束多的十年',   zhong: '节奏中性的十年' },
+  七杀: { xi: '适合主动出击的十年', ji: '压力偏大的十年',     zhong: '节奏中性的十年' },
+  正印: { xi: '学习与贵人的十年',   ji: '易内耗的十年',       zhong: '节奏中性的十年' },
+  偏印: { xi: '研究与转型的十年',   ji: '易孤独沉淀的十年',   zhong: '节奏中性的十年' },
+}
+
+const BODY1_LAY: Record<string, Record<Strength, string>> = {
+  比肩: { wang: '自我意识强，同辈之间易分薄资源',     ruo: '兄弟朋友能助你一臂之力' },
+  劫财: { wang: '竞争心强，合作中容易吃亏或起纠纷',   ruo: '有同道分担压力，但需提防资源被消耗' },
+  食神: { wang: '财源流动、口腹之享多',               ruo: '才华容易外泄、气力分散' },
+  伤官: { wang: '敢于打破规则、获得声名',             ruo: '锋芒外露易招是非' },
+  正财: { wang: '经营有方、稳定积累',                 ruo: '财务负担偏重，力不从心' },
+  偏财: { wang: '机会和流动资金多',                   ruo: '财来财去，难以聚守' },
+  正官: { wang: '事业晋升、责任加身',                 ruo: '易受规则和权威压制' },
+  七杀: { wang: '适合主动出击、立威破局',             ruo: '外部压力较大、突发事件多' },
+  正印: { wang: '印多反招迟滞，事不利速决',           ruo: '学习、贵人、资格类机会显现' },
+  偏印: { wang: '适合转型和跨界探索',                 ruo: '易感孤独，但灵感和研究有突破' },
+}
+
+const RELATION_LAY: Record<Relation, string> = {
+  tongGen: '天干和地支力量一致，能量集中',
+  gaiTou:  '地支有支撑但被天干压住，发挥受限',
+  jieJiao: '天干得不到地支配合，根基略浅',
+  none:    '天干与地支互补发力',
+}
+
+const WUXING_MEANING: Record<string, string> = {
+  木: '生发 / 条理',
+  火: '热情 / 行动',
+  土: '稳重 / 物质',
+  金: '决断 / 收敛',
+  水: '柔韧 / 智慧',
+}
 
 function resolvePolarity(wuxing: string, yong: string, ji: string): Polarity {
   if (!wuxing) return 'zhong'
@@ -199,6 +241,25 @@ function body3(
   }
 }
 
+function body3Lay(
+  fit: Fit,
+  missingWx?: string,
+  coverGan?: string,
+): string {
+  const meaning = missingWx ? WUXING_MEANING[missingWx] ?? '' : ''
+  const wxLabel = missingWx ? `${missingWx}气（${meaning}）` : ''
+  switch (fit) {
+    case 'buZu':
+      return `命局缺的${wxLabel}在这十年补上，体感会比较顺`
+    case 'weiDaoWei':
+      return `命局缺的${wxLabel}虽现于运中，但被${coverGan ?? ''}压制，效果打折扣`
+    case 'weiJi':
+      return `命局缺的${wxLabel}这十年没补上，需要主动从外界补给`
+    case 'skip':
+      return ''
+  }
+}
+
 export function buildDayunOverview(input: DayunOverviewInput): DayunOverviewOutput {
   const { dayun } = input
   const ganWx = GAN_WUXING_CN[dayun.gan]
@@ -209,6 +270,7 @@ export function buildDayunOverview(input: DayunOverviewInput): DayunOverviewOutp
   if (!ganWx || !zhiWx || !inBody1 || !inBucket) {
     return {
       prose: FALLBACK_PROSE,
+      proseLay: FALLBACK_PROSE,
       trendKeywords: FALLBACK_KEYWORDS,
       ganPolarity: 'zhong',
       zhiPolarity: 'zhong',
@@ -233,10 +295,21 @@ export function buildDayunOverview(input: DayunOverviewInput): DayunOverviewOutp
   let prose = `${heading}${body1}；${body2text}。`
   if (body3text) prose += `${body3text}。`
 
+  const tone = HEADING_TONE[dayun.gan_shishen]?.[ganPolarity] ?? '节奏中性的十年'
+  const headingLay = hasPolarity
+    ? `${dayun.gan}${dayun.zhi}运（${tone}）：`
+    : `${dayun.gan}${dayun.zhi}运：`
+  const body1Lay = BODY1_LAY[dayun.gan_shishen][dayStrength]
+  const body2LayText = RELATION_LAY[relation]
+  const body3LayText = body3Lay(fit, missingWx, coverGan)
+
+  let proseLay = `${headingLay}${body1Lay}；${body2LayText}。`
+  if (body3LayText) proseLay += `${body3LayText}。`
+
   const trendEntry = TREND[dayun.gan_shishen]
   const trendKeywords = trendEntry
     ? (ganPolarity === 'ji' ? trendEntry.ji : trendEntry.xi)
     : FALLBACK_KEYWORDS
 
-  return { prose, trendKeywords, ganPolarity, zhiPolarity }
+  return { prose, proseLay, trendKeywords, ganPolarity, zhiPolarity }
 }

@@ -135,5 +135,75 @@ test('字典 miss → fallback', () => {
     tiaohou: null,
   })
   assert.equal(o.prose, '选择一段大运后查看该十年流年节奏。')
+  assert.equal(o.proseLay, '选择一段大运后查看该十年流年节奏。')
   assert.equal(o.trendKeywords, '节奏 · 观察 · 平衡')
+})
+
+// ─── proseLay 大白话版 ─────────────────────────────────────────────────
+
+test('proseLay: 壬午身弱忌杀盖头缺火 — 大白话不出现专业术语', () => {
+  const o = buildDayunOverview({
+    dayun: { gan: '壬', zhi: '午', gan_shishen: '七杀', zhi_shishen: '劫财', di_shi: '帝旺' },
+    yongshen: '丙火',
+    jishen: '壬癸水',
+    wuxing: { mu: 10, huo: 15, tu: 10, jin: 25, shui: 40 },
+    dayGanWuxing: '火',
+    tiaohou: { expected: ['丙', '丁'], tou: [], cang: [], text: '冬月需丙丁火调候' },
+  })
+  assert.match(o.proseLay, /压力偏大的十年/)
+  assert.match(o.proseLay, /外部压力较大、突发事件多/)
+  assert.match(o.proseLay, /地支有支撑但被天干压住/)
+  assert.match(o.proseLay, /火气（热情 \/ 行动）/)
+  assert.match(o.proseLay, /效果打折扣/)
+  assert.doesNotMatch(o.proseLay, /七杀|盖头|帝旺|调候/)
+})
+
+test('proseLay: 喜杀身旺通根 — heading 用 xi 基调', () => {
+  const o = buildDayunOverview({
+    dayun: { gan: '甲', zhi: '寅', gan_shishen: '七杀', zhi_shishen: '七杀', di_shi: '临官' },
+    yongshen: '甲乙木',
+    jishen: '',
+    wuxing: { mu: 20, huo: 20, tu: 30, jin: 15, shui: 15 },
+    dayGanWuxing: '土',
+    tiaohou: null,
+  })
+  assert.match(o.proseLay, /适合主动出击的十年/)
+  assert.match(o.proseLay, /适合主动出击、立威破局/)
+  assert.match(o.proseLay, /天干和地支力量一致/)
+})
+
+test('proseLay: 调候补足 — 用"补上，体感会比较顺"', () => {
+  const o = buildDayunOverview({
+    dayun: { gan: '丁', zhi: '未', gan_shishen: '正印', zhi_shishen: '伤官', di_shi: '冠带' },
+    yongshen: '丙火',
+    jishen: '',
+    wuxing: { mu: 30, huo: 5, tu: 30, jin: 20, shui: 15 },
+    dayGanWuxing: '金',
+    tiaohou: { expected: ['丙', '丁'], tou: [], cang: [], text: '' },
+  })
+  assert.match(o.proseLay, /学习与贵人的十年/)
+  assert.match(o.proseLay, /火气（热情 \/ 行动）/)
+  assert.match(o.proseLay, /在这十年补上，体感会比较顺/)
+})
+
+test('proseLay: yongshen/jishen 空时去掉括号基调', () => {
+  const o = buildDayunOverview({
+    dayun: { gan: '壬', zhi: '午', gan_shishen: '七杀', zhi_shishen: '劫财', di_shi: '帝旺' },
+    yongshen: '',
+    jishen: '',
+    wuxing: { mu: 10, huo: 15, tu: 10, jin: 25, shui: 40 },
+    dayGanWuxing: '火',
+    tiaohou: null,
+  })
+  assert.match(o.proseLay, /^壬午运：/)
+  assert.doesNotMatch(o.proseLay, /（.*的十年/)
+})
+
+// ─── UI 接线 ───────────────────────────────────────────────────────────
+
+test('DayunTimeline renders proseLay as default and has toggle to expert', () => {
+  const src = read('src/components/DayunTimeline.tsx')
+  assert.match(src, /overview\.proseLay/)
+  assert.match(src, /查看专业表述/)
+  assert.match(src, /dayun-summary-toggle/)
 })
