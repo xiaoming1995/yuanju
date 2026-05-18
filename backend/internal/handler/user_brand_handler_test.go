@@ -173,3 +173,29 @@ func TestBrandLogo_RateLimit(t *testing.T) {
 		t.Fatalf("expected exactly 1 of 11 calls to be 429, got %d", rateLimited)
 	}
 }
+
+func TestValidateBrandUpdate_LogoMode(t *testing.T) {
+	cases := []struct {
+		name    string
+		mode    string
+		wantErr bool
+	}{
+		{"empty allowed (defaults to icon)", "", false},
+		{"icon valid", "icon", false},
+		{"wordmark valid", "wordmark", false},
+		{"invalid square rejected", "square", true},
+		{"invalid mixed-case rejected", "Icon", true},
+		{"invalid arbitrary rejected", "xyz", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateBrandUpdate(BrandUpdateReq{
+				WatermarkMode: "none",
+				LogoMode:      tc.mode,
+			})
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("logo_mode=%q wantErr=%v gotErr=%v", tc.mode, tc.wantErr, err)
+			}
+		})
+	}
+}
