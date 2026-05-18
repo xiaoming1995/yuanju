@@ -105,6 +105,12 @@ func TestRenderYearNarrative_AdjacentYoungYearsDoNotRepeatGenericChangeOpening(t
 	openings := map[string]bool{}
 	for _, ys := range years {
 		narrative := RenderYearNarrative(ys)
+		// Empty narrative is OK under the new contract — it means the year
+		// has no evidence-anchored sentences to show. Only enforce
+		// uniqueness on years that actually render.
+		if narrative == "" {
+			continue
+		}
 		if strings.Contains(narrative, "变化感会比较强") {
 			t.Fatalf("young-age narrative used generic repeated change opening: %s", narrative)
 		}
@@ -229,7 +235,12 @@ func TestRenderEvidenceSummary_SelectsTechnicalEvidence(t *testing.T) {
 	}
 }
 
-func TestRenderYearNarrative_TenGodPowerEnrichesGenericYear(t *testing.T) {
+func TestRenderYearNarrative_TenGodPowerDoesNotRescueGenericYear(t *testing.T) {
+	// Old behavior: a 10-god power title appended a "...可作为理解这一年事件
+	// 走向的背景力量。" wrap, padding generic years into a visible paragraph.
+	// New behavior (per 2026-05-18 spec): un-anchored years stay hidden
+	// regardless of 10-god power, so the algorithm doesn't fill silence
+	// with generic prose.
 	ys := YearSignals{
 		Year:   2024,
 		Age:    29,
@@ -243,10 +254,8 @@ func TestRenderYearNarrative_TenGodPowerEnrichesGenericYear(t *testing.T) {
 			{Type: "综合变动", Evidence: "流年节奏变化", Polarity: PolarityNeutral, Source: SourceZhuwei},
 		},
 	}
-
-	got := RenderYearNarrative(ys)
-	if !strings.Contains(got, "官杀偏旺") || !strings.Contains(got, "规则") {
-		t.Fatalf("expected ten-god force to enrich generic year, got: %s", got)
+	if got := RenderYearNarrative(ys); got != "" {
+		t.Errorf("expected hidden narrative for un-anchored year with 10-god power; got %q", got)
 	}
 }
 
