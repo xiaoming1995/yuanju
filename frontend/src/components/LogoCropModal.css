@@ -1,7 +1,7 @@
 .logo-crop-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(20, 12, 6, 0.72);
+  background: rgba(0, 0, 0, 0.6);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -10,21 +10,21 @@
 }
 
 .logo-crop-modal {
-  background: #fdf9f2;
-  border: 1px solid #e0cca0;
-  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
   width: min(440px, 100%);
   display: flex;
   flex-direction: column;
   padding: 18px 20px 16px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
 }
 
 .logo-crop-title {
   margin: 0 0 12px;
   font-size: 15px;
   font-weight: 700;
-  color: #2a1a0a;
+  color: var(--text-primary);
   letter-spacing: 1px;
 }
 
@@ -32,8 +32,8 @@
   position: relative;
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: #1a1208;
-  border-radius: 6px;
+  background: var(--bg-base);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   margin-bottom: 12px;
 }
@@ -44,7 +44,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c4a06a;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -54,7 +54,7 @@
   gap: 10px;
   margin-bottom: 8px;
   font-size: 12px;
-  color: #5a3a1a;
+  color: var(--text-secondary);
 }
 
 .logo-crop-zoom-row input[type="range"] {
@@ -64,7 +64,7 @@
 .logo-crop-note {
   display: block;
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 14px;
 }
 
@@ -72,38 +72,4 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-}
-
-.logo-crop-btn-ghost,
-.logo-crop-btn-primary {
-  padding: 8px 18px;
-  font-size: 13px;
-  border-radius: 6px;
-  cursor: pointer;
-  border: 1px solid #e0cca0;
-}
-
-.logo-crop-btn-ghost {
-  background: transparent;
-  color: #5a3a1a;
-}
-
-.logo-crop-btn-ghost:hover:not(:disabled) {
-  background: rgba(201, 168, 76, 0.08);
-}
-
-.logo-crop-btn-primary {
-  background: linear-gradient(135deg, #c9a96e 0%, #b8952a 100%);
-  color: #fff;
-  border-color: #b8952a;
-}
-
-.logo-crop-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.05);
-}
-
-.logo-crop-btn-primary:disabled,
-.logo-crop-btn-ghost:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
