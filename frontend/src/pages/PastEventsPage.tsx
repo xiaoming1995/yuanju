@@ -414,9 +414,11 @@ export default function PastEventsPage() {
                               )
                             })}
                           </div>
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
-                            {y.narrative}
-                          </div>
+                          {y.narrative && (
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
+                              {y.narrative}
+                            </div>
+                          )}
                           {hasEvidence && (
                             <div style={{ marginTop: 10 }}>
                               <button

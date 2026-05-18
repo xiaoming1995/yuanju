@@ -105,6 +105,12 @@ func TestRenderYearNarrative_AdjacentYoungYearsDoNotRepeatGenericChangeOpening(t
 	openings := map[string]bool{}
 	for _, ys := range years {
 		narrative := RenderYearNarrative(ys)
+		// Empty narrative is OK under the new contract — it means the year
+		// has no evidence-anchored sentences to show. Only enforce
+		// uniqueness on years that actually render.
+		if narrative == "" {
+			continue
+		}
 		if strings.Contains(narrative, "变化感会比较强") {
 			t.Fatalf("young-age narrative used generic repeated change opening: %s", narrative)
 		}
@@ -229,7 +235,12 @@ func TestRenderEvidenceSummary_SelectsTechnicalEvidence(t *testing.T) {
 	}
 }
 
-func TestRenderYearNarrative_TenGodPowerEnrichesGenericYear(t *testing.T) {
+func TestRenderYearNarrative_TenGodPowerDoesNotRescueGenericYear(t *testing.T) {
+	// Old behavior: a 10-god power title appended a "...可作为理解这一年事件
+	// 走向的背景力量。" wrap, padding generic years into a visible paragraph.
+	// New behavior (per 2026-05-18 spec): un-anchored years stay hidden
+	// regardless of 10-god power, so the algorithm doesn't fill silence
+	// with generic prose.
 	ys := YearSignals{
 		Year:   2024,
 		Age:    29,
@@ -243,10 +254,8 @@ func TestRenderYearNarrative_TenGodPowerEnrichesGenericYear(t *testing.T) {
 			{Type: "综合变动", Evidence: "流年节奏变化", Polarity: PolarityNeutral, Source: SourceZhuwei},
 		},
 	}
-
-	got := RenderYearNarrative(ys)
-	if !strings.Contains(got, "官杀偏旺") || !strings.Contains(got, "规则") {
-		t.Fatalf("expected ten-god force to enrich generic year, got: %s", got)
+	if got := RenderYearNarrative(ys); got != "" {
+		t.Errorf("expected hidden narrative for un-anchored year with 10-god power; got %q", got)
 	}
 }
 
@@ -486,4 +495,379 @@ func lastSentence(s string) string {
 
 func runeLen(s string) int {
 	return len([]rune(s))
+}
+
+func TestYearToneSentence_PolarityOnlyReturnsEmpty(t *testing.T) {
+	cases := []struct {
+		name    string
+		signals []EventSignal
+		primary EventSignal
+	}{
+		{
+			name: "xiong>=2 ji>0 without hard primary",
+			signals: []EventSignal{
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+			},
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+		{
+			name: "all xiong without hard primary",
+			signals: []EventSignal{
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+			},
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityXiong, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+		{
+			name: "all ji without hard primary",
+			signals: []EventSignal{
+				{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+				{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+			},
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityJi, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+		{
+			name:    "no signals",
+			signals: nil,
+			primary: EventSignal{Type: "综合变动", Polarity: PolarityNeutral, Source: SourceZhuwei, Evidence: "节奏变化"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := yearToneSentence(c.signals, c.primary); got != "" {
+				t.Errorf("expected empty string, got %q", got)
+			}
+		})
+	}
+}
+
+func TestYearToneSentence_HardSignalStillEmits(t *testing.T) {
+	primary := EventSignal{
+		Type:     "健康",
+		Polarity: PolarityXiong,
+		Source:   SourceZhuwei,
+		Evidence: "流年地支午冲日支子，日柱受冲",
+	}
+	got := yearToneSentence([]EventSignal{primary}, primary)
+	if got == "" {
+		t.Fatal("expected non-empty hard-signal lead, got empty")
+	}
+}
+
+func TestTriggerSourceSentence_NoKeywordReturnsEmpty(t *testing.T) {
+	cases := []struct {
+		name string
+		sig  EventSignal
+		age  int
+	}{
+		{
+			name: "no keyword in evidence",
+			sig:  EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei},
+			age:  30,
+		},
+		{
+			name: "empty evidence and neutral type",
+			sig:  EventSignal{Type: "综合变动", Evidence: "", Source: SourceZhuwei},
+			age:  15,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := triggerSourceSentence(c.sig, c.age); got != "" {
+				t.Errorf("expected empty string, got %q", got)
+			}
+		})
+	}
+}
+
+func TestTriggerSourceSentence_KeywordStillEmits(t *testing.T) {
+	cases := []EventSignal{
+		{Type: "事业", Evidence: "流年地支辰冲月柱壬戌", Source: SourceZhuwei},
+		{Type: "综合变动", Evidence: "落空亡，虚而不实", Source: SourceKongwang},
+		{Type: "伏吟", Evidence: "流年壬辰伏吟日柱壬辰", Source: SourceFuyin},
+	}
+	for i, c := range cases {
+		if got := triggerSourceSentence(c, 30); got == "" {
+			t.Errorf("case %d: expected non-empty, got empty for %+v", i, c)
+		}
+	}
+}
+
+func TestDomainDetailSentence_UnknownThemeReturnsEmpty(t *testing.T) {
+	primary := EventSignal{Type: "未知类型", Evidence: "无关键词", Source: SourceZhuwei}
+	if got := domainDetailSentence(primary, EventSignal{}, false, 30); got != "" {
+		t.Errorf("expected empty for unknown theme, got %q", got)
+	}
+}
+
+func TestRichChangeSentence_NoAnchorReturnsEmpty(t *testing.T) {
+	sig := EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral}
+	if got := richChangeSentence(sig); got != "" {
+		t.Errorf("expected empty for un-anchored change signal, got %q", got)
+	}
+}
+
+func TestRichStudySentence_UnknownStudyTypeReturnsEmpty(t *testing.T) {
+	primary := EventSignal{Type: "事业", Evidence: "无关键词", Source: SourceZhuwei}
+	if got := richStudySentence(primary, EventSignal{}, false); got != "" {
+		t.Errorf("expected empty for unknown study type, got %q", got)
+	}
+}
+
+func TestSecondaryDetailSentence_UnanchoredSignalReturnsEmpty(t *testing.T) {
+	cases := []struct {
+		name string
+		sig  EventSignal
+	}{
+		{
+			name: "vague 综合变动 with no keyword",
+			sig:  EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+		},
+		{
+			name: "vague 喜神临运 with no anchor keyword",
+			sig:  EventSignal{Type: "喜神临运", Evidence: "印星生身", Source: SourceZhuwei, Polarity: PolarityJi},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := secondaryDetailSentence(c.sig, 30); got != "" {
+				t.Errorf("expected empty, got %q", got)
+			}
+		})
+	}
+}
+
+func TestSecondaryDetailSentence_AnchoredSignalStillEmits(t *testing.T) {
+	cases := []EventSignal{
+		// (a) hard event signal
+		{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲", Source: SourceZhuwei, Polarity: PolarityXiong},
+		// (b) evidence keyword
+		{Type: "财运_得", Evidence: "财星为忌神，破耗", Source: SourceZhuwei, Polarity: PolarityXiong},
+		// (c) signal type in allowed set
+		{Type: "伏吟", Evidence: "伏吟", Source: SourceFuyin, Polarity: PolarityXiong},
+		{Type: TypeXueYeYaLi, Evidence: "学业要求", Source: SourceZhuwei, Polarity: PolarityNeutral},
+		{Type: "婚恋_冲", Evidence: "婚恋冲", Source: SourceZhuwei, Polarity: PolarityXiong},
+	}
+	for i, c := range cases {
+		if got := secondaryDetailSentence(c, 30); got == "" {
+			t.Errorf("case %d (Type=%s): expected non-empty, got empty", i, c.Type)
+		}
+	}
+}
+
+func TestSecondaryDetailSentence_UnanchoredChangeDoesNotEmitBarePrefix(t *testing.T) {
+	// Regression: after Task 3 dropped richChangeSentence's default branch,
+	// secondaryDetailSentence's "change" case used to produce "同时，"
+	// (just the prefix). Must return "" instead so joinNarrativeParts can
+	// drop it cleanly.
+	sig := EventSignal{Type: "综合变动", Evidence: "财来财去为忌神", Source: SourceZhuwei, Polarity: PolarityXiong}
+	got := secondaryDetailSentence(sig, 30)
+	if got == "同时，" || got == "同时，。" {
+		t.Fatalf("bare prefix emitted: %q", got)
+	}
+	// Allowed: either truly empty, or a fully-formed sentence — never just the prefix.
+	if got != "" && !strings.Contains(got, "现实表现上") && !strings.Contains(got, "钱财") && !strings.Contains(got, "资源") && !strings.Contains(got, "情绪") && !strings.Contains(got, "出行") && !strings.Contains(got, "外部") && !strings.Contains(got, "作息") && !strings.Contains(got, "感情") && !strings.Contains(got, "工作") && !strings.Contains(got, "学习") && !strings.Contains(got, "同学") {
+		t.Errorf("non-empty result lacks meaningful body: %q", got)
+	}
+}
+
+func TestTenGodNarrativeSentence_NoGroupAlignmentReturnsEmpty(t *testing.T) {
+	power := TenGodPowerProfile{
+		PlainTitle: "官杀偏旺",
+		PlainText:  "规则、责任和外部压力更明显",
+		Group:      "", // no group → tenGodGroupTheme returns ""
+	}
+	primary := EventSignal{Type: "综合变动", Evidence: "节奏变化", Source: SourceZhuwei}
+	if got := tenGodNarrativeSentence(power, primary, EventSignal{}, false); got != "" {
+		t.Errorf("expected empty when 10-god group has no theme alignment, got %q", got)
+	}
+}
+
+func TestTenGodNarrativeSentence_GroupAlignedStillEmits(t *testing.T) {
+	power := TenGodPowerProfile{
+		PlainTitle: "财星偏旺",
+		PlainText:  "钱财、资源、合作回报更明显",
+		Group:      TenGodGroupWealth, // wealth → money theme
+	}
+	primary := EventSignal{Type: "财运_得", Evidence: "财来财去", Source: SourceZhuwei}
+	if got := tenGodNarrativeSentence(power, primary, EventSignal{}, false); got == "" {
+		t.Error("expected non-empty when 10-god group aligns with primary theme")
+	}
+}
+
+func TestPracticalStanceSentence_UnknownThemeReturnsEmpty(t *testing.T) {
+	primary := EventSignal{Type: "未知类型", Polarity: PolarityXiong, Source: SourceZhuwei}
+	if got := practicalStanceSentence([]EventSignal{primary}, primary, 30); got != "" {
+		t.Errorf("expected empty for unknown theme, got %q", got)
+	}
+}
+
+func TestRenderYearNarrative_HiddenWhenBelowThreshold(t *testing.T) {
+	// Two signals, both un-anchored — every builder returns "".
+	ys := YearSignals{
+		Year:   2010,
+		Age:    11,
+		GanZhi: "庚寅",
+		Signals: []EventSignal{
+			{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			{Type: "综合变动", Evidence: "另一个变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+		},
+	}
+	if got := RenderYearNarrative(ys); got != "" {
+		t.Errorf("expected empty narrative below threshold, got %q", got)
+	}
+}
+
+func TestRenderYearNarrative_NoSignalsReturnsEmpty(t *testing.T) {
+	// No meaningful signals at all — old code emitted a tengod context fallback
+	// or "本年命理信号较弱" stub; new code returns "".
+	ys := YearSignals{Year: 2022, Age: 27, GanZhi: "壬寅"}
+	if got := RenderYearNarrative(ys); got != "" {
+		t.Errorf("expected empty narrative for no-signals year, got %q", got)
+	}
+}
+
+func TestRenderYearNarrative_MeetsThresholdWhenAnchored(t *testing.T) {
+	// Hard health signal: yearTone (healthLead), trigger (冲), domain (health
+	// with 冲 keyword), practical (health) — at least 3 anchored sentences.
+	ys := YearSignals{
+		Year:   2026,
+		Age:    31,
+		GanZhi: "丙午",
+		Signals: []EventSignal{
+			{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲，体力精神有下滑风险", Polarity: PolarityXiong, Source: SourceZhuwei},
+		},
+	}
+	got := RenderYearNarrative(ys)
+	if got == "" {
+		t.Fatal("expected narrative to render for hard health signal year")
+	}
+	if !strings.HasPrefix(got, "丙午年，") {
+		t.Errorf("expected narrative to start with GanZhi prefix, got: %s", got)
+	}
+}
+
+func TestHasStructuralEventAnchor(t *testing.T) {
+	cases := []struct {
+		name string
+		sig  EventSignal
+		want bool
+	}{
+		{
+			name: "soft 综合变动 returns false",
+			sig:  EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "soft 综合变动 from Kongwang still returns false",
+			sig:  EventSignal{Type: "综合变动", Evidence: "落空亡", Source: SourceKongwang, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "伏吟 type returns true via type switch",
+			sig:  EventSignal{Type: "伏吟", Evidence: "伏吟", Source: SourceFuyin, Polarity: PolarityXiong},
+			want: true,
+		},
+		{
+			name: "学业_ prefix alone returns false (no structural keyword)",
+			sig:  EventSignal{Type: TypeXueYeYaLi, Evidence: "学业要求增加", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "学业_ prefix with 冲 keyword returns true",
+			sig:  EventSignal{Type: TypeXueYeYaLi, Evidence: "流年地支冲月柱（提纲）", Source: SourceZhuwei, Polarity: PolarityXiong},
+			want: true,
+		},
+		{
+			name: "性格_ prefix alone returns false",
+			sig:  EventSignal{Type: TypeXingGeQingYi, Evidence: "桃花临命", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "hard event signal via 受冲 evidence returns true",
+			sig:  EventSignal{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲", Source: SourceZhuwei, Polarity: PolarityXiong},
+			want: true,
+		},
+		{
+			name: "强 综合变动 via 大运流年双重命中 returns true",
+			sig:  EventSignal{Type: "综合变动", Evidence: "大运流年双重命中，本年节奏推到极致", Source: SourceZhuwei, Polarity: PolarityXiong},
+			want: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := hasStructuralEventAnchor(c.sig); got != c.want {
+				t.Errorf("hasStructuralEventAnchor(%+v) = %v, want %v", c.sig, got, c.want)
+			}
+		})
+	}
+}
+
+func TestRenderYearNarrative_ScreenshotRegression_RepetitiveOpenerHidden(t *testing.T) {
+	// Reproduces the 2026-05-18 screenshot: three adjacent child-age years
+	// (乙酉 2005 / 丙戌 2006 / 丁亥 2007) where the old template emitted
+	// "这一年有机会也有压力，事情会同时出现可争取和需取舍的一面" as the
+	// opener for ALL THREE. Under the evidence-anchored contract, none of
+	// them carry hard signals — all three narratives should be hidden.
+	years := []YearSignals{
+		{
+			Year:   2005,
+			Age:    10,
+			GanZhi: "乙酉",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年地支酉与原局子时刑（空亡相邻）", Polarity: PolarityXiong, Source: SourceKongwang},
+				{Type: TypeXueYeJingZheng, Evidence: "乙木为命主比劫，少年期同学比较增强", Polarity: PolarityNeutral, Source: SourceZhuwei},
+				{Type: TypeXingGeQingYi, Evidence: "流年地支酉为桃花星临命", Polarity: PolarityNeutral, Source: SourceZhuwei},
+			},
+		},
+		{
+			Year:   2006,
+			Age:    11,
+			GanZhi: "丙戌",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年节奏一般变化", Polarity: PolarityNeutral, Source: SourceZhuwei},
+				{Type: TypeXueYeGuiRen, Evidence: "丙透干为食神，少年期表达能力突出", Polarity: PolarityJi, Source: SourceZhuwei},
+				{Type: TypeXingGeQingYi, Evidence: "流年地支戌合卯木", Polarity: PolarityNeutral, Source: SourceZhuwei},
+				{Type: "健康", Evidence: "流年节奏微调", Polarity: PolarityXiong, Source: SourceZhuwei},
+			},
+		},
+		{
+			Year:   2007,
+			Age:    12,
+			GanZhi: "丁亥",
+			Signals: []EventSignal{
+				{Type: "综合变动", Evidence: "流年节奏一般变化", Polarity: PolarityXiong, Source: SourceZhuwei},
+				{Type: TypeXueYeGuiRen, Evidence: "丁透干印星，少年期师长缘", Polarity: PolarityJi, Source: SourceZhuwei},
+				{Type: "健康", Evidence: "流年微调", Polarity: PolarityXiong, Source: SourceZhuwei},
+			},
+		},
+	}
+
+	bannedFillers := []string{
+		"这一年有机会也有压力",
+		"触发点来自这一年的主导信号",
+		"这一年最要紧的",
+		"本年命理信号较弱",
+		"可作为理解这一年事件走向的背景力量",
+	}
+
+	openings := map[string]string{} // opening → ganzhi that emitted it
+	for _, ys := range years {
+		narrative := RenderYearNarrative(ys)
+		for _, banned := range bannedFillers {
+			if strings.Contains(narrative, banned) {
+				t.Fatalf("%s narrative contains banned filler %q: %s", ys.GanZhi, banned, narrative)
+			}
+		}
+		if narrative == "" {
+			continue // hidden cards are fine — we want that
+		}
+		opening := firstSentence(narrative)
+		if prev, seen := openings[opening]; seen {
+			t.Fatalf("repeated opening %q across years %s and %s", opening, prev, ys.GanZhi)
+		}
+		openings[opening] = ys.GanZhi
+	}
 }

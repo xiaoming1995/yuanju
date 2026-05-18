@@ -2,39 +2,136 @@ package bazi
 
 import "strings"
 
+// MinSentencesForNarrative is the minimum number of non-empty
+// evidence-anchored sentences required before RenderYearNarrative
+// returns a paragraph. Below this threshold the narrative is hidden
+// (returns ""), and the frontend renders only the signal chips and
+// evidence summary for that year.
+const MinSentencesForNarrative = 3
+
+// structuralEvidenceKeywords are the substrings inside EventSignal.Evidence
+// that the narrative engine treats as concrete, citable anchors. Used by
+// both hasEvidenceAnchor and hasStructuralEventAnchor.
+var structuralEvidenceKeywords = []string{
+	"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎",
+}
+
+// hasEvidenceAnchor returns true when sig carries a specific differentiator
+// that a sentence can cite: a hard-event Source, an allowed Type, or a
+// recognized keyword inside Evidence. Used to gate secondary-detail prose
+// so it does not pad narratives with generic theme wording.
+func hasEvidenceAnchor(sig EventSignal) bool {
+	if isHardEventSignal(sig) {
+		return true
+	}
+	switch sig.Type {
+	case "伏吟", "反吟", "大运合化", TypeJuShiZhong:
+		return true
+	}
+	if strings.HasPrefix(sig.Type, "学业_") || strings.HasPrefix(sig.Type, "性格_") || strings.HasPrefix(sig.Type, "婚恋_") {
+		return true
+	}
+	for _, k := range structuralEvidenceKeywords {
+		if strings.Contains(sig.Evidence, k) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasStructuralEventAnchor returns true when sig carries a structural event
+// anchor: a hard-event Source, a special event Type, or a recognised keyword
+// inside Evidence. Unlike hasEvidenceAnchor it does NOT grant anchor status
+// to signals solely because their Type carries a "学业_", "性格_", or
+// "婚恋_" prefix — those prefixes describe a domain but do not by themselves
+// constitute an event-triggered anchor. This stricter check is used as a
+// pre-flight gate in RenderYearNarrative so that years whose only signals
+// are soft SourceZhuwei baseline indicators (no structural evidence keywords)
+// are hidden rather than padded with generic prose.
+//
+// Special case: "综合变动" (general change) signals are treated as anchored
+// only when they also satisfy isStrongChangeSignal — a bare "综合变动" from
+// any source (including SourceKongwang) is a background contextual note, not
+// a specific event anchor.
+func hasStructuralEventAnchor(sig EventSignal) bool {
+	if sig.Type == "综合变动" {
+		// General change signals only anchor when they carry a strong marker.
+		return isStrongChangeSignal(sig)
+	}
+	if isHardEventSignal(sig) {
+		return true
+	}
+	switch sig.Type {
+	case "伏吟", "反吟", "大运合化", TypeJuShiZhong:
+		return true
+	}
+	for _, k := range structuralEvidenceKeywords {
+		if strings.Contains(sig.Evidence, k) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasAnyStructuralAnchor returns true when at least one meaningful signal
+// (excluding 用神基底 and TypeDayunPhase) passes hasStructuralEventAnchor.
+func hasAnyStructuralAnchor(signals []EventSignal) bool {
+	for _, s := range signals {
+		if s.Type == "用神基底" || s.Type == TypeDayunPhase {
+			continue
+		}
+		if hasStructuralEventAnchor(s) {
+			return true
+		}
+	}
+	return false
+}
+
 // RenderYearNarrative 根据 EventSignal 列表生成面向用户的白话批语。
 // 底层 Evidence 保留给 RenderEvidenceSummary，不直接暴露在默认正文中。
+//
+// 当能产出的"有 evidence 支撑"的句子数少于 MinSentencesForNarrative 时
+// 返回空串，前端会跳过 narrative 段落，只渲染徽标和命理依据。
+//
+// 额外前置检查：若没有任何信号通过 hasStructuralEventAnchor，年份同样
+// 返回空串。纯粹由软性 SourceZhuwei 基线信号（学业_/性格_ 前缀但无结构
+// 关键词）构成的年份不会产出兜底模板文字。
 func RenderYearNarrative(ys YearSignals) string {
-	if len(meaningfulSignals(ys.Signals)) == 0 {
-		if s := tenGodContextSentence(ys.TenGodPower); s != "" {
-			return ys.GanZhi + "年，" + s + "整体节奏不必急，适合顺着这股力量稳步安排。"
-		}
-		return "本年命理信号较弱，运势相对平稳，无明显重大变动。"
+	if !hasAnyStructuralAnchor(ys.Signals) {
+		return ""
 	}
-
 	primary, ok := pickDominantSignal(ys.Signals, "", ys.Age)
 	if !ok {
-		if s := tenGodContextSentence(ys.TenGodPower); s != "" {
-			return ys.GanZhi + "年，" + s + "整体动象不算强，但方向感会更清楚。"
-		}
-		return ys.GanZhi + "年整体动象不强，适合按部就班推进，保持稳定节奏。"
+		return ""
 	}
 	secondary, hasSecondary := pickDominantSignal(ys.Signals, themeOf(primary.Type), ys.Age)
 
-	parts := []string{
-		ys.GanZhi + "年，" + yearToneSentence(ys.Signals, primary),
-		triggerSourceSentence(primary, ys.Age),
-		domainDetailSentence(primary, secondary, hasSecondary, ys.Age),
+	sentences := make([]string, 0, 6)
+	if s := yearToneSentence(ys.Signals, primary); s != "" {
+		sentences = append(sentences, s)
+	}
+	if s := triggerSourceSentence(primary, ys.Age); s != "" {
+		sentences = append(sentences, s)
+	}
+	if s := domainDetailSentence(primary, secondary, hasSecondary, ys.Age); s != "" {
+		sentences = append(sentences, s)
 	}
 	if hasSecondary {
-		parts = append(parts, secondaryDetailSentence(secondary, ys.Age))
+		if s := secondaryDetailSentence(secondary, ys.Age); s != "" {
+			sentences = append(sentences, s)
+		}
 	}
 	if s := tenGodNarrativeSentence(ys.TenGodPower, primary, secondary, hasSecondary); s != "" {
-		parts = append(parts, s)
+		sentences = append(sentences, s)
 	}
-	parts = append(parts, practicalStanceSentence(ys.Signals, primary, ys.Age))
+	if s := practicalStanceSentence(ys.Signals, primary, ys.Age); s != "" {
+		sentences = append(sentences, s)
+	}
 
-	return joinNarrativeParts(parts)
+	if len(sentences) < MinSentencesForNarrative {
+		return ""
+	}
+	return joinNarrativeParts(append([]string{ys.GanZhi + "年，" + sentences[0]}, sentences[1:]...))
 }
 
 // RenderEvidenceSummary 提取专业用户可展开查看的命理依据。
@@ -113,38 +210,18 @@ func joinNarrativeParts(parts []string) string {
 }
 
 func yearToneSentence(signals []EventSignal, primary EventSignal) string {
-	xiong, ji := 0, 0
-	for _, s := range meaningfulSignals(signals) {
-		switch s.Polarity {
-		case PolarityXiong:
-			xiong++
-		case PolarityJi:
-			ji++
-		}
+	if !isHardEventSignal(primary) {
+		return ""
 	}
-	if isHardEventSignal(primary) {
-		switch themeOf(primary.Type) {
-		case "health":
-			return healthLead(primary)
-		case "change":
-			return changeLead(primary)
-		case "relationship":
-			return relationshipLead(primary)
-		default:
-			return defaultHardLead(primary)
-		}
-	}
-	switch {
-	case xiong >= 2 && ji > 0:
-		return "这一年有机会也有压力，事情会同时出现可争取和需取舍的一面"
-	case xiong >= 2:
-		return "这一年整体偏紧，外部要求、消耗或阻力会比平时更明显"
-	case ji >= 2:
-		return "这一年整体偏顺，资源、机会或外部助力更容易被看见"
-	case xiong > 0:
-		return "这一年有一定压力点，适合稳住节奏后再处理关键选择"
+	switch themeOf(primary.Type) {
+	case "health":
+		return healthLead(primary)
+	case "change":
+		return changeLead(primary)
+	case "relationship":
+		return relationshipLead(primary)
 	default:
-		return "这一年整体动象不算极端，但具体事务会比平时更有方向感"
+		return defaultHardLead(primary)
 	}
 }
 
@@ -173,7 +250,7 @@ func triggerSourceSentence(sig EventSignal, age int) string {
 	case strings.Contains(ev, "驿马") || strings.Contains(ev, "奔波") || strings.Contains(ev, "迁移"):
 		return "触发点落在移动和环境变化上，出行、搬动、换环境或事务奔波会增加。"
 	default:
-		return "触发点来自这一年的主导信号，事情不会只停留在想法层面，容易落实到具体安排。"
+		return ""
 	}
 }
 
@@ -216,11 +293,14 @@ func domainDetailSentence(primary EventSignal, secondary EventSignal, hasSeconda
 	case "change":
 		return richChangeSentence(primary)
 	default:
-		return "现实表现上，日常安排会出现新的侧重点，适合多观察变化，再决定推进顺序。"
+		return ""
 	}
 }
 
 func secondaryDetailSentence(sig EventSignal, age int) string {
+	if !hasEvidenceAnchor(sig) {
+		return ""
+	}
 	theme := themeOf(sig.Type)
 	switch theme {
 	case "career":
@@ -245,7 +325,11 @@ func secondaryDetailSentence(sig EventSignal, age int) string {
 	case "support":
 		return "同时，外部助力可以借用，但关键决定仍要回到自己的节奏。"
 	case "change":
-		return "同时，" + richChangeSentence(sig)
+		s := richChangeSentence(sig)
+		if s == "" {
+			return ""
+		}
+		return "同时，" + s
 	default:
 		return ""
 	}
@@ -265,7 +349,7 @@ func richStudySentence(primary EventSignal, secondary EventSignal, hasSecondary 
 	case TypeXueYeJingZheng:
 		return "现实表现上，同学比较、团队协作和竞争感会增强，适合借助集体力量，但不要被比较心带乱节奏。"
 	default:
-		return "现实表现上，学习、日常规则和个人状态会更受关注，按节奏积累比急着突破更重要。"
+		return ""
 	}
 }
 
@@ -284,7 +368,7 @@ func richChangeSentence(sig EventSignal) string {
 	case strings.Contains(sig.Evidence, "驿马") || strings.Contains(sig.Evidence, "奔波") || strings.Contains(sig.Evidence, "迁移"):
 		return "现实表现上，出行、搬动、换环境或奔波事务会增加，提前安排会更稳。"
 	default:
-		return "现实表现上，事情会被推动起来，适合顺势整理方向，把该确认的安排先确认清楚。"
+		return ""
 	}
 }
 
@@ -293,13 +377,16 @@ func tenGodNarrativeSentence(power TenGodPowerProfile, primary EventSignal, seco
 		return ""
 	}
 	groupTheme := tenGodGroupTheme(power.Group)
-	if isHardEventSignal(primary) && (groupTheme == "" || groupTheme == themeOf(primary.Type)) {
+	if groupTheme == "" {
 		return ""
 	}
-	if groupTheme != "" && (groupTheme == themeOf(primary.Type) || (hasSecondary && groupTheme == themeOf(secondary.Type))) {
+	if isHardEventSignal(primary) && groupTheme == themeOf(primary.Type) {
+		return ""
+	}
+	if groupTheme == themeOf(primary.Type) || (hasSecondary && groupTheme == themeOf(secondary.Type)) {
 		return "这股年度力量会把" + tenGodPlainDomain(power.Group, power.Polarity) + "推到台前，处理得好可以成为助力，处理得急则容易变成压力。"
 	}
-	return power.PlainTitle + "，" + strings.TrimSuffix(power.PlainText, "。") + "，可作为理解这一年事件走向的背景力量。"
+	return ""
 }
 
 func tenGodGroupTheme(group string) string {
@@ -690,7 +777,7 @@ func practicalStanceSentence(signals []EventSignal, primary EventSignal, age int
 	case "support":
 		return "这一年可以借助外力，但关键选择仍要自己拿稳，不宜完全依赖他人安排。"
 	}
-	return practicalReminder(signals)
+	return ""
 }
 
 func filterEvidenceSignals(signals []EventSignal, polarity string, shensha bool) []EventSignal {
