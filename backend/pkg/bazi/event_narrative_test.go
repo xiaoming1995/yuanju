@@ -420,7 +420,12 @@ func TestRenderYearNarrative_RichYoungAgeUsesConcreteSchoolContext(t *testing.T)
 			t.Fatalf("expected school-age detail %q, got: %s", want, got)
 		}
 	}
-	if runeLen(got) < 120 {
+	// Length floor was 120 when age<18 narratives carried a templated closer.
+	// After dropping the closer (it repeated identically across years for any
+	// shared theme), child-age rich-signal years emit ~2-3 sentences. 70 is
+	// the empirical lower bound for the domain+secondary pair this fixture
+	// produces.
+	if runeLen(got) < 70 {
 		t.Fatalf("expected richer school-age narrative, got %d chars: %s", runeLen(got), got)
 	}
 }
@@ -749,59 +754,32 @@ func TestRenderYearNarrative_MeetsThresholdWhenAnchored(t *testing.T) {
 	}
 }
 
-func TestHasStructuralEventAnchor(t *testing.T) {
-	cases := []struct {
-		name string
-		sig  EventSignal
-		want bool
-	}{
-		{
-			name: "soft 综合变动 returns false",
-			sig:  EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
-			want: false,
-		},
-		{
-			name: "soft 综合变动 from Kongwang still returns false",
-			sig:  EventSignal{Type: "综合变动", Evidence: "落空亡", Source: SourceKongwang, Polarity: PolarityNeutral},
-			want: false,
-		},
-		{
-			name: "伏吟 type returns true via type switch",
-			sig:  EventSignal{Type: "伏吟", Evidence: "伏吟", Source: SourceFuyin, Polarity: PolarityXiong},
-			want: true,
-		},
-		{
-			name: "学业_ prefix alone returns false (no structural keyword)",
-			sig:  EventSignal{Type: TypeXueYeYaLi, Evidence: "学业要求增加", Source: SourceZhuwei, Polarity: PolarityNeutral},
-			want: false,
-		},
-		{
-			name: "学业_ prefix with 冲 keyword returns true",
-			sig:  EventSignal{Type: TypeXueYeYaLi, Evidence: "流年地支冲月柱（提纲）", Source: SourceZhuwei, Polarity: PolarityXiong},
-			want: true,
-		},
-		{
-			name: "性格_ prefix alone returns false",
-			sig:  EventSignal{Type: TypeXingGeQingYi, Evidence: "桃花临命", Source: SourceZhuwei, Polarity: PolarityNeutral},
-			want: false,
-		},
-		{
-			name: "hard event signal via 受冲 evidence returns true",
-			sig:  EventSignal{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲", Source: SourceZhuwei, Polarity: PolarityXiong},
-			want: true,
-		},
-		{
-			name: "强 综合变动 via 大运流年双重命中 returns true",
-			sig:  EventSignal{Type: "综合变动", Evidence: "大运流年双重命中，本年节奏推到极致", Source: SourceZhuwei, Polarity: PolarityXiong},
-			want: true,
+func TestRenderYearNarrative_AdultSoftShenshaRenders(t *testing.T) {
+	// Regression: user reported (2026-05-19) that adult years with multiple
+	// shensha-derived signal chips (健康/婚恋_合/迁变/喜神临运) rendered as
+	// empty cards. Root cause was an over-strict pre-flight gate that
+	// required at least one signal to carry a structural evidence keyword
+	// (冲/刑/空/etc.). Soft shensha signals like 天医/桃花/华盖/喜神临运
+	// described real events but their Evidence strings lacked those keywords.
+	// After dropping the pre-flight gate, such years should render via the
+	// MinSentencesForNarrative=3 threshold path.
+	ys := YearSignals{
+		Year:   2022,
+		Age:    28,
+		GanZhi: "壬寅",
+		Signals: []EventSignal{
+			{Type: "健康", Evidence: "天医临运，主疾病减损、医疗顺遂", Polarity: PolarityJi, Source: SourceShensha},
+			{Type: "婚恋_合", Evidence: "桃花临运，人缘异性缘旺", Polarity: PolarityNeutral, Source: SourceShensha},
+			{Type: "迁变", Evidence: "华盖临运，主清高、宗教、艺术、孤独", Polarity: PolarityNeutral, Source: SourceShensha},
+			{Type: "喜神临运", Evidence: "壬为调候喜神，全局运势有明显助力", Polarity: PolarityJi, Source: SourceYongshen},
 		},
 	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			if got := hasStructuralEventAnchor(c.sig); got != c.want {
-				t.Errorf("hasStructuralEventAnchor(%+v) = %v, want %v", c.sig, got, c.want)
-			}
-		})
+	got := RenderYearNarrative(ys)
+	if got == "" {
+		t.Fatal("expected narrative to render for adult year with multiple shensha signals; got empty")
+	}
+	if !strings.HasPrefix(got, "壬寅年，") {
+		t.Errorf("expected GanZhi prefix, got: %s", got)
 	}
 }
 

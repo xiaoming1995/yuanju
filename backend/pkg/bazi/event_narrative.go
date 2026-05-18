@@ -7,11 +7,17 @@ import "strings"
 // returns a paragraph. Below this threshold the narrative is hidden
 // (returns ""), and the frontend renders only the signal chips and
 // evidence summary for that year.
-const MinSentencesForNarrative = 3
+//
+// Threshold = 2 (not 3): after dropping polarity-only fallbacks and
+// the age<18 generic closer, a typical "thin but real" year produces
+// 2 evidence-anchored sentences (domain + secondary, or yearTone +
+// domain). Requiring 3 would over-hide. Truly empty years still
+// surface 0 sentences and stay hidden.
+const MinSentencesForNarrative = 2
 
 // structuralEvidenceKeywords are the substrings inside EventSignal.Evidence
 // that the narrative engine treats as concrete, citable anchors. Used by
-// both hasEvidenceAnchor and hasStructuralEventAnchor.
+// hasEvidenceAnchor to gate secondaryDetailSentence.
 var structuralEvidenceKeywords = []string{
 	"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎",
 }
@@ -39,67 +45,12 @@ func hasEvidenceAnchor(sig EventSignal) bool {
 	return false
 }
 
-// hasStructuralEventAnchor returns true when sig carries a structural event
-// anchor: a hard-event Source, a special event Type, or a recognised keyword
-// inside Evidence. Unlike hasEvidenceAnchor it does NOT grant anchor status
-// to signals solely because their Type carries a "学业_", "性格_", or
-// "婚恋_" prefix — those prefixes describe a domain but do not by themselves
-// constitute an event-triggered anchor. This stricter check is used as a
-// pre-flight gate in RenderYearNarrative so that years whose only signals
-// are soft SourceZhuwei baseline indicators (no structural evidence keywords)
-// are hidden rather than padded with generic prose.
-//
-// Special case: "综合变动" (general change) signals are treated as anchored
-// only when they also satisfy isStrongChangeSignal — a bare "综合变动" from
-// any source (including SourceKongwang) is a background contextual note, not
-// a specific event anchor.
-func hasStructuralEventAnchor(sig EventSignal) bool {
-	if sig.Type == "综合变动" {
-		// General change signals only anchor when they carry a strong marker.
-		return isStrongChangeSignal(sig)
-	}
-	if isHardEventSignal(sig) {
-		return true
-	}
-	switch sig.Type {
-	case "伏吟", "反吟", "大运合化", TypeJuShiZhong:
-		return true
-	}
-	for _, k := range structuralEvidenceKeywords {
-		if strings.Contains(sig.Evidence, k) {
-			return true
-		}
-	}
-	return false
-}
-
-// hasAnyStructuralAnchor returns true when at least one meaningful signal
-// (excluding 用神基底 and TypeDayunPhase) passes hasStructuralEventAnchor.
-func hasAnyStructuralAnchor(signals []EventSignal) bool {
-	for _, s := range signals {
-		if s.Type == "用神基底" || s.Type == TypeDayunPhase {
-			continue
-		}
-		if hasStructuralEventAnchor(s) {
-			return true
-		}
-	}
-	return false
-}
-
 // RenderYearNarrative 根据 EventSignal 列表生成面向用户的白话批语。
 // 底层 Evidence 保留给 RenderEvidenceSummary，不直接暴露在默认正文中。
 //
 // 当能产出的"有 evidence 支撑"的句子数少于 MinSentencesForNarrative 时
 // 返回空串，前端会跳过 narrative 段落，只渲染徽标和命理依据。
-//
-// 额外前置检查：若没有任何信号通过 hasStructuralEventAnchor，年份同样
-// 返回空串。纯粹由软性 SourceZhuwei 基线信号（学业_/性格_ 前缀但无结构
-// 关键词）构成的年份不会产出兜底模板文字。
 func RenderYearNarrative(ys YearSignals) string {
-	if !hasAnyStructuralAnchor(ys.Signals) {
-		return ""
-	}
 	primary, ok := pickDominantSignal(ys.Signals, "", ys.Age)
 	if !ok {
 		return ""
@@ -730,6 +681,16 @@ func practicalReminder(signals []EventSignal) string {
 }
 
 func practicalStanceSentence(signals []EventSignal, primary EventSignal, age int) string {
+	// Child-age years deliberately do not emit a "practical stance" closer.
+	// The previous age<18 templates ("这一年最要紧的是稳住学习节奏..." etc.)
+	// were theme-anchored only and guaranteed to repeat across years for any
+	// recurring theme, padding child-age narratives with identical closers.
+	// Dropping the closer means age<18 years lose one sentence; combined with
+	// the MinSentencesForNarrative=3 threshold this naturally hides narratives
+	// for years whose remaining evidence-anchored content is thin.
+	if age > 0 && age < YoungAgeCutoff {
+		return ""
+	}
 	xiong, ji := 0, 0
 	for _, s := range signals {
 		switch s.Polarity {
@@ -740,18 +701,6 @@ func practicalStanceSentence(signals []EventSignal, primary EventSignal, age int
 		}
 	}
 	theme := themeOf(primary.Type)
-	if age > 0 && age < YoungAgeCutoff {
-		switch theme {
-		case "career":
-			return "这一年最要紧的是稳住学习节奏，遇到要求和比较时，先把基础和方法调整好。"
-		case "relationship":
-			return "这一年宜把同学关系和家庭沟通放柔一些，有情绪时先停一停，再表达自己的想法。"
-		case "health":
-			return "这一年要把作息和安全放在前面，少熬夜少冒险，身体不舒服就及时处理。"
-		case "money":
-			return "这一年适合把家庭支持和学习投入用在刀刃上，不要因为一时想法分散精力。"
-		}
-	}
 	switch theme {
 	case "relationship":
 		if xiong > 0 {
