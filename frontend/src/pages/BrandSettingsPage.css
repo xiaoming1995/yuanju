@@ -12,19 +12,24 @@
 .brand-page-header h1 {
   font-size: 20px;
   margin: 0;
-  color: var(--text-primary, #2a1a0a);
+  color: var(--text-primary);
 }
 .brand-back {
   background: none;
-  border: 1px solid var(--border, #e0cca0);
+  border: 1px solid var(--border-default);
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: var(--text-muted, #5a3a1a);
+  color: var(--text-secondary);
+  transition: border-color 0.18s, color 0.18s;
+}
+.brand-back:hover {
+  border-color: var(--border-accent);
+  color: var(--text-primary);
 }
 .brand-loading {
   padding: 40px;
@@ -32,29 +37,29 @@
   color: var(--text-muted);
 }
 .brand-error {
-  background: #fdf0f0;
-  border: 1px solid #c0392b;
-  color: #c0392b;
+  background: rgba(192, 57, 43, 0.12);
+  border: 1px solid rgba(192, 57, 43, 0.4);
+  color: #e87171;
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 16px;
   font-size: 13px;
 }
 .brand-unsaved {
-  background: #fffbe6;
-  border: 1px solid #d4b896;
-  color: #7a5c2e;
+  background: rgba(212, 184, 150, 0.10);
+  border: 1px solid var(--border-accent);
+  color: var(--text-accent);
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 16px;
   font-size: 13px;
 }
 .brand-success {
-  background: #ecfbef;
-  border: 1px solid #6cbf7a;
-  color: #2d6b3a;
+  background: rgba(108, 191, 122, 0.12);
+  border: 1px solid rgba(108, 191, 122, 0.4);
+  color: #7dd87f;
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 16px;
   font-size: 13px;
   animation: brand-success-fade 2.5s ease-out forwards;
@@ -66,16 +71,16 @@
   100% { opacity: 0; }
 }
 .brand-section {
-  background: #fdf9f2;
-  border: 1px solid var(--border, #e0cca0);
-  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 18px 20px;
   margin-bottom: 18px;
 }
 .brand-section h2 {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-primary, #2a1a0a);
+  color: var(--text-primary);
   margin: 0 0 14px;
   letter-spacing: 1px;
 }
@@ -87,23 +92,29 @@
 }
 .brand-field span {
   font-size: 13px;
-  color: var(--text-muted, #5a3a1a);
+  color: var(--text-secondary);
 }
 .brand-field input[type="text"] {
   padding: 8px 12px;
-  border: 1px solid var(--border, #e0cca0);
-  border-radius: 6px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
   font-size: 14px;
-  background: #fff;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transition: border-color 0.18s;
+}
+.brand-field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--border-accent);
 }
 .brand-field input[type="text"]:disabled {
-  background: #f5efe3;
-  color: #999;
+  background: var(--bg-card);
+  color: var(--text-muted);
 }
 .brand-field small {
   align-self: flex-end;
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
 }
 .brand-logo-row {
   display: flex;
@@ -114,12 +125,12 @@
 .brand-logo-preview {
   width: 80px;
   height: 80px;
-  border: 1px dashed var(--border, #e0cca0);
-  border-radius: 8px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--bg-elevated);
   overflow: hidden;
 }
 .brand-logo-preview img {
@@ -129,24 +140,16 @@
 }
 .brand-logo-empty {
   font-size: 11px;
-  color: #aaa;
+  color: var(--text-muted);
 }
 .brand-logo-actions {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.brand-logo-actions button {
-  background: #fdf9f2;
-  border: 1px solid var(--border, #e0cca0);
-  border-radius: 6px;
-  padding: 6px 16px;
-  cursor: pointer;
-  font-size: 13px;
-}
 .brand-logo-actions small {
   font-size: 11px;
-  color: #aaa;
+  color: var(--text-muted);
 }
 .brand-radio-row {
   display: flex;
@@ -154,7 +157,7 @@
   gap: 16px;
   margin-bottom: 12px;
   font-size: 13px;
-  color: var(--text-primary, #2a1a0a);
+  color: var(--text-primary);
 }
 .brand-radio-row label {
   display: inline-flex;
@@ -175,7 +178,7 @@
 }
 .brand-tip {
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-muted);
   text-align: center;
   margin-top: 16px;
 }
