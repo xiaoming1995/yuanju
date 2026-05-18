@@ -84,7 +84,9 @@
 
 ## 5. 行为不变量
 
-- 所有现有 class 名保持不变；TSX 仅在 4 个按钮上**追加**全局 `.btn` class，不删除原有 class，不重排 JSX
+- 不动 JSX 结构、不动 props、不动事件 handler；TSX 只调整 4 个按钮的 `className`：
+  - `BrandSettingsPage.tsx` 的 logo 上传/删除按钮原本无 `className`，**追加** `className="btn btn-ghost btn-sm"`
+  - `LogoCropModal.tsx` 的取消/确认按钮原本是 `className="logo-crop-btn-ghost"` / `logo-crop-btn-primary`，整体**替换**为 `className="btn btn-ghost"` / `className="btn btn-primary"`（旧本地类对应的 CSS 规则在 §4 中已一并移除）
 - LogoCropModal 的 Cropper 第三方库交互不动
 - 上传 / 裁剪 / 保存 / 删除 / 重置 / 成功提示自动消退（2.5s）等全部行为不变
 - 不影响 `BrandPreviewCard` 内容（依然奶油白 + 暖色文字）
