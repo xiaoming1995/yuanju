@@ -901,6 +901,10 @@ export default function ResultPage() {
                 gender={result.gender}
                 pillarsLabel={dayunPillarsLabel}
                 chartId={targetId}
+                yongshen={result.yongshen || ''}
+                jishen={result.jishen || ''}
+                wuxing={result.wuxing}
+                tiaohou={result.tiaohou ?? null}
               />
               {(isGuest || targetId) && (
                 <button
