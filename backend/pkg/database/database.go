@@ -882,5 +882,36 @@ ALTER TABLE user_export_brand
 		log.Fatalf("增量迁移失败 (user_export_brand.logo_mode): %v", err)
 	}
 
+	// 增量迁移 (data-bloat-defense)：token 用量月度汇总表
+	monthlyMigration := `
+CREATE TABLE IF NOT EXISTS token_usage_logs_monthly (
+    user_id            UUID         NOT NULL,
+    model              VARCHAR(100) NOT NULL,
+    year_month         CHAR(7)      NOT NULL,
+    call_count         BIGINT       NOT NULL DEFAULT 0,
+    prompt_tokens      BIGINT       NOT NULL DEFAULT 0,
+    completion_tokens  BIGINT       NOT NULL DEFAULT 0,
+    reasoning_tokens   BIGINT       NOT NULL DEFAULT 0,
+    total_tokens       BIGINT       NOT NULL DEFAULT 0,
+    aggregated_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, model, year_month)
+);
+CREATE INDEX IF NOT EXISTS idx_token_usage_logs_monthly_ym
+  ON token_usage_logs_monthly (year_month);`
+	if _, err := DB.Exec(monthlyMigration); err != nil {
+		log.Fatalf("增量迁移失败 (token_usage_logs_monthly): %v", err)
+	}
+
+	// 增量迁移 (data-bloat-defense)：注入清理 cron 默认 algo_config 键
+	cleanupSeed := `
+INSERT INTO algo_config (key, value, description) VALUES
+  ('cleanup_enabled',         'true', '是否启用自动数据清理任务'),
+  ('cleanup_retention_days',  '90',   'AI 缓存表与请求日志的保留天数，超期自动删除'),
+  ('cleanup_run_hour',        '3',    '每日清理任务执行时刻（24h 制小时，0-23）')
+ON CONFLICT (key) DO NOTHING;`
+	if _, err := DB.Exec(cleanupSeed); err != nil {
+		log.Fatalf("增量迁移失败 (cleanup algo_config seed): %v", err)
+	}
+
 	log.Println("✅ 数据库迁移完成")
 }
