@@ -9,6 +9,13 @@ import "strings"
 // evidence summary for that year.
 const MinSentencesForNarrative = 3
 
+// structuralEvidenceKeywords are the substrings inside EventSignal.Evidence
+// that the narrative engine treats as concrete, citable anchors. Used by
+// both hasEvidenceAnchor and hasStructuralEventAnchor.
+var structuralEvidenceKeywords = []string{
+	"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎",
+}
+
 // hasEvidenceAnchor returns true when sig carries a specific differentiator
 // that a sentence can cite: a hard-event Source, an allowed Type, or a
 // recognized keyword inside Evidence. Used to gate secondary-detail prose
@@ -24,8 +31,7 @@ func hasEvidenceAnchor(sig EventSignal) bool {
 	if strings.HasPrefix(sig.Type, "学业_") || strings.HasPrefix(sig.Type, "性格_") || strings.HasPrefix(sig.Type, "婚恋_") {
 		return true
 	}
-	keywords := []string{"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎"}
-	for _, k := range keywords {
+	for _, k := range structuralEvidenceKeywords {
 		if strings.Contains(sig.Evidence, k) {
 			return true
 		}
@@ -59,8 +65,7 @@ func hasStructuralEventAnchor(sig EventSignal) bool {
 	case "伏吟", "反吟", "大运合化", TypeJuShiZhong:
 		return true
 	}
-	keywords := []string{"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎"}
-	for _, k := range keywords {
+	for _, k := range structuralEvidenceKeywords {
 		if strings.Contains(sig.Evidence, k) {
 			return true
 		}

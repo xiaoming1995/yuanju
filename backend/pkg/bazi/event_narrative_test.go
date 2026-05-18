@@ -749,6 +749,62 @@ func TestRenderYearNarrative_MeetsThresholdWhenAnchored(t *testing.T) {
 	}
 }
 
+func TestHasStructuralEventAnchor(t *testing.T) {
+	cases := []struct {
+		name string
+		sig  EventSignal
+		want bool
+	}{
+		{
+			name: "soft 综合变动 returns false",
+			sig:  EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "soft 综合变动 from Kongwang still returns false",
+			sig:  EventSignal{Type: "综合变动", Evidence: "落空亡", Source: SourceKongwang, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "伏吟 type returns true via type switch",
+			sig:  EventSignal{Type: "伏吟", Evidence: "伏吟", Source: SourceFuyin, Polarity: PolarityXiong},
+			want: true,
+		},
+		{
+			name: "学业_ prefix alone returns false (no structural keyword)",
+			sig:  EventSignal{Type: TypeXueYeYaLi, Evidence: "学业要求增加", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "学业_ prefix with 冲 keyword returns true",
+			sig:  EventSignal{Type: TypeXueYeYaLi, Evidence: "流年地支冲月柱（提纲）", Source: SourceZhuwei, Polarity: PolarityXiong},
+			want: true,
+		},
+		{
+			name: "性格_ prefix alone returns false",
+			sig:  EventSignal{Type: TypeXingGeQingYi, Evidence: "桃花临命", Source: SourceZhuwei, Polarity: PolarityNeutral},
+			want: false,
+		},
+		{
+			name: "hard event signal via 受冲 evidence returns true",
+			sig:  EventSignal{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲", Source: SourceZhuwei, Polarity: PolarityXiong},
+			want: true,
+		},
+		{
+			name: "强 综合变动 via 大运流年双重命中 returns true",
+			sig:  EventSignal{Type: "综合变动", Evidence: "大运流年双重命中，本年节奏推到极致", Source: SourceZhuwei, Polarity: PolarityXiong},
+			want: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := hasStructuralEventAnchor(c.sig); got != c.want {
+				t.Errorf("hasStructuralEventAnchor(%+v) = %v, want %v", c.sig, got, c.want)
+			}
+		})
+	}
+}
+
 func TestRenderYearNarrative_ScreenshotRegression_RepetitiveOpenerHidden(t *testing.T) {
 	// Reproduces the 2026-05-18 screenshot: three adjacent child-age years
 	// (乙酉 2005 / 丙戌 2006 / 丁亥 2007) where the old template emitted
