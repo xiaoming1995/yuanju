@@ -193,3 +193,79 @@ func GetTokenUsageDetail(userID string, from, to time.Time, page, limit int, mod
 	}
 	return total, items, nil
 }
+
+// RollupReport 是 token rollup 一次运行的结构化结果。
+type RollupReport struct {
+	MonthsAggregated      int
+	RowsInsertedOrUpdated int64
+	SourceRowsDeleted     int64
+}
+
+// OrphanUserUUID 用作 user_id IS NULL 行的 sentinel（已注销用户的合并桶）。
+const OrphanUserUUID = "00000000-0000-0000-0000-000000000000"
+
+// RollupClosedMonthsAndDelete 把 token_usage_logs 里所有已闭合月份（早于本月 1 号 00:00）
+// 的行按 (user_id, model, year_month) 聚合写入 token_usage_logs_monthly，再删除源行。
+// 整个流程在单事务里，幂等可重跑。
+func RollupClosedMonthsAndDelete() (RollupReport, error) {
+	var rep RollupReport
+
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return rep, err
+	}
+	defer func() { _ = tx.Rollback() }() // 提交后是 no-op
+
+	const insertSQL = `
+INSERT INTO token_usage_logs_monthly (
+    user_id, model, year_month,
+    call_count, prompt_tokens, completion_tokens,
+    reasoning_tokens, total_tokens, aggregated_at
+)
+SELECT
+    COALESCE(user_id, '` + OrphanUserUUID + `'::uuid) AS user_id,
+    model,
+    to_char(created_at, 'YYYY-MM')      AS year_month,
+    COUNT(*)                            AS call_count,
+    COALESCE(SUM(prompt_tokens), 0)     AS prompt_tokens,
+    COALESCE(SUM(completion_tokens), 0) AS completion_tokens,
+    COALESCE(SUM(reasoning_tokens), 0)  AS reasoning_tokens,
+    COALESCE(SUM(total_tokens), 0)      AS total_tokens,
+    NOW()                               AS aggregated_at
+FROM token_usage_logs
+WHERE created_at < date_trunc('month', NOW())
+GROUP BY COALESCE(user_id, '` + OrphanUserUUID + `'::uuid), model, year_month
+ON CONFLICT (user_id, model, year_month) DO UPDATE SET
+    call_count        = EXCLUDED.call_count,
+    prompt_tokens     = EXCLUDED.prompt_tokens,
+    completion_tokens = EXCLUDED.completion_tokens,
+    reasoning_tokens  = EXCLUDED.reasoning_tokens,
+    total_tokens      = EXCLUDED.total_tokens,
+    aggregated_at     = NOW();
+`
+	insertRes, err := tx.Exec(insertSQL)
+	if err != nil {
+		return rep, err
+	}
+	rep.RowsInsertedOrUpdated, _ = insertRes.RowsAffected()
+
+	// 统计 affected month 数（聚合查 distinct，便于日志）
+	if err := tx.QueryRow(`
+SELECT COUNT(DISTINCT to_char(created_at, 'YYYY-MM'))
+FROM token_usage_logs
+WHERE created_at < date_trunc('month', NOW())
+`).Scan(&rep.MonthsAggregated); err != nil {
+		return rep, err
+	}
+
+	delRes, err := tx.Exec(`DELETE FROM token_usage_logs WHERE created_at < date_trunc('month', NOW())`)
+	if err != nil {
+		return rep, err
+	}
+	rep.SourceRowsDeleted, _ = delRes.RowsAffected()
+
+	if err := tx.Commit(); err != nil {
+		return rep, err
+	}
+	return rep, nil
+}
