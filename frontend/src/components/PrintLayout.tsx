@@ -233,39 +233,22 @@ export default function PrintLayout({
         marginBottom: 16,
         position: 'relative',
       }}>
-        {isWordmark ? (
-          <img
-            src={brand!.logo_url}
-            alt=""
-            crossOrigin="anonymous"
-            style={{
-              display: 'block',
-              margin: '0 auto 8px',
-              maxHeight: '40mm',
-              maxWidth: '120mm',
-              objectFit: 'contain',
-            }}
-          />
-        ) : (
-          <>
-            {!customTitle && (
-              <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
-                YUAN JU MING LI
-              </div>
-            )}
-            <div
-              style={{
-                fontSize: 28,
-                fontWeight: 900,
-                letterSpacing: customTitle ? (customTitle.length > 6 ? 2 : 6) : 10,
-                color: darkBrown,
-                marginBottom: 8,
-              }}
-            >
-              {coverTitle}
-            </div>
-          </>
+        {!customTitle && (
+          <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
+            YUAN JU MING LI
+          </div>
         )}
+        <div
+          style={{
+            fontSize: 28,
+            fontWeight: 900,
+            letterSpacing: customTitle ? (customTitle.length > 6 ? 2 : 6) : 10,
+            color: darkBrown,
+            marginBottom: 8,
+          }}
+        >
+          {coverTitle}
+        </div>
         <div style={{ fontSize: 13, color: midBrown, letterSpacing: 2 }}>
           {birthYear} 年 {birthMonth} 月 {birthDay} 日 {birthHour} 时
           &nbsp;·&nbsp;{gender === 'male' ? '男 命' : '女 命'}
