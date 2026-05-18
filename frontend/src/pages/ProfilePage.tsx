@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { ArrowRight, CalendarDays, CreditCard, FileText, HeartHandshake, History, Sparkles, UserRound } from 'lucide-react'
+import { ArrowRight, CalendarDays, CreditCard, FileText, HeartHandshake, History, Palette, Sparkles, UserRound } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { userAPI } from '../lib/api'
 import type { UserProfileOverview } from '../lib/api'
@@ -159,6 +159,13 @@ export default function ProfilePage() {
           <div>
             <strong>继续测算</strong>
             <span>创建新的八字命盘</span>
+          </div>
+        </Link>
+        <Link className="profile-action-card" to="/settings/brand">
+          <Palette size={20} />
+          <div>
+            <strong>导出品牌设置</strong>
+            <span>自定义导出图片/PDF 的 logo、标题与水印</span>
           </div>
         </Link>
       </section>

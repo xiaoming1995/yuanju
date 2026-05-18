@@ -1,5 +1,6 @@
-import type { ShenshaAnnotation } from '../lib/api'
+import type { ShenshaAnnotation, ExportBrand } from '../lib/api'
 import { cleanReportText, splitParagraphs } from '../lib/reportText'
+import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 
 const WX_COLOR: Record<string, string> = {
   木: '#3d6b3a', 火: '#9b2c2c', 土: '#7a5c2e', 金: '#6b5a1e', 水: '#2c4a7a',
@@ -72,6 +73,7 @@ interface PrintLayoutProps {
   tenGodRelation?: TenGodRelationMatrix
   /** 当导出润色版 PDF 时传入：用户写的当下情况，会在「命理解读」section 前以 banner 显示 */
   polishedUserSituation?: string
+  brand?: ExportBrand | null
 }
 
 const gold = '#b8952a'
@@ -101,6 +103,7 @@ export default function PrintLayout({
   mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
   tenGodRelation,
   polishedUserSituation,
+  brand,
 }: PrintLayoutProps) {
   const chapters = structured?.chapters ?? []
   const analysis = structured?.analysis ?? null
@@ -112,6 +115,13 @@ export default function PrintLayout({
     if (firstSentence.length <= 72) return firstSentence
     return firstSentence.slice(0, 72).trim() + '...'
   })()
+
+  const customTitle = brand?.title?.trim() || ''
+  const coverTitle = customTitle || '命 理 命 书'
+  const headerTitle = customTitle || '命 理 命 书'
+  const resolvedFooter = resolveFooter(brand, '缘 聚 命 理')
+  const showDiagonalMark = showDiagonalWatermark(brand)
+  const isWordmark = brand?.logo_mode === 'wordmark' && !!brand?.logo_url
 
   const allShensha: Array<{
     pillarLabel: string
@@ -151,6 +161,13 @@ export default function PrintLayout({
 
   return (
     <div className="print-only">
+      {showDiagonalMark && brand && (
+        <div className="print-diagonal-watermark" aria-hidden="true">
+          {Array.from({ length: 120 }).map((_, i) => (
+            <span key={i}>{brand.watermark_text}</span>
+          ))}
+        </div>
+      )}
       {/*
         用 table/thead 实现每页重复页头：
         CSS 规范要求 thead 在分页打印时自动重复，这比 position:fixed 更可靠，
@@ -161,7 +178,28 @@ export default function PrintLayout({
           <tr>
             <td>
               <div className="print-page-header">
-                <span className="print-page-header-center">命 理 命 书</span>
+                <span className="print-page-header-left">
+                  {isWordmark ? (
+                    <img
+                      src={brand!.logo_url}
+                      alt=""
+                      crossOrigin="anonymous"
+                      className="print-page-header-wordmark"
+                    />
+                  ) : (
+                    <>
+                      {brand?.logo_url && (
+                        <img
+                          src={brand.logo_url}
+                          alt=""
+                          crossOrigin="anonymous"
+                          className="print-page-header-logo"
+                        />
+                      )}
+                      <span className="print-page-header-center">{headerTitle}</span>
+                    </>
+                  )}
+                </span>
                 <span className="print-page-header-info">
                   {birthYear}年{birthMonth}月{birthDay}日&nbsp;·&nbsp;{gender === 'male' ? '男命' : '女命'}
                 </span>
@@ -184,6 +222,7 @@ export default function PrintLayout({
           maxWidth: 820,
           margin: '0 auto',
           lineHeight: 1.6,
+          position: 'relative',
         }}
       >
       {/* ── 封面头部 ── */}
@@ -192,12 +231,23 @@ export default function PrintLayout({
         borderBottom: `2px solid ${gold}`,
         paddingBottom: 12,
         marginBottom: 16,
+        position: 'relative',
       }}>
-        <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
-          YUAN JU MING LI
-        </div>
-        <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: 10, color: darkBrown, marginBottom: 8 }}>
-          命 理 命 书
+        {!customTitle && (
+          <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
+            YUAN JU MING LI
+          </div>
+        )}
+        <div
+          style={{
+            fontSize: 28,
+            fontWeight: 900,
+            letterSpacing: customTitle ? (customTitle.length > 6 ? 2 : 6) : 10,
+            color: darkBrown,
+            marginBottom: 8,
+          }}
+        >
+          {coverTitle}
         </div>
         <div style={{ fontSize: 13, color: midBrown, letterSpacing: 2 }}>
           {birthYear} 年 {birthMonth} 月 {birthDay} 日 {birthHour} 时
@@ -672,7 +722,7 @@ export default function PrintLayout({
         color: '#bbb',
       }}>
         <span>本报告内容仅供参考，不构成任何决策建议。</span>
-        <span style={{ color: gold, letterSpacing: 2 }}>缘 聚 命 理</span>
+        <span style={{ color: gold, letterSpacing: 2 }}>{resolvedFooter}</span>
       </div>
       </div>
 

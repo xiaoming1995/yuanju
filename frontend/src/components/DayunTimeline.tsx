@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import LiuYueDrawer from './LiuYueDrawer'
 import { fetchShenshaAnnotations, type ShenshaAnnotation } from '../lib/api'
+import { buildDayunOverview } from '../lib/dayunOverview'
 
 interface LiuNianItem {
   year: number
@@ -45,6 +46,10 @@ interface DayunTimelineProps {
   gender?: string
   pillarsLabel?: string
   chartId?: string
+  yongshen?: string
+  jishen?: string
+  wuxing?: { mu: number; huo: number; tu: number; jin: number; shui: number }
+  tiaohou?: { expected: string[]; tou: string[]; cang: string[]; text: string } | null
 }
 
 const GAN_WUXING: Record<string, string> = {
@@ -60,18 +65,6 @@ const WUXING_LABEL: Record<string, string> = {
   shui: '水',
 }
 
-const TREND_KEYWORDS: Record<string, string> = {
-  比肩: '自我 · 同行 · 稳定',
-  劫财: '竞争 · 合伙 · 取舍',
-  食神: '表达 · 作品 · 享受',
-  伤官: '突破 · 创意 · 表达',
-  正财: '经营 · 积累 · 责任',
-  偏财: '机会 · 流动 · 人脉',
-  正官: '事业 · 责任 · 成就',
-  七杀: '压力 · 行动 · 突破',
-  正印: '学习 · 贵人 · 资质',
-  偏印: '研究 · 灵感 · 转型',
-}
 
 const SS_POLARITY: Record<string, { bg: string; color: string }> = {
   ji: { bg: 'rgba(76,175,80,0.15)', color: '#66bb6a' },
@@ -98,17 +91,11 @@ function getGenderLabel(gender?: string) {
   return gender || '未填'
 }
 
-function getTrendKeywords(dayun?: DayunItem) {
-  if (!dayun) return '节奏 · 观察 · 平衡'
-  return TREND_KEYWORDS[dayun.gan_shishen] || TREND_KEYWORDS[dayun.zhi_shishen] || '节奏 · 观察 · 平衡'
-}
 
-function getDayunSummary(dayun?: DayunItem) {
-  if (!dayun) return '选择一段大运后查看该十年流年节奏。'
-  return `${dayun.gan}${dayun.zhi}运以${dayun.gan_shishen}透干、${dayun.zhi_shishen}坐支为主，${dayun.di_shi}之势宜先看节奏，再看流年触发点。`
-}
-
-export default function DayunTimeline({ dayun, birthYear, startYunSolar, dayGan, gender, pillarsLabel, chartId }: DayunTimelineProps) {
+export default function DayunTimeline({
+  dayun, birthYear, startYunSolar, dayGan, gender, pillarsLabel, chartId,
+  yongshen, jishen, wuxing, tiaohou,
+}: DayunTimelineProps) {
   const currentYear = new Date().getFullYear()
   const displayDayun = dayun.slice(0, 10)
   const currentDayunIndex = displayDayun.findIndex(d => currentYear >= d.start_year && currentYear <= d.end_year)
@@ -118,6 +105,7 @@ export default function DayunTimeline({ dayun, birthYear, startYunSolar, dayGan,
   const activeDayun = displayDayun[resolvedActiveIndex]
 
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [showExpert, setShowExpert] = useState(false)
   const [drawerYear, setDrawerYear] = useState(currentYear)
   const [drawerGanZhi, setDrawerGanZhi] = useState('')
   const [ssAnnotations, setSsAnnotations] = useState<Record<string, ShenshaAnnotation>>({})
@@ -291,19 +279,49 @@ export default function DayunTimeline({ dayun, birthYear, startYunSolar, dayGan,
             </div>
           )}
 
-          {activeDayun && (
-            <div className="dayun-summary-strip">
-              <div className="dayun-summary-copy">
-                <strong>大运总览</strong>
-                <span>{getDayunSummary(activeDayun)}</span>
+          {activeDayun && (() => {
+            const dayGanWx = GAN_WUXING[dayGan] ?? ''
+            const dayGanWxCn = WUXING_LABEL[dayGanWx] ?? ''
+            const overview = buildDayunOverview({
+              dayun: {
+                gan: activeDayun.gan,
+                zhi: activeDayun.zhi,
+                gan_shishen: activeDayun.gan_shishen,
+                zhi_shishen: activeDayun.zhi_shishen,
+                di_shi: activeDayun.di_shi,
+              },
+              yongshen: yongshen ?? '',
+              jishen: jishen ?? '',
+              wuxing: wuxing ?? { mu: 20, huo: 20, tu: 20, jin: 20, shui: 20 },
+              dayGanWuxing: dayGanWxCn,
+              tiaohou: tiaohou ?? null,
+            })
+            return (
+              <div className="dayun-summary-strip">
+                <div className="dayun-summary-copy">
+                  <strong>大运总览</strong>
+                  <span className="dayun-summary-body">
+                    <span>{overview.proseLay}</span>
+                    <button
+                      type="button"
+                      className="dayun-summary-toggle"
+                      onClick={() => setShowExpert(s => !s)}
+                    >
+                      {showExpert ? '收起专业表述 ‹' : '查看专业表述 ›'}
+                    </button>
+                    {showExpert && (
+                      <span className="dayun-summary-expert">{overview.prose}</span>
+                    )}
+                  </span>
+                </div>
+                <div className="dayun-summary-tags">
+                  <span>十神主气：{activeDayun.gan_shishen}</span>
+                  <span>五行主气：{WUXING_LABEL[GAN_WUXING[activeDayun.gan] || 'jin']}</span>
+                  <span>趋势关键词：{overview.trendKeywords}</span>
+                </div>
               </div>
-              <div className="dayun-summary-tags">
-                <span>十神主气：{activeDayun.gan_shishen}</span>
-                <span>五行主气：{WUXING_LABEL[GAN_WUXING[activeDayun.gan] || 'jin']}</span>
-                <span>趋势关键词：{getTrendKeywords(activeDayun)}</span>
-              </div>
-            </div>
-          )}
+            )
+          })()}
 
           <p className="dayun-disclaimer">以上为中国传统命理分析，仅供参考，理性看待。</p>
         </div>

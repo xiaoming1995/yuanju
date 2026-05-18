@@ -1080,6 +1080,42 @@
   white-space: nowrap;
 }
 
+.dayun-summary-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dayun-summary-toggle {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--wu-jin);
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.dayun-summary-toggle:hover {
+  opacity: 1;
+}
+
+.dayun-summary-expert {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-left: 2px solid rgba(201, 168, 76, 0.35);
+  background: rgba(12, 24, 38, 0.4);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.65;
+  opacity: 0.85;
+}
+
 .dayun-summary-tags {
   display: flex;
   flex-wrap: wrap;
@@ -1980,6 +2016,24 @@
     letter-spacing: 3px;
     color: #b8952a;
   }
+  .print-page-header-left {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .print-page-header-logo {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .print-page-header-wordmark {
+    height: 6mm;
+    width: auto;
+    max-width: 80mm;
+    object-fit: contain;
+    display: inline-block;
+  }
   .print-page-header-center {
     font-size: 10px;
     font-weight: 700;
@@ -1994,6 +2048,27 @@
   /* 页头与正文之间的间距 */
   .print-page-header-spacer {
     height: 6mm;
+  }
+
+  /* 满页对角水印：position:fixed 在 Chrome 打印模式下每页重复 */
+  .print-diagonal-watermark {
+    position: fixed;
+    top: -30%;
+    left: -30%;
+    right: -30%;
+    bottom: -30%;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+    transform: rotate(-30deg);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 220px);
+    gap: 80px 50px;
+    opacity: 0.06;
+    color: #000;
+    font-size: 16px;
+    font-family: "Noto Sans SC", sans-serif;
+    white-space: nowrap;
   }
 
   /* 防止表格行、段落在页中间被切断 */

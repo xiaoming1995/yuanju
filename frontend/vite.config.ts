@@ -41,6 +41,10 @@ export default defineConfig({
         proxyTimeout: 300000,
         timeout: 300000,
       },
+      '/static': {
+        target: 'http://localhost:9002',
+        changeOrigin: true,
+      },
     },
   },
 })

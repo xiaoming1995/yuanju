@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 	"yuanju/configs"
 	"yuanju/internal/handler"
 	"yuanju/internal/middleware"
@@ -20,6 +22,11 @@ func main() {
 	database.Connect()
 	database.Migrate()
 
+	// 确保 logo 上传目录存在
+	if err := os.MkdirAll(filepath.Join(configs.AppConfig.UploadDir, "brand-logos"), 0755); err != nil {
+		log.Fatalf("创建上传目录失败: %v", err)
+	}
+
 	// 种子数据：将 .env 中已有的 API Key 写入 llm_providers
 	seed.SeedLLMProviders()
 	seed.SeedLLMPrices()
@@ -32,8 +39,18 @@ func main() {
 	// 初始化路由
 	r := gin.Default()
 
+	// Cap multipart in-memory buffer well below Gin's 32 MiB default.
+	// The upload handler enforces 2 MiB per file; this is belt-and-suspenders
+	// against clients omitting Content-Length (chunked encoding).
+	r.MaxMultipartMemory = 4 << 20 // 4 MiB
+
 	// 跨域中间件
 	r.Use(middleware.CORS())
+
+	// Public read-only mount: ONLY the brand-logos subdirectory is exposed.
+	// Do NOT broaden this to UploadDir root — future features may put private
+	// files under UploadDir/<other-subdir> and they must not be served publicly.
+	r.Static("/static/uploads/brand-logos", filepath.Join(configs.AppConfig.UploadDir, "brand-logos"))
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
@@ -80,6 +97,10 @@ func main() {
 		user := api.Group("/user", middleware.Auth())
 		{
 			user.GET("/profile", handler.GetUserProfile)
+			user.GET("/export-brand", handler.RequireUserID, handler.GetExportBrand)
+			user.PUT("/export-brand", handler.RequireUserID, handler.UpdateExportBrand)
+			user.POST("/export-brand/logo", handler.RequireUserID, handler.UploadExportBrandLogo)
+			user.DELETE("/export-brand/logo", handler.RequireUserID, handler.DeleteExportBrandLogo)
 		}
 
 		// 神煞注解（公开）

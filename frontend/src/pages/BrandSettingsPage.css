@@ -1,0 +1,208 @@
+.brand-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+.brand-page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.brand-page-header h1 {
+  font-size: 20px;
+  margin: 0;
+  color: var(--text-primary);
+}
+.brand-back {
+  background: none;
+  border: 1px solid var(--border-default);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: border-color 0.18s, color 0.18s;
+}
+.brand-back:hover {
+  border-color: var(--border-accent);
+  color: var(--text-primary);
+}
+.brand-loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.brand-error {
+  background: rgba(192, 57, 43, 0.12);
+  border: 1px solid rgba(192, 57, 43, 0.4);
+  color: #e87171;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.brand-unsaved {
+  background: rgba(212, 184, 150, 0.10);
+  border: 1px solid var(--border-accent);
+  color: var(--text-accent);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+.brand-success {
+  background: rgba(108, 191, 122, 0.12);
+  border: 1px solid rgba(108, 191, 122, 0.4);
+  color: #7dd87f;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: 13px;
+  animation: brand-success-fade 2.5s ease-out forwards;
+}
+@keyframes brand-success-fade {
+  0%   { opacity: 0; transform: translateY(-4px); }
+  10%  { opacity: 1; transform: translateY(0); }
+  80%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.brand-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.brand-section h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+  letter-spacing: 1px;
+}
+.brand-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.brand-field span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.brand-field input[type="text"] {
+  padding: 8px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  transition: border-color 0.18s;
+}
+.brand-field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--border-accent);
+}
+.brand-field input[type="text"]:disabled {
+  background: var(--bg-card);
+  color: var(--text-muted);
+}
+.brand-field small {
+  align-self: flex-end;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.brand-logo-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-top: 8px;
+}
+.brand-logo-preview {
+  width: 80px;
+  height: 80px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.brand-logo-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.brand-logo-empty {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.brand-logo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.brand-logo-actions small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.brand-radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.brand-radio-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.brand-preview-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.brand-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+.brand-tip {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 16px;
+}
+.brand-bottom-link {
+  display: block;
+  text-align: center;
+  margin-top: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.brand-warning {
+  background: rgba(212, 184, 150, 0.10);
+  border: 1px solid var(--border-accent);
+  color: var(--text-accent);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.brand-mode-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: -4px 0 12px;
+}

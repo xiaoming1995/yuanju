@@ -31,6 +31,9 @@ type Config struct {
 
 	// Debug
 	AIPromptLog bool
+
+	// Upload
+	UploadDir string
 }
 
 var AppConfig Config
@@ -51,6 +54,7 @@ func Load() {
 		OpenAIAPIKey:       getEnv("OPENAI_API_KEY", ""),
 		AIBaseURL:          getEnv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
 		AIPromptLog:        getEnv("AI_PROMPT_LOG", "") == "true",
+		UploadDir:          getEnv("UPLOAD_DIR", "./uploads"),
 	}
 }
 

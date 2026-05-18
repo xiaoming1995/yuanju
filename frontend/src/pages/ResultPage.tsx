@@ -2,8 +2,8 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Diamond, X, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { baziAPI, fetchShenshaAnnotations } from '../lib/api'
-import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport } from '../lib/api'
+import { baziAPI, brandAPI, fetchShenshaAnnotations } from '../lib/api'
+import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, ExportBrand } from '../lib/api'
 import { cleanReportText } from '../lib/reportText'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
@@ -363,6 +363,9 @@ export default function ResultPage() {
   const [activeMingGe, setActiveMingGe] = useState<{ name: string; desc: string } | null>(null)
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // 导出品牌定制
+  const [brand, setBrand] = useState<ExportBrand | null>(null)
+
   // 预加载神煞注解
   useEffect(() => {
     fetchShenshaAnnotations()
@@ -373,6 +376,14 @@ export default function ResultPage() {
       })
       .catch(() => { /* 注解加载失败不影响主功能 */ })
   }, [])
+
+  // 加载用户导出品牌定制
+  useEffect(() => {
+    if (!user) return
+    brandAPI.get()
+      .then(r => setBrand(r.data.data))
+      .catch(() => setBrand(null))
+  }, [user])
 
   const handleSaveImage = async () => {
     if (!shareCardRef.current) return
@@ -890,6 +901,10 @@ export default function ResultPage() {
                 gender={result.gender}
                 pillarsLabel={dayunPillarsLabel}
                 chartId={targetId}
+                yongshen={result.yongshen || ''}
+                jishen={result.jishen || ''}
+                wuxing={result.wuxing}
+                tiaohou={result.tiaohou ?? null}
               />
               {(isGuest || targetId) && (
                 <button
@@ -1177,6 +1192,7 @@ export default function ResultPage() {
           dayGanWx={result.day_gan_wuxing} dayZhiWx={result.day_zhi_wuxing}
           hourGanWx={result.hour_gan_wuxing} hourZhiWx={result.hour_zhi_wuxing}
           structured={report?.content_structured ?? null}
+          brand={brand}
         />
       </div>
 
@@ -1274,6 +1290,7 @@ export default function ResultPage() {
             shenshaMap={shenshaMap}
             tenGodRelation={relation}
             polishedUserSituation={isPolishedExport ? polishedReport.user_situation : undefined}
+            brand={brand}
           />
         )
       })()}

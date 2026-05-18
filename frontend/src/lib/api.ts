@@ -103,6 +103,38 @@ export const userAPI = {
   profile: () => api.get('/api/user/profile'),
 }
 
+// ======= Export Brand =======
+export interface ExportBrand {
+  title: string
+  footer_text: string
+  logo_url: string
+  logo_mode: 'icon' | 'wordmark'
+  watermark_mode: 'none' | 'bottom' | 'diagonal'
+  watermark_text: string
+}
+
+export interface BrandUpdateInput {
+  title: string
+  footer_text: string
+  logo_mode: 'icon' | 'wordmark'
+  watermark_mode: 'none' | 'bottom' | 'diagonal'
+  watermark_text: string
+}
+
+export const brandAPI = {
+  get: () => api.get<{ data: ExportBrand }>('/api/user/export-brand'),
+  update: (body: BrandUpdateInput) =>
+    api.put<{ data: ExportBrand }>('/api/user/export-brand', body),
+  uploadLogo: (file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return api.post<{ data: { logo_url: string } }>('/api/user/export-brand/logo', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  deleteLogo: () => api.delete('/api/user/export-brand/logo'),
+}
+
 // ======= 结构化报告类型 =======
 export interface ReportChapter {
   title: string

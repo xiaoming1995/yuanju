@@ -96,7 +96,7 @@ test('dayun timeline includes the mockup summary strip and mobile controls', () 
   assert.match(component, /className="dayun-summary-copy"/)
   assert.match(component, /className="dayun-summary-tags"/)
   assert.match(component, /className="dayun-disclaimer"/)
-  assert.match(component, /getTrendKeywords/)
+  assert.match(component, /buildDayunOverview/)
 
   assert.match(css, /\.dayun-summary-strip\s*\{[\s\S]*display:\s*grid;/)
   assert.match(css, /\.dayun-summary-tags\s*\{[\s\S]*display:\s*flex;/)
