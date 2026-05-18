@@ -189,3 +189,20 @@
   color: var(--text-muted);
   font-size: 13px;
 }
+
+.brand-warning {
+  background: rgba(212, 184, 150, 0.10);
+  border: 1px solid var(--border-accent);
+  color: var(--text-accent);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.brand-mode-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: -4px 0 12px;
+}
