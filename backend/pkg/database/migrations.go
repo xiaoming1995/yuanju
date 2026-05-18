@@ -55,6 +55,10 @@ func MigrateFromDir(mode MigrationMode, dir string) (MigrationReport, error) {
 }
 
 // runMigrations 是 Migrate / MigrateFromDir 的共同实现。
+//
+// 注意：本函数使用 goose 的包级全局 BaseFS / Dialect 状态，**非 goroutine-safe**。
+// 实际只在 main() 启动路径或 CLI flag 处理时单线程调用，故不冲突；
+// 若未来需要并发调用（例如 admin API 触发），需引入互斥锁或改用 goose Provider API。
 func runMigrations(mode MigrationMode, baseFS fs.FS, dir string) (MigrationReport, error) {
 	started := time.Now()
 	rep := MigrationReport{Mode: mode}
