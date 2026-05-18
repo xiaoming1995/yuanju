@@ -153,7 +153,7 @@ func triggerSourceSentence(sig EventSignal, age int) string {
 	case strings.Contains(ev, "驿马") || strings.Contains(ev, "奔波") || strings.Contains(ev, "迁移"):
 		return "触发点落在移动和环境变化上，出行、搬动、换环境或事务奔波会增加。"
 	default:
-		return "触发点来自这一年的主导信号，事情不会只停留在想法层面，容易落实到具体安排。"
+		return ""
 	}
 }
 

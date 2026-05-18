@@ -546,3 +546,42 @@ func TestYearToneSentence_HardSignalStillEmits(t *testing.T) {
 		t.Fatal("expected non-empty hard-signal lead, got empty")
 	}
 }
+
+func TestTriggerSourceSentence_NoKeywordReturnsEmpty(t *testing.T) {
+	cases := []struct {
+		name string
+		sig  EventSignal
+		age  int
+	}{
+		{
+			name: "no keyword in evidence",
+			sig:  EventSignal{Type: "综合变动", Evidence: "节奏一般变化", Source: SourceZhuwei},
+			age:  30,
+		},
+		{
+			name: "empty evidence and neutral type",
+			sig:  EventSignal{Type: "综合变动", Evidence: "", Source: SourceZhuwei},
+			age:  15,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := triggerSourceSentence(c.sig, c.age); got != "" {
+				t.Errorf("expected empty string, got %q", got)
+			}
+		})
+	}
+}
+
+func TestTriggerSourceSentence_KeywordStillEmits(t *testing.T) {
+	cases := []EventSignal{
+		{Type: "事业", Evidence: "流年地支辰冲月柱壬戌", Source: SourceZhuwei},
+		{Type: "综合变动", Evidence: "落空亡，虚而不实", Source: SourceKongwang},
+		{Type: "伏吟", Evidence: "流年壬辰伏吟日柱壬辰", Source: SourceFuyin},
+	}
+	for i, c := range cases {
+		if got := triggerSourceSentence(c, 30); got == "" {
+			t.Errorf("case %d: expected non-empty, got empty for %+v", i, c)
+		}
+	}
+}
