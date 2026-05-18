@@ -12,29 +12,31 @@ func GetExportBrand(userID string) (model.ExportBrand, error) {
 	var b model.ExportBrand
 	b.UserID = userID
 	err := database.DB.QueryRow(`
-		SELECT title, footer_text, logo_path, watermark_mode, watermark_text, updated_at
+		SELECT title, footer_text, logo_path, logo_mode, watermark_mode, watermark_text, updated_at
 		FROM user_export_brand WHERE user_id = $1`, userID).Scan(
-		&b.Title, &b.FooterText, &b.LogoPath, &b.WatermarkMode, &b.WatermarkText, &b.UpdatedAt,
+		&b.Title, &b.FooterText, &b.LogoPath, &b.LogoMode, &b.WatermarkMode, &b.WatermarkText, &b.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		b.WatermarkMode = "none"
+		b.LogoMode = "icon"
 		return b, nil
 	}
 	return b, err
 }
 
 // UpsertExportBrandText writes title/footer/watermark fields. Does NOT touch logo_path.
-func UpsertExportBrandText(userID, title, footerText, watermarkMode, watermarkText string) error {
+func UpsertExportBrandText(userID, title, footerText, watermarkMode, watermarkText, logoMode string) error {
 	_, err := database.DB.Exec(`
-		INSERT INTO user_export_brand (user_id, title, footer_text, watermark_mode, watermark_text)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO user_export_brand (user_id, title, footer_text, watermark_mode, watermark_text, logo_mode)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (user_id) DO UPDATE SET
 			title = EXCLUDED.title,
 			footer_text = EXCLUDED.footer_text,
 			watermark_mode = EXCLUDED.watermark_mode,
 			watermark_text = EXCLUDED.watermark_text,
+			logo_mode = EXCLUDED.logo_mode,
 			updated_at = NOW()`,
-		userID, title, footerText, watermarkMode, watermarkText)
+		userID, title, footerText, watermarkMode, watermarkText, logoMode)
 	return err
 }
 
