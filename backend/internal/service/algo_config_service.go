@@ -93,3 +93,46 @@ func LoadAlgoConfig() error {
 func ReloadAlgoConfig() error {
 	return LoadAlgoConfig()
 }
+
+// CleanupConfig 是清理任务的运行时配置（每次 tick 从 algo_config 表实时读取）。
+type CleanupConfig struct {
+	Enabled       bool
+	RetentionDays int // 已 clamp 到 [1, 3650]
+	RunHour       int // 已 clamp 到 [0, 23]
+}
+
+// GetCleanupConfig 实时读取 algo_config 中清理相关键。
+// 缺失的键走默认值；异常值 clamp 到合法区间。
+func GetCleanupConfig() (CleanupConfig, error) {
+	cfg := CleanupConfig{Enabled: true, RetentionDays: 90, RunHour: 3}
+
+	rows, err := repository.GetAllAlgoConfig()
+	if err != nil {
+		return cfg, err
+	}
+	for _, r := range rows {
+		switch r.Key {
+		case "cleanup_enabled":
+			cfg.Enabled = r.Value == "true" || r.Value == "1"
+		case "cleanup_retention_days":
+			if v, err := strconv.Atoi(r.Value); err == nil {
+				cfg.RetentionDays = clampInt(v, 1, 3650)
+			}
+		case "cleanup_run_hour":
+			if v, err := strconv.Atoi(r.Value); err == nil {
+				cfg.RunHour = clampInt(v, 0, 23)
+			}
+		}
+	}
+	return cfg, nil
+}
+
+func clampInt(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}

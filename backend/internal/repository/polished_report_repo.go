@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
 
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
@@ -62,4 +63,13 @@ func GetPolishedByChartID(chartID string) (*model.PolishedReport, error) {
 		return nil, nil
 	}
 	return report, err
+}
+
+// DeletePolishedReportsOlderThan 删除超期润色报告。
+func DeletePolishedReportsOlderThan(cutoff time.Time) (int64, error) {
+	res, err := database.DB.Exec(`DELETE FROM ai_polished_reports WHERE created_at < $1`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }

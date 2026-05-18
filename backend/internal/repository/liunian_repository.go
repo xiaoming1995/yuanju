@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
@@ -67,4 +68,13 @@ func GetLiunianReportsByChartID(chartID string) ([]model.AILiunianReport, error)
 func DeleteLiunianReportByID(id string) error {
 	_, err := database.DB.Exec(`DELETE FROM ai_liunian_reports WHERE id = $1`, id)
 	return err
+}
+
+// DeleteLiunianReportsOlderThan 删除超期流年报告。
+func DeleteLiunianReportsOlderThan(cutoff time.Time) (int64, error) {
+	res, err := database.DB.Exec(`DELETE FROM ai_liunian_reports WHERE created_at < $1`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }

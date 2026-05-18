@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"log"
+	"time"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
@@ -329,4 +330,13 @@ func ListBaziCharts(page, pageSize int) ([]model.AdminChartRecord, int, error) {
 	}
 
 	return charts, total, nil
+}
+
+// DeleteRequestLogsOlderThan 删除超期 AI 请求日志。
+func DeleteRequestLogsOlderThan(cutoff time.Time) (int64, error) {
+	res, err := database.DB.Exec(`DELETE FROM ai_requests_log WHERE created_at < $1`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }

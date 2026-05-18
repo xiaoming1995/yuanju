@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"encoding/json"
+	"time"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
@@ -35,4 +36,13 @@ func CreatePastEvents(chartID string, contentStructured *json.RawMessage, modelN
 func DeletePastEvents(chartID string) error {
 	_, err := database.DB.Exec(`DELETE FROM ai_past_events WHERE chart_id = $1`, chartID)
 	return err
+}
+
+// DeletePastEventsOlderThan 删除超期过往事件缓存。
+func DeletePastEventsOlderThan(cutoff time.Time) (int64, error) {
+	res, err := database.DB.Exec(`DELETE FROM ai_past_events WHERE created_at < $1`, cutoff)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
