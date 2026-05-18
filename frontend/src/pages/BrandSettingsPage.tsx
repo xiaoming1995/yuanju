@@ -194,13 +194,21 @@ export default function BrandSettingsPage() {
           <div className="brand-logo-actions">
             <button
               type="button"
+              className="btn btn-ghost btn-sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
               {uploading ? '上传中...' : (serverState.logo_url ? '更换' : '上传')}
             </button>
             {serverState.logo_url && (
-              <button type="button" onClick={onLogoDelete} disabled={uploading}>删除</button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={onLogoDelete}
+                disabled={uploading}
+              >
+                删除
+              </button>
             )}
             <small>PNG / JPG / WebP，≤ 2MB</small>
           </div>
