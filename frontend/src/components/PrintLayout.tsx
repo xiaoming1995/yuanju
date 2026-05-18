@@ -121,6 +121,7 @@ export default function PrintLayout({
   const headerTitle = customTitle || '命 理 命 书'
   const resolvedFooter = resolveFooter(brand, '缘 聚 命 理')
   const showDiagonalMark = showDiagonalWatermark(brand)
+  const isWordmark = brand?.logo_mode === 'wordmark' && !!brand?.logo_url
 
   const allShensha: Array<{
     pillarLabel: string
@@ -178,15 +179,26 @@ export default function PrintLayout({
             <td>
               <div className="print-page-header">
                 <span className="print-page-header-left">
-                  {brand?.logo_url && (
+                  {isWordmark ? (
                     <img
-                      src={brand.logo_url}
+                      src={brand!.logo_url}
                       alt=""
                       crossOrigin="anonymous"
-                      className="print-page-header-logo"
+                      className="print-page-header-wordmark"
                     />
+                  ) : (
+                    <>
+                      {brand?.logo_url && (
+                        <img
+                          src={brand.logo_url}
+                          alt=""
+                          crossOrigin="anonymous"
+                          className="print-page-header-logo"
+                        />
+                      )}
+                      <span className="print-page-header-center">{headerTitle}</span>
+                    </>
                   )}
-                  <span className="print-page-header-center">{headerTitle}</span>
                 </span>
                 <span className="print-page-header-info">
                   {birthYear}年{birthMonth}月{birthDay}日&nbsp;·&nbsp;{gender === 'male' ? '男命' : '女命'}
@@ -221,22 +233,39 @@ export default function PrintLayout({
         marginBottom: 16,
         position: 'relative',
       }}>
-        {!customTitle && (
-          <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
-            YUAN JU MING LI
-          </div>
+        {isWordmark ? (
+          <img
+            src={brand!.logo_url}
+            alt=""
+            crossOrigin="anonymous"
+            style={{
+              display: 'block',
+              margin: '0 auto 8px',
+              maxHeight: '40mm',
+              maxWidth: '120mm',
+              objectFit: 'contain',
+            }}
+          />
+        ) : (
+          <>
+            {!customTitle && (
+              <div style={{ fontSize: 9, letterSpacing: 6, color: '#999', marginBottom: 6 }}>
+                YUAN JU MING LI
+              </div>
+            )}
+            <div
+              style={{
+                fontSize: 28,
+                fontWeight: 900,
+                letterSpacing: customTitle ? (customTitle.length > 6 ? 2 : 6) : 10,
+                color: darkBrown,
+                marginBottom: 8,
+              }}
+            >
+              {coverTitle}
+            </div>
+          </>
         )}
-        <div
-          style={{
-            fontSize: 28,
-            fontWeight: 900,
-            letterSpacing: customTitle ? (customTitle.length > 6 ? 2 : 6) : 10,
-            color: darkBrown,
-            marginBottom: 8,
-          }}
-        >
-          {coverTitle}
-        </div>
         <div style={{ fontSize: 13, color: midBrown, letterSpacing: 2 }}>
           {birthYear} 年 {birthMonth} 月 {birthDay} 日 {birthHour} 时
           &nbsp;·&nbsp;{gender === 'male' ? '男 命' : '女 命'}

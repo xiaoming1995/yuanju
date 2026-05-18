@@ -1991,6 +1991,13 @@
     object-fit: contain;
     flex-shrink: 0;
   }
+  .print-page-header-wordmark {
+    height: 6mm;
+    width: auto;
+    max-width: 80mm;
+    object-fit: contain;
+    display: inline-block;
+  }
   .print-page-header-center {
     font-size: 10px;
     font-weight: 700;
