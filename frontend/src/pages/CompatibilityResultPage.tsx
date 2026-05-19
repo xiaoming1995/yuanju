@@ -5,11 +5,16 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   compatibilityAPI,
   type CompatibilityChartSnapshot,
+  type CompatibilityClaimEvidenceLink,
+  type CompatibilityDecisionAdvice,
   type CompatibilityDetail,
   type CompatibilityDimensionScores,
   type CompatibilityDurationAssessment,
   type CompatibilityEvidence,
   type CompatibilityParticipant,
+  type CompatibilityRelationshipDiagnosis,
+  type CompatibilityRelationshipStrategy,
+  type CompatibilityStageRisk,
 } from '../lib/api'
 import './CompatibilityResultPage.css'
 
@@ -57,6 +62,24 @@ const durationLevelText: Record<string, string> = {
   high: '偏高',
   medium: '中等',
   low: '偏低',
+}
+
+const recommendationText: Record<string, string> = {
+  continue: '适合继续推进',
+  observe: '建议谨慎观察',
+  caution: '不宜过早重投入',
+}
+
+const confidenceText: Record<string, string> = {
+  high: '判断较明确',
+  medium: '需要结合相处验证',
+  low: '信息仍需观察',
+}
+
+const stageWindowText: Record<string, string> = {
+  three_months: '3 个月',
+  one_year: '1 年',
+  two_years_plus: '2 年以上',
 }
 
 const wuxingLabel = [
@@ -132,6 +155,18 @@ function normalizeDurationAssessment(
         level: isDurationLevel(source.windows?.two_years_plus?.level) ? source.windows.two_years_plus.level : fallback.windows.two_years_plus.level,
       },
     },
+  }
+}
+
+function normalizeConsultingAssessment(detail: CompatibilityDetail) {
+  const report = detail.latest_report?.content_structured
+  const base = detail.reading.consulting_assessment
+  return {
+    relationship_diagnosis: report?.relationship_diagnosis || base?.relationship_diagnosis,
+    decision_advice: report?.decision_advice || base?.decision_advice,
+    stage_risks: report?.stage_risks?.length ? report.stage_risks : base?.stage_risks || [],
+    relationship_strategy: report?.relationship_strategy || base?.relationship_strategy,
+    claim_evidence_links: report?.claim_evidence_links?.length ? report.claim_evidence_links : base?.claim_evidence_links || [],
   }
 }
 
@@ -259,6 +294,116 @@ function InsightPanel({
   )
 }
 
+function ConsultingOverview({ diagnosis }: { diagnosis: CompatibilityRelationshipDiagnosis }) {
+  const findings = Array.isArray(diagnosis.top_findings) ? diagnosis.top_findings : []
+
+  return (
+    <div className="card compatibility-consulting-overview">
+      <div className="compatibility-consulting-kicker">关系诊断</div>
+      <h2 className="serif compatibility-consulting-title">{diagnosis.relationship_type || '关系观察型'}</h2>
+      <div className="compatibility-consulting-verdict">{diagnosis.verdict || '建议结合现实相处继续观察'}</div>
+      {diagnosis.summary && <p className="compatibility-consulting-summary">{diagnosis.summary}</p>}
+      {findings.length > 0 && (
+        <div className="compatibility-finding-list">
+          {findings.slice(0, 3).map(finding => (
+            <div key={finding.text} className="compatibility-finding-item">{finding.text}</div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AdviceList({ title, items }: { title: string; items: string[] }) {
+  const safeItems = Array.isArray(items) ? items.filter(Boolean) : []
+
+  return (
+    <div className="compatibility-advice-list">
+      <div className="compatibility-advice-title">{title}</div>
+      {safeItems.length > 0 ? (
+        safeItems.map(item => <div key={item}>{item}</div>)
+      ) : (
+        <div>暂无明确建议</div>
+      )}
+    </div>
+  )
+}
+
+function DecisionAdvicePanel({ advice }: { advice: CompatibilityDecisionAdvice }) {
+  return (
+    <div className="card compatibility-decision-card">
+      <div className="compatibility-consulting-kicker">决策建议</div>
+      <div className="serif compatibility-decision-main">{recommendationText[advice.recommendation] || advice.recommendation}</div>
+      <div className="compatibility-decision-confidence">{confidenceText[advice.confidence] || advice.confidence}</div>
+      <div className="compatibility-advice-columns">
+        <AdviceList title="继续前提" items={advice.conditions} />
+        <AdviceList title="下一步" items={advice.do_next} />
+        <AdviceList title="避免" items={advice.avoid} />
+      </div>
+    </div>
+  )
+}
+
+function StageRiskGrid({ risks }: { risks: CompatibilityStageRisk[] }) {
+  return (
+    <div className="compatibility-stage-grid">
+      {risks.map(risk => (
+        <div key={risk.window} className="card compatibility-stage-card">
+          <div className="compatibility-stage-window">{stageWindowText[risk.window] || risk.window}</div>
+          <div className="serif compatibility-stage-risk">{risk.main_risk}</div>
+          <p>{risk.trigger}</p>
+          <div className="compatibility-stage-advice">{risk.advice}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RelationshipStrategyPanel({ strategy }: { strategy: CompatibilityRelationshipStrategy }) {
+  return (
+    <div className="card compatibility-strategy-card">
+      <div className="compatibility-consulting-kicker">关系经营策略</div>
+      <div className="compatibility-strategy-grid">
+        <AdviceList title="沟通" items={[strategy.communication].filter(Boolean)} />
+        <AdviceList title="冲突" items={[strategy.conflict].filter(Boolean)} />
+        <AdviceList title="现实" items={[strategy.reality].filter(Boolean)} />
+        <AdviceList title="边界" items={[strategy.boundary].filter(Boolean)} />
+      </div>
+    </div>
+  )
+}
+
+function EvidenceLinkedClaims({
+  links,
+  evidences,
+}: {
+  links: CompatibilityClaimEvidenceLink[]
+  evidences: CompatibilityEvidence[]
+}) {
+  const byKey = new Map(evidences.map(evidence => [evidence.evidence_key || evidence.id, evidence]))
+
+  return (
+    <div className="compatibility-claim-list">
+      {links.map(link => (
+        <details key={link.claim_id || link.claim} className="card compatibility-claim-card">
+          <summary>
+            <span className="serif">{link.claim}</span>
+            <span>查看依据</span>
+          </summary>
+          <p>{link.reasoning}</p>
+          {link.caveat && <p className="compatibility-claim-caveat">{link.caveat}</p>}
+          <div className="compatibility-claim-evidence">
+            {(link.evidence_keys || []).map(key => {
+              const evidence = byKey.get(key)
+              return evidence ? <EvidenceCard key={key} evidence={evidence} /> : null
+            })}
+          </div>
+        </details>
+      ))}
+    </div>
+  )
+}
+
 function ParticipantSummaryCard({
   participant,
 }: {
@@ -373,6 +518,7 @@ export default function CompatibilityResultPage() {
     .map(evidence => `${evidence.title}：${evidence.detail}`)
   const insightRisks = reportRisks.length > 0 ? reportRisks : fallbackRisks
   const insightAdvice = structuredReport?.advice?.trim() || fallbackAdvice(reading.overall_level)
+  const consulting = normalizeConsultingAssessment(detail)
 
   return (
     <div className="page compatibility-result-page">
@@ -401,6 +547,38 @@ export default function CompatibilityResultPage() {
             </div>
           )}
         </div>
+
+        {consulting.relationship_diagnosis && (
+          <ConsultingOverview diagnosis={consulting.relationship_diagnosis} />
+        )}
+
+        {consulting.decision_advice && (
+          <DecisionAdvicePanel advice={consulting.decision_advice} />
+        )}
+
+        {consulting.stage_risks.length > 0 && (
+          <div className="compatibility-section">
+            <div className="compatibility-section-header">
+              <h2 className="serif compatibility-section-title">阶段风险预警</h2>
+              <p className="compatibility-section-desc">按关系推进阶段看主要风险和处理建议。</p>
+            </div>
+            <StageRiskGrid risks={consulting.stage_risks} />
+          </div>
+        )}
+
+        {consulting.relationship_strategy && (
+          <RelationshipStrategyPanel strategy={consulting.relationship_strategy} />
+        )}
+
+        {consulting.claim_evidence_links.length > 0 && (
+          <div className="compatibility-section">
+            <div className="compatibility-section-header">
+              <h2 className="serif compatibility-section-title">关键判断依据</h2>
+              <p className="compatibility-section-desc">每条咨询判断都可以回看对应命理证据。</p>
+            </div>
+            <EvidenceLinkedClaims links={consulting.claim_evidence_links} evidences={detail.evidences} />
+          </div>
+        )}
 
         <ScoreOverview scores={reading.dimension_scores} />
 

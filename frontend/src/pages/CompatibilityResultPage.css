@@ -363,6 +363,139 @@
   font-size: 13px;
 }
 
+.compatibility-consulting-overview,
+.compatibility-decision-card,
+.compatibility-strategy-card {
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.compatibility-consulting-kicker,
+.compatibility-advice-title,
+.compatibility-stage-window {
+  color: var(--text-muted);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.compatibility-consulting-title,
+.compatibility-decision-main {
+  margin: 8px 0;
+  font-size: 28px;
+}
+
+.compatibility-consulting-verdict {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--wu-jin);
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.24);
+}
+
+.compatibility-consulting-summary {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+.compatibility-finding-list,
+.compatibility-advice-columns,
+.compatibility-strategy-grid,
+.compatibility-stage-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.compatibility-finding-list {
+  margin-top: 14px;
+}
+
+.compatibility-advice-columns,
+.compatibility-strategy-grid,
+.compatibility-stage-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.compatibility-strategy-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.compatibility-finding-item,
+.compatibility-advice-list,
+.compatibility-stage-card,
+.compatibility-claim-card {
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.compatibility-decision-confidence {
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.compatibility-advice-list {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.compatibility-advice-title {
+  margin-bottom: 8px;
+  color: var(--wu-jin);
+}
+
+.compatibility-stage-card {
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.compatibility-stage-card p {
+  margin: 8px 0;
+}
+
+.compatibility-stage-risk {
+  font-size: 18px;
+  color: var(--text-primary);
+  margin-top: 8px;
+}
+
+.compatibility-stage-advice,
+.compatibility-claim-caveat {
+  color: var(--text-muted);
+}
+
+.compatibility-claim-list {
+  display: grid;
+  gap: 12px;
+}
+
+.compatibility-claim-card summary {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  list-style: none;
+}
+
+.compatibility-claim-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.compatibility-claim-card p {
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin: 12px 0 0;
+}
+
+.compatibility-claim-evidence {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
 .compatibility-professional-details {
   margin-bottom: 20px;
 }
@@ -557,6 +690,24 @@
   }
 
   .compatibility-insight-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-consulting-overview,
+  .compatibility-decision-card,
+  .compatibility-strategy-card {
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .compatibility-consulting-title,
+  .compatibility-decision-main {
+    font-size: 23px;
+  }
+
+  .compatibility-advice-columns,
+  .compatibility-strategy-grid,
+  .compatibility-stage-grid {
     grid-template-columns: 1fr;
   }
 
