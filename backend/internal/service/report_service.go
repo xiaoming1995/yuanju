@@ -1189,6 +1189,10 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
      凡 evidence 数组非空，narrative 就必须有内容。
    - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
    - 不同年份的 narrative 之间应有差异化措辞，禁止把多年写成同一段。
+   - **命理术语白名单约束**：每年信号 JSON 中的 allowed_keywords 字段
+     列出了该年 evidence 已识别的命理术语（神煞/伏吟/反吟/三合/三会/
+     用神位 等）。narrative 中只能使用 allowed_keywords 列出的命理术语，
+     未列出的术语（哪怕你在通用命理常识中很熟悉）一律不可写入。
    - 严禁编造未在 evidence 中出现的神煞或用神位事件
    - **特别提醒（命理术语易混淆）**：
      · 伏吟 ≠ 反吟：伏吟是流年与原局某柱完全相同；反吟是天克地冲。
@@ -1246,7 +1250,20 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 				Signals:         sigs,
 			})
 		}
-		dySigsJSON, _ := json.Marshal(dySignals)
+		// 为每年附加 allowed_keywords（evidence 已识别的命理术语）— prompt 用作白名单
+		// 缓解 AI 凭训练语料先验编造神煞/伏吟反吟的问题（验证器外的最后一公里治理）
+		type yearSignalsForPrompt struct {
+			bazi.YearSignals
+			AllowedKeywords []string `json:"allowed_keywords,omitempty"`
+		}
+		dySigsForPrompt := make([]yearSignalsForPrompt, 0, len(dySignals))
+		for _, ys := range dySignals {
+			dySigsForPrompt = append(dySigsForPrompt, yearSignalsForPrompt{
+				YearSignals:     ys,
+				AllowedKeywords: ExtractEvidenceKeywords(ys.Signals),
+			})
+		}
+		dySigsJSON, _ := json.Marshal(dySigsForPrompt)
 
 		dayunInfo := fmt.Sprintf("%s %d-%d岁（%d-%d年）[%s/%s]",
 			gz, dy.StartAge, dy.StartAge+9, dy.StartYear, dy.EndYear, dy.GanShiShen, dy.ZhiShiShen)
