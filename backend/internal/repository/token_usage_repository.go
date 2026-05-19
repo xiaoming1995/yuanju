@@ -269,3 +269,120 @@ WHERE created_at < date_trunc('month', NOW())
 	}
 	return rep, nil
 }
+
+// ChartCostRow 单命盘成本聚合行
+type ChartCostRow struct {
+	ChartID      string  `json:"chart_id"`
+	TotalCostCny float64 `json:"total_cost_cny"`
+	TotalTokens  int     `json:"total_tokens"`
+	Calls        int     `json:"calls"`
+}
+
+// GetTokenUsageCostByModel 在 [from, to] 区间内按模型聚合 token 用量，调用 costFn 折算成本。
+// 返回各模型成本明细 + 区间总 token 数。
+// to 参数同 GetTokenUsageSummary 语义：表示最后一天，内部 +1 天取右开区间。
+func GetTokenUsageCostByModel(from, to time.Time, costFn func(string, int, int) float64) ([]TokenUsageSummaryRow, int, error) {
+	toExcl := to.AddDate(0, 0, 1)
+	rows, err := database.DB.Query(`
+		SELECT
+			COALESCE(model, '')                        AS model,
+			COUNT(*)::int                              AS calls,
+			COALESCE(SUM(prompt_tokens), 0)::int       AS prompt_tokens,
+			COALESCE(SUM(completion_tokens), 0)::int   AS completion_tokens,
+			COALESCE(SUM(total_tokens), 0)::int        AS total_tokens
+		FROM token_usage_logs
+		WHERE created_at >= $1 AND created_at < $2
+		GROUP BY model`,
+		from, toExcl,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("GetTokenUsageCostByModel: %w", err)
+	}
+	defer rows.Close()
+
+	out := []TokenUsageSummaryRow{}
+	totalTokens := 0
+	for rows.Next() {
+		var r TokenUsageSummaryRow
+		if err := rows.Scan(&r.Model, &r.RequestCount, &r.PromptTokens, &r.CompletionTokens, &r.TotalTokens); err != nil {
+			log.Printf("[TokenUsage] GetTokenUsageCostByModel Scan 失败: %v", err)
+			continue
+		}
+		if costFn != nil {
+			r.EstimatedCostCny = costFn(r.Model, r.PromptTokens, r.CompletionTokens)
+		}
+		out = append(out, r)
+		totalTokens += r.TotalTokens
+	}
+	return out, totalTokens, rows.Err()
+}
+
+// GetChartCostBreakdown 返回 [from, to] 区间内成本最高的 N 个命盘。
+// 按 chart_id × model 聚合后，在 Go 层按 chart_id 求总成本并排序、取 top N。
+func GetChartCostBreakdown(from, to time.Time, limit int, costFn func(string, int, int) float64) ([]ChartCostRow, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	toExcl := to.AddDate(0, 0, 1)
+	rows, err := database.DB.Query(`
+		SELECT
+			chart_id::text                             AS chart_id,
+			COALESCE(model, '')                        AS model,
+			COUNT(*)::int                              AS calls,
+			COALESCE(SUM(prompt_tokens), 0)::int       AS prompt_tokens,
+			COALESCE(SUM(completion_tokens), 0)::int   AS completion_tokens,
+			COALESCE(SUM(total_tokens), 0)::int        AS total_tokens
+		FROM token_usage_logs
+		WHERE chart_id IS NOT NULL AND created_at >= $1 AND created_at < $2
+		GROUP BY chart_id, model`,
+		from, toExcl,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetChartCostBreakdown: %w", err)
+	}
+	defer rows.Close()
+
+	type aggCell struct {
+		cost   float64
+		tokens int
+		calls  int
+	}
+	byChart := map[string]*aggCell{}
+	for rows.Next() {
+		var chartID, model string
+		var calls, prompt, completion, total int
+		if err := rows.Scan(&chartID, &model, &calls, &prompt, &completion, &total); err != nil {
+			log.Printf("[TokenUsage] GetChartCostBreakdown Scan 失败: %v", err)
+			continue
+		}
+		if byChart[chartID] == nil {
+			byChart[chartID] = &aggCell{}
+		}
+		c := byChart[chartID]
+		if costFn != nil {
+			c.cost += costFn(model, prompt, completion)
+		}
+		c.tokens += total
+		c.calls += calls
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	out := make([]ChartCostRow, 0, len(byChart))
+	for chartID, c := range byChart {
+		out = append(out, ChartCostRow{
+			ChartID:      chartID,
+			TotalCostCny: c.cost,
+			TotalTokens:  c.tokens,
+			Calls:        c.calls,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].TotalCostCny > out[j].TotalCostCny
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
