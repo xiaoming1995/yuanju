@@ -56,10 +56,13 @@ func AdminUpdateAlgoConfig(c *gin.Context) {
 	key := c.Param("key")
 
 	validKeys := map[string]bool{
-		"jixiong_jiHan_min":     true,
-		"jixiong_jiRe_min":      true,
-		"jixiong_shenQiang_pct": true,
-		"year_narrative_mode":   true,
+		"jixiong_jiHan_min":           true,
+		"jixiong_jiRe_min":            true,
+		"jixiong_shenQiang_pct":       true,
+		"year_narrative_mode":         true,
+		"cost_alert_daily_cost_cny":   true,
+		"cost_alert_monthly_cost_cny": true,
+		"cost_alert_per_chart_cost_cny": true,
 	}
 	if !validKeys[key] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "未知参数键: " + key})
@@ -85,6 +88,12 @@ func AdminUpdateAlgoConfig(c *gin.Context) {
 	case "jixiong_shenQiang_pct":
 		if _, err := strconv.ParseFloat(body.Value, 64); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "参数值必须为数字"})
+			return
+		}
+	case "cost_alert_daily_cost_cny", "cost_alert_monthly_cost_cny", "cost_alert_per_chart_cost_cny":
+		v, perr := strconv.ParseFloat(body.Value, 64)
+		if perr != nil || v <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": key + " 必须是大于 0 的数字"})
 			return
 		}
 	case "year_narrative_mode":
