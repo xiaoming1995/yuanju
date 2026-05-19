@@ -1,3 +1,5 @@
+-- +goose Up
+
 ALTER TABLE compatibility_readings
   ADD COLUMN IF NOT EXISTS consulting_assessment JSONB NOT NULL DEFAULT '{}'::jsonb;
 

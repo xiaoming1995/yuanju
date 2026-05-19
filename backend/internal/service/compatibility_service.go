@@ -28,6 +28,7 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 	)
 
 	analysis := bazi.AnalyzeCompatibility(selfChart, partnerChart)
+	consulting := mapCompatibilityConsultingAssessment(analysis.ConsultingAssessment)
 	reading, err := repository.CreateCompatibilityReading(
 		userID,
 		string(analysis.OverallLevel),
@@ -47,7 +48,7 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 			Summary: analysis.DurationAssessment.Summary,
 			Reasons: analysis.DurationAssessment.Reasons,
 		},
-		model.CompatibilityConsultingAssessment{},
+		consulting,
 		analysis.SummaryTags,
 		compatibilityAnalysisVersion,
 	)
@@ -69,13 +70,14 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 
 	for _, item := range analysis.Evidences {
 		if _, err := repository.CreateCompatibilityEvidence(reading.ID, model.CompatibilityEvidence{
-			Dimension: string(item.Dimension),
-			Type:      item.Type,
-			Polarity:  string(item.Polarity),
-			Source:    item.Source,
-			Title:     item.Title,
-			Detail:    item.Detail,
-			Weight:    item.Weight,
+			EvidenceKey: item.EvidenceKey,
+			Dimension:   string(item.Dimension),
+			Type:        item.Type,
+			Polarity:    string(item.Polarity),
+			Source:      item.Source,
+			Title:       item.Title,
+			Detail:      item.Detail,
+			Weight:      item.Weight,
 		}); err != nil {
 			return nil, err
 		}
@@ -107,6 +109,72 @@ func GetCompatibilityDetailForUser(readingID, userID string) (*model.Compatibili
 		}
 	}
 	return detail, nil
+}
+
+func mapCompatibilityConsultingAssessment(in bazi.CompatibilityConsultingAssessment) model.CompatibilityConsultingAssessment {
+	return model.CompatibilityConsultingAssessment{
+		RelationshipDiagnosis: model.CompatibilityRelationshipDiagnosis{
+			RelationshipType: in.RelationshipDiagnosis.RelationshipType,
+			Verdict:          in.RelationshipDiagnosis.Verdict,
+			Summary:          in.RelationshipDiagnosis.Summary,
+			TopFindings:      mapCompatibilityFindings(in.RelationshipDiagnosis.TopFindings),
+		},
+		DecisionAdvice: model.CompatibilityDecisionAdvice{
+			Recommendation: in.DecisionAdvice.Recommendation,
+			Confidence:     in.DecisionAdvice.Confidence,
+			Conditions:     in.DecisionAdvice.Conditions,
+			DoNext:         in.DecisionAdvice.DoNext,
+			Avoid:          in.DecisionAdvice.Avoid,
+		},
+		StageRisks: mapCompatibilityStageRisks(in.StageRisks),
+		RelationshipStrategy: model.CompatibilityRelationshipStrategy{
+			Communication: in.RelationshipStrategy.Communication,
+			Conflict:      in.RelationshipStrategy.Conflict,
+			Reality:       in.RelationshipStrategy.Reality,
+			Boundary:      in.RelationshipStrategy.Boundary,
+		},
+		ClaimEvidenceLinks: mapCompatibilityClaimLinks(in.ClaimEvidenceLinks),
+	}
+}
+
+func mapCompatibilityFindings(in []bazi.CompatibilityFinding) []model.CompatibilityFinding {
+	out := make([]model.CompatibilityFinding, 0, len(in))
+	for _, item := range in {
+		out = append(out, model.CompatibilityFinding{
+			Text:         item.Text,
+			EvidenceKeys: item.EvidenceKeys,
+		})
+	}
+	return out
+}
+
+func mapCompatibilityStageRisks(in []bazi.CompatibilityStageRisk) []model.CompatibilityStageRisk {
+	out := make([]model.CompatibilityStageRisk, 0, len(in))
+	for _, item := range in {
+		out = append(out, model.CompatibilityStageRisk{
+			Window:       item.Window,
+			RiskLevel:    item.RiskLevel,
+			MainRisk:     item.MainRisk,
+			Trigger:      item.Trigger,
+			Advice:       item.Advice,
+			EvidenceKeys: item.EvidenceKeys,
+		})
+	}
+	return out
+}
+
+func mapCompatibilityClaimLinks(in []bazi.CompatibilityClaimEvidenceLink) []model.CompatibilityClaimEvidenceLink {
+	out := make([]model.CompatibilityClaimEvidenceLink, 0, len(in))
+	for _, item := range in {
+		out = append(out, model.CompatibilityClaimEvidenceLink{
+			ClaimID:      item.ClaimID,
+			Claim:        item.Claim,
+			EvidenceKeys: item.EvidenceKeys,
+			Reasoning:    item.Reasoning,
+			Caveat:       item.Caveat,
+		})
+	}
+	return out
 }
 
 func GetCompatibilityHistoryForUser(userID string, limit, offset int) ([]model.CompatibilityHistoryItem, error) {
