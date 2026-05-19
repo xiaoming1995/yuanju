@@ -310,6 +310,10 @@ func richChangeSentence(sig EventSignal) string {
 		return "现实表现上，旧事、旧关系或类似问题容易再度出现，适合趁机梳理，而不是继续拖延。"
 	case sig.Type == "反吟":
 		return "现实表现上，变化会比平时更突然，环境、计划或关系节奏可能需要快速调整。"
+	case sig.Type == "大运合化":
+		return "现实表现上，大运能量被牵动重组，方向上的关键节点比预想更明显，适合借势顺一顺策略再行动。"
+	case sig.Type == TypeJuShiZhong:
+		return "现实表现上，整体局势被放大，一个选择容易牵动多条线，重要决定宜慢一点、先避开高风险选择。"
 	case sig.Source == SourceKongwang || strings.Contains(sig.Evidence, "空") || strings.Contains(sig.Evidence, "虚而不实"):
 		return "现实表现上，想法和计划会比较多，但真正落地未必稳定，合同、承诺和时间安排要多确认。"
 	case strings.Contains(sig.Evidence, "月柱") || strings.Contains(sig.Evidence, "提纲"):
