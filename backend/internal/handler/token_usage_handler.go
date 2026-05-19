@@ -74,6 +74,17 @@ func AdminGetTokenUsageContent(c *gin.Context) {
 	})
 }
 
+// AdminGetBudgetStatus GET /api/admin/token-usage/budget-status
+// 返回今日 / 本月 / 单命盘 TOP 5 成本快照 + 阈值。
+func AdminGetBudgetStatus(c *gin.Context) {
+	status, err := service.BuildBudgetStatus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, status)
+}
+
 // parseDateRange 解析 from/to 查询参数，默认当月第一天至今日
 func parseDateRange(c *gin.Context) (from, to time.Time) {
 	now := time.Now()

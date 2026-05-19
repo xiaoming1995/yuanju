@@ -1,6 +1,6 @@
-import { useState, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { BarChart2 } from 'lucide-react'
-import { adminTokenUsageAPI } from '../../lib/adminApi'
+import adminApi, { adminTokenUsageAPI } from '../../lib/adminApi'
 
 interface SummaryRow {
   user_id: string
@@ -38,6 +38,37 @@ interface ContentModal {
   loading: boolean
   inputContent: string
   outputContent: string
+}
+
+interface BudgetStatusScope {
+  total_tokens: number
+  total_cost_cny: number
+  threshold_cost_cny: number
+  exceeded: boolean
+  exceeded_pct: number
+}
+
+interface TopUserItem {
+  user_id: string
+  email: string
+  nickname: string
+  total_cost_cny: number
+  calls: number
+  threshold_exceeded: boolean
+}
+
+interface BudgetStatus {
+  today: BudgetStatusScope
+  this_month: BudgetStatusScope
+  top_users: TopUserItem[]
+  per_user_threshold_cny: number
+  last_alerted_at?: Record<string, string>
+}
+
+interface ThresholdEdit {
+  daily: string
+  monthly: string
+  per_user: string
 }
 
 function fmt(n: number) {
@@ -109,6 +140,32 @@ export default function TokenUsagePage() {
   const detailLimit = 20
   const [contentModal, setContentModal] = useState<ContentModal | null>(null)
 
+  const [budget, setBudget] = useState<BudgetStatus | null>(null)
+  const [thresholdEditOpen, setThresholdEditOpen] = useState(false)
+  const [thresholdDraft, setThresholdDraft] = useState<ThresholdEdit>({ daily: '', monthly: '', per_user: '' })
+  const [thresholdSaving, setThresholdSaving] = useState(false)
+  const [thresholdError, setThresholdError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    const load = async () => {
+      try {
+        const resp = await adminTokenUsageAPI.budgetStatus()
+        if (!cancelled) setBudget(resp.data)
+      } catch (e) {
+        console.warn('[budget-status] fetch failed', e)
+      }
+    }
+
+    void load()
+    const t = window.setInterval(() => void load(), 30000)
+    return () => {
+      cancelled = true
+      window.clearInterval(t)
+    }
+  }, [])
+
   const handleQuery = async () => {
     setLoading(true)
     try {
@@ -150,9 +207,8 @@ export default function TokenUsagePage() {
 
   const callTypeLabel: Record<string, string> = {
     report: '原局报告',
-    report_stream: '流式报告',
     liunian: '流年',
-    dayun: '大运',
+    past_events: '过往事件',
     celebrity: '名人生成',
     compatibility: '合盘',
   }
@@ -166,9 +222,108 @@ export default function TokenUsagePage() {
 
   return (
     <div>
-      <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <BarChart2 size={24} /> Token 用量统计
+      <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <BarChart2 size={24} /> Token 用量统计
+        </span>
+        <button
+          className="admin-btn"
+          onClick={() => {
+            if (budget) {
+              setThresholdDraft({
+                daily: String(budget.today.threshold_cost_cny),
+                monthly: String(budget.this_month.threshold_cost_cny),
+                per_user: String(budget.per_user_threshold_cny),
+              })
+            }
+            setThresholdError('')
+            setThresholdEditOpen(true)
+          }}
+          style={{ fontSize: 13 }}
+        >
+          ⚙️ 编辑预算阈值
+        </button>
       </h1>
+
+      {/* 越界 banner */}
+      {budget && (budget.today.exceeded || budget.this_month.exceeded) && (
+        <div
+          style={{
+            background: '#7f1d1d',
+            color: '#fee2e2',
+            padding: '12px 16px',
+            borderRadius: 8,
+            marginBottom: 20,
+            border: '1px solid #b91c1c',
+            fontSize: 14,
+            lineHeight: 1.7,
+          }}
+        >
+          ⚠️ 预算告警
+          {budget.today.exceeded && (
+            <div>
+              今日已用 <strong>¥{budget.today.total_cost_cny.toFixed(2)}</strong>
+              （{budget.today.exceeded_pct}% 日预算 ¥{budget.today.threshold_cost_cny.toFixed(2)}）
+            </div>
+          )}
+          {budget.this_month.exceeded && (
+            <div>
+              本月已用 <strong>¥{budget.this_month.total_cost_cny.toFixed(2)}</strong>
+              （{budget.this_month.exceeded_pct}% 月预算 ¥{budget.this_month.threshold_cost_cny.toFixed(2)}）
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 预算状态卡片 */}
+      {budget && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
+          <div className="admin-card" style={{ padding: 16 }}>
+            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>今日累计</div>
+            <div style={{ color: budget.today.exceeded ? '#fca5a5' : budget.today.exceeded_pct >= 80 ? '#fbbf24' : '#86efac', fontSize: 26, fontWeight: 700 }}>
+              ¥{budget.today.total_cost_cny.toFixed(2)}
+            </div>
+            <div style={{ fontSize: 12, color: '#aaa', marginTop: 6 }}>
+              {budget.today.exceeded_pct}% · 阈值 ¥{budget.today.threshold_cost_cny.toFixed(2)}
+            </div>
+          </div>
+
+          <div className="admin-card" style={{ padding: 16 }}>
+            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>本月累计</div>
+            <div style={{ color: budget.this_month.exceeded ? '#fca5a5' : budget.this_month.exceeded_pct >= 80 ? '#fbbf24' : '#86efac', fontSize: 26, fontWeight: 700 }}>
+              ¥{budget.this_month.total_cost_cny.toFixed(2)}
+            </div>
+            <div style={{ fontSize: 12, color: '#aaa', marginTop: 6 }}>
+              {budget.this_month.exceeded_pct}% · 阈值 ¥{budget.this_month.threshold_cost_cny.toFixed(2)}
+            </div>
+          </div>
+
+          <div className="admin-card" style={{ padding: 16 }}>
+            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>
+              用户 TOP 5（近 7 天，阈值 ¥{budget.per_user_threshold_cny.toFixed(2)}）
+            </div>
+            {budget.top_users.length === 0 ? (
+              <div style={{ color: '#666', fontSize: 13 }}>暂无数据</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {budget.top_users.map((u, i) => {
+                  const label = u.nickname || u.email || u.user_id.slice(0, 8) + '…'
+                  return (
+                    <div
+                      key={u.user_id}
+                      title={`${u.email || '(no email)'} · ${u.user_id}`}
+                      style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', color: u.threshold_exceeded ? '#fca5a5' : '#e0e0e0' }}
+                    >
+                      <span>{i + 1}. {label.length > 18 ? label.slice(0, 16) + '…' : label}{u.threshold_exceeded ? ' ⚠' : ''}</span>
+                      <span>¥{u.total_cost_cny.toFixed(2)}（{u.calls} 次）</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 筛选栏 */}
       <div className="admin-card" style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -404,6 +559,75 @@ export default function TokenUsagePage() {
                 )}
               </>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* 预算阈值编辑 Modal */}
+      {thresholdEditOpen && (
+        <div
+          onClick={() => setThresholdEditOpen(false)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: '#1a1a2e', padding: 24, borderRadius: 12, width: 420, color: '#e0e0e0' }}
+          >
+            <h3 style={{ margin: '0 0 16px', fontSize: 18 }}>编辑预算阈值（CNY）</h3>
+            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>日累计上限</label>
+            <input
+              type="number"
+              step="0.5"
+              value={thresholdDraft.daily}
+              onChange={(e) => setThresholdDraft({ ...thresholdDraft, daily: e.target.value })}
+              style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 12 }}
+            />
+            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>月累计上限</label>
+            <input
+              type="number"
+              step="5"
+              value={thresholdDraft.monthly}
+              onChange={(e) => setThresholdDraft({ ...thresholdDraft, monthly: e.target.value })}
+              style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 12 }}
+            />
+            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>单用户上限（近 7 天累计）</label>
+            <input
+              type="number"
+              step="0.5"
+              value={thresholdDraft.per_user}
+              onChange={(e) => setThresholdDraft({ ...thresholdDraft, per_user: e.target.value })}
+              style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 16 }}
+            />
+            {thresholdError && <div style={{ color: '#fca5a5', fontSize: 13, marginBottom: 12 }}>{thresholdError}</div>}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button className="admin-btn" onClick={() => setThresholdEditOpen(false)} disabled={thresholdSaving}>取消</button>
+              <button
+                className="admin-btn admin-btn-primary"
+                disabled={thresholdSaving}
+                onClick={async () => {
+                  setThresholdSaving(true)
+                  setThresholdError('')
+                  try {
+                    await adminApi.put('/api/admin/algo-config/cost_alert_daily_cost_cny', { value: thresholdDraft.daily })
+                    await adminApi.put('/api/admin/algo-config/cost_alert_monthly_cost_cny', { value: thresholdDraft.monthly })
+                    await adminApi.put('/api/admin/algo-config/cost_alert_per_user_cost_cny', { value: thresholdDraft.per_user })
+                    const resp = await adminTokenUsageAPI.budgetStatus()
+                    setBudget(resp.data)
+                    setThresholdEditOpen(false)
+                  } catch (e: unknown) {
+                    const err = e as { response?: { data?: { error?: string } }; message?: string }
+                    setThresholdError(err.response?.data?.error || err.message || '保存失败')
+                  } finally {
+                    setThresholdSaving(false)
+                  }
+                }}
+              >
+                {thresholdSaving ? '保存中…' : '保存'}
+              </button>
+            </div>
           </div>
         </div>
       )}

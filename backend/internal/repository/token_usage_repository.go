@@ -269,3 +269,130 @@ WHERE created_at < date_trunc('month', NOW())
 	}
 	return rep, nil
 }
+
+// UserCostRow 单用户成本聚合行
+type UserCostRow struct {
+	UserID       string  `json:"user_id"`
+	Email        string  `json:"email"`
+	Nickname     string  `json:"nickname"`
+	TotalCostCny float64 `json:"total_cost_cny"`
+	TotalTokens  int     `json:"total_tokens"`
+	Calls        int     `json:"calls"`
+}
+
+// GetTokenUsageCostByModel 在 [from, to] 区间内按模型聚合 token 用量，调用 costFn 折算成本。
+// 返回各模型成本明细 + 区间总 token 数。
+// to 参数同 GetTokenUsageSummary 语义：表示最后一天，内部 +1 天取右开区间。
+func GetTokenUsageCostByModel(from, to time.Time, costFn func(string, int, int) float64) ([]TokenUsageSummaryRow, int, error) {
+	toExcl := to.AddDate(0, 0, 1)
+	rows, err := database.DB.Query(`
+		SELECT
+			COALESCE(model, '')                        AS model,
+			COUNT(*)::int                              AS calls,
+			COALESCE(SUM(prompt_tokens), 0)::int       AS prompt_tokens,
+			COALESCE(SUM(completion_tokens), 0)::int   AS completion_tokens,
+			COALESCE(SUM(total_tokens), 0)::int        AS total_tokens
+		FROM token_usage_logs
+		WHERE created_at >= $1 AND created_at < $2
+		GROUP BY model`,
+		from, toExcl,
+	)
+	if err != nil {
+		return nil, 0, fmt.Errorf("GetTokenUsageCostByModel: %w", err)
+	}
+	defer rows.Close()
+
+	out := []TokenUsageSummaryRow{}
+	totalTokens := 0
+	for rows.Next() {
+		var r TokenUsageSummaryRow
+		if err := rows.Scan(&r.Model, &r.RequestCount, &r.PromptTokens, &r.CompletionTokens, &r.TotalTokens); err != nil {
+			log.Printf("[TokenUsage] GetTokenUsageCostByModel Scan 失败: %v", err)
+			continue
+		}
+		if costFn != nil {
+			r.EstimatedCostCny = costFn(r.Model, r.PromptTokens, r.CompletionTokens)
+		}
+		out = append(out, r)
+		totalTokens += r.TotalTokens
+	}
+	return out, totalTokens, rows.Err()
+}
+
+// GetUserCostBreakdown 返回 [from, to] 区间内成本最高的 N 个用户。
+// 按 user_id × model 聚合后，在 Go 层按 user_id 求总成本并排序、取 top N。
+// LEFT JOIN users 取 email/nickname；已删除的用户保留 user_id 但 email/nickname 为空。
+func GetUserCostBreakdown(from, to time.Time, limit int, costFn func(string, int, int) float64) ([]UserCostRow, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	toExcl := to.AddDate(0, 0, 1)
+	rows, err := database.DB.Query(`
+		SELECT
+			t.user_id::text                            AS user_id,
+			COALESCE(u.email, '')                      AS email,
+			COALESCE(u.nickname, '')                   AS nickname,
+			COALESCE(t.model, '')                      AS model,
+			COUNT(*)::int                              AS calls,
+			COALESCE(SUM(t.prompt_tokens), 0)::int     AS prompt_tokens,
+			COALESCE(SUM(t.completion_tokens), 0)::int AS completion_tokens,
+			COALESCE(SUM(t.total_tokens), 0)::int      AS total_tokens
+		FROM token_usage_logs t
+		LEFT JOIN users u ON u.id = t.user_id
+		WHERE t.user_id IS NOT NULL AND t.created_at >= $1 AND t.created_at < $2
+		GROUP BY t.user_id, u.email, u.nickname, t.model`,
+		from, toExcl,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("GetUserCostBreakdown: %w", err)
+	}
+	defer rows.Close()
+
+	type aggCell struct {
+		email    string
+		nickname string
+		cost     float64
+		tokens   int
+		calls    int
+	}
+	byUser := map[string]*aggCell{}
+	for rows.Next() {
+		var userID, email, nickname, model string
+		var calls, prompt, completion, total int
+		if err := rows.Scan(&userID, &email, &nickname, &model, &calls, &prompt, &completion, &total); err != nil {
+			log.Printf("[TokenUsage] GetUserCostBreakdown Scan 失败: %v", err)
+			continue
+		}
+		if byUser[userID] == nil {
+			byUser[userID] = &aggCell{email: email, nickname: nickname}
+		}
+		c := byUser[userID]
+		if costFn != nil {
+			c.cost += costFn(model, prompt, completion)
+		}
+		c.tokens += total
+		c.calls += calls
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	out := make([]UserCostRow, 0, len(byUser))
+	for userID, c := range byUser {
+		out = append(out, UserCostRow{
+			UserID:       userID,
+			Email:        c.email,
+			Nickname:     c.nickname,
+			TotalCostCny: c.cost,
+			TotalTokens:  c.tokens,
+			Calls:        c.calls,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].TotalCostCny > out[j].TotalCostCny
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}

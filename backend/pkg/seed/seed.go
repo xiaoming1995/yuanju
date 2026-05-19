@@ -80,3 +80,29 @@ func SeedLLMPrices() {
 	}
 	log.Println("✅ 种子数据：LLM 定价配置已写入 algo_config（ON CONFLICT DO NOTHING）")
 }
+
+// SeedCostAlertThresholds 将默认成本阈值写入 algo_config（ON CONFLICT DO NOTHING）。
+// 启动时调用一次，admin 已改的值不会被覆盖。
+func SeedCostAlertThresholds() {
+	defaults := []struct {
+		key   string
+		value string
+		desc  string
+	}{
+		{"cost_alert_daily_cost_cny", "5", "单日 AI 总成本告警阈值（CNY）"},
+		{"cost_alert_monthly_cost_cny", "100", "单月 AI 总成本告警阈值（CNY）"},
+		{"cost_alert_per_user_cost_cny", "5", "单用户 AI 总成本告警阈值（CNY，7 天滑窗）"},
+	}
+	for _, d := range defaults {
+		if _, err := database.DB.Exec(
+			`INSERT INTO algo_config (key, value, description)
+			 VALUES ($1, $2, $3)
+			 ON CONFLICT (key) DO NOTHING`,
+			d.key, d.value, d.desc,
+		); err != nil {
+			log.Printf("[seed] SeedCostAlertThresholds %s 失败: %v", d.key, err)
+			return
+		}
+	}
+	log.Println("✅ 种子数据：成本告警阈值已写入 algo_config（ON CONFLICT DO NOTHING）")
+}
