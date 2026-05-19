@@ -1151,9 +1151,11 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
    - 结合极性写吉凶（吉应期写助力或机遇，凶应期写注意或代价）
    - 读书期年份（age<18，由人生阶段提示判断）改写为学业/同学/家庭语义，
      不出现「事业/婚恋/财运」等成人词
-   - 若该年信号确实稀薄（无 hard event 信号、evidence 关键词都缺），
-     narrative 可写 "" 表示该年无显著动象
+   - **每一年都必须写 narrative**，禁止输出空字符串。即使该年信号较少，
+     也要把现有信号（哪怕只有 1-2 条神煞或一个用神位变化）写清楚。
+     凡 evidence 数组非空，narrative 就必须有内容。
    - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
+   - 不同年份的 narrative 之间应有差异化措辞，禁止把多年写成同一段。
    - 严禁编造未在 evidence 中出现的神煞或用神位事件
 
 4. 严格输出以下 JSON，不要 Markdown 围栏：
