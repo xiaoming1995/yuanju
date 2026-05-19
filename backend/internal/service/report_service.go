@@ -1114,7 +1114,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 	huaheMap := bazi.CollectDayunHuaheMap(result)
 
 	// Prompt 模板（首次启动时已 seed，未 seed 时降级为内置）
-	promptTpl := `你是一位资深八字命理师。请只为下列单段大运撰写整体总结，禁止逐年罗列。
+	promptTpl := `你是一位资深八字命理师。请只为下列单段大运撰写整体总结和该段 10 年的逐年评述。
 
 命主：性别{{.Gender}} / 日干{{.DayGan}}
 原局：{{.NatalSummary}}
@@ -1132,8 +1132,24 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 输出要求：
 1. themes：2-4 个主题词（如"事业↑""感情动荡""贵人扶持"；读书期可用"学业突破""同窗情谊""叛逆"）
 2. summary：80-120 字，综合评述这 10 年整体走势、关键转折、注意事项；若前5年与后5年信号明显不同，要点出早段/后段气质差异
-3. 严格输出以下 JSON，不要 Markdown 围栏：
-{"themes":["主题1","主题2"],"summary":"..."}`
+3. years：长度等于上方算法信号 JSON 的年份数，与年份顺序一一对应。每个元素：
+   {"year": 数字年, "ganzhi": "干支", "narrative": "..."}
+
+   narrative 撰写规则：
+   - 100-150 字，3-4 句中文
+   - 必须点名当年关键干支事件，引用上方 evidence 已有的命理术语
+     （如「丙火透干为食神」「流年地支冲日支」「白虎临运」「驿马合年支」
+     「用神位受刑」「伏吟时柱」等）
+   - 结合极性写吉凶（吉应期写助力或机遇，凶应期写注意或代价）
+   - 读书期年份（age<18，由人生阶段提示判断）改写为学业/同学/家庭语义，
+     不出现「事业/婚恋/财运」等成人词
+   - 若该年信号确实稀薄（无 hard event 信号、evidence 关键词都缺），
+     narrative 可写 "" 表示该年无显著动象
+   - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
+   - 严禁编造未在 evidence 中出现的神煞或用神位事件
+
+4. 严格输出以下 JSON，不要 Markdown 围栏：
+{"themes":["主题1","主题2"],"summary":"...","years":[{"year":2005,"ganzhi":"乙酉","narrative":"..."},{"year":2006,"ganzhi":"丙戌","narrative":"..."}]}`
 
 	tmpl, terr := template.New("dayun_summary").Parse(promptTpl)
 	if terr != nil {
