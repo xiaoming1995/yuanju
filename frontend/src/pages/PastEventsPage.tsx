@@ -460,6 +460,18 @@ export default function PastEventsPage() {
                                 </div>
                               )
                             }
+                            // status === 'empty'：AI 主动留空或被护栏拦下。
+                            // 当卡片有 chips 时，用 chips 自动拼一句兜底，避免视觉断层。
+                            if (y.signals && y.signals.length > 0) {
+                              const chipLabels = y.signals
+                                .map((sig) => SIGNAL_LABEL[sig]?.label || sig)
+                                .join('、')
+                              return (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.6 }}>
+                                  本年关键信号：{chipLabels}。详见下方命理依据。
+                                </div>
+                              )
+                            }
                             return null
                           })()}
                           {hasEvidence && (
