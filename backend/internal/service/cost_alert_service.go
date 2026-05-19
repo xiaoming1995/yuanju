@@ -20,9 +20,11 @@ type BudgetStatusScope struct {
 	ExceededPct      int     `json:"exceeded_pct"`
 }
 
-// TopChartItem 单命盘成本卡片项
-type TopChartItem struct {
-	ChartID           string  `json:"chart_id"`
+// TopUserItem 单用户成本卡片项
+type TopUserItem struct {
+	UserID            string  `json:"user_id"`
+	Email             string  `json:"email"`
+	Nickname          string  `json:"nickname"`
 	TotalCostCny      float64 `json:"total_cost_cny"`
 	Calls             int     `json:"calls"`
 	ThresholdExceeded bool    `json:"threshold_exceeded"`
@@ -30,28 +32,28 @@ type TopChartItem struct {
 
 // BudgetStatus 完整预算状态快照
 type BudgetStatus struct {
-	Today                BudgetStatusScope    `json:"today"`
-	ThisMonth            BudgetStatusScope    `json:"this_month"`
-	TopCharts            []TopChartItem       `json:"top_charts"`
-	PerChartThresholdCny float64              `json:"per_chart_threshold_cny"`
-	LastAlertedAt        map[string]time.Time `json:"last_alerted_at,omitempty"`
+	Today               BudgetStatusScope    `json:"today"`
+	ThisMonth           BudgetStatusScope    `json:"this_month"`
+	TopUsers            []TopUserItem        `json:"top_users"`
+	PerUserThresholdCny float64              `json:"per_user_threshold_cny"`
+	LastAlertedAt       map[string]time.Time `json:"last_alerted_at,omitempty"`
 }
 
 // 三个阈值键
 const (
-	keyDailyCostThreshold    = "cost_alert_daily_cost_cny"
-	keyMonthlyCostThreshold  = "cost_alert_monthly_cost_cny"
-	keyPerChartCostThreshold = "cost_alert_per_chart_cost_cny"
+	keyDailyCostThreshold   = "cost_alert_daily_cost_cny"
+	keyMonthlyCostThreshold = "cost_alert_monthly_cost_cny"
+	keyPerUserCostThreshold = "cost_alert_per_user_cost_cny"
 )
 
 // 默认阈值（admin 未配置时）
 const (
-	defaultDailyCostThreshold    = 5.0
-	defaultMonthlyCostThreshold  = 100.0
-	defaultPerChartCostThreshold = 1.0
+	defaultDailyCostThreshold   = 5.0
+	defaultMonthlyCostThreshold = 100.0
+	defaultPerUserCostThreshold = 5.0
 )
 
-// BuildBudgetStatus 聚合今日 / 本月 / 单命盘 TOP 5 成本状态。
+// BuildBudgetStatus 聚合今日 / 本月 / 单用户 TOP 5 成本状态。
 //
 // 复用 service.CalcCost 计算单元成本，保证与 TokenUsagePage 现有显示口径一致。
 // 阈值从 algo_config 表实时读取，不缓存（admin 改完即时生效）。
@@ -68,7 +70,7 @@ func BuildBudgetStatus() (*BudgetStatus, error) {
 
 	dailyThreshold := readFloatConfig(keyDailyCostThreshold, defaultDailyCostThreshold)
 	monthlyThreshold := readFloatConfig(keyMonthlyCostThreshold, defaultMonthlyCostThreshold)
-	perChartThreshold := readFloatConfig(keyPerChartCostThreshold, defaultPerChartCostThreshold)
+	perUserThreshold := readFloatConfig(keyPerUserCostThreshold, defaultPerUserCostThreshold)
 
 	// Today
 	todayRows, todayTokens, err := repository.GetTokenUsageCostByModel(dayStart, dayEnd, CalcCost)
@@ -84,18 +86,20 @@ func BuildBudgetStatus() (*BudgetStatus, error) {
 	}
 	monthCost := sumCost(monthRows)
 
-	// Top charts (7 day window)
-	chartRows, err := repository.GetChartCostBreakdown(sevenDaysAgo, now, 5, CalcCost)
+	// Top users (7 day window)
+	userRows, err := repository.GetUserCostBreakdown(sevenDaysAgo, now, 5, CalcCost)
 	if err != nil {
 		return nil, err
 	}
-	topCharts := make([]TopChartItem, 0, len(chartRows))
-	for _, r := range chartRows {
-		topCharts = append(topCharts, TopChartItem{
-			ChartID:           r.ChartID,
+	topUsers := make([]TopUserItem, 0, len(userRows))
+	for _, r := range userRows {
+		topUsers = append(topUsers, TopUserItem{
+			UserID:            r.UserID,
+			Email:             r.Email,
+			Nickname:          r.Nickname,
 			TotalCostCny:      r.TotalCostCny,
 			Calls:             r.Calls,
-			ThresholdExceeded: r.TotalCostCny > perChartThreshold,
+			ThresholdExceeded: r.TotalCostCny > perUserThreshold,
 		})
 	}
 
@@ -114,9 +118,9 @@ func BuildBudgetStatus() (*BudgetStatus, error) {
 			Exceeded:         monthCost > monthlyThreshold,
 			ExceededPct:      exceededPct(monthCost, monthlyThreshold),
 		},
-		TopCharts:            topCharts,
-		PerChartThresholdCny: perChartThreshold,
-		LastAlertedAt:        snapshotLastAlertedAt(),
+		TopUsers:            topUsers,
+		PerUserThresholdCny: perUserThreshold,
+		LastAlertedAt:       snapshotLastAlertedAt(),
 	}, nil
 }
 
@@ -160,7 +164,7 @@ func snapshotLastAlertedAt() map[string]time.Time {
 }
 
 // alertState 是 ticker 的内存告警状态。
-// Key 为 scope 名（"daily_total" / "monthly_total" / "per_chart"），
+// Key 为 scope 名（"daily_total" / "monthly_total" / "per_user"），
 // value 为上次告警时间。重启清零。
 type alertState struct {
 	mu            sync.Mutex
@@ -251,12 +255,12 @@ func (s *CostAlertScheduler) runOnce() {
 		s.emitAlert("monthly_total", status.ThisMonth.TotalCostCny, status.ThisMonth.ThresholdCostCny)
 		globalAlertState.markAlerted("monthly_total", now)
 	}
-	// per_chart：只要 TOP 列表里有任何越界命盘就 alert（一次性告知，不区分到具体命盘）
-	for _, c := range status.TopCharts {
+	// per_user：只要 TOP 列表里有任何越界用户就 alert（一次性告知，不区分到具体用户）
+	for _, c := range status.TopUsers {
 		if c.ThresholdExceeded {
-			if globalAlertState.shouldAlert("per_chart", now) {
-				s.emitAlert("per_chart", c.TotalCostCny, status.PerChartThresholdCny)
-				globalAlertState.markAlerted("per_chart", now)
+			if globalAlertState.shouldAlert("per_user", now) {
+				s.emitAlert("per_user", c.TotalCostCny, status.PerUserThresholdCny)
+				globalAlertState.markAlerted("per_user", now)
 			}
 			break
 		}

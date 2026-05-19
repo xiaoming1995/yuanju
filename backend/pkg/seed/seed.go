@@ -91,7 +91,7 @@ func SeedCostAlertThresholds() {
 	}{
 		{"cost_alert_daily_cost_cny", "5", "单日 AI 总成本告警阈值（CNY）"},
 		{"cost_alert_monthly_cost_cny", "100", "单月 AI 总成本告警阈值（CNY）"},
-		{"cost_alert_per_chart_cost_cny", "1", "单命盘 AI 总成本告警阈值（CNY）"},
+		{"cost_alert_per_user_cost_cny", "5", "单用户 AI 总成本告警阈值（CNY，7 天滑窗）"},
 	}
 	for _, d := range defaults {
 		if _, err := database.DB.Exec(

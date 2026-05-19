@@ -30,7 +30,7 @@ func TestGetTokenUsageCostByModel_AggregatesGroupedRows(t *testing.T) {
 	}
 }
 
-func TestGetChartCostBreakdown_RespectsLimitAndSortsByCost(t *testing.T) {
+func TestGetUserCostBreakdown_RespectsLimitAndSortsByCost(t *testing.T) {
 	if testing.Short() {
 		t.Skip("requires DB")
 	}
@@ -38,7 +38,7 @@ func TestGetChartCostBreakdown_RespectsLimitAndSortsByCost(t *testing.T) {
 	from := now.AddDate(0, 0, -7)
 	to := now
 
-	rows, err := GetChartCostBreakdown(from, to, 5, fakeCostFn)
+	rows, err := GetUserCostBreakdown(from, to, 5, fakeCostFn)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}

@@ -48,8 +48,10 @@ interface BudgetStatusScope {
   exceeded_pct: number
 }
 
-interface TopChartItem {
-  chart_id: string
+interface TopUserItem {
+  user_id: string
+  email: string
+  nickname: string
   total_cost_cny: number
   calls: number
   threshold_exceeded: boolean
@@ -58,15 +60,15 @@ interface TopChartItem {
 interface BudgetStatus {
   today: BudgetStatusScope
   this_month: BudgetStatusScope
-  top_charts: TopChartItem[]
-  per_chart_threshold_cny: number
+  top_users: TopUserItem[]
+  per_user_threshold_cny: number
   last_alerted_at?: Record<string, string>
 }
 
 interface ThresholdEdit {
   daily: string
   monthly: string
-  per_chart: string
+  per_user: string
 }
 
 function fmt(n: number) {
@@ -140,7 +142,7 @@ export default function TokenUsagePage() {
 
   const [budget, setBudget] = useState<BudgetStatus | null>(null)
   const [thresholdEditOpen, setThresholdEditOpen] = useState(false)
-  const [thresholdDraft, setThresholdDraft] = useState<ThresholdEdit>({ daily: '', monthly: '', per_chart: '' })
+  const [thresholdDraft, setThresholdDraft] = useState<ThresholdEdit>({ daily: '', monthly: '', per_user: '' })
   const [thresholdSaving, setThresholdSaving] = useState(false)
   const [thresholdError, setThresholdError] = useState('')
 
@@ -232,7 +234,7 @@ export default function TokenUsagePage() {
               setThresholdDraft({
                 daily: String(budget.today.threshold_cost_cny),
                 monthly: String(budget.this_month.threshold_cost_cny),
-                per_chart: String(budget.per_chart_threshold_cny),
+                per_user: String(budget.per_user_threshold_cny),
               })
             }
             setThresholdError('')
@@ -299,22 +301,25 @@ export default function TokenUsagePage() {
 
           <div className="admin-card" style={{ padding: 16 }}>
             <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>
-              单命盘 TOP 5（近 7 天，阈值 ¥{budget.per_chart_threshold_cny.toFixed(2)}）
+              用户 TOP 5（近 7 天，阈值 ¥{budget.per_user_threshold_cny.toFixed(2)}）
             </div>
-            {budget.top_charts.length === 0 ? (
+            {budget.top_users.length === 0 ? (
               <div style={{ color: '#666', fontSize: 13 }}>暂无数据</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {budget.top_charts.map((c, i) => (
-                  <div
-                    key={c.chart_id}
-                    title={c.chart_id}
-                    style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', color: c.threshold_exceeded ? '#fca5a5' : '#e0e0e0' }}
-                  >
-                    <span>{i + 1}. {c.chart_id.slice(0, 8)}…{c.threshold_exceeded ? ' ⚠' : ''}</span>
-                    <span>¥{c.total_cost_cny.toFixed(2)}（{c.calls} 次）</span>
-                  </div>
-                ))}
+                {budget.top_users.map((u, i) => {
+                  const label = u.nickname || u.email || u.user_id.slice(0, 8) + '…'
+                  return (
+                    <div
+                      key={u.user_id}
+                      title={`${u.email || '(no email)'} · ${u.user_id}`}
+                      style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', color: u.threshold_exceeded ? '#fca5a5' : '#e0e0e0' }}
+                    >
+                      <span>{i + 1}. {label.length > 18 ? label.slice(0, 16) + '…' : label}{u.threshold_exceeded ? ' ⚠' : ''}</span>
+                      <span>¥{u.total_cost_cny.toFixed(2)}（{u.calls} 次）</span>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -589,12 +594,12 @@ export default function TokenUsagePage() {
               onChange={(e) => setThresholdDraft({ ...thresholdDraft, monthly: e.target.value })}
               style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 12 }}
             />
-            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>单命盘上限</label>
+            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>单用户上限（近 7 天累计）</label>
             <input
               type="number"
-              step="0.1"
-              value={thresholdDraft.per_chart}
-              onChange={(e) => setThresholdDraft({ ...thresholdDraft, per_chart: e.target.value })}
+              step="0.5"
+              value={thresholdDraft.per_user}
+              onChange={(e) => setThresholdDraft({ ...thresholdDraft, per_user: e.target.value })}
               style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 16 }}
             />
             {thresholdError && <div style={{ color: '#fca5a5', fontSize: 13, marginBottom: 12 }}>{thresholdError}</div>}
@@ -609,7 +614,7 @@ export default function TokenUsagePage() {
                   try {
                     await adminApi.put('/api/admin/algo-config/cost_alert_daily_cost_cny', { value: thresholdDraft.daily })
                     await adminApi.put('/api/admin/algo-config/cost_alert_monthly_cost_cny', { value: thresholdDraft.monthly })
-                    await adminApi.put('/api/admin/algo-config/cost_alert_per_chart_cost_cny', { value: thresholdDraft.per_chart })
+                    await adminApi.put('/api/admin/algo-config/cost_alert_per_user_cost_cny', { value: thresholdDraft.per_user })
                     const resp = await adminTokenUsageAPI.budgetStatus()
                     setBudget(resp.data)
                     setThresholdEditOpen(false)

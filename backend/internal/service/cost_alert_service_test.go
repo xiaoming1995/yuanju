@@ -22,8 +22,8 @@ func TestBuildBudgetStatus_SmokeCheck(t *testing.T) {
 	if status.ThisMonth.ThresholdCostCny <= 0 {
 		t.Errorf("month threshold should be > 0, got %v", status.ThisMonth.ThresholdCostCny)
 	}
-	if status.PerChartThresholdCny <= 0 {
-		t.Errorf("per-chart threshold should be > 0, got %v", status.PerChartThresholdCny)
+	if status.PerUserThresholdCny <= 0 {
+		t.Errorf("per-user threshold should be > 0, got %v", status.PerUserThresholdCny)
 	}
 	if status.Today.TotalCostCny > status.Today.ThresholdCostCny && !status.Today.Exceeded {
 		t.Error("Today.Exceeded should be true when totalCost > threshold")

@@ -270,9 +270,11 @@ WHERE created_at < date_trunc('month', NOW())
 	return rep, nil
 }
 
-// ChartCostRow 单命盘成本聚合行
-type ChartCostRow struct {
-	ChartID      string  `json:"chart_id"`
+// UserCostRow 单用户成本聚合行
+type UserCostRow struct {
+	UserID       string  `json:"user_id"`
+	Email        string  `json:"email"`
+	Nickname     string  `json:"nickname"`
 	TotalCostCny float64 `json:"total_cost_cny"`
 	TotalTokens  int     `json:"total_tokens"`
 	Calls        int     `json:"calls"`
@@ -317,48 +319,54 @@ func GetTokenUsageCostByModel(from, to time.Time, costFn func(string, int, int) 
 	return out, totalTokens, rows.Err()
 }
 
-// GetChartCostBreakdown 返回 [from, to] 区间内成本最高的 N 个命盘。
-// 按 chart_id × model 聚合后，在 Go 层按 chart_id 求总成本并排序、取 top N。
-func GetChartCostBreakdown(from, to time.Time, limit int, costFn func(string, int, int) float64) ([]ChartCostRow, error) {
+// GetUserCostBreakdown 返回 [from, to] 区间内成本最高的 N 个用户。
+// 按 user_id × model 聚合后，在 Go 层按 user_id 求总成本并排序、取 top N。
+// LEFT JOIN users 取 email/nickname；已删除的用户保留 user_id 但 email/nickname 为空。
+func GetUserCostBreakdown(from, to time.Time, limit int, costFn func(string, int, int) float64) ([]UserCostRow, error) {
 	if limit <= 0 {
 		limit = 5
 	}
 	toExcl := to.AddDate(0, 0, 1)
 	rows, err := database.DB.Query(`
 		SELECT
-			chart_id::text                             AS chart_id,
-			COALESCE(model, '')                        AS model,
+			t.user_id::text                            AS user_id,
+			COALESCE(u.email, '')                      AS email,
+			COALESCE(u.nickname, '')                   AS nickname,
+			COALESCE(t.model, '')                      AS model,
 			COUNT(*)::int                              AS calls,
-			COALESCE(SUM(prompt_tokens), 0)::int       AS prompt_tokens,
-			COALESCE(SUM(completion_tokens), 0)::int   AS completion_tokens,
-			COALESCE(SUM(total_tokens), 0)::int        AS total_tokens
-		FROM token_usage_logs
-		WHERE chart_id IS NOT NULL AND created_at >= $1 AND created_at < $2
-		GROUP BY chart_id, model`,
+			COALESCE(SUM(t.prompt_tokens), 0)::int     AS prompt_tokens,
+			COALESCE(SUM(t.completion_tokens), 0)::int AS completion_tokens,
+			COALESCE(SUM(t.total_tokens), 0)::int      AS total_tokens
+		FROM token_usage_logs t
+		LEFT JOIN users u ON u.id = t.user_id
+		WHERE t.user_id IS NOT NULL AND t.created_at >= $1 AND t.created_at < $2
+		GROUP BY t.user_id, u.email, u.nickname, t.model`,
 		from, toExcl,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("GetChartCostBreakdown: %w", err)
+		return nil, fmt.Errorf("GetUserCostBreakdown: %w", err)
 	}
 	defer rows.Close()
 
 	type aggCell struct {
-		cost   float64
-		tokens int
-		calls  int
+		email    string
+		nickname string
+		cost     float64
+		tokens   int
+		calls    int
 	}
-	byChart := map[string]*aggCell{}
+	byUser := map[string]*aggCell{}
 	for rows.Next() {
-		var chartID, model string
+		var userID, email, nickname, model string
 		var calls, prompt, completion, total int
-		if err := rows.Scan(&chartID, &model, &calls, &prompt, &completion, &total); err != nil {
-			log.Printf("[TokenUsage] GetChartCostBreakdown Scan 失败: %v", err)
+		if err := rows.Scan(&userID, &email, &nickname, &model, &calls, &prompt, &completion, &total); err != nil {
+			log.Printf("[TokenUsage] GetUserCostBreakdown Scan 失败: %v", err)
 			continue
 		}
-		if byChart[chartID] == nil {
-			byChart[chartID] = &aggCell{}
+		if byUser[userID] == nil {
+			byUser[userID] = &aggCell{email: email, nickname: nickname}
 		}
-		c := byChart[chartID]
+		c := byUser[userID]
 		if costFn != nil {
 			c.cost += costFn(model, prompt, completion)
 		}
@@ -369,10 +377,12 @@ func GetChartCostBreakdown(from, to time.Time, limit int, costFn func(string, in
 		return nil, err
 	}
 
-	out := make([]ChartCostRow, 0, len(byChart))
-	for chartID, c := range byChart {
-		out = append(out, ChartCostRow{
-			ChartID:      chartID,
+	out := make([]UserCostRow, 0, len(byUser))
+	for userID, c := range byUser {
+		out = append(out, UserCostRow{
+			UserID:       userID,
+			Email:        c.email,
+			Nickname:     c.nickname,
 			TotalCostCny: c.cost,
 			TotalTokens:  c.tokens,
 			Calls:        c.calls,
