@@ -854,7 +854,7 @@ Set the output JSON instruction to this exact shape:
     "top_findings": [
       {
         "text": "吸引力有明显支点，但稳定维度存在拉扯。",
-        "evidence_keys": ["spouse_palace_stability_夫妻宫六冲_02"]
+        "evidence_keys": ["spouse_palace_stability_spouse_palace_chong"]
       }
     ]
   },
@@ -872,7 +872,7 @@ Set the output JSON instruction to this exact shape:
       "main_risk": "热度高但节奏不一致",
       "trigger": "一方推进过快、另一方需要空间时",
       "advice": "先约定沟通频率和边界，不急于做长期承诺",
-      "evidence_keys": ["day_master_communication_日主相克_00"]
+      "evidence_keys": ["day_master_communication_day_master_controlling"]
     }
   ],
   "relationship_strategy": {
@@ -885,7 +885,7 @@ Set the output JSON instruction to this exact shape:
     {
       "claim_id": "long_term_pressure",
       "claim": "长期关系需要额外经营稳定感。",
-      "evidence_keys": ["spouse_palace_stability_夫妻宫六冲_02"],
+      "evidence_keys": ["spouse_palace_stability_spouse_palace_chong"],
       "reasoning": "夫妻宫冲动和现实磨合信号叠加时，关系更容易在长期安排中反复消耗。",
       "caveat": "若双方能建立清晰沟通规则，负向信号的影响会被削弱。"
     }
@@ -955,7 +955,7 @@ func TestCompatibilityDetailJSON_IncludesConsultingShape(t *testing.T) {
 			},
 		},
 		Evidences: []model.CompatibilityEvidence{
-			{EvidenceKey: "spouse_palace_stability_夫妻宫六冲_02", Title: "夫妻宫六冲"},
+			{EvidenceKey: "spouse_palace_stability_spouse_palace_chong", Title: "夫妻宫六冲"},
 		},
 	}
 	raw, err := json.Marshal(detail)
