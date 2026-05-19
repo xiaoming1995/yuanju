@@ -1337,6 +1337,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			} `json:"years"`
 		}
 		if jerr := json.Unmarshal([]byte(raw), &parsed); jerr != nil {
+			log.Printf("[GenerateDayunSummariesStream] dayun=%d 解析 AI JSON 失败：%v；output 长度=%d", dy.Index, jerr, len(raw))
 			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: "解析 AI JSON 失败"})
 			continue
 		}
@@ -1344,6 +1345,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		// 结构校验：years 数组长度必须等于该段实际年份数，且 ganzhi 一一对应。
 		// 不匹配整段算失败，避免错位带来的鬼故事。
 		if len(parsed.Years) != len(dySignals) {
+			log.Printf("[GenerateDayunSummariesStream] dayun=%d years 长度不对：AI 返回 %d，期望 %d", dy.Index, len(parsed.Years), len(dySignals))
 			_ = onItem(DayunSummaryStreamItem{
 				DayunIndex: dy.Index, GanZhi: gz,
 				Error: fmt.Sprintf("years 长度不对：AI 返回 %d，期望 %d", len(parsed.Years), len(dySignals)),
