@@ -213,6 +213,7 @@ export interface CompatibilityDurationAssessment {
 export interface CompatibilityEvidence {
   id: string
   reading_id: string
+  evidence_key: string
   dimension: 'attraction' | 'stability' | 'communication' | 'practicality'
   type: string
   polarity: 'positive' | 'negative' | 'mixed' | 'neutral'
@@ -221,6 +222,58 @@ export interface CompatibilityEvidence {
   detail: string
   weight: number
   created_at: string
+}
+
+export interface CompatibilityFinding {
+  text: string
+  evidence_keys: string[]
+}
+
+export interface CompatibilityRelationshipDiagnosis {
+  relationship_type: string
+  verdict: string
+  summary: string
+  top_findings: CompatibilityFinding[]
+}
+
+export interface CompatibilityDecisionAdvice {
+  recommendation: 'continue' | 'observe' | 'caution' | string
+  confidence: 'high' | 'medium' | 'low' | string
+  conditions: string[]
+  do_next: string[]
+  avoid: string[]
+}
+
+export interface CompatibilityStageRisk {
+  window: 'three_months' | 'one_year' | 'two_years_plus' | string
+  risk_level: 'high' | 'medium' | 'low' | string
+  main_risk: string
+  trigger: string
+  advice: string
+  evidence_keys: string[]
+}
+
+export interface CompatibilityRelationshipStrategy {
+  communication: string
+  conflict: string
+  reality: string
+  boundary: string
+}
+
+export interface CompatibilityClaimEvidenceLink {
+  claim_id: string
+  claim: string
+  evidence_keys: string[]
+  reasoning: string
+  caveat: string
+}
+
+export interface CompatibilityConsultingAssessment {
+  relationship_diagnosis: CompatibilityRelationshipDiagnosis
+  decision_advice: CompatibilityDecisionAdvice
+  stage_risks: CompatibilityStageRisk[]
+  relationship_strategy: CompatibilityRelationshipStrategy
+  claim_evidence_links: CompatibilityClaimEvidenceLink[]
 }
 
 export interface CompatibilityChartSnapshot {
@@ -263,6 +316,7 @@ export interface CompatibilityReading {
   overall_level: 'high' | 'medium' | 'low'
   dimension_scores: CompatibilityDimensionScores
   duration_assessment: CompatibilityDurationAssessment
+  consulting_assessment: CompatibilityConsultingAssessment
   summary_tags: string[]
   analysis_version: string
   created_at: string
@@ -273,6 +327,11 @@ export interface CompatibilityStructuredReport {
   summary: string
   dimensions: Array<{ key: string; title: string; content: string }>
   duration_assessment: CompatibilityDurationAssessment
+  relationship_diagnosis?: CompatibilityRelationshipDiagnosis
+  decision_advice?: CompatibilityDecisionAdvice
+  stage_risks?: CompatibilityStageRisk[]
+  relationship_strategy?: CompatibilityRelationshipStrategy
+  claim_evidence_links?: CompatibilityClaimEvidenceLink[]
   risks: string[]
   advice: string
 }

@@ -25,3 +25,12 @@ test('compatibility result css uses mobile score rows and bottom nav safe area',
   assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-professional-details\s*\{[^}]*margin-top:/s)
   assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-hero-card\s*\{[^}]*padding:\s*20px;/s)
 })
+
+test('compatibility result page defines consulting report sections', () => {
+  const page = read('src/pages/CompatibilityResultPage.tsx')
+  assert.match(page, /ConsultingOverview/)
+  assert.match(page, /DecisionAdvicePanel/)
+  assert.match(page, /StageRiskGrid/)
+  assert.match(page, /RelationshipStrategyPanel/)
+  assert.match(page, /EvidenceLinkedClaims/)
+})
