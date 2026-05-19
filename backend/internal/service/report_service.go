@@ -1157,6 +1157,14 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
    - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
    - 不同年份的 narrative 之间应有差异化措辞，禁止把多年写成同一段。
    - 严禁编造未在 evidence 中出现的神煞或用神位事件
+   - **特别提醒（命理术语易混淆）**：
+     · 伏吟 ≠ 反吟：伏吟是流年与原局某柱完全相同；反吟是天克地冲。
+       只能在 evidence 显式出现"伏吟"或"反吟"时使用对应词汇。
+     · 三合 ≠ 三会：三合是申子辰类水局；三会是亥子丑类方局。
+       evidence 写哪个就用哪个。
+     · "受冲""受刑""用神位""忌神位" 这类结构词只能在 evidence 已用时引用，
+       不能为修饰文字而加。
+     · 例：evidence 写"流年与时柱反吟"，narrative 必须用"反吟"，不能写成"伏吟"。
 
 4. 严格输出以下 JSON，不要 Markdown 围栏：
 {"themes":["主题1","主题2"],"summary":"...","years":[{"year":2005,"ganzhi":"乙酉","narrative":"..."},{"year":2006,"ganzhi":"丙戌","narrative":"..."}]}`
