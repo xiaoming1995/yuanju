@@ -2,6 +2,7 @@ package service
 
 import (
 	"testing"
+	"time"
 )
 
 func TestBuildBudgetStatus_SmokeCheck(t *testing.T) {
@@ -41,5 +42,36 @@ func TestExceededPct_HandlesZeroThreshold(t *testing.T) {
 	pct = exceededPct(150, 100)
 	if pct != 150 {
 		t.Errorf("expected 150, got %d", pct)
+	}
+}
+
+func TestAlertDedup_FirstCrossLogsThenSilences(t *testing.T) {
+	state := newAlertState()
+
+	// First exceeded → should log
+	if !state.shouldAlert("daily_total", time.Now()) {
+		t.Error("first exceeded crossing should log")
+	}
+	state.markAlerted("daily_total", time.Now())
+
+	// Immediately again → should NOT log (within 1h window)
+	if state.shouldAlert("daily_total", time.Now().Add(30*time.Minute)) {
+		t.Error("within 1h dedup window should not log")
+	}
+
+	// >1h later → should log again
+	if !state.shouldAlert("daily_total", time.Now().Add(2*time.Hour)) {
+		t.Error("after 1h should log again")
+	}
+}
+
+func TestAlertState_DifferentScopesIndependent(t *testing.T) {
+	state := newAlertState()
+	now := time.Now()
+	state.markAlerted("daily_total", now)
+
+	// 不同 scope 的告警互不影响
+	if !state.shouldAlert("monthly_total", now) {
+		t.Error("monthly_total should be allowed even when daily_total just alerted")
 	}
 }

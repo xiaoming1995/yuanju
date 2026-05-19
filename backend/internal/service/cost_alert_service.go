@@ -1,7 +1,11 @@
 package service
 
 import (
+	"context"
+	"encoding/json"
+	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"yuanju/internal/repository"
@@ -151,7 +155,132 @@ func readFloatConfig(key string, fallback float64) float64 {
 }
 
 // snapshotLastAlertedAt 返回当前 ticker 内存中的 lastAlertedAt 副本。
-// Task 3 实现 ticker 时填充。本任务里返回 nil。
 func snapshotLastAlertedAt() map[string]time.Time {
-	return nil
+	return globalAlertState.snapshot()
+}
+
+// alertState 是 ticker 的内存告警状态。
+// Key 为 scope 名（"daily_total" / "monthly_total" / "per_chart"），
+// value 为上次告警时间。重启清零。
+type alertState struct {
+	mu            sync.Mutex
+	lastAlertedAt map[string]time.Time
+	dedupWindow   time.Duration
+}
+
+func newAlertState() *alertState {
+	return &alertState{
+		lastAlertedAt: map[string]time.Time{},
+		dedupWindow:   time.Hour,
+	}
+}
+
+func (s *alertState) shouldAlert(scope string, now time.Time) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	last, ok := s.lastAlertedAt[scope]
+	if !ok {
+		return true
+	}
+	return now.Sub(last) >= s.dedupWindow
+}
+
+func (s *alertState) markAlerted(scope string, now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lastAlertedAt[scope] = now
+}
+
+func (s *alertState) snapshot() map[string]time.Time {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make(map[string]time.Time, len(s.lastAlertedAt))
+	for k, v := range s.lastAlertedAt {
+		out[k] = v
+	}
+	return out
+}
+
+// 包级全局 alertState（被 ticker 和 BuildBudgetStatus 共享）
+var globalAlertState = newAlertState()
+
+// CostAlertScheduler ticker 调度器
+type CostAlertScheduler struct {
+	interval time.Duration
+	logger   *log.Logger
+}
+
+// NewCostAlertScheduler 构造默认 5 分钟 tick 间隔的 scheduler
+func NewCostAlertScheduler() *CostAlertScheduler {
+	return &CostAlertScheduler{
+		interval: 5 * time.Minute,
+		logger:   log.Default(),
+	}
+}
+
+// StartScheduler 启动后台 ticker。调用方应在 main 里 go scheduler.StartScheduler(ctx)。
+// ctx 取消时退出。
+func (s *CostAlertScheduler) StartScheduler(ctx context.Context) {
+	ticker := time.NewTicker(s.interval)
+	defer ticker.Stop()
+	s.logger.Printf("[cost_alert] scheduler started (interval=%s)", s.interval)
+	for {
+		select {
+		case <-ctx.Done():
+			s.logger.Printf("[cost_alert] scheduler stopped")
+			return
+		case <-ticker.C:
+			s.runOnce()
+		}
+	}
+}
+
+// runOnce 单次检测：聚合预算状态，必要时打日志
+func (s *CostAlertScheduler) runOnce() {
+	status, err := BuildBudgetStatus()
+	if err != nil {
+		s.logger.Printf("[cost_alert] BuildBudgetStatus 失败: %v", err)
+		return
+	}
+	now := time.Now()
+	if status.Today.Exceeded && globalAlertState.shouldAlert("daily_total", now) {
+		s.emitAlert("daily_total", status.Today.TotalCostCny, status.Today.ThresholdCostCny)
+		globalAlertState.markAlerted("daily_total", now)
+	}
+	if status.ThisMonth.Exceeded && globalAlertState.shouldAlert("monthly_total", now) {
+		s.emitAlert("monthly_total", status.ThisMonth.TotalCostCny, status.ThisMonth.ThresholdCostCny)
+		globalAlertState.markAlerted("monthly_total", now)
+	}
+	// per_chart：只要 TOP 列表里有任何越界命盘就 alert（一次性告知，不区分到具体命盘）
+	for _, c := range status.TopCharts {
+		if c.ThresholdExceeded {
+			if globalAlertState.shouldAlert("per_chart", now) {
+				s.emitAlert("per_chart", c.TotalCostCny, status.PerChartThresholdCny)
+				globalAlertState.markAlerted("per_chart", now)
+			}
+			break
+		}
+	}
+}
+
+// emitAlert 写一行结构化 JSON 日志
+func (s *CostAlertScheduler) emitAlert(scope string, currentCny, thresholdCny float64) {
+	type out struct {
+		Evt          string  `json:"evt"`
+		Scope        string  `json:"scope"`
+		CurrentCny   float64 `json:"current_cny"`
+		ThresholdCny float64 `json:"threshold_cny"`
+		ExceededPct  int     `json:"exceeded_pct"`
+		TimestampISO string  `json:"timestamp"`
+	}
+	o := out{
+		Evt:          "cost_threshold_exceeded",
+		Scope:        scope,
+		CurrentCny:   currentCny,
+		ThresholdCny: thresholdCny,
+		ExceededPct:  exceededPct(currentCny, thresholdCny),
+		TimestampISO: time.Now().UTC().Format(time.RFC3339),
+	}
+	b, _ := json.Marshal(o)
+	s.logger.Println(string(b))
 }
