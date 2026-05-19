@@ -111,6 +111,7 @@ type AIDayunSummary struct {
 	DayunGanZhi string           `json:"dayun_ganzhi"`
 	Themes      *json.RawMessage `json:"themes"`
 	Summary     string           `json:"summary"`
+	Years       *json.RawMessage `json:"years"`
 	Model       string           `json:"model"`
 	CreatedAt   time.Time        `json:"created_at"`
 }

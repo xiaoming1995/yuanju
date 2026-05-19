@@ -1268,7 +1268,8 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		// 6. 写缓存
 		themesJSON, _ := json.Marshal(parsed.Themes)
 		themesRaw := json.RawMessage(themesJSON)
-		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, modelName)
+		// Task 5/7 will replace this; for now passing nil years to keep compile passing.
+		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, nil, modelName)
 
 		// 7. 推送
 		_ = onItem(DayunSummaryStreamItem{
