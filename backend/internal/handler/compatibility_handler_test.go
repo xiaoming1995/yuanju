@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"yuanju/internal/model"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,13 +33,13 @@ func TestCreateCompatibilityReading_MissingFields(t *testing.T) {
 	r := newCompatibilityRouter()
 
 	cases := []struct {
-		name    string
-		body    map[string]any
+		name     string
+		body     map[string]any
 		wantCode int
 	}{
 		{
-			name:    "empty body",
-			body:    map[string]any{},
+			name:     "empty body",
+			body:     map[string]any{},
 			wantCode: http.StatusUnprocessableEntity,
 		},
 		{
@@ -86,5 +88,35 @@ func TestCreateCompatibilityReading_MissingFields(t *testing.T) {
 				t.Errorf("expected %d, got %d: %s", tc.wantCode, w.Code, w.Body.String())
 			}
 		})
+	}
+}
+
+func TestCompatibilityDetailJSON_IncludesConsultingShape(t *testing.T) {
+	detail := model.CompatibilityDetail{
+		Reading: &model.CompatibilityReading{
+			ConsultingAssessment: model.CompatibilityConsultingAssessment{
+				RelationshipDiagnosis: model.CompatibilityRelationshipDiagnosis{
+					RelationshipType: "短期吸引强、长期承压型",
+					Verdict:          "建议谨慎观察",
+				},
+			},
+		},
+		Evidences: []model.CompatibilityEvidence{
+			{EvidenceKey: "spouse_palace_stability_spouse_palace_chong", Title: "夫妻宫六冲"},
+		},
+	}
+	raw, err := json.Marshal(detail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(raw)
+	if !strings.Contains(body, `"consulting_assessment"`) {
+		t.Fatalf("expected consulting assessment in json: %s", body)
+	}
+	if !strings.Contains(body, `"relationship_diagnosis"`) {
+		t.Fatalf("expected relationship diagnosis in json: %s", body)
+	}
+	if !strings.Contains(body, `"evidence_key"`) {
+		t.Fatalf("expected evidence key in json: %s", body)
 	}
 }
