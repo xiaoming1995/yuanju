@@ -55,11 +55,21 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 			bazi.EnsureTenGodRelation(&cached)
 			// 老 chart 的 result_json 没有 ShishenConfidence — 幂等回填
 			// （字段值由 Yongshen/Jishen/strength 推算，跨版本可重算）
+			backfilled := false
 			if cached.ShishenConfidence == "" {
 				strengthLevel, _, _ := bazi.GetStrengthDetail(&cached)
 				cached.FavorableShishen, cached.AdverseShishen, cached.ShishenConfidence = bazi.BuildFavorableShishen(
 					cached.DayGan, cached.Yongshen, cached.Jishen, strengthLevel,
 				)
+				backfilled = true
+			}
+			// 回写升级后的 snapshot，避免下次读取再做同样的 backfill
+			if backfilled {
+				if marshalled, mErr := json.Marshal(&cached); mErr == nil {
+					if sErr := repository.SaveChartResultJSON(chart.ID, marshalled); sErr != nil {
+						log.Printf("[LoadOrCalculateResult] result_json 升级回写失败 chart_id=%s: %v", chart.ID, sErr)
+					}
+				}
 			}
 			return &cached, nil
 		}
@@ -1382,7 +1392,9 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		// 6. 写缓存
 		themesJSON, _ := json.Marshal(parsed.Themes)
 		themesRaw := json.RawMessage(themesJSON)
-		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, &yearsRaw, modelName)
+		if upErr := repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, &yearsRaw, modelName); upErr != nil {
+			log.Printf("[GenerateDayunSummariesStream] dayun=%d UpsertDayunSummary 失败：%v", dy.Index, upErr)
+		}
 
 		// 7. 推送
 		_ = onItem(DayunSummaryStreamItem{
