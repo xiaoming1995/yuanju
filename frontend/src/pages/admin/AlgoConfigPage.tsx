@@ -23,6 +23,16 @@ const PARAM_LABELS: Record<string, string> = {
   jixiong_jiHan_min: '极寒阈值（寒性元素最低数量）',
   jixiong_jiRe_min: '极热阈值（暖性元素最低数量）',
   jixiong_shenQiang_pct: '身强判定阈值（生助比例 %）',
+  year_narrative_mode: '年度批语生成模式',
+}
+
+const PARAM_DESCRIPTIONS: Record<string, string> = {
+  year_narrative_mode: 'ai = AI 生成（默认）；template = 走旧模板路径（回滚开关）',
+}
+
+// Keys that require a select dropdown instead of a free-text input
+const SELECT_OPTIONS: Record<string, string[]> = {
+  year_narrative_mode: ['ai', 'template'],
 }
 
 const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸']
@@ -154,15 +164,31 @@ const AlgoConfigPage: React.FC = () => {
                   <td style={{ padding: '10px 12px' }}>
                     <div style={{ fontWeight: 500 }}>{PARAM_LABELS[p.key] || p.key}</div>
                     <div style={{ fontSize: '12px', color: 'var(--color-muted, #888)', marginTop: '2px' }}>{p.key}</div>
+                    {PARAM_DESCRIPTIONS[p.key] && (
+                      <div style={{ fontSize: '12px', color: 'var(--color-muted, #aaa)', marginTop: '2px' }}>{PARAM_DESCRIPTIONS[p.key]}</div>
+                    )}
                   </td>
                   <td style={{ padding: '10px 12px' }}>
                     {editingKey === p.key ? (
-                      <input
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        style={{ padding: '4px 8px', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px', width: '80px' }}
-                        autoFocus
-                      />
+                      SELECT_OPTIONS[p.key] ? (
+                        <select
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px' }}
+                          autoFocus
+                        >
+                          {SELECT_OPTIONS[p.key].map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px', width: '80px' }}
+                          autoFocus
+                        />
+                      )
                     ) : (
                       <span>{p.value}</span>
                     )}

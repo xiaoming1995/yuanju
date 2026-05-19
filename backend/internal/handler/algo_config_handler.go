@@ -21,9 +21,10 @@ func AdminGetAlgoConfig(c *gin.Context) {
 
 	// 构造返回结构（默认值作为 fallback 展示）
 	defaults := map[string]string{
-		"jixiong_jiHan_min":   strconv.Itoa(bazi.DefaultJiHanMin),
-		"jixiong_jiRe_min":    strconv.Itoa(bazi.DefaultJiReMin),
+		"jixiong_jiHan_min":     strconv.Itoa(bazi.DefaultJiHanMin),
+		"jixiong_jiRe_min":      strconv.Itoa(bazi.DefaultJiReMin),
 		"jixiong_shenQiang_pct": strconv.FormatFloat(bazi.DefaultShenQiangPct, 'f', 1, 64),
+		"year_narrative_mode":   "ai",
 	}
 
 	dbMap := make(map[string]repository.AlgoConfigRow, len(rows))
@@ -58,6 +59,7 @@ func AdminUpdateAlgoConfig(c *gin.Context) {
 		"jixiong_jiHan_min":     true,
 		"jixiong_jiRe_min":      true,
 		"jixiong_shenQiang_pct": true,
+		"year_narrative_mode":   true,
 	}
 	if !validKeys[key] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "未知参数键: " + key})
@@ -73,7 +75,7 @@ func AdminUpdateAlgoConfig(c *gin.Context) {
 		return
 	}
 
-	// 数值格式校验
+	// 数值/枚举格式校验
 	switch key {
 	case "jixiong_jiHan_min", "jixiong_jiRe_min":
 		if _, err := strconv.Atoi(body.Value); err != nil {
@@ -83,6 +85,11 @@ func AdminUpdateAlgoConfig(c *gin.Context) {
 	case "jixiong_shenQiang_pct":
 		if _, err := strconv.ParseFloat(body.Value, 64); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "参数值必须为数字"})
+			return
+		}
+	case "year_narrative_mode":
+		if body.Value != "ai" && body.Value != "template" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "year_narrative_mode 只接受 ai 或 template"})
 			return
 		}
 	}
