@@ -108,6 +108,20 @@ func GetCompatibilityDetailForUser(readingID, userID string) (*model.Compatibili
 			return nil, err
 		}
 	}
+	if changed, err := ensureCompatibilityEvidenceKeys(detail); err != nil {
+		return nil, err
+	} else if changed {
+		if err := persistCompatibilityEvidenceKeys(detail); err != nil {
+			return nil, err
+		}
+	}
+	if changed, err := ensureCompatibilityConsultingAssessment(detail); err != nil {
+		return nil, err
+	} else if changed {
+		if err := repository.UpdateCompatibilityConsultingAssessment(readingID, detail.Reading.ConsultingAssessment); err != nil {
+			return nil, err
+		}
+	}
 	return detail, nil
 }
 
@@ -215,6 +229,20 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 			return nil, err
 		}
 	}
+	if changed, err := ensureCompatibilityEvidenceKeys(detail); err != nil {
+		return nil, err
+	} else if changed {
+		if err := persistCompatibilityEvidenceKeys(detail); err != nil {
+			return nil, err
+		}
+	}
+	if changed, err := ensureCompatibilityConsultingAssessment(detail); err != nil {
+		return nil, err
+	} else if changed {
+		if err := repository.UpdateCompatibilityConsultingAssessment(readingID, detail.Reading.ConsultingAssessment); err != nil {
+			return nil, err
+		}
+	}
 
 	promptConfig, err := repository.GetPromptByModule("compatibility")
 	if err != nil {
@@ -272,21 +300,9 @@ func ensureCompatibilityDurationAssessment(detail *model.CompatibilityDetail) (b
 		return false, nil
 	}
 
-	var selfResult, partnerResult *bazi.BaziResult
-	for i := range detail.Participants {
-		p := &detail.Participants[i]
-		result, err := compatibilityParticipantResult(p)
-		if err != nil {
-			return false, err
-		}
-		if p.Role == "self" {
-			selfResult = result
-		} else if p.Role == "partner" {
-			partnerResult = result
-		}
-	}
-	if selfResult == nil || partnerResult == nil {
-		return false, fmt.Errorf("合盘参与者信息不完整")
+	selfResult, partnerResult, err := compatibilityResultsFromDetail(detail)
+	if err != nil {
+		return false, err
 	}
 
 	analysis := bazi.AnalyzeCompatibility(selfResult, partnerResult)
@@ -301,6 +317,108 @@ func ensureCompatibilityDurationAssessment(detail *model.CompatibilityDetail) (b
 		Reasons: analysis.DurationAssessment.Reasons,
 	}
 	return true, nil
+}
+
+func ensureCompatibilityConsultingAssessment(detail *model.CompatibilityDetail) (bool, error) {
+	if detail == nil || detail.Reading == nil {
+		return false, nil
+	}
+	if detail.Reading.ConsultingAssessment.RelationshipDiagnosis.RelationshipType != "" {
+		return false, nil
+	}
+
+	selfResult, partnerResult, err := compatibilityResultsFromDetail(detail)
+	if err != nil {
+		return false, err
+	}
+	analysis := bazi.AnalyzeCompatibility(selfResult, partnerResult)
+	detail.Reading.ConsultingAssessment = mapCompatibilityConsultingAssessment(analysis.ConsultingAssessment)
+	return true, nil
+}
+
+func ensureCompatibilityEvidenceKeys(detail *model.CompatibilityDetail) (bool, error) {
+	if detail == nil || detail.Reading == nil || len(detail.Evidences) == 0 {
+		return false, nil
+	}
+	needsBackfill := false
+	for _, item := range detail.Evidences {
+		if strings.TrimSpace(item.EvidenceKey) == "" {
+			needsBackfill = true
+			break
+		}
+	}
+	if !needsBackfill {
+		return false, nil
+	}
+
+	selfResult, partnerResult, err := compatibilityResultsFromDetail(detail)
+	if err != nil {
+		return false, err
+	}
+	analysis := bazi.AnalyzeCompatibility(selfResult, partnerResult)
+	return applyCompatibilityEvidenceKeys(detail.Evidences, analysis.Evidences), nil
+}
+
+func applyCompatibilityEvidenceKeys(existing []model.CompatibilityEvidence, generated []bazi.CompatibilityEvidence) bool {
+	used := make([]bool, len(generated))
+	changed := false
+	for i := range existing {
+		if strings.TrimSpace(existing[i].EvidenceKey) != "" {
+			continue
+		}
+		for j, candidate := range generated {
+			if used[j] || !compatibilityEvidenceMatches(existing[i], candidate) {
+				continue
+			}
+			existing[i].EvidenceKey = candidate.EvidenceKey
+			used[j] = true
+			changed = true
+			break
+		}
+	}
+	return changed
+}
+
+func compatibilityEvidenceMatches(existing model.CompatibilityEvidence, generated bazi.CompatibilityEvidence) bool {
+	return existing.Dimension == string(generated.Dimension) &&
+		existing.Type == generated.Type &&
+		existing.Polarity == string(generated.Polarity) &&
+		existing.Source == generated.Source &&
+		existing.Title == generated.Title &&
+		existing.Detail == generated.Detail &&
+		existing.Weight == generated.Weight
+}
+
+func persistCompatibilityEvidenceKeys(detail *model.CompatibilityDetail) error {
+	for _, item := range detail.Evidences {
+		if item.ID == "" || strings.TrimSpace(item.EvidenceKey) == "" {
+			continue
+		}
+		if err := repository.UpdateCompatibilityEvidenceKey(item.ID, item.EvidenceKey); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func compatibilityResultsFromDetail(detail *model.CompatibilityDetail) (*bazi.BaziResult, *bazi.BaziResult, error) {
+	var selfResult, partnerResult *bazi.BaziResult
+	for i := range detail.Participants {
+		p := &detail.Participants[i]
+		result, err := compatibilityParticipantResult(p)
+		if err != nil {
+			return nil, nil, err
+		}
+		if p.Role == "self" {
+			selfResult = result
+		} else if p.Role == "partner" {
+			partnerResult = result
+		}
+	}
+	if selfResult == nil || partnerResult == nil {
+		return nil, nil, fmt.Errorf("合盘参与者信息不完整")
+	}
+	return selfResult, partnerResult, nil
 }
 
 func compatibilityParticipantResult(p *model.CompatibilityParticipant) (*bazi.BaziResult, error) {
@@ -344,6 +462,7 @@ func buildCompatibilityPromptData(detail *model.CompatibilityDetail) (*model.Com
 	}
 	scoresJSON, _ := json.Marshal(detail.Reading.DimensionScores)
 	durationJSON, _ := json.Marshal(detail.Reading.DurationAssessment)
+	consultingJSON, _ := json.Marshal(detail.Reading.ConsultingAssessment)
 	evidencesJSON, _ := json.Marshal(detail.Evidences)
 
 	return &model.CompatibilityPromptData{
@@ -353,6 +472,7 @@ func buildCompatibilityPromptData(detail *model.CompatibilityDetail) (*model.Com
 		PartnerChartSummary: partnerSummary,
 		ScoresJSON:          string(scoresJSON),
 		DurationJSON:        string(durationJSON),
+		ConsultingJSON:      string(consultingJSON),
 		EvidencesJSON:       string(evidencesJSON),
 		SummaryTags:         strings.Join(detail.Reading.SummaryTags, "、"),
 	}, nil
@@ -408,29 +528,75 @@ B 命盘摘要：
 关系摘要标签：
 {{.SummaryTags}}
 
+咨询型结构化诊断（JSON）：
+{{.ConsultingJSON}}
+
 结构化证据（JSON）：
 {{.EvidencesJSON}}
 
 输出严格为 JSON：
 {
-  "summary": "总体判断",
+  "summary": "总体判断，必须基于输入证据，不使用绝对断语",
+  "relationship_diagnosis": {
+    "relationship_type": "短期吸引强、长期承压型",
+    "verdict": "建议谨慎观察",
+    "summary": "双方初期靠近感较强，但长期稳定更依赖沟通节奏和现实安排是否能对齐。",
+    "top_findings": [
+      {
+        "text": "吸引力有明显支点，但稳定维度存在拉扯。",
+        "evidence_keys": ["spouse_palace_stability_spouse_palace_chong"]
+      }
+    ]
+  },
+  "decision_advice": {
+    "recommendation": "observe",
+    "confidence": "medium",
+    "conditions": ["先建立稳定沟通规则"],
+    "do_next": ["用一到两个月观察冲突后的修复能力"],
+    "avoid": ["用短期吸引感替代长期判断"]
+  },
+  "stage_risks": [
+    {
+      "window": "three_months",
+      "risk_level": "medium",
+      "main_risk": "热度高但节奏不一致",
+      "trigger": "一方推进过快、另一方需要空间时",
+      "advice": "先约定沟通频率和边界，不急于做长期承诺",
+      "evidence_keys": ["day_master_communication_day_master_controlling"]
+    }
+  ],
+  "relationship_strategy": {
+    "communication": "重要议题用明确约定替代情绪试探。",
+    "conflict": "争执时先暂停升级，再回到具体事件和责任分工。",
+    "reality": "长期计划需要拆成可验证的小步骤。",
+    "boundary": "初期保留个人节奏，避免过快形成单方依赖。"
+  },
+  "claim_evidence_links": [
+    {
+      "claim_id": "long_term_pressure",
+      "claim": "长期关系需要额外经营稳定感。",
+      "evidence_keys": ["spouse_palace_stability_spouse_palace_chong"],
+      "reasoning": "夫妻宫冲动和现实磨合信号叠加时，关系更容易在长期安排中反复消耗。",
+      "caveat": "若双方能建立清晰沟通规则，负向信号的影响会被削弱。"
+    }
+  ],
   "dimensions": [
-    { "key": "attraction", "title": "吸引力", "content": "..." },
-    { "key": "stability", "title": "稳定度", "content": "..." },
-    { "key": "communication", "title": "沟通协同", "content": "..." },
-    { "key": "practicality", "title": "现实磨合", "content": "..." }
+    { "key": "attraction", "title": "吸引力", "content": "基于证据的维度解释" },
+    { "key": "stability", "title": "稳定度", "content": "基于证据的维度解释" },
+    { "key": "communication", "title": "沟通协同", "content": "基于证据的维度解释" },
+    { "key": "practicality", "title": "现实磨合", "content": "基于证据的维度解释" }
   ],
   "duration_assessment": {
     "overall_band": "medium_term",
     "summary": "阶段性维持判断",
-    "reasons": ["...", "..."],
+    "reasons": ["只引用输入中已有的阶段原因"],
     "windows": {
       "three_months": { "level": "high" },
       "one_year": { "level": "medium" },
       "two_years_plus": { "level": "low" }
     }
   },
-  "risks": ["...", "..."],
-  "advice": "..."
+  "risks": ["基于证据的风险点"],
+  "advice": "综合建议"
 }`
 }

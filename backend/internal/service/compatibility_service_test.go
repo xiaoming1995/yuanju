@@ -14,8 +14,8 @@ func makeCompatibilitySnapshot(displayName, gender string) *json.RawMessage {
 		MonthGan: "丙", MonthZhi: "寅",
 		DayGan: "甲", DayZhi: "子",
 		HourGan: "丁", HourZhi: "卯",
-		Gender: gender,
-		Wuxing: bazi.WuxingStats{Mu: 2, Huo: 2, Tu: 1, Jin: 1, Shui: 2},
+		Gender:   gender,
+		Wuxing:   bazi.WuxingStats{Mu: 2, Huo: 2, Tu: 1, Jin: 1, Shui: 2},
 		Yongshen: "火",
 		Jishen:   "金",
 	})
@@ -71,6 +71,60 @@ func TestBuildCompatibilityPromptData_EmbedsDurationAssessment(t *testing.T) {
 	}
 }
 
+func TestBuildCompatibilityPromptData_EmbedsConsultingAssessment(t *testing.T) {
+	detail := &model.CompatibilityDetail{
+		Reading: &model.CompatibilityReading{
+			DimensionScores: model.CompatibilityDimensionScores{
+				Attraction:    78,
+				Stability:     54,
+				Communication: 66,
+				Practicality:  48,
+			},
+			DurationAssessment: model.CompatibilityDurationAssessment{
+				OverallBand: "medium_term",
+				Windows: model.CompatibilityDurationWindows{
+					ThreeMonths:  model.CompatibilityDurationWindow{Level: "high"},
+					OneYear:      model.CompatibilityDurationWindow{Level: "medium"},
+					TwoYearsPlus: model.CompatibilityDurationWindow{Level: "low"},
+				},
+				Summary: "前期吸引强，但长期承压。",
+				Reasons: []string{"夫妻宫冲克明显"},
+			},
+			ConsultingAssessment: model.CompatibilityConsultingAssessment{
+				RelationshipDiagnosis: model.CompatibilityRelationshipDiagnosis{
+					RelationshipType: "短期吸引强、长期承压型",
+					Verdict:          "建议谨慎观察",
+					Summary:          "先观察冲突修复能力。",
+					TopFindings: []model.CompatibilityFinding{
+						{Text: "吸引与稳定分化", EvidenceKeys: []string{"spouse_palace_stability_spouse_palace_chong"}},
+					},
+				},
+				DecisionAdvice: model.CompatibilityDecisionAdvice{Recommendation: "observe", Confidence: "medium"},
+			},
+		},
+		Participants: []model.CompatibilityParticipant{
+			{
+				Role:          "self",
+				DisplayName:   "我",
+				ChartSnapshot: makeCompatibilitySnapshot("我", "male"),
+			},
+			{
+				Role:          "partner",
+				DisplayName:   "对方",
+				ChartSnapshot: makeCompatibilitySnapshot("对方", "female"),
+			},
+		},
+	}
+
+	got, err := buildCompatibilityPromptData(detail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(got.ConsultingJSON, `"relationship_type":"短期吸引强、长期承压型"`) {
+		t.Fatalf("expected consulting json in prompt data, got %s", got.ConsultingJSON)
+	}
+}
+
 func TestEnsureCompatibilityDurationAssessment_BackfillsMissingDuration(t *testing.T) {
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
@@ -107,6 +161,97 @@ func TestEnsureCompatibilityDurationAssessment_BackfillsMissingDuration(t *testi
 	}
 	if detail.Reading.DurationAssessment.Windows.ThreeMonths.Level == "" {
 		t.Fatal("expected duration windows to be backfilled")
+	}
+}
+
+func TestEnsureCompatibilityConsultingAssessment_BackfillsMissingConsulting(t *testing.T) {
+	detail := &model.CompatibilityDetail{
+		Reading: &model.CompatibilityReading{
+			DimensionScores: model.CompatibilityDimensionScores{
+				Attraction:    72,
+				Stability:     58,
+				Communication: 61,
+				Practicality:  55,
+			},
+		},
+		Participants: []model.CompatibilityParticipant{
+			{
+				Role:          "self",
+				DisplayName:   "我",
+				ChartSnapshot: makeCompatibilitySnapshot("我", "male"),
+			},
+			{
+				Role:          "partner",
+				DisplayName:   "对方",
+				ChartSnapshot: makeCompatibilitySnapshot("对方", "female"),
+			},
+		},
+	}
+
+	changed, err := ensureCompatibilityConsultingAssessment(detail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected consulting backfill to report a change")
+	}
+	if detail.Reading.ConsultingAssessment.RelationshipDiagnosis.RelationshipType == "" {
+		t.Fatal("expected relationship diagnosis to be backfilled")
+	}
+}
+
+func TestEnsureCompatibilityEvidenceKeys_BackfillsMissingEvidenceKeys(t *testing.T) {
+	selfSnapshot := makeCompatibilitySnapshot("我", "male")
+	partnerSnapshot := makeCompatibilitySnapshot("对方", "female")
+	var selfResult, partnerResult bazi.BaziResult
+	if err := json.Unmarshal(*selfSnapshot, &selfResult); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(*partnerSnapshot, &partnerResult); err != nil {
+		t.Fatal(err)
+	}
+	analysis := bazi.AnalyzeCompatibility(&selfResult, &partnerResult)
+	if len(analysis.Evidences) == 0 {
+		t.Fatal("expected generated evidence")
+	}
+	generated := analysis.Evidences[0]
+	detail := &model.CompatibilityDetail{
+		Reading: &model.CompatibilityReading{},
+		Participants: []model.CompatibilityParticipant{
+			{
+				Role:          "self",
+				DisplayName:   "我",
+				ChartSnapshot: selfSnapshot,
+			},
+			{
+				Role:          "partner",
+				DisplayName:   "对方",
+				ChartSnapshot: partnerSnapshot,
+			},
+		},
+		Evidences: []model.CompatibilityEvidence{
+			{
+				ID:        "ev-1",
+				Dimension: string(generated.Dimension),
+				Type:      generated.Type,
+				Polarity:  string(generated.Polarity),
+				Source:    generated.Source,
+				Title:     generated.Title,
+				Detail:    generated.Detail,
+				Weight:    generated.Weight,
+			},
+		},
+	}
+
+	changed, err := ensureCompatibilityEvidenceKeys(detail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !changed {
+		t.Fatal("expected evidence key backfill to report a change")
+	}
+	if detail.Evidences[0].EvidenceKey != generated.EvidenceKey {
+		t.Fatalf("expected %q, got %q", generated.EvidenceKey, detail.Evidences[0].EvidenceKey)
 	}
 }
 
@@ -153,7 +298,7 @@ func TestCompatibilityParticipantSummary_ValidSnapshot(t *testing.T) {
 
 func TestCompatibilityPromptFallback_ContainsTemplateVars(t *testing.T) {
 	fb := compatibilityPromptFallback()
-	for _, v := range []string{"{{.SelfLabel}}", "{{.PartnerLabel}}", "{{.ScoresJSON}}", "{{.DurationJSON}}"} {
+	for _, v := range []string{"{{.SelfLabel}}", "{{.PartnerLabel}}", "{{.ScoresJSON}}", "{{.DurationJSON}}", "{{.ConsultingJSON}}"} {
 		if !strings.Contains(fb, v) {
 			t.Errorf("expected fallback prompt to contain %q", v)
 		}

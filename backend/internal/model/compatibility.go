@@ -145,11 +145,16 @@ type CompatibilityDimensionNarrative struct {
 }
 
 type CompatibilityStructuredReport struct {
-	Summary            string                            `json:"summary"`
-	Dimensions         []CompatibilityDimensionNarrative `json:"dimensions"`
-	DurationAssessment CompatibilityDurationAssessment   `json:"duration_assessment"`
-	Risks              []string                          `json:"risks"`
-	Advice             string                            `json:"advice"`
+	Summary               string                             `json:"summary"`
+	Dimensions            []CompatibilityDimensionNarrative  `json:"dimensions"`
+	DurationAssessment    CompatibilityDurationAssessment    `json:"duration_assessment"`
+	RelationshipDiagnosis CompatibilityRelationshipDiagnosis `json:"relationship_diagnosis"`
+	DecisionAdvice        CompatibilityDecisionAdvice        `json:"decision_advice"`
+	StageRisks            []CompatibilityStageRisk           `json:"stage_risks"`
+	RelationshipStrategy  CompatibilityRelationshipStrategy  `json:"relationship_strategy"`
+	ClaimEvidenceLinks    []CompatibilityClaimEvidenceLink   `json:"claim_evidence_links"`
+	Risks                 []string                           `json:"risks"`
+	Advice                string                             `json:"advice"`
 }
 
 type CompatibilityPromptData struct {
@@ -159,6 +164,7 @@ type CompatibilityPromptData struct {
 	PartnerChartSummary string
 	ScoresJSON          string
 	DurationJSON        string
+	ConsultingJSON      string
 	EvidencesJSON       string
 	SummaryTags         string
 }

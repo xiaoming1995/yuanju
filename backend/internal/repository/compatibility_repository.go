@@ -207,6 +207,16 @@ func UpdateCompatibilityConsultingAssessment(readingID string, consulting model.
 	return err
 }
 
+func UpdateCompatibilityEvidenceKey(evidenceID, evidenceKey string) error {
+	_, err := database.DB.Exec(
+		`UPDATE compatibility_evidences
+		 SET evidence_key = $2
+		 WHERE id = $1`,
+		evidenceID, evidenceKey,
+	)
+	return err
+}
+
 func GetCompatibilityReadingOwner(readingID string) (string, error) {
 	var userID string
 	err := database.DB.QueryRow(
