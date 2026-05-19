@@ -53,6 +53,24 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 		var cached bazi.BaziResult
 		if err := json.Unmarshal(raw, &cached); err == nil {
 			bazi.EnsureTenGodRelation(&cached)
+			// 老 chart 的 result_json 没有 ShishenConfidence — 幂等回填
+			// （字段值由 Yongshen/Jishen/strength 推算，跨版本可重算）
+			backfilled := false
+			if cached.ShishenConfidence == "" {
+				strengthLevel, _, _ := bazi.GetStrengthDetail(&cached)
+				cached.FavorableShishen, cached.AdverseShishen, cached.ShishenConfidence = bazi.BuildFavorableShishen(
+					cached.DayGan, cached.Yongshen, cached.Jishen, strengthLevel,
+				)
+				backfilled = true
+			}
+			// 回写升级后的 snapshot，避免下次读取再做同样的 backfill
+			if backfilled {
+				if marshalled, mErr := json.Marshal(&cached); mErr == nil {
+					if sErr := repository.SaveChartResultJSON(chart.ID, marshalled); sErr != nil {
+						log.Printf("[LoadOrCalculateResult] result_json 升级回写失败 chart_id=%s: %v", chart.ID, sErr)
+					}
+				}
+			}
 			return &cached, nil
 		}
 		// 反序列化失败：日志告警后回退到重新计算（防止脏数据卡死）
@@ -67,6 +85,18 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 		}
 	}
 	return result, nil
+}
+
+// formatTiaohouSummary 仅在 ShishenConfidence=soft 时使用，把调候用神简洁地给 AI 看
+// 返回示例："丙火"、"丙、丁火"；调候信息缺失时返回空串
+func formatTiaohouSummary(result *bazi.BaziResult) string {
+	if result == nil || result.Tiaohou == nil {
+		return ""
+	}
+	if len(result.Tiaohou.Expected) == 0 {
+		return ""
+	}
+	return strings.Join(result.Tiaohou.Expected, "、")
 }
 
 // formatYongshenInfo 将 BaziResult 的 yongshen 字段格式化为 prompt 可读的文案
@@ -1128,6 +1158,9 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 原局：{{.NatalSummary}}
 {{if .YongshenInfo}}用忌神：{{.YongshenInfo}}{{end}}
 {{if .StrengthDetail}}身强弱：{{.StrengthDetail}}{{end}}
+{{if eq .ShishenConfidence "hard"}}本命喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；本命忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（强势二元判定，请以此为流年吉凶主轴）
+{{else if eq .ShishenConfidence "medium"}}本命偏向喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；偏忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（中等强度，调候/格局可微调）
+{{else if eq .ShishenConfidence "soft"}}本命喜忌不显（身强弱中和），{{if .TiaohouSummary}}以调候用神 {{.TiaohouSummary}} 为主{{else}}以调候为主{{end}}，AI 自行从年度 evidence 判断{{end}}
 
 当前大运：{{.DayunInfo}}
 {{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
@@ -1235,15 +1268,19 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		lifeStageHint := buildLifeStageHint(youngCount, totalCount)
 
 		tplData := model.DayunSummaryTemplateData{
-			Gender:         genderLabel,
-			DayGan:         result.DayGan,
-			NatalSummary:   natalSummary,
-			YongshenInfo:   yongshenInfo,
-			StrengthDetail: strengthDetail,
-			DayunInfo:      dayunInfo,
-			HuaheTag:       huaheMap[gz],
-			YearsData:      string(dySigsJSON),
-			LifeStageHint:  lifeStageHint,
+			Gender:            genderLabel,
+			DayGan:            result.DayGan,
+			NatalSummary:      natalSummary,
+			YongshenInfo:      yongshenInfo,
+			StrengthDetail:    strengthDetail,
+			DayunInfo:         dayunInfo,
+			HuaheTag:          huaheMap[gz],
+			YearsData:         string(dySigsJSON),
+			LifeStageHint:     lifeStageHint,
+			FavorableShishen:  result.FavorableShishen,
+			AdverseShishen:    result.AdverseShishen,
+			ShishenConfidence: result.ShishenConfidence,
+			TiaohouSummary:    formatTiaohouSummary(result),
 		}
 		var pbuf bytes.Buffer
 		if err := tmpl.Execute(&pbuf, tplData); err != nil {
@@ -1300,6 +1337,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			} `json:"years"`
 		}
 		if jerr := json.Unmarshal([]byte(raw), &parsed); jerr != nil {
+			log.Printf("[GenerateDayunSummariesStream] dayun=%d 解析 AI JSON 失败：%v；output 长度=%d", dy.Index, jerr, len(raw))
 			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: "解析 AI JSON 失败"})
 			continue
 		}
@@ -1307,6 +1345,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		// 结构校验：years 数组长度必须等于该段实际年份数，且 ganzhi 一一对应。
 		// 不匹配整段算失败，避免错位带来的鬼故事。
 		if len(parsed.Years) != len(dySignals) {
+			log.Printf("[GenerateDayunSummariesStream] dayun=%d years 长度不对：AI 返回 %d，期望 %d", dy.Index, len(parsed.Years), len(dySignals))
 			_ = onItem(DayunSummaryStreamItem{
 				DayunIndex: dy.Index, GanZhi: gz,
 				Error: fmt.Sprintf("years 长度不对：AI 返回 %d，期望 %d", len(parsed.Years), len(dySignals)),
@@ -1355,7 +1394,9 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		// 6. 写缓存
 		themesJSON, _ := json.Marshal(parsed.Themes)
 		themesRaw := json.RawMessage(themesJSON)
-		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, &yearsRaw, modelName)
+		if upErr := repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, &yearsRaw, modelName); upErr != nil {
+			log.Printf("[GenerateDayunSummariesStream] dayun=%d UpsertDayunSummary 失败：%v", dy.Index, upErr)
+		}
 
 		// 7. 推送
 		_ = onItem(DayunSummaryStreamItem{

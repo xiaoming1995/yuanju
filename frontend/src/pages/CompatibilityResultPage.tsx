@@ -653,11 +653,6 @@ export default function CompatibilityResultPage() {
         <div className="card compatibility-ai-card">
           <div className="compatibility-ai-header">
             <h2 className="serif compatibility-section-title">合盘解读</h2>
-            {!detail.latest_report && (
-              <button className="btn btn-primary" onClick={handleGenerateReport} disabled={reportLoading}>
-                {reportLoading ? '生成中...' : '生成解读'}
-              </button>
-            )}
           </div>
 
           {error && <p style={{ color: '#e77' }}>{error}</p>}

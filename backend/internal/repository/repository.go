@@ -223,9 +223,10 @@ func SaveChartResultJSON(chartID string, resultJSON []byte) error {
 func CreateReport(chartID, content, modelName string, contentStructured *json.RawMessage) (*model.AIReport, error) {
 	report := &model.AIReport{}
 	err := database.DB.QueryRow(
-		`INSERT INTO ai_reports (chart_id, content, model, content_structured) VALUES ($1,$2,$3,$4)
+		`INSERT INTO ai_reports (chart_id, content, model, content_structured, algorithm_version)
+		 VALUES ($1,$2,$3,$4,$5)
 		 RETURNING id, chart_id, content, model, created_at, content_structured`,
-		chartID, content, modelName, contentStructured,
+		chartID, content, modelName, contentStructured, CurrentAlgorithmVersion,
 	).Scan(&report.ID, &report.ChartID, &report.Content, &report.Model, &report.CreatedAt, &report.ContentStructured)
 	return report, err
 }

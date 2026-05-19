@@ -235,3 +235,37 @@ resLunar.YearGan, resLunar.MonthGan, resLunar.DayGan,
 resSolar.YearGan, resSolar.MonthGan, resSolar.DayGan)
 	}
 }
+
+// TestCalculate_PopulatesFavorableShishen 端到端校验：从生日 → BaziResult →
+// FavorableShishen/AdverseShishen/ShishenConfidence 三字段非空（除中和命主外）。
+func TestCalculate_PopulatesFavorableShishen(t *testing.T) {
+	// 1995年10月12日 12 时（之前对话里用过的样本）
+	res := Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
+	if res == nil {
+		t.Fatal("Calculate returned nil")
+	}
+	if res.ShishenConfidence == "" {
+		t.Fatal("ShishenConfidence should always be set (got empty)")
+	}
+	t.Logf("Sample chart 1995-10-12: dayGan=%s yongshen=%q jishen=%q confidence=%s",
+		res.DayGan, res.Yongshen, res.Jishen, res.ShishenConfidence)
+	t.Logf("  FavorableShishen=%v", res.FavorableShishen)
+	t.Logf("  AdverseShishen=%v", res.AdverseShishen)
+
+	// hard/medium 时必须有内容；soft 时必须为空
+	switch res.ShishenConfidence {
+	case ShishenConfHard, ShishenConfMedium:
+		if len(res.FavorableShishen) == 0 {
+			t.Errorf("%s confidence should yield non-empty FavorableShishen", res.ShishenConfidence)
+		}
+		if len(res.AdverseShishen) == 0 {
+			t.Errorf("%s confidence should yield non-empty AdverseShishen", res.ShishenConfidence)
+		}
+	case ShishenConfSoft:
+		if len(res.FavorableShishen) != 0 || len(res.AdverseShishen) != 0 {
+			t.Errorf("soft confidence should yield empty lists")
+		}
+	default:
+		t.Errorf("unknown confidence band: %q", res.ShishenConfidence)
+	}
+}

@@ -178,3 +178,28 @@ Existing cached dayun summaries keep their old algorithm output. Users see the n
 
 - Q: When `Yongshen` includes both `木` and `火` but `strength=weak`, are 比肩/劫财 (生木) and 偏印/正印 (生木) equally favorable?
   - A: Yes, both flagged as 喜. AI distinguishes via 流年 context.
+
+## Lessons Learned (in-flight, captured post-attempt)
+
+### Patch 4 (allowed_keywords whitelist) — reverted
+
+During Phase 1 validation we attempted to close the last 3% empty-year gap by injecting a per-year `allowed_keywords` array into the signals JSON, paired with a prompt clause "narrative 中只能使用 allowed_keywords 列出的命理术语". Hypothesis: AI would treat the list as a hard restriction.
+
+**Single-run measurement on chart 17129161**:
+- Before Patch 4 (Patches 1-3 alone): 3/90 = 3.3% empty cards, 3 validator drops (all 伏吟)
+- With Patch 4: 9/90 = 10% empty cards, 9 validator drops (伏吟 + 驿马 + 三会 + 亡神 + ...)
+
+**Observed failure mode**: AI read the whitelist as a *suggestion list* rather than a *restriction list*. Listing valid terms apparently made the AI more inclined to decorate narratives with them — including across year boundaries (year X's allowed_keywords leaked into year Y's narrative).
+
+This is essentially a prompt-injection backfire: a list labeled "allowed" reads to an LLM more like "options you should consider" than "the only choices permitted".
+
+**Decision**: Reverted via `git revert 16918ea`. Do not retry this strategy in Phase 2 — at least not in this naive form. Phase 2 keyword-restriction work should be **validator-side, not prompt-side**:
+- Option A: Validator clears only the offending sentence, not the whole narrative (preserves the 95% that's correct).
+- Option B: Validator triggers a single retry with the offending term explicitly forbidden in the retry prompt.
+- Option C: Soften validator for the 24 神煞 set (warn + render with footnote rather than blank); keep hard validator for relation words (伏吟/反吟/受冲/受刑).
+
+These options do not depend on AI compliance with a prompt-side whitelist, sidestepping the backfire.
+
+### Phase 1 net result
+
+After revert: 5 commits substantively improving the pipeline (喜忌十神 injection + algorithm_version + cached snapshot self-upgrade + 3 silent-failure log adds). Single-chart end-to-end test: **3.3% empty rate vs 60% baseline = 18x reduction**. Phase 2 trigger threshold (40%) not met; remaining gap is concentrated on 伏吟 over-confidence, which a validator-side fix (see Phase 2 options above) should close.

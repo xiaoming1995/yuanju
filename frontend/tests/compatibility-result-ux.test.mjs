@@ -34,3 +34,9 @@ test('compatibility result page defines consulting report sections', () => {
   assert.match(page, /RelationshipStrategyPanel/)
   assert.match(page, /EvidenceLinkedClaims/)
 })
+
+test('compatibility result page exposes a single report generation action', () => {
+  const page = read('src/pages/CompatibilityResultPage.tsx')
+  const generateClicks = page.match(/onClick=\{handleGenerateReport\}/g) || []
+  assert.equal(generateClicks.length, 1)
+})

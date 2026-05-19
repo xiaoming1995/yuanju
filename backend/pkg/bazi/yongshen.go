@@ -10,6 +10,66 @@ const (
 	YongshenStatusFuyi                = "fuyi"
 )
 
+// ShishenConfidence 喜忌十神的置信度档位
+// hard：极强/极弱，二元判定有效
+// medium：身强/身弱，方向明确但有调候/格局干扰
+// soft：中和或缺失数据，不应硬给清单（让 AI 自判）
+const (
+	ShishenConfHard   = "hard"
+	ShishenConfMedium = "medium"
+	ShishenConfSoft   = "soft"
+)
+
+// 古法喜忌十神：身旺喜泄克耗，身弱喜生扶
+var (
+	favorableShishenStrong = []string{"食神", "伤官", "偏财", "正财", "正官", "七杀"}
+	adverseShishenStrong   = []string{"比肩", "劫财", "偏印", "正印"}
+	favorableShishenWeak   = []string{"偏印", "正印", "比肩", "劫财"}
+	adverseShishenWeak     = []string{"食神", "伤官", "偏财", "正财", "正官", "七杀"}
+)
+
+// BuildFavorableShishen 由身强弱 + 用忌神五行集合 推算 喜忌十神 + 置信度。
+//
+// 古法规则（《滴天髓》/《子平真诠》主流）：
+//
+//	身旺 vstrong/strong → 喜 食伤/财/官杀（泄克耗）
+//	                     忌 比劫/印（生扶）
+//	身弱 vweak/weak     → 喜 比劫/印（生扶）
+//	                     忌 食伤/财/官杀（泄克耗）
+//	中和 neutral        → 喜忌不显，soft 置信度，以调候为主
+//
+// 当上游 yongshen/jishen 五行集合缺失时降级为 soft，让 AI 自行从 evidence 判断。
+//
+// dayGan 当前仅用于未来扩展（实战派 大运 修正），Phase 1 不参与计算。
+func BuildFavorableShishen(dayGan, yongshen, jishen, strength string) (favorable, adverse []string, confidence string) {
+	confidence = strengthToShishenConfidence(strength)
+	if confidence == ShishenConfSoft {
+		return nil, nil, ShishenConfSoft
+	}
+	if yongshen == "" || jishen == "" {
+		return nil, nil, ShishenConfSoft
+	}
+	switch strength {
+	case "vstrong", "strong":
+		return append([]string{}, favorableShishenStrong...), append([]string{}, adverseShishenStrong...), confidence
+	case "vweak", "weak":
+		return append([]string{}, favorableShishenWeak...), append([]string{}, adverseShishenWeak...), confidence
+	}
+	return nil, nil, ShishenConfSoft
+}
+
+// strengthToShishenConfidence 把身强弱档位映射到喜忌十神置信度
+func strengthToShishenConfidence(strength string) string {
+	switch strength {
+	case "vstrong", "vweak":
+		return ShishenConfHard
+	case "strong", "weak":
+		return ShishenConfMedium
+	default:
+		return ShishenConfSoft
+	}
+}
+
 // collectNatalGans 收集原局四柱透干（保持出现顺序，未去重）
 func collectNatalGans(yearGan, monthGan, dayGan, hourGan string) []string {
 	out := make([]string, 0, 4)
