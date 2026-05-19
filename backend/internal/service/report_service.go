@@ -1044,38 +1044,41 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 	}, nil
 }
 
-// DayunSummaryStreamItem SSE 流式推送的单段大运 summary
+// DayunSummaryStreamItem SSE 流式推送的单段大运 summary + 10 年卡片
 type DayunSummaryStreamItem struct {
-	DayunIndex int      `json:"dayun_index"`
-	GanZhi     string   `json:"gan_zhi"`
-	Themes     []string `json:"themes"`
-	Summary    string   `json:"summary"`
-	Cached     bool     `json:"cached"`
-	Error      string   `json:"error,omitempty"`
+	DayunIndex int             `json:"dayun_index"`
+	GanZhi     string          `json:"gan_zhi"`
+	Themes     []string        `json:"themes,omitempty"`
+	Summary    string          `json:"summary,omitempty"`
+	Years      json.RawMessage `json:"years,omitempty"`
+	Cached     bool            `json:"cached,omitempty"`
+	Error      string          `json:"error,omitempty"`
 }
 
 func cachedDayunSummaryToStreamItem(cached *model.AIDayunSummary, fallbackGanZhi string) (DayunSummaryStreamItem, bool) {
-	if cached == nil || strings.TrimSpace(cached.Summary) == "" {
+	if cached == nil {
 		return DayunSummaryStreamItem{}, false
 	}
-
+	// 缓存 row 没有 years → lazy migrate：视为缓存未命中，让上游重生
+	if cached.Years == nil {
+		return DayunSummaryStreamItem{}, false
+	}
 	var themes []string
-	if cached.Themes != nil && len(*cached.Themes) > 0 {
+	if cached.Themes != nil {
 		if err := json.Unmarshal(*cached.Themes, &themes); err != nil {
 			return DayunSummaryStreamItem{}, false
 		}
 	}
-
-	gz := strings.TrimSpace(cached.DayunGanZhi)
+	gz := cached.DayunGanZhi
 	if gz == "" {
 		gz = fallbackGanZhi
 	}
-
 	return DayunSummaryStreamItem{
 		DayunIndex: cached.DayunIndex,
 		GanZhi:     gz,
 		Themes:     themes,
 		Summary:    cached.Summary,
+		Years:      *cached.Years,
 		Cached:     true,
 	}, true
 }
@@ -1345,6 +1348,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			GanZhi:     gz,
 			Themes:     parsed.Themes,
 			Summary:    parsed.Summary,
+			Years:      yearsRaw,
 			Cached:     false,
 		})
 	}

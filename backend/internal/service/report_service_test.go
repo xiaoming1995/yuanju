@@ -11,11 +11,13 @@ import (
 
 func TestCachedDayunSummaryToStreamItemReturnsCachedItem(t *testing.T) {
 	themes := json.RawMessage(`["学业突破","贵人扶持"]`)
+	years := json.RawMessage(`[{"year":2020,"gan_zhi":"庚子","narrative":"流年顺遂"}]`)
 	cached := &model.AIDayunSummary{
 		DayunIndex:  2,
 		DayunGanZhi: "乙卯",
 		Themes:      &themes,
 		Summary:     "早年学习有助力，后段适合稳扎稳打。",
+		Years:       &years,
 	}
 
 	item, ok := cachedDayunSummaryToStreamItem(cached, "甲寅")
