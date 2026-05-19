@@ -50,16 +50,17 @@ func ListDayunSummaries(chartID string) ([]model.AIDayunSummary, error) {
 // UpsertDayunSummary 写入或覆盖单段缓存
 func UpsertDayunSummary(chartID string, dayunIndex int, dayunGanZhi string, themes *json.RawMessage, summary string, years *json.RawMessage, modelName string) error {
 	_, err := database.DB.Exec(
-		`INSERT INTO ai_dayun_summaries (chart_id, dayun_index, dayun_ganzhi, themes, summary, years, model)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		`INSERT INTO ai_dayun_summaries (chart_id, dayun_index, dayun_ganzhi, themes, summary, years, model, algorithm_version)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		 ON CONFLICT (chart_id, dayun_index) DO UPDATE
 		 SET dayun_ganzhi = EXCLUDED.dayun_ganzhi,
 		     themes = EXCLUDED.themes,
 		     summary = EXCLUDED.summary,
 		     years = EXCLUDED.years,
 		     model = EXCLUDED.model,
+		     algorithm_version = EXCLUDED.algorithm_version,
 		     created_at = NOW()`,
-		chartID, dayunIndex, dayunGanZhi, themes, summary, years, modelName,
+		chartID, dayunIndex, dayunGanZhi, themes, summary, years, modelName, CurrentAlgorithmVersion,
 	)
 	return err
 }
