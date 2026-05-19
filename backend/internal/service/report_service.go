@@ -996,6 +996,7 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 		return nil, err
 	}
 
+	mode := GetYearNarrativeMode()
 	currentYear := time.Now().Year()
 	minAge := 0
 	if len(result.Dayun) > 0 {
@@ -1022,6 +1023,10 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 
 	years := make([]PastEventsYearItem, 0, len(yearSignals))
 	for _, ys := range yearSignals {
+		var narrative string
+		if mode == "template" {
+			narrative = bazi.RenderYearNarrative(ys)
+		}
 		years = append(years, PastEventsYearItem{
 			Year:            ys.Year,
 			Age:             ys.Age,
@@ -1032,7 +1037,7 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 			DayunPhase:      ys.DayunPhase,
 			TenGodPower:     ys.TenGodPower,
 			Signals:         bazi.ExtractYearSignalTypes(ys),
-			Narrative:       bazi.RenderYearNarrative(ys),
+			Narrative:       narrative,
 			EvidenceSummary: bazi.RenderEvidenceSummary(ys),
 		})
 	}
@@ -1040,7 +1045,7 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 	return &PastEventsYearsResponse{
 		Years:     years,
 		DayunMeta: dayunMeta,
-		Generated: "algo-template",
+		Generated: mode + "-yearly",
 	}, nil
 }
 
