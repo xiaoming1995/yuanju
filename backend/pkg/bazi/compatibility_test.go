@@ -142,3 +142,59 @@ func TestAnalyzeCompatibility_DurationCanBeStrongShortTermButWeakLongTerm(t *tes
 		t.Fatalf("expected staged difference, got %+v", got.DurationAssessment.Windows)
 	}
 }
+
+func TestAnalyzeCompatibility_ReturnsConsultingAssessment(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
+	b := makeCompatNatal("己午", "戊午", "己午", "戊申", "female")
+
+	got := AnalyzeCompatibility(a, b)
+
+	if got.ConsultingAssessment.RelationshipDiagnosis.RelationshipType == "" {
+		t.Fatal("expected relationship type")
+	}
+	if got.ConsultingAssessment.RelationshipDiagnosis.Verdict == "" {
+		t.Fatal("expected verdict")
+	}
+	if len(got.ConsultingAssessment.RelationshipDiagnosis.TopFindings) == 0 {
+		t.Fatal("expected top findings")
+	}
+	if got.ConsultingAssessment.DecisionAdvice.Recommendation == "" {
+		t.Fatal("expected decision recommendation")
+	}
+	if len(got.ConsultingAssessment.StageRisks) != 3 {
+		t.Fatalf("expected three stage risks, got %d", len(got.ConsultingAssessment.StageRisks))
+	}
+	if got.ConsultingAssessment.RelationshipStrategy.Communication == "" {
+		t.Fatal("expected communication strategy")
+	}
+	if len(got.ConsultingAssessment.ClaimEvidenceLinks) == 0 {
+		t.Fatal("expected claim evidence links")
+	}
+}
+
+func TestAnalyzeCompatibility_EvidenceKeysAreStableAndLinked(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
+	b := makeCompatNatal("己午", "戊午", "己午", "戊申", "female")
+
+	got := AnalyzeCompatibility(a, b)
+	keys := map[string]bool{}
+	for _, evidence := range got.Evidences {
+		if evidence.EvidenceKey == "" {
+			t.Fatalf("expected evidence key for %+v", evidence)
+		}
+		if keys[evidence.EvidenceKey] {
+			t.Fatalf("duplicate evidence key %q", evidence.EvidenceKey)
+		}
+		keys[evidence.EvidenceKey] = true
+	}
+	for _, link := range got.ConsultingAssessment.ClaimEvidenceLinks {
+		if link.ClaimID == "" || link.Claim == "" || link.Reasoning == "" {
+			t.Fatalf("expected complete claim link, got %+v", link)
+		}
+		for _, key := range link.EvidenceKeys {
+			if !keys[key] {
+				t.Fatalf("claim link references missing evidence key %q", key)
+			}
+		}
+	}
+}

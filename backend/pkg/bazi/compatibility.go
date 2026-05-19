@@ -40,13 +40,66 @@ const (
 )
 
 type CompatibilityEvidence struct {
-	Dimension CompatibilityDimension `json:"dimension"`
-	Type      string                 `json:"type"`
-	Polarity  CompatibilityPolarity  `json:"polarity"`
-	Source    string                 `json:"source"`
-	Title     string                 `json:"title"`
-	Detail    string                 `json:"detail"`
-	Weight    int                    `json:"weight"`
+	EvidenceKey string                 `json:"evidence_key"`
+	Dimension   CompatibilityDimension `json:"dimension"`
+	Type        string                 `json:"type"`
+	Polarity    CompatibilityPolarity  `json:"polarity"`
+	Source      string                 `json:"source"`
+	Title       string                 `json:"title"`
+	Detail      string                 `json:"detail"`
+	Weight      int                    `json:"weight"`
+}
+
+type CompatibilityFinding struct {
+	Text         string   `json:"text"`
+	EvidenceKeys []string `json:"evidence_keys"`
+}
+
+type CompatibilityRelationshipDiagnosis struct {
+	RelationshipType string                 `json:"relationship_type"`
+	Verdict          string                 `json:"verdict"`
+	Summary          string                 `json:"summary"`
+	TopFindings      []CompatibilityFinding `json:"top_findings"`
+}
+
+type CompatibilityDecisionAdvice struct {
+	Recommendation string   `json:"recommendation"`
+	Confidence     string   `json:"confidence"`
+	Conditions     []string `json:"conditions"`
+	DoNext         []string `json:"do_next"`
+	Avoid          []string `json:"avoid"`
+}
+
+type CompatibilityStageRisk struct {
+	Window       string   `json:"window"`
+	RiskLevel    string   `json:"risk_level"`
+	MainRisk     string   `json:"main_risk"`
+	Trigger      string   `json:"trigger"`
+	Advice       string   `json:"advice"`
+	EvidenceKeys []string `json:"evidence_keys"`
+}
+
+type CompatibilityRelationshipStrategy struct {
+	Communication string `json:"communication"`
+	Conflict      string `json:"conflict"`
+	Reality       string `json:"reality"`
+	Boundary      string `json:"boundary"`
+}
+
+type CompatibilityClaimEvidenceLink struct {
+	ClaimID      string   `json:"claim_id"`
+	Claim        string   `json:"claim"`
+	EvidenceKeys []string `json:"evidence_keys"`
+	Reasoning    string   `json:"reasoning"`
+	Caveat       string   `json:"caveat"`
+}
+
+type CompatibilityConsultingAssessment struct {
+	RelationshipDiagnosis CompatibilityRelationshipDiagnosis `json:"relationship_diagnosis"`
+	DecisionAdvice        CompatibilityDecisionAdvice        `json:"decision_advice"`
+	StageRisks            []CompatibilityStageRisk           `json:"stage_risks"`
+	RelationshipStrategy  CompatibilityRelationshipStrategy  `json:"relationship_strategy"`
+	ClaimEvidenceLinks    []CompatibilityClaimEvidenceLink   `json:"claim_evidence_links"`
 }
 
 type CompatibilityDimensionScores struct {
@@ -74,11 +127,12 @@ type CompatibilityDurationAssessment struct {
 }
 
 type CompatibilityAnalysis struct {
-	OverallLevel       CompatibilityLevel              `json:"overall_level"`
-	DimensionScores    CompatibilityDimensionScores    `json:"dimension_scores"`
-	Evidences          []CompatibilityEvidence         `json:"evidences"`
-	SummaryTags        []string                        `json:"summary_tags"`
-	DurationAssessment CompatibilityDurationAssessment `json:"duration_assessment"`
+	OverallLevel         CompatibilityLevel                `json:"overall_level"`
+	DimensionScores      CompatibilityDimensionScores      `json:"dimension_scores"`
+	Evidences            []CompatibilityEvidence           `json:"evidences"`
+	SummaryTags          []string                          `json:"summary_tags"`
+	DurationAssessment   CompatibilityDurationAssessment   `json:"duration_assessment"`
+	ConsultingAssessment CompatibilityConsultingAssessment `json:"consulting_assessment"`
 }
 
 func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
@@ -92,6 +146,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 	tags := make([]string, 0, 4)
 
 	addEvidence := func(item CompatibilityEvidence) {
+		item.EvidenceKey = buildCompatibilityEvidenceKey(item, len(evidences))
 		evidences = append(evidences, item)
 		switch item.Dimension {
 		case CompatibilityAttraction:
@@ -302,13 +357,139 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 
 	tags = buildCompatibilityTags(scores, evidences)
 	duration := buildDurationAssessment(scores, evidences)
+	consulting := buildCompatibilityConsultingAssessment(scores, evidences, duration)
 
 	return CompatibilityAnalysis{
-		OverallLevel:       aggregateCompatibilityLevel(scores, evidences),
-		DimensionScores:    scores,
-		Evidences:          evidences,
-		SummaryTags:        tags,
-		DurationAssessment: duration,
+		OverallLevel:         aggregateCompatibilityLevel(scores, evidences),
+		DimensionScores:      scores,
+		Evidences:            evidences,
+		SummaryTags:          tags,
+		DurationAssessment:   duration,
+		ConsultingAssessment: consulting,
+	}
+}
+
+func buildCompatibilityEvidenceKey(item CompatibilityEvidence, index int) string {
+	return fmt.Sprintf("%s_%s_%s_%02d", item.Source, item.Dimension, item.Type, index)
+}
+
+func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores, evidences []CompatibilityEvidence, duration CompatibilityDurationAssessment) CompatibilityConsultingAssessment {
+	negativeKeys := topEvidenceKeys(evidences, CompatibilityNegative, 2)
+	positiveKeys := topEvidenceKeys(evidences, CompatibilityPositive, 2)
+	primaryKeys := append([]string{}, positiveKeys...)
+	primaryKeys = append(primaryKeys, negativeKeys...)
+	if len(primaryKeys) == 0 && len(evidences) > 0 {
+		primaryKeys = []string{evidences[0].EvidenceKey}
+	}
+
+	relationshipType := "均衡观察型"
+	if scores.Attraction >= 70 && scores.Stability < 60 {
+		relationshipType = "短期吸引强、长期承压型"
+	} else if scores.Stability >= 70 && scores.Practicality >= 65 {
+		relationshipType = "稳定经营型"
+	} else if scores.Attraction >= 70 && scores.Communication >= 65 {
+		relationshipType = "高吸引互动型"
+	} else if scores.Practicality < 55 || scores.Stability < 55 {
+		relationshipType = "高磨合成本型"
+	}
+
+	recommendation := "observe"
+	verdict := "建议谨慎观察"
+	if scores.Stability >= 68 && scores.Practicality >= 62 && len(negativeKeys) == 0 {
+		recommendation = "continue"
+		verdict = "适合继续推进"
+	} else if scores.Stability < 52 || scores.Practicality < 50 {
+		recommendation = "caution"
+		verdict = "不宜过早重投入"
+	}
+
+	confidence := "medium"
+	if absInt(scores.Attraction-scores.Stability) >= 22 || len(evidences) >= 5 {
+		confidence = "high"
+	}
+
+	topFindings := []CompatibilityFinding{
+		{Text: "关系优势与风险需要分开判断，不能只看短期吸引。", EvidenceKeys: primaryKeys},
+	}
+	if scores.Attraction >= 70 {
+		topFindings = append(topFindings, CompatibilityFinding{Text: "双方存在较明显的靠近感和吸引支点。", EvidenceKeys: positiveKeys})
+	}
+	if scores.Stability < 60 || scores.Practicality < 60 {
+		topFindings = append(topFindings, CompatibilityFinding{Text: "长期稳定更依赖沟通规则和现实安排。", EvidenceKeys: negativeKeys})
+	}
+	if len(topFindings) > 3 {
+		topFindings = topFindings[:3]
+	}
+
+	return CompatibilityConsultingAssessment{
+		RelationshipDiagnosis: CompatibilityRelationshipDiagnosis{
+			RelationshipType: relationshipType,
+			Verdict:          verdict,
+			Summary:          compatibilityConsultingSummary(relationshipType, recommendation),
+			TopFindings:      topFindings,
+		},
+		DecisionAdvice: CompatibilityDecisionAdvice{
+			Recommendation: recommendation,
+			Confidence:     confidence,
+			Conditions:     []string{"先观察冲突后的修复能力", "把现实安排和投入节奏说清楚"},
+			DoNext:         []string{"用一到两个月验证沟通节奏是否稳定", "把容易争执的问题具体化处理"},
+			Avoid:          []string{"用短期吸引替代长期判断", "在关系规则未稳定前过早绑定重大决定"},
+		},
+		StageRisks: []CompatibilityStageRisk{
+			buildCompatibilityStageRisk("three_months", duration.Windows.ThreeMonths.Level, "初期热度与节奏差异", "一方推进过快或回应不稳定时", "先约定沟通频率和边界。", primaryKeys),
+			buildCompatibilityStageRisk("one_year", duration.Windows.OneYear.Level, "现实磨合和冲突修复", "生活安排、承诺节奏或家庭压力进入关系时", "把分歧拆成具体事项，不用情绪判断关系本身。", primaryKeys),
+			buildCompatibilityStageRisk("two_years_plus", duration.Windows.TwoYearsPlus.Level, "长期稳定和责任承接", "长期规划、责任分工和资源投入需要落地时", "建立可持续的责任分工和共同计划。", primaryKeys),
+		},
+		RelationshipStrategy: CompatibilityRelationshipStrategy{
+			Communication: "重要议题用明确约定替代情绪试探。",
+			Conflict:      "争执时先暂停升级，再回到具体事件和责任分工。",
+			Reality:       "长期计划需要拆成可验证的小步骤。",
+			Boundary:      "初期保留个人节奏，避免过快形成单方依赖。",
+		},
+		ClaimEvidenceLinks: []CompatibilityClaimEvidenceLink{
+			{
+				ClaimID:      "relationship_main_judgement",
+				Claim:        verdict,
+				EvidenceKeys: primaryKeys,
+				Reasoning:    "主要判断来自吸引、稳定、沟通和现实磨合四类证据的合并结果。",
+				Caveat:       "合盘表达的是关系倾向，现实选择和相处方式会改变结果表现。",
+			},
+		},
+	}
+}
+
+func topEvidenceKeys(evidences []CompatibilityEvidence, polarity CompatibilityPolarity, limit int) []string {
+	keys := []string{}
+	for _, item := range evidences {
+		if item.Polarity == polarity && item.EvidenceKey != "" {
+			keys = append(keys, item.EvidenceKey)
+			if len(keys) == limit {
+				return keys
+			}
+		}
+	}
+	return keys
+}
+
+func compatibilityConsultingSummary(relationshipType, recommendation string) string {
+	switch recommendation {
+	case "continue":
+		return "这组关系具备继续推进的基础，但仍需要把优势落到稳定沟通和现实安排中。"
+	case "caution":
+		return "这组关系不宜只凭短期感受快速投入，长期稳定需要先通过现实相处验证。"
+	default:
+		return fmt.Sprintf("%s需要边推进边观察，重点看冲突修复和现实节奏是否能对齐。", relationshipType)
+	}
+}
+
+func buildCompatibilityStageRisk(window string, level CompatibilityDurationLevel, mainRisk, trigger, advice string, evidenceKeys []string) CompatibilityStageRisk {
+	return CompatibilityStageRisk{
+		Window:       window,
+		RiskLevel:    string(level),
+		MainRisk:     mainRisk,
+		Trigger:      trigger,
+		Advice:       advice,
+		EvidenceKeys: evidenceKeys,
 	}
 }
 
