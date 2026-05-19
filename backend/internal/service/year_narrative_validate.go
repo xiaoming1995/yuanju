@@ -30,31 +30,6 @@ var validatedKeywords = []string{
 	"勾绞", "国印",
 }
 
-// ExtractEvidenceKeywords 在单年 signals 集合上扫描 validatedKeywords，
-// 返回该年 evidence 已识别到的命理术语清单（按 validatedKeywords 顺序去重）。
-//
-// 用途：把"白名单"以 allowed_keywords 字段注入 prompt，让 AI 不必从 evidence
-// 长文里猜测哪个词是"算法已认证"的，直接对照清单写 narrative。
-// 缓解 AI 凭训练语料先验编造神煞/伏吟等关键词的问题。
-func ExtractEvidenceKeywords(signals []bazi.EventSignal) []string {
-	if len(signals) == 0 {
-		return nil
-	}
-	var sb strings.Builder
-	for _, s := range signals {
-		sb.WriteString(s.Evidence)
-		sb.WriteString("\n")
-	}
-	text := sb.String()
-	out := make([]string, 0, 4)
-	for _, kw := range validatedKeywords {
-		if strings.Contains(text, kw) {
-			out = append(out, kw)
-		}
-	}
-	return out
-}
-
 // ValidateYearNarrative 校验单年 narrative 引用的命理术语是否能在该年算法
 // signals 的 Evidence 中追溯到。
 //
