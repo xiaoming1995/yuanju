@@ -1275,9 +1275,40 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		var parsed struct {
 			Themes  []string `json:"themes"`
 			Summary string   `json:"summary"`
+			Years   []struct {
+				Year      int    `json:"year"`
+				GanZhi    string `json:"ganzhi"`
+				Narrative string `json:"narrative"`
+			} `json:"years"`
 		}
 		if jerr := json.Unmarshal([]byte(raw), &parsed); jerr != nil {
 			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: "解析 AI JSON 失败"})
+			continue
+		}
+
+		// 结构校验：years 数组长度必须等于该段实际年份数，且 ganzhi 一一对应。
+		// 不匹配整段算失败，避免错位带来的鬼故事。
+		if len(parsed.Years) != len(dySignals) {
+			_ = onItem(DayunSummaryStreamItem{
+				DayunIndex: dy.Index, GanZhi: gz,
+				Error: fmt.Sprintf("years 长度不对：AI 返回 %d，期望 %d", len(parsed.Years), len(dySignals)),
+			})
+			continue
+		}
+		ganzhiMismatch := false
+		for i, ys := range dySignals {
+			if parsed.Years[i].GanZhi != ys.GanZhi {
+				ganzhiMismatch = true
+				log.Printf("[GenerateDayunSummariesStream] dayun=%d year=%d ganzhi 错位：AI=%q 实际=%q",
+					dy.Index, ys.Year, parsed.Years[i].GanZhi, ys.GanZhi)
+				break
+			}
+		}
+		if ganzhiMismatch {
+			_ = onItem(DayunSummaryStreamItem{
+				DayunIndex: dy.Index, GanZhi: gz,
+				Error: "years 数组干支与算法不对齐",
+			})
 			continue
 		}
 
