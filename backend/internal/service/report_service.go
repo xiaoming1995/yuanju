@@ -504,7 +504,7 @@ func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *str
 		aiErr, usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, userID)
 	if aiErr == nil {
 		go func() {
-			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "report_stream", modelName, providerID,
+			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "report", modelName, providerID,
 				usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, usage.ReasoningTokens, usage.CacheHitTokens, usage.CacheMissTokens,
 				prompt, rawContent); logErr != nil {
 				log.Printf("[TokenUsage] 写入失败: %v", logErr)
@@ -917,7 +917,7 @@ func GeneratePastEventsStream(chartID string, userID *string, onData func(string
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
 	if aiErr == nil {
 		go func() {
-			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "dayun", modelName, providerID,
+			if logErr := repository.CreateTokenUsageLog(userID, &chartID, "past_events", modelName, providerID,
 				usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, usage.ReasoningTokens, usage.CacheHitTokens, usage.CacheMissTokens,
 				parsedPrompt.String(), rawContent); logErr != nil {
 				log.Printf("[TokenUsage] 写入失败: %v", logErr)
@@ -1266,7 +1266,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			promptStr := pbuf.String()
 			outputStr := collect.String()
 			go func(u TokenUsage, mn, pid string) {
-				if logErr := repository.CreateTokenUsageLog(userID, &chartID, "dayun", mn, pid,
+				if logErr := repository.CreateTokenUsageLog(userID, &chartID, "past_events", mn, pid,
 					u.PromptTokens, u.CompletionTokens, u.TotalTokens, u.ReasoningTokens, u.CacheHitTokens, u.CacheMissTokens,
 					promptStr, outputStr); logErr != nil {
 					log.Printf("[TokenUsage] 写入失败: %v", logErr)

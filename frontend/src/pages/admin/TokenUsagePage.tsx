@@ -207,9 +207,8 @@ export default function TokenUsagePage() {
 
   const callTypeLabel: Record<string, string> = {
     report: '原局报告',
-    report_stream: '流式报告',
     liunian: '流年',
-    dayun: '大运',
+    past_events: '过往事件',
     celebrity: '名人生成',
     compatibility: '合盘',
   }
