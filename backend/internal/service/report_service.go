@@ -1312,11 +1312,32 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			continue
 		}
 
+		// 护栏 1：逐年校验 narrative 中的命理术语能在算法 evidence 里追溯到。
+		// 校验失败的年份 narrative 被清空（其他字段保留），日志记录原因。
+		type yearOut struct {
+			Year      int    `json:"year"`
+			GanZhi    string `json:"ganzhi"`
+			Narrative string `json:"narrative"`
+		}
+		validatedYears := make([]yearOut, len(parsed.Years))
+		for i, y := range parsed.Years {
+			validatedYears[i] = yearOut{Year: y.Year, GanZhi: y.GanZhi, Narrative: y.Narrative}
+			if y.Narrative == "" {
+				continue
+			}
+			if ok, reason := ValidateYearNarrative(y.Narrative, dySignals[i].Signals); !ok {
+				log.Printf("[GenerateDayunSummariesStream] dayun=%d year=%d 校验失败丢弃 narrative：%s",
+					dy.Index, y.Year, reason)
+				validatedYears[i].Narrative = ""
+			}
+		}
+		yearsJSON, _ := json.Marshal(validatedYears)
+		yearsRaw := json.RawMessage(yearsJSON)
+
 		// 6. 写缓存
 		themesJSON, _ := json.Marshal(parsed.Themes)
 		themesRaw := json.RawMessage(themesJSON)
-		// Task 5/7 will replace this; for now passing nil years to keep compile passing.
-		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, nil, modelName)
+		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, &yearsRaw, modelName)
 
 		// 7. 推送
 		_ = onItem(DayunSummaryStreamItem{
