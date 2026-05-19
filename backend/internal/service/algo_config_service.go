@@ -127,6 +127,33 @@ func GetCleanupConfig() (CleanupConfig, error) {
 	return cfg, nil
 }
 
+// GetYearNarrativeMode 读取 algo_config 表中 year_narrative_mode 键。
+// "ai"（默认）→ 用 AI 生成年度批语；"template" → 走旧模板路径。
+// 该 flag 用作 4-6 周观察期的回滚开关。
+func GetYearNarrativeMode() (mode string) {
+	mode = "ai"
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[algo_config] GetYearNarrativeMode panic，默认 ai: %v", r)
+			mode = "ai"
+		}
+	}()
+	rows, err := repository.GetAllAlgoConfig()
+	if err != nil {
+		log.Printf("[algo_config] GetYearNarrativeMode 查询失败，默认 ai: %v", err)
+		return "ai"
+	}
+	for _, r := range rows {
+		if r.Key == "year_narrative_mode" {
+			if r.Value == "template" {
+				return "template"
+			}
+			return "ai"
+		}
+	}
+	return "ai"
+}
+
 func clampInt(v, lo, hi int) int {
 	if v < lo {
 		return lo
