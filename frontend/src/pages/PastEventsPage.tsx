@@ -40,9 +40,16 @@ interface DayunMeta {
   ten_god_power?: TenGodPower
 }
 
+interface YearNarrativeEntry {
+  year: number
+  ganzhi: string
+  narrative: string
+}
+
 interface DayunSummary {
   themes: string[]
   summary: string
+  years?: YearNarrativeEntry[]
   loading?: boolean
   error?: string
 }
@@ -134,6 +141,7 @@ export default function PastEventsPage() {
             next[item.dayun_index] = {
               themes: item.themes || [],
               summary: item.summary || '',
+              years: item.years || undefined,
               loading: false,
             }
           }
@@ -169,6 +177,28 @@ export default function PastEventsPage() {
     meta: dm,
     years: events.filter((y) => y.dayun_index === dm.index),
   })).filter((g) => g.years.length > 0)
+
+  const yearNarrative = (y: YearEvent): { text: string; status: 'loading' | 'ready' | 'empty' } => {
+    // Stage 1 already returned a narrative (template mode) → use it
+    if (y.narrative && y.narrative !== '') {
+      return { text: y.narrative, status: 'ready' }
+    }
+    const ds = summaries[y.dayun_index]
+    if (!ds || ds.loading) {
+      return { text: '', status: 'loading' }
+    }
+    if (ds.error) {
+      return { text: '', status: 'empty' }
+    }
+    const entry = ds.years?.find((ye) => ye.year === y.year)
+    if (!entry) {
+      return { text: '', status: 'empty' }
+    }
+    if (entry.narrative === '') {
+      return { text: '', status: 'empty' }
+    }
+    return { text: entry.narrative, status: 'ready' }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingBottom: 60 }}>
@@ -414,11 +444,24 @@ export default function PastEventsPage() {
                               )
                             })}
                           </div>
-                          {y.narrative && (
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
-                              {y.narrative}
-                            </div>
-                          )}
+                          {(() => {
+                            const n = yearNarrative(y)
+                            if (n.status === 'loading') {
+                              return (
+                                <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontStyle: 'italic' }}>
+                                  本段批语正在生成…
+                                </div>
+                              )
+                            }
+                            if (n.status === 'ready') {
+                              return (
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.7 }}>
+                                  {n.text}
+                                </div>
+                              )
+                            }
+                            return null
+                          })()}
                           {hasEvidence && (
                             <div style={{ marginTop: 10 }}>
                               <button

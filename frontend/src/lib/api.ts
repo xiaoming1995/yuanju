@@ -413,6 +413,7 @@ export const baziAPI = {
       gan_zhi: string
       themes: string[]
       summary: string
+      years?: { year: number; ganzhi: string; narrative: string }[]
       cached: boolean
       error?: string
     }) => void,
