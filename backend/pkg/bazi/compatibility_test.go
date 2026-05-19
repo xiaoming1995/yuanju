@@ -1,6 +1,9 @@
 package bazi
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func makeCompatNatal(yearGZ, monthGZ, dayGZ, hourGZ, gender string) *BaziResult {
 	yr := []rune(yearGZ)
@@ -187,6 +190,20 @@ func TestAnalyzeCompatibility_EvidenceKeysAreStableAndLinked(t *testing.T) {
 		}
 		keys[evidence.EvidenceKey] = true
 	}
+	for _, finding := range got.ConsultingAssessment.RelationshipDiagnosis.TopFindings {
+		for _, key := range finding.EvidenceKeys {
+			if !keys[key] {
+				t.Fatalf("top finding references missing evidence key %q", key)
+			}
+		}
+	}
+	for _, risk := range got.ConsultingAssessment.StageRisks {
+		for _, key := range risk.EvidenceKeys {
+			if !keys[key] {
+				t.Fatalf("stage risk references missing evidence key %q", key)
+			}
+		}
+	}
 	for _, link := range got.ConsultingAssessment.ClaimEvidenceLinks {
 		if link.ClaimID == "" || link.Claim == "" || link.Reasoning == "" {
 			t.Fatalf("expected complete claim link, got %+v", link)
@@ -197,4 +214,41 @@ func TestAnalyzeCompatibility_EvidenceKeysAreStableAndLinked(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestAnalyzeCompatibility_EvidenceKeysAreASCIIAndSemantic(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
+	b := makeCompatNatal("己午", "戊午", "己午", "戊申", "female")
+
+	got := AnalyzeCompatibility(a, b)
+
+	for _, evidence := range got.Evidences {
+		if !isASCII(evidence.EvidenceKey) {
+			t.Fatalf("expected ASCII evidence key, got %q", evidence.EvidenceKey)
+		}
+		if strings.Contains(evidence.EvidenceKey, evidence.Type) || strings.Contains(evidence.EvidenceKey, evidence.Title) {
+			t.Fatalf("expected evidence key not to contain display text, got key %q for %+v", evidence.EvidenceKey, evidence)
+		}
+	}
+}
+
+func TestBuildCompatibilityConsultingAssessment_WithoutEvidenceHasNoClaimEvidenceLinks(t *testing.T) {
+	got := buildCompatibilityConsultingAssessment(
+		CompatibilityDimensionScores{Attraction: 60, Stability: 60, Communication: 60, Practicality: 60},
+		nil,
+		CompatibilityDurationAssessment{},
+	)
+
+	if len(got.ClaimEvidenceLinks) != 0 {
+		t.Fatalf("expected no claim evidence links without evidence, got %+v", got.ClaimEvidenceLinks)
+	}
+}
+
+func isASCII(value string) bool {
+	for _, r := range value {
+		if r > 127 {
+			return false
+		}
+	}
+	return true
 }

@@ -146,7 +146,6 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 	tags := make([]string, 0, 4)
 
 	addEvidence := func(item CompatibilityEvidence) {
-		item.EvidenceKey = buildCompatibilityEvidenceKey(item, len(evidences))
 		evidences = append(evidences, item)
 		switch item.Dimension {
 		case CompatibilityAttraction:
@@ -354,6 +353,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 		}
 		return wi > wj
 	})
+	assignCompatibilityEvidenceKeys(evidences)
 
 	tags = buildCompatibilityTags(scores, evidences)
 	duration := buildDurationAssessment(scores, evidences)
@@ -369,8 +369,52 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 	}
 }
 
-func buildCompatibilityEvidenceKey(item CompatibilityEvidence, index int) string {
-	return fmt.Sprintf("%s_%s_%s_%02d", item.Source, item.Dimension, item.Type, index)
+func assignCompatibilityEvidenceKeys(evidences []CompatibilityEvidence) {
+	counts := map[string]int{}
+	for i := range evidences {
+		baseKey := buildCompatibilityEvidenceKey(evidences[i])
+		counts[baseKey]++
+		if counts[baseKey] == 1 {
+			evidences[i].EvidenceKey = baseKey
+			continue
+		}
+		evidences[i].EvidenceKey = fmt.Sprintf("%s_%d", baseKey, counts[baseKey])
+	}
+}
+
+func buildCompatibilityEvidenceKey(item CompatibilityEvidence) string {
+	return fmt.Sprintf("%s_%s_%s", item.Source, item.Dimension, compatibilityEvidenceTypeSlug(item.Type))
+}
+
+func compatibilityEvidenceTypeSlug(typeName string) string {
+	switch typeName {
+	case "日主同气":
+		return "day_master_same"
+	case "日主相生":
+		return "day_master_generating"
+	case "日主相克":
+		return "day_master_controlling"
+	case "五行互补":
+		return "five_element_complement"
+	case "五行失衡":
+		return "five_element_imbalance"
+	case "夫妻宫六合":
+		return "spouse_palace_liuhe"
+	case "夫妻宫六冲":
+		return "spouse_palace_chong"
+	case "夫妻宫刑害":
+		return "spouse_palace_xing_hai"
+	case "配偶星呼应":
+		return "spouse_star_resonance"
+	case "干支冲克偏多":
+		return "branch_clash_heavy"
+	case "桃花助缘":
+		return "romance_shensha"
+	case "孤寡错位":
+		return "lonely_shensha"
+	default:
+		return "unknown"
+	}
 }
 
 func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores, evidences []CompatibilityEvidence, duration CompatibilityDurationAssessment) CompatibilityConsultingAssessment {
@@ -421,6 +465,17 @@ func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores,
 		topFindings = topFindings[:3]
 	}
 
+	claimEvidenceLinks := []CompatibilityClaimEvidenceLink{}
+	if len(primaryKeys) > 0 {
+		claimEvidenceLinks = append(claimEvidenceLinks, CompatibilityClaimEvidenceLink{
+			ClaimID:      "relationship_main_judgement",
+			Claim:        verdict,
+			EvidenceKeys: primaryKeys,
+			Reasoning:    "主要判断来自吸引、稳定、沟通和现实磨合四类证据的合并结果。",
+			Caveat:       "合盘表达的是关系倾向，现实选择和相处方式会改变结果表现。",
+		})
+	}
+
 	return CompatibilityConsultingAssessment{
 		RelationshipDiagnosis: CompatibilityRelationshipDiagnosis{
 			RelationshipType: relationshipType,
@@ -446,15 +501,7 @@ func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores,
 			Reality:       "长期计划需要拆成可验证的小步骤。",
 			Boundary:      "初期保留个人节奏，避免过快形成单方依赖。",
 		},
-		ClaimEvidenceLinks: []CompatibilityClaimEvidenceLink{
-			{
-				ClaimID:      "relationship_main_judgement",
-				Claim:        verdict,
-				EvidenceKeys: primaryKeys,
-				Reasoning:    "主要判断来自吸引、稳定、沟通和现实磨合四类证据的合并结果。",
-				Caveat:       "合盘表达的是关系倾向，现实选择和相处方式会改变结果表现。",
-			},
-		},
+		ClaimEvidenceLinks: claimEvidenceLinks,
 	}
 }
 
