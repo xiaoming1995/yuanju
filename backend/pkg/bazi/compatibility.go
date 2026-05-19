@@ -422,7 +422,7 @@ func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores,
 	positiveKeys := topEvidenceKeys(evidences, CompatibilityPositive, 2)
 	primaryKeys := append([]string{}, positiveKeys...)
 	primaryKeys = append(primaryKeys, negativeKeys...)
-	if len(primaryKeys) == 0 && len(evidences) > 0 {
+	if len(primaryKeys) == 0 && len(evidences) > 0 && evidences[0].EvidenceKey != "" {
 		primaryKeys = []string{evidences[0].EvidenceKey}
 	}
 
@@ -466,7 +466,7 @@ func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores,
 	}
 
 	claimEvidenceLinks := []CompatibilityClaimEvidenceLink{}
-	if len(primaryKeys) > 0 {
+	if hasNonEmptyCompatibilityEvidenceKey(primaryKeys) {
 		claimEvidenceLinks = append(claimEvidenceLinks, CompatibilityClaimEvidenceLink{
 			ClaimID:      "relationship_main_judgement",
 			Claim:        verdict,
@@ -503,6 +503,15 @@ func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores,
 		},
 		ClaimEvidenceLinks: claimEvidenceLinks,
 	}
+}
+
+func hasNonEmptyCompatibilityEvidenceKey(keys []string) bool {
+	for _, key := range keys {
+		if key != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func topEvidenceKeys(evidences []CompatibilityEvidence, polarity CompatibilityPolarity, limit int) []string {

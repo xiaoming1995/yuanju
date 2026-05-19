@@ -244,6 +244,35 @@ func TestBuildCompatibilityConsultingAssessment_WithoutEvidenceHasNoClaimEvidenc
 	}
 }
 
+func TestBuildCompatibilityConsultingAssessment_EmptyEvidenceKeyHasNoClaimEvidenceLinks(t *testing.T) {
+	got := buildCompatibilityConsultingAssessment(
+		CompatibilityDimensionScores{Attraction: 60, Stability: 60, Communication: 60, Practicality: 60},
+		[]CompatibilityEvidence{
+			{
+				Dimension: CompatibilityStability,
+				Type:      "夫妻宫六冲",
+				Polarity:  CompatibilityNegative,
+				Source:    "spouse_palace",
+				Title:     "夫妻宫六冲",
+				Detail:    "empty-key regression fixture",
+				Weight:    -18,
+			},
+		},
+		CompatibilityDurationAssessment{},
+	)
+
+	if len(got.ClaimEvidenceLinks) != 0 {
+		t.Fatalf("expected no claim evidence links for empty evidence key, got %+v", got.ClaimEvidenceLinks)
+	}
+	for _, link := range got.ClaimEvidenceLinks {
+		for _, key := range link.EvidenceKeys {
+			if key == "" {
+				t.Fatalf("claim link references empty evidence key: %+v", link)
+			}
+		}
+	}
+}
+
 func isASCII(value string) bool {
 	for _, r := range value {
 		if r > 127 {
