@@ -12,11 +12,11 @@ import (
 func GetDayunSummary(chartID string, dayunIndex int) (*model.AIDayunSummary, error) {
 	r := &model.AIDayunSummary{}
 	err := database.DB.QueryRow(
-		`SELECT id, chart_id, dayun_index, dayun_ganzhi, themes, summary, model, created_at
+		`SELECT id, chart_id, dayun_index, dayun_ganzhi, themes, summary, years, model, created_at
 		 FROM ai_dayun_summaries
 		 WHERE chart_id = $1 AND dayun_index = $2`,
 		chartID, dayunIndex,
-	).Scan(&r.ID, &r.ChartID, &r.DayunIndex, &r.DayunGanZhi, &r.Themes, &r.Summary, &r.Model, &r.CreatedAt)
+	).Scan(&r.ID, &r.ChartID, &r.DayunIndex, &r.DayunGanZhi, &r.Themes, &r.Summary, &r.Years, &r.Model, &r.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -26,7 +26,7 @@ func GetDayunSummary(chartID string, dayunIndex int) (*model.AIDayunSummary, err
 // ListDayunSummaries 按 chart 拉取所有已缓存大运 summary
 func ListDayunSummaries(chartID string) ([]model.AIDayunSummary, error) {
 	rows, err := database.DB.Query(
-		`SELECT id, chart_id, dayun_index, dayun_ganzhi, themes, summary, model, created_at
+		`SELECT id, chart_id, dayun_index, dayun_ganzhi, themes, summary, years, model, created_at
 		 FROM ai_dayun_summaries
 		 WHERE chart_id = $1
 		 ORDER BY dayun_index`,
@@ -39,7 +39,7 @@ func ListDayunSummaries(chartID string) ([]model.AIDayunSummary, error) {
 	var out []model.AIDayunSummary
 	for rows.Next() {
 		var r model.AIDayunSummary
-		if err := rows.Scan(&r.ID, &r.ChartID, &r.DayunIndex, &r.DayunGanZhi, &r.Themes, &r.Summary, &r.Model, &r.CreatedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.ChartID, &r.DayunIndex, &r.DayunGanZhi, &r.Themes, &r.Summary, &r.Years, &r.Model, &r.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, r)
@@ -48,17 +48,18 @@ func ListDayunSummaries(chartID string) ([]model.AIDayunSummary, error) {
 }
 
 // UpsertDayunSummary 写入或覆盖单段缓存
-func UpsertDayunSummary(chartID string, dayunIndex int, dayunGanZhi string, themes *json.RawMessage, summary string, modelName string) error {
+func UpsertDayunSummary(chartID string, dayunIndex int, dayunGanZhi string, themes *json.RawMessage, summary string, years *json.RawMessage, modelName string) error {
 	_, err := database.DB.Exec(
-		`INSERT INTO ai_dayun_summaries (chart_id, dayun_index, dayun_ganzhi, themes, summary, model)
-		 VALUES ($1, $2, $3, $4, $5, $6)
+		`INSERT INTO ai_dayun_summaries (chart_id, dayun_index, dayun_ganzhi, themes, summary, years, model)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
 		 ON CONFLICT (chart_id, dayun_index) DO UPDATE
 		 SET dayun_ganzhi = EXCLUDED.dayun_ganzhi,
 		     themes = EXCLUDED.themes,
 		     summary = EXCLUDED.summary,
+		     years = EXCLUDED.years,
 		     model = EXCLUDED.model,
 		     created_at = NOW()`,
-		chartID, dayunIndex, dayunGanZhi, themes, summary, modelName,
+		chartID, dayunIndex, dayunGanZhi, themes, summary, years, modelName,
 	)
 	return err
 }

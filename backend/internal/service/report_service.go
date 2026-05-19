@@ -996,6 +996,7 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 		return nil, err
 	}
 
+	mode := GetYearNarrativeMode()
 	currentYear := time.Now().Year()
 	minAge := 0
 	if len(result.Dayun) > 0 {
@@ -1022,6 +1023,10 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 
 	years := make([]PastEventsYearItem, 0, len(yearSignals))
 	for _, ys := range yearSignals {
+		var narrative string
+		if mode == "template" {
+			narrative = bazi.RenderYearNarrative(ys)
+		}
 		years = append(years, PastEventsYearItem{
 			Year:            ys.Year,
 			Age:             ys.Age,
@@ -1032,7 +1037,7 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 			DayunPhase:      ys.DayunPhase,
 			TenGodPower:     ys.TenGodPower,
 			Signals:         bazi.ExtractYearSignalTypes(ys),
-			Narrative:       bazi.RenderYearNarrative(ys),
+			Narrative:       narrative,
 			EvidenceSummary: bazi.RenderEvidenceSummary(ys),
 		})
 	}
@@ -1040,42 +1045,45 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 	return &PastEventsYearsResponse{
 		Years:     years,
 		DayunMeta: dayunMeta,
-		Generated: "algo-template",
+		Generated: mode + "-yearly",
 	}, nil
 }
 
-// DayunSummaryStreamItem SSE 流式推送的单段大运 summary
+// DayunSummaryStreamItem SSE 流式推送的单段大运 summary + 10 年卡片
 type DayunSummaryStreamItem struct {
-	DayunIndex int      `json:"dayun_index"`
-	GanZhi     string   `json:"gan_zhi"`
-	Themes     []string `json:"themes"`
-	Summary    string   `json:"summary"`
-	Cached     bool     `json:"cached"`
-	Error      string   `json:"error,omitempty"`
+	DayunIndex int             `json:"dayun_index"`
+	GanZhi     string          `json:"gan_zhi"`
+	Themes     []string        `json:"themes,omitempty"`
+	Summary    string          `json:"summary,omitempty"`
+	Years      json.RawMessage `json:"years,omitempty"`
+	Cached     bool            `json:"cached,omitempty"`
+	Error      string          `json:"error,omitempty"`
 }
 
 func cachedDayunSummaryToStreamItem(cached *model.AIDayunSummary, fallbackGanZhi string) (DayunSummaryStreamItem, bool) {
-	if cached == nil || strings.TrimSpace(cached.Summary) == "" {
+	if cached == nil {
 		return DayunSummaryStreamItem{}, false
 	}
-
+	// 缓存 row 没有 years → lazy migrate：视为缓存未命中，让上游重生
+	if cached.Years == nil {
+		return DayunSummaryStreamItem{}, false
+	}
 	var themes []string
-	if cached.Themes != nil && len(*cached.Themes) > 0 {
+	if cached.Themes != nil {
 		if err := json.Unmarshal(*cached.Themes, &themes); err != nil {
 			return DayunSummaryStreamItem{}, false
 		}
 	}
-
-	gz := strings.TrimSpace(cached.DayunGanZhi)
+	gz := cached.DayunGanZhi
 	if gz == "" {
 		gz = fallbackGanZhi
 	}
-
 	return DayunSummaryStreamItem{
 		DayunIndex: cached.DayunIndex,
 		GanZhi:     gz,
 		Themes:     themes,
 		Summary:    cached.Summary,
+		Years:      *cached.Years,
 		Cached:     true,
 	}, true
 }
@@ -1114,7 +1122,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 	huaheMap := bazi.CollectDayunHuaheMap(result)
 
 	// Prompt 模板（首次启动时已 seed，未 seed 时降级为内置）
-	promptTpl := `你是一位资深八字命理师。请只为下列单段大运撰写整体总结，禁止逐年罗列。
+	promptTpl := `你是一位资深八字命理师。请只为下列单段大运撰写整体总结和该段 10 年的逐年评述。
 
 命主：性别{{.Gender}} / 日干{{.DayGan}}
 原局：{{.NatalSummary}}
@@ -1132,8 +1140,34 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 输出要求：
 1. themes：2-4 个主题词（如"事业↑""感情动荡""贵人扶持"；读书期可用"学业突破""同窗情谊""叛逆"）
 2. summary：80-120 字，综合评述这 10 年整体走势、关键转折、注意事项；若前5年与后5年信号明显不同，要点出早段/后段气质差异
-3. 严格输出以下 JSON，不要 Markdown 围栏：
-{"themes":["主题1","主题2"],"summary":"..."}`
+3. years：长度等于上方算法信号 JSON 的年份数，与年份顺序一一对应。每个元素：
+   {"year": 数字年, "ganzhi": "干支", "narrative": "..."}
+
+   narrative 撰写规则：
+   - 100-150 字，3-4 句中文
+   - 必须点名当年关键干支事件，引用上方 evidence 已有的命理术语
+     （如「丙火透干为食神」「流年地支冲日支」「白虎临运」「驿马合年支」
+     「用神位受刑」「伏吟时柱」等）
+   - 结合极性写吉凶（吉应期写助力或机遇，凶应期写注意或代价）
+   - 读书期年份（age<18，由人生阶段提示判断）改写为学业/同学/家庭语义，
+     不出现「事业/婚恋/财运」等成人词
+   - **每一年都必须写 narrative**，禁止输出空字符串。即使该年信号较少，
+     也要把现有信号（哪怕只有 1-2 条神煞或一个用神位变化）写清楚。
+     凡 evidence 数组非空，narrative 就必须有内容。
+   - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
+   - 不同年份的 narrative 之间应有差异化措辞，禁止把多年写成同一段。
+   - 严禁编造未在 evidence 中出现的神煞或用神位事件
+   - **特别提醒（命理术语易混淆）**：
+     · 伏吟 ≠ 反吟：伏吟是流年与原局某柱完全相同；反吟是天克地冲。
+       只能在 evidence 显式出现"伏吟"或"反吟"时使用对应词汇。
+     · 三合 ≠ 三会：三合是申子辰类水局；三会是亥子丑类方局。
+       evidence 写哪个就用哪个。
+     · "受冲""受刑""用神位""忌神位" 这类结构词只能在 evidence 已用时引用，
+       不能为修饰文字而加。
+     · 例：evidence 写"流年与时柱反吟"，narrative 必须用"反吟"，不能写成"伏吟"。
+
+4. 严格输出以下 JSON，不要 Markdown 围栏：
+{"themes":["主题1","主题2"],"summary":"...","years":[{"year":2005,"ganzhi":"乙酉","narrative":"..."},{"year":2006,"ganzhi":"丙戌","narrative":"..."}]}`
 
 	tmpl, terr := template.New("dayun_summary").Parse(promptTpl)
 	if terr != nil {
@@ -1259,16 +1293,69 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		var parsed struct {
 			Themes  []string `json:"themes"`
 			Summary string   `json:"summary"`
+			Years   []struct {
+				Year      int    `json:"year"`
+				GanZhi    string `json:"ganzhi"`
+				Narrative string `json:"narrative"`
+			} `json:"years"`
 		}
 		if jerr := json.Unmarshal([]byte(raw), &parsed); jerr != nil {
 			_ = onItem(DayunSummaryStreamItem{DayunIndex: dy.Index, GanZhi: gz, Error: "解析 AI JSON 失败"})
 			continue
 		}
 
+		// 结构校验：years 数组长度必须等于该段实际年份数，且 ganzhi 一一对应。
+		// 不匹配整段算失败，避免错位带来的鬼故事。
+		if len(parsed.Years) != len(dySignals) {
+			_ = onItem(DayunSummaryStreamItem{
+				DayunIndex: dy.Index, GanZhi: gz,
+				Error: fmt.Sprintf("years 长度不对：AI 返回 %d，期望 %d", len(parsed.Years), len(dySignals)),
+			})
+			continue
+		}
+		ganzhiMismatch := false
+		for i, ys := range dySignals {
+			if parsed.Years[i].GanZhi != ys.GanZhi {
+				ganzhiMismatch = true
+				log.Printf("[GenerateDayunSummariesStream] dayun=%d year=%d ganzhi 错位：AI=%q 实际=%q",
+					dy.Index, ys.Year, parsed.Years[i].GanZhi, ys.GanZhi)
+				break
+			}
+		}
+		if ganzhiMismatch {
+			_ = onItem(DayunSummaryStreamItem{
+				DayunIndex: dy.Index, GanZhi: gz,
+				Error: "years 数组干支与算法不对齐",
+			})
+			continue
+		}
+
+		// 护栏 1：逐年校验 narrative 中的命理术语能在算法 evidence 里追溯到。
+		// 校验失败的年份 narrative 被清空（其他字段保留），日志记录原因。
+		type yearOut struct {
+			Year      int    `json:"year"`
+			GanZhi    string `json:"ganzhi"`
+			Narrative string `json:"narrative"`
+		}
+		validatedYears := make([]yearOut, len(parsed.Years))
+		for i, y := range parsed.Years {
+			validatedYears[i] = yearOut{Year: y.Year, GanZhi: y.GanZhi, Narrative: y.Narrative}
+			if y.Narrative == "" {
+				continue
+			}
+			if ok, reason := ValidateYearNarrative(y.Narrative, dySignals[i].Signals); !ok {
+				log.Printf("[GenerateDayunSummariesStream] dayun=%d year=%d 校验失败丢弃 narrative：%s",
+					dy.Index, y.Year, reason)
+				validatedYears[i].Narrative = ""
+			}
+		}
+		yearsJSON, _ := json.Marshal(validatedYears)
+		yearsRaw := json.RawMessage(yearsJSON)
+
 		// 6. 写缓存
 		themesJSON, _ := json.Marshal(parsed.Themes)
 		themesRaw := json.RawMessage(themesJSON)
-		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, modelName)
+		_ = repository.UpsertDayunSummary(chartID, dy.Index, gz, &themesRaw, parsed.Summary, &yearsRaw, modelName)
 
 		// 7. 推送
 		_ = onItem(DayunSummaryStreamItem{
@@ -1276,6 +1363,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 			GanZhi:     gz,
 			Themes:     parsed.Themes,
 			Summary:    parsed.Summary,
+			Years:      yearsRaw,
 			Cached:     false,
 		})
 	}
