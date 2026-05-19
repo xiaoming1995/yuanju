@@ -25,3 +25,9 @@ test('compatibility result css uses mobile score rows and bottom nav safe area',
   assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-professional-details\s*\{[^}]*margin-top:/s)
   assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-hero-card\s*\{[^}]*padding:\s*20px;/s)
 })
+
+test('compatibility result page exposes a single report generation action', () => {
+  const page = read('src/pages/CompatibilityResultPage.tsx')
+  const generateClicks = page.match(/onClick=\{handleGenerateReport\}/g) || []
+  assert.equal(generateClicks.length, 1)
+})
