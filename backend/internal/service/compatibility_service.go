@@ -47,6 +47,7 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 			Summary: analysis.DurationAssessment.Summary,
 			Reasons: analysis.DurationAssessment.Reasons,
 		},
+		model.CompatibilityConsultingAssessment{},
 		analysis.SummaryTags,
 		compatibilityAnalysisVersion,
 	)

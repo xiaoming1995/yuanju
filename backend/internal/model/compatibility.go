@@ -39,29 +39,83 @@ type CompatibilityDurationAssessment struct {
 	Reasons     []string                     `json:"reasons"`
 }
 
+type CompatibilityFinding struct {
+	Text         string   `json:"text"`
+	EvidenceKeys []string `json:"evidence_keys"`
+}
+
+type CompatibilityRelationshipDiagnosis struct {
+	RelationshipType string                 `json:"relationship_type"`
+	Verdict          string                 `json:"verdict"`
+	Summary          string                 `json:"summary"`
+	TopFindings      []CompatibilityFinding `json:"top_findings"`
+}
+
+type CompatibilityDecisionAdvice struct {
+	Recommendation string   `json:"recommendation"`
+	Confidence     string   `json:"confidence"`
+	Conditions     []string `json:"conditions"`
+	DoNext         []string `json:"do_next"`
+	Avoid          []string `json:"avoid"`
+}
+
+type CompatibilityStageRisk struct {
+	Window       string   `json:"window"`
+	RiskLevel    string   `json:"risk_level"`
+	MainRisk     string   `json:"main_risk"`
+	Trigger      string   `json:"trigger"`
+	Advice       string   `json:"advice"`
+	EvidenceKeys []string `json:"evidence_keys"`
+}
+
+type CompatibilityRelationshipStrategy struct {
+	Communication string `json:"communication"`
+	Conflict      string `json:"conflict"`
+	Reality       string `json:"reality"`
+	Boundary      string `json:"boundary"`
+}
+
+type CompatibilityClaimEvidenceLink struct {
+	ClaimID      string   `json:"claim_id"`
+	Claim        string   `json:"claim"`
+	EvidenceKeys []string `json:"evidence_keys"`
+	Reasoning    string   `json:"reasoning"`
+	Caveat       string   `json:"caveat"`
+}
+
+type CompatibilityConsultingAssessment struct {
+	RelationshipDiagnosis CompatibilityRelationshipDiagnosis `json:"relationship_diagnosis"`
+	DecisionAdvice        CompatibilityDecisionAdvice        `json:"decision_advice"`
+	StageRisks            []CompatibilityStageRisk           `json:"stage_risks"`
+	RelationshipStrategy  CompatibilityRelationshipStrategy  `json:"relationship_strategy"`
+	ClaimEvidenceLinks    []CompatibilityClaimEvidenceLink   `json:"claim_evidence_links"`
+}
+
 type CompatibilityEvidence struct {
-	ID        string    `json:"id"`
-	ReadingID string    `json:"reading_id"`
-	Dimension string    `json:"dimension"`
-	Type      string    `json:"type"`
-	Polarity  string    `json:"polarity"`
-	Source    string    `json:"source"`
-	Title     string    `json:"title"`
-	Detail    string    `json:"detail"`
-	Weight    int       `json:"weight"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	ReadingID   string    `json:"reading_id"`
+	EvidenceKey string    `json:"evidence_key"`
+	Dimension   string    `json:"dimension"`
+	Type        string    `json:"type"`
+	Polarity    string    `json:"polarity"`
+	Source      string    `json:"source"`
+	Title       string    `json:"title"`
+	Detail      string    `json:"detail"`
+	Weight      int       `json:"weight"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type CompatibilityReading struct {
-	ID              string                       `json:"id"`
-	UserID          string                       `json:"user_id"`
-	OverallLevel    string                       `json:"overall_level"`
-	DimensionScores CompatibilityDimensionScores `json:"dimension_scores"`
-	DurationAssessment CompatibilityDurationAssessment `json:"duration_assessment"`
-	SummaryTags     []string                     `json:"summary_tags"`
-	AnalysisVersion string                       `json:"analysis_version"`
-	CreatedAt       time.Time                    `json:"created_at"`
-	UpdatedAt       time.Time                    `json:"updated_at"`
+	ID                   string                            `json:"id"`
+	UserID               string                            `json:"user_id"`
+	OverallLevel         string                            `json:"overall_level"`
+	DimensionScores      CompatibilityDimensionScores      `json:"dimension_scores"`
+	DurationAssessment   CompatibilityDurationAssessment   `json:"duration_assessment"`
+	ConsultingAssessment CompatibilityConsultingAssessment `json:"consulting_assessment"`
+	SummaryTags          []string                          `json:"summary_tags"`
+	AnalysisVersion      string                            `json:"analysis_version"`
+	CreatedAt            time.Time                         `json:"created_at"`
+	UpdatedAt            time.Time                         `json:"updated_at"`
 }
 
 type CompatibilityParticipant struct {
