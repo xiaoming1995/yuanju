@@ -53,6 +53,14 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 		var cached bazi.BaziResult
 		if err := json.Unmarshal(raw, &cached); err == nil {
 			bazi.EnsureTenGodRelation(&cached)
+			// 老 chart 的 result_json 没有 ShishenConfidence — 幂等回填
+			// （字段值由 Yongshen/Jishen/strength 推算，跨版本可重算）
+			if cached.ShishenConfidence == "" {
+				strengthLevel, _, _ := bazi.GetStrengthDetail(&cached)
+				cached.FavorableShishen, cached.AdverseShishen, cached.ShishenConfidence = bazi.BuildFavorableShishen(
+					cached.DayGan, cached.Yongshen, cached.Jishen, strengthLevel,
+				)
+			}
 			return &cached, nil
 		}
 		// 反序列化失败：日志告警后回退到重新计算（防止脏数据卡死）
