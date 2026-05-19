@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"text/template"
 
 	"yuanju/internal/model"
 	"yuanju/pkg/bazi"
@@ -429,3 +430,86 @@ func TestParseAIReportContent_FallsBackToLegacyJSON(t *testing.T) {
 		t.Fatalf("expected legacy json path to keep content_structured nil")
 	}
 }
+
+// ── Dayun summary prompt: 喜忌十神 注入分支渲染 ──────────────────────────
+
+// 测试模板片段：与 report_service.go::GenerateDayunSummariesStream 的 promptTpl
+// 注入块保持同步；任何 prompt 行为变更需同步更新这个 fixture。
+// 这里仅渲染本次新加的 ShishenConfidence 相关 3 个分支，不渲染完整 prompt。
+const shishenInjectionTplFixture = `{{if eq .ShishenConfidence "hard"}}本命喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；本命忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（强势二元判定，请以此为流年吉凶主轴）
+{{else if eq .ShishenConfidence "medium"}}本命偏向喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；偏忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（中等强度，调候/格局可微调）
+{{else if eq .ShishenConfidence "soft"}}本命喜忌不显（身强弱中和），{{if .TiaohouSummary}}以调候用神 {{.TiaohouSummary}} 为主{{else}}以调候为主{{end}}，AI 自行从年度 evidence 判断{{end}}`
+
+func renderShishenInjection(t *testing.T, data model.DayunSummaryTemplateData) string {
+	t.Helper()
+	tmpl, err := template.New("shishen_inject").Parse(shishenInjectionTplFixture)
+	if err != nil {
+		t.Fatalf("template parse failed: %v", err)
+	}
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, data); err != nil {
+		t.Fatalf("template execute failed: %v", err)
+	}
+	return buf.String()
+}
+
+func TestDayunSummaryPrompt_HardConfidence_EmitsExplicitLists(t *testing.T) {
+	out := renderShishenInjection(t, model.DayunSummaryTemplateData{
+		ShishenConfidence: bazi.ShishenConfHard,
+		FavorableShishen:  []string{"食神", "伤官", "偏财"},
+		AdverseShishen:    []string{"比肩", "劫财"},
+	})
+	if !strings.Contains(out, "本命喜十神：食神、伤官、偏财") {
+		t.Errorf("hard band should list favorable shishen explicitly; got: %s", out)
+	}
+	if !strings.Contains(out, "本命忌十神：比肩、劫财") {
+		t.Errorf("hard band should list adverse shishen explicitly; got: %s", out)
+	}
+	if !strings.Contains(out, "强势二元判定") {
+		t.Errorf("hard band should carry the '强势二元判定' hint; got: %s", out)
+	}
+}
+
+func TestDayunSummaryPrompt_MediumConfidence_EmitsSoftenedLists(t *testing.T) {
+	out := renderShishenInjection(t, model.DayunSummaryTemplateData{
+		ShishenConfidence: bazi.ShishenConfMedium,
+		FavorableShishen:  []string{"偏印", "正印", "比肩"},
+		AdverseShishen:    []string{"正官", "七杀"},
+	})
+	if !strings.Contains(out, "本命偏向喜十神：偏印、正印、比肩") {
+		t.Errorf("medium band should use '偏向' wording; got: %s", out)
+	}
+	if !strings.Contains(out, "中等强度") {
+		t.Errorf("medium band should carry the '中等强度' hint; got: %s", out)
+	}
+}
+
+func TestDayunSummaryPrompt_SoftConfidence_FallsBackToTiaohou(t *testing.T) {
+	out := renderShishenInjection(t, model.DayunSummaryTemplateData{
+		ShishenConfidence: bazi.ShishenConfSoft,
+		TiaohouSummary:    "丙、丁火",
+	})
+	if !strings.Contains(out, "喜忌不显") {
+		t.Errorf("soft band should declare '喜忌不显'; got: %s", out)
+	}
+	if !strings.Contains(out, "调候用神 丙、丁火") {
+		t.Errorf("soft band should reference tiaohou summary; got: %s", out)
+	}
+	if strings.Contains(out, "本命喜十神") || strings.Contains(out, "本命忌十神") {
+		t.Errorf("soft band must NOT emit shishen lists; got: %s", out)
+	}
+}
+
+func TestDayunSummaryPrompt_SoftConfidence_OmitsTiaohouSentenceWhenAbsent(t *testing.T) {
+	out := renderShishenInjection(t, model.DayunSummaryTemplateData{
+		ShishenConfidence: bazi.ShishenConfSoft,
+		TiaohouSummary:    "",
+	})
+	if !strings.Contains(out, "喜忌不显") {
+		t.Errorf("soft band w/o tiaohou should still declare '喜忌不显'; got: %s", out)
+	}
+	if strings.Contains(out, "调候用神 ") {
+		t.Errorf("soft band w/o tiaohou should not show empty tiaohou label; got: %s", out)
+	}
+}
+

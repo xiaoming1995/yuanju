@@ -99,6 +99,12 @@ type BaziResult struct {
 	JishenGans      []string `json:"jishen_gans,omitempty"`      // 与 YongshenGans 对应的克/泄天干集（暂留作后续扩展，本轮未填充）
 	YongshenMissing []string `json:"yongshen_missing,omitempty"` // t0 缺位的调候用神天干
 
+	// 喜忌十神（古法映射，AI prompt 用于流年判断）
+	// 由 BuildFavorableShishen 在引擎末段计算，soft 置信度时为空
+	FavorableShishen  []string `json:"favorable_shishen,omitempty"`
+	AdverseShishen    []string `json:"adverse_shishen,omitempty"`
+	ShishenConfidence string   `json:"shishen_confidence,omitempty"` // hard / medium / soft
+
 	// 调候用神（基于《穷通宝鉴》查表精算）
 	Tiaohou *TiaohouResult `json:"tiaohou"`
 
@@ -465,6 +471,12 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 	res.MingGe, res.MingGeDesc = DetectMingGe(res)
 
 	EnsureTenGodRelation(res)
+
+	// 喜忌十神（古法映射）— 必须在 Yongshen/Jishen 已就位后
+	strengthLevel, _, _ := dayMasterStrengthLevel(res)
+	res.FavorableShishen, res.AdverseShishen, res.ShishenConfidence = BuildFavorableShishen(
+		res.DayGan, res.Yongshen, res.Jishen, strengthLevel,
+	)
 
 	return res
 }

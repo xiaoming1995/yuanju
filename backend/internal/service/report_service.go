@@ -69,6 +69,18 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 	return result, nil
 }
 
+// formatTiaohouSummary 仅在 ShishenConfidence=soft 时使用，把调候用神简洁地给 AI 看
+// 返回示例："丙火"、"丙、丁火"；调候信息缺失时返回空串
+func formatTiaohouSummary(result *bazi.BaziResult) string {
+	if result == nil || result.Tiaohou == nil {
+		return ""
+	}
+	if len(result.Tiaohou.Expected) == 0 {
+		return ""
+	}
+	return strings.Join(result.Tiaohou.Expected, "、")
+}
+
 // formatYongshenInfo 将 BaziResult 的 yongshen 字段格式化为 prompt 可读的文案
 // 优先使用 t0 调候命中信息（含具体天干），fallback 至旧版"用神/忌神"五行格式
 func formatYongshenInfo(result *bazi.BaziResult) string {
@@ -1128,6 +1140,9 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 原局：{{.NatalSummary}}
 {{if .YongshenInfo}}用忌神：{{.YongshenInfo}}{{end}}
 {{if .StrengthDetail}}身强弱：{{.StrengthDetail}}{{end}}
+{{if eq .ShishenConfidence "hard"}}本命喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；本命忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（强势二元判定，请以此为流年吉凶主轴）
+{{else if eq .ShishenConfidence "medium"}}本命偏向喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；偏忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（中等强度，调候/格局可微调）
+{{else if eq .ShishenConfidence "soft"}}本命喜忌不显（身强弱中和），{{if .TiaohouSummary}}以调候用神 {{.TiaohouSummary}} 为主{{else}}以调候为主{{end}}，AI 自行从年度 evidence 判断{{end}}
 
 当前大运：{{.DayunInfo}}
 {{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
@@ -1235,15 +1250,19 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		lifeStageHint := buildLifeStageHint(youngCount, totalCount)
 
 		tplData := model.DayunSummaryTemplateData{
-			Gender:         genderLabel,
-			DayGan:         result.DayGan,
-			NatalSummary:   natalSummary,
-			YongshenInfo:   yongshenInfo,
-			StrengthDetail: strengthDetail,
-			DayunInfo:      dayunInfo,
-			HuaheTag:       huaheMap[gz],
-			YearsData:      string(dySigsJSON),
-			LifeStageHint:  lifeStageHint,
+			Gender:            genderLabel,
+			DayGan:            result.DayGan,
+			NatalSummary:      natalSummary,
+			YongshenInfo:      yongshenInfo,
+			StrengthDetail:    strengthDetail,
+			DayunInfo:         dayunInfo,
+			HuaheTag:          huaheMap[gz],
+			YearsData:         string(dySigsJSON),
+			LifeStageHint:     lifeStageHint,
+			FavorableShishen:  result.FavorableShishen,
+			AdverseShishen:    result.AdverseShishen,
+			ShishenConfidence: result.ShishenConfidence,
+			TiaohouSummary:    formatTiaohouSummary(result),
 		}
 		var pbuf bytes.Buffer
 		if err := tmpl.Execute(&pbuf, tplData); err != nil {

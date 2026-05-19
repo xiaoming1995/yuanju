@@ -127,6 +127,14 @@ type DayunSummaryTemplateData struct {
 	HuaheTag       string // 合化标签（若有）
 	YearsData      string // 仅这段大运 10 年的 signals JSON
 	LifeStageHint  string // 读书期/跨界期 prompt 提示（按 youngRatio 三档）
+
+	// 喜忌十神（古法映射）— soft 置信度时 FavorableShishen/AdverseShishen 为空
+	FavorableShishen  []string
+	AdverseShishen    []string
+	ShishenConfidence string // hard / medium / soft
+
+	// 调候用神描述（confidence=soft 时 prompt 引用此项替代喜忌十神清单）
+	TiaohouSummary string
 }
 
 // PastEventsTemplateData past_events Prompt 模板所需的数据上下文

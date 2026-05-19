@@ -227,3 +227,108 @@ func containsStrTest(s []string, v string) bool {
 	}
 	return false
 }
+
+// ── BuildFavorableShishen 测试 ──────────────────────────────────────────
+
+func TestBuildFavorableShishen_VStrong_HardConfidence(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("甲", "金", "木水", "vstrong")
+	if conf != ShishenConfHard {
+		t.Errorf("vstrong should yield hard confidence, got %q", conf)
+	}
+	wantFav := []string{"食神", "伤官", "偏财", "正财", "正官", "七杀"}
+	wantAdv := []string{"比肩", "劫财", "偏印", "正印"}
+	if !reflect.DeepEqual(fav, wantFav) {
+		t.Errorf("vstrong favorable = %v, want %v", fav, wantFav)
+	}
+	if !reflect.DeepEqual(adv, wantAdv) {
+		t.Errorf("vstrong adverse = %v, want %v", adv, wantAdv)
+	}
+}
+
+func TestBuildFavorableShishen_Strong_MediumConfidence(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("乙", "金土", "木水", "strong")
+	if conf != ShishenConfMedium {
+		t.Errorf("strong should yield medium confidence, got %q", conf)
+	}
+	wantFav := []string{"食神", "伤官", "偏财", "正财", "正官", "七杀"}
+	wantAdv := []string{"比肩", "劫财", "偏印", "正印"}
+	if !reflect.DeepEqual(fav, wantFav) {
+		t.Errorf("strong favorable = %v, want %v", fav, wantFav)
+	}
+	if !reflect.DeepEqual(adv, wantAdv) {
+		t.Errorf("strong adverse = %v, want %v", adv, wantAdv)
+	}
+}
+
+func TestBuildFavorableShishen_Weak_MediumConfidence(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("丙", "木火", "金水", "weak")
+	if conf != ShishenConfMedium {
+		t.Errorf("weak should yield medium confidence, got %q", conf)
+	}
+	wantFav := []string{"偏印", "正印", "比肩", "劫财"}
+	wantAdv := []string{"食神", "伤官", "偏财", "正财", "正官", "七杀"}
+	if !reflect.DeepEqual(fav, wantFav) {
+		t.Errorf("weak favorable = %v, want %v", fav, wantFav)
+	}
+	if !reflect.DeepEqual(adv, wantAdv) {
+		t.Errorf("weak adverse = %v, want %v", adv, wantAdv)
+	}
+}
+
+func TestBuildFavorableShishen_VWeak_HardConfidence(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("壬", "金水", "土火", "vweak")
+	if conf != ShishenConfHard {
+		t.Errorf("vweak should yield hard confidence, got %q", conf)
+	}
+	wantFav := []string{"偏印", "正印", "比肩", "劫财"}
+	wantAdv := []string{"食神", "伤官", "偏财", "正财", "正官", "七杀"}
+	if !reflect.DeepEqual(fav, wantFav) {
+		t.Errorf("vweak favorable = %v, want %v", fav, wantFav)
+	}
+	if !reflect.DeepEqual(adv, wantAdv) {
+		t.Errorf("vweak adverse = %v, want %v", adv, wantAdv)
+	}
+}
+
+func TestBuildFavorableShishen_Neutral_SoftConfidence(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("戊", "水木", "火土", "neutral")
+	if conf != ShishenConfSoft {
+		t.Errorf("neutral should yield soft confidence, got %q", conf)
+	}
+	if len(fav) != 0 {
+		t.Errorf("neutral favorable should be empty, got %v", fav)
+	}
+	if len(adv) != 0 {
+		t.Errorf("neutral adverse should be empty, got %v", adv)
+	}
+}
+
+func TestBuildFavorableShishen_EmptyYongshen_FallsBackToSoft(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("甲", "", "金土火", "strong")
+	if conf != ShishenConfSoft {
+		t.Errorf("empty yongshen should fall back to soft, got %q", conf)
+	}
+	if len(fav) != 0 || len(adv) != 0 {
+		t.Errorf("empty yongshen should yield empty lists, got fav=%v adv=%v", fav, adv)
+	}
+}
+
+func TestBuildFavorableShishen_EmptyJishen_FallsBackToSoft(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("甲", "金", "", "strong")
+	if conf != ShishenConfSoft {
+		t.Errorf("empty jishen should fall back to soft, got %q", conf)
+	}
+	if len(fav) != 0 || len(adv) != 0 {
+		t.Errorf("empty jishen should yield empty lists, got fav=%v adv=%v", fav, adv)
+	}
+}
+
+func TestBuildFavorableShishen_UnknownStrength_FallsBackToSoft(t *testing.T) {
+	fav, adv, conf := BuildFavorableShishen("甲", "金", "木水", "")
+	if conf != ShishenConfSoft {
+		t.Errorf("unknown strength should fall back to soft, got %q", conf)
+	}
+	if len(fav) != 0 || len(adv) != 0 {
+		t.Errorf("unknown strength should yield empty lists, got fav=%v adv=%v", fav, adv)
+	}
+}
