@@ -64,6 +64,7 @@ func main() {
 	// 种子数据：将 .env 中已有的 API Key 写入 llm_providers
 	seed.SeedLLMProviders()
 	seed.SeedLLMPrices()
+	seed.SeedCostAlertThresholds()
 
 	// 加载算法配置（含调候用神 seed）
 	if err := service.LoadAlgoConfig(); err != nil {
@@ -82,6 +83,10 @@ func main() {
 	// 起 cleanup scheduler（后台 goroutine）
 	schedCtx, cancelSched := context.WithCancel(context.Background())
 	go cleanupSvc.StartScheduler(schedCtx)
+
+	// Cost alert scheduler — 5 min ticker, emits structured JSON log on threshold breach
+	costAlertScheduler := service.NewCostAlertScheduler()
+	go costAlertScheduler.StartScheduler(schedCtx)
 	defer cancelSched()
 
 	// SIGTERM/SIGINT 触发 cancelSched 让 scheduler 干净退出
@@ -198,6 +203,7 @@ func main() {
 				adminAuth.GET("/token-usage/summary", handler.AdminGetTokenUsageSummary)
 				adminAuth.GET("/token-usage/detail", handler.AdminGetTokenUsageDetail)
 				adminAuth.GET("/token-usage/content/:id", handler.AdminGetTokenUsageContent)
+				adminAuth.GET("/token-usage/budget-status", handler.AdminGetBudgetStatus)
 
 				// 报告缓存管理
 				adminAuth.DELETE("/reports/cache", handler.AdminClearAllReports)
