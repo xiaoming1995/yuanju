@@ -6,24 +6,23 @@ import {
   compatibilityAPI,
   type CompatibilityChartSnapshot,
   type CompatibilityClaimEvidenceLink,
-  type CompatibilityDecisionAdvice,
   type CompatibilityDetail,
   type CompatibilityDimensionScores,
   type CompatibilityDurationAssessment,
   type CompatibilityEvidence,
   type CompatibilityParticipant,
   type CompatibilityQuestionFocus,
-  type CompatibilityRelationshipDiagnosis,
   type CompatibilityRelationshipStrategy,
   type CompatibilityStageRisk,
 } from '../lib/api'
+import {
+  buildDecisionDashboardData,
+  buildDecisionStageRisks,
+  hasLinkedEvidence,
+  type DecisionDashboardData,
+  type DecisionFinding,
+} from '../lib/compatibilityDecision'
 import './CompatibilityResultPage.css'
-
-const levelText: Record<string, string> = {
-  high: '契合度高',
-  medium: '可发展，但需要磨合',
-  low: '吸引与稳定存在明显矛盾',
-}
 
 const dimensionText: Record<string, string> = {
   attraction: '会不会互相吸引？',
@@ -218,16 +217,6 @@ function getDimensionItems(scores: CompatibilityDimensionScores) {
   }))
 }
 
-function fallbackAdvice(level: string) {
-  if (level === 'high') {
-    return '这组关系有继续推进的基础，建议把优势落到稳定沟通、现实安排和共同节奏上。'
-  }
-  if (level === 'low') {
-    return '这组关系需要先处理边界、沟通方式和现实压力，再判断是否适合长期投入。'
-  }
-  return '这组关系可以继续观察，但要把吸引感和现实磨合分开看，先建立稳定的沟通规则。'
-}
-
 function EvidenceCard({ evidence }: { evidence: CompatibilityEvidence }) {
   const badgeColor = polarityColor[evidence.polarity] || 'var(--text-muted)'
 
@@ -331,115 +320,84 @@ function ScoreOverview({ scores }: { scores: CompatibilityDimensionScores }) {
   )
 }
 
-function InsightPanel({
-  risks,
-  advice,
-  hasStructuredReport,
-}: {
-  risks: string[]
-  advice: string
-  hasStructuredReport: boolean
-}) {
-  return (
-    <div className="compatibility-insight-grid">
-      <div className="card compatibility-insight-card">
-        <div className="compatibility-insight-kicker">关键风险</div>
-        {risks.length > 0 ? (
-          <ul className="compatibility-insight-list">
-            {risks.slice(0, 3).map(risk => <li key={risk}>{risk}</li>)}
-          </ul>
-        ) : (
-          <p className="compatibility-insight-empty">当前结构中没有特别突出的单点风险，仍建议结合现实相处节奏判断。</p>
-        )}
-      </div>
-      <div className="card compatibility-insight-card compatibility-insight-card--advice">
-        <div className="compatibility-insight-kicker">行动建议</div>
-        <p className="compatibility-insight-advice">{advice}</p>
-        {!hasStructuredReport && (
-          <p className="compatibility-insight-note">生成完整解读后，会补充更具体的沟通与长期关系建议。</p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function DecisionHeroPanel({
-  detail,
-  diagnosis,
-  advice,
+function DecisionDashboardPanel({
   selfName,
   partnerName,
-  overallLevel,
-  summaryTags,
+  reading,
+  dashboard,
   hasReport,
   reportLoading,
   onGenerateReport,
 }: {
-  detail: CompatibilityDetail
-  diagnosis?: CompatibilityRelationshipDiagnosis
-  advice?: CompatibilityDecisionAdvice
   selfName: string
   partnerName: string
-  overallLevel: string
-  summaryTags: string[]
+  reading: CompatibilityDetail['reading']
+  dashboard: DecisionDashboardData
   hasReport: boolean
   reportLoading: boolean
   onGenerateReport: () => void
 }) {
-  const reading = detail.reading
-  const nextActions = Array.isArray(advice?.do_next) ? advice.do_next.filter(Boolean).slice(0, 3) : []
-  const avoid = Array.isArray(advice?.avoid) ? advice.avoid.filter(Boolean).slice(0, 2) : []
-  const findings = Array.isArray(diagnosis?.top_findings) ? diagnosis.top_findings.filter(Boolean).slice(0, 3) : []
   const stageLabel = relationshipStageText[reading.relationship_stage] || relationshipStageText.general
   const questionLabel = primaryQuestionText[reading.primary_question] || primaryQuestionText.general
 
   return (
-    <div className="card compatibility-decision-hero">
+    <section className="card compatibility-decision-dashboard">
       <div className="compatibility-decision-header">
         <HeartHandshake size={24} />
         <h1 className="serif compatibility-decision-title">{selfName} × {partnerName}</h1>
       </div>
-      <div className="compatibility-context-heading">关系背景</div>
+
       <div className="compatibility-decision-context">
         <span>{stageLabel}</span>
         <span>{questionLabel}</span>
-        <span>{levelText[overallLevel] || overallLevel}</span>
       </div>
-      <div className="compatibility-consulting-kicker">关系判断</div>
-      <h2 className="serif compatibility-decision-headline">{diagnosis?.verdict || '建议结合现实相处继续观察'}</h2>
-      {diagnosis?.relationship_type && (
-        <div className="compatibility-decision-type">{diagnosis.relationship_type}</div>
+
+      <div className="compatibility-consulting-kicker">关系决策</div>
+      <h2 className="serif compatibility-decision-headline">{dashboard.verdict}</h2>
+      <div className="compatibility-decision-type">{dashboard.relationshipType}</div>
+
+      <div className="compatibility-decision-metric-grid">
+        <div className="compatibility-decision-metric">
+          <span>投入建议</span>
+          <strong>{dashboard.recommendationLabel}</strong>
+        </div>
+        <div className="compatibility-decision-metric">
+          <span>判断信心</span>
+          <strong>{dashboard.confidenceLabel}</strong>
+        </div>
+        <div className="compatibility-decision-metric compatibility-decision-metric--wide">
+          <span>最大风险</span>
+          <strong>{dashboard.maxRisk}</strong>
+        </div>
+      </div>
+
+      <div className="compatibility-next-action">
+        <span>下一步验证</span>
+        <p>{dashboard.nextAction}</p>
+      </div>
+
+      {dashboard.avoid.length > 0 && (
+        <div className="compatibility-avoid-list">
+          <span>短期避免</span>
+          <div>
+            {dashboard.avoid.map(item => <em key={item}>{item}</em>)}
+          </div>
+        </div>
       )}
+
       <div className="compatibility-core-contradiction">
         <span>核心矛盾</span>
-        <p>{diagnosis?.summary || '这段关系需要把短期吸引和长期稳定分开验证。'}</p>
+        <p>{dashboard.summary}</p>
       </div>
-      {findings.length > 0 && (
-        <div className="compatibility-finding-list">
-          {findings.map(finding => (
-            <div key={finding.text} className="compatibility-finding-item">{finding.text}</div>
-          ))}
-        </div>
-      )}
-      <div className="compatibility-decision-action-grid">
-        <AdviceList title="下一步" items={nextActions} />
-        <AdviceList title="避免" items={avoid} />
-      </div>
-      {summaryTags.length > 0 && (
-        <div className="compatibility-tag-row">
-          {summaryTags.map(tag => (
-            <span key={tag} className="compatibility-tag">{tag}</span>
-          ))}
-        </div>
-      )}
+
       {!hasReport && (
         <div className="compatibility-decision-report-action">
           <button className="btn btn-primary" onClick={onGenerateReport} disabled={reportLoading}>
-            {reportLoading ? '生成中...' : '生成完整解读'}
+            {reportLoading ? '生成中' : '生成深度解读'}
           </button>
         </div>
       )}
-    </div>
+    </section>
   )
 }
 
@@ -458,15 +416,45 @@ function AdviceList({ title, items }: { title: string; items: string[] }) {
   )
 }
 
+function DecisionEvidenceSummary({
+  findings,
+  links,
+}: {
+  findings: DecisionFinding[]
+  links: CompatibilityClaimEvidenceLink[]
+}) {
+  if (findings.length === 0) return null
+
+  return (
+    <section className="compatibility-section compatibility-decision-evidence-summary">
+      <div className="compatibility-section-header">
+        <h2 className="serif compatibility-section-title">为什么这么判断</h2>
+        <p className="compatibility-section-desc">先看白话依据，专业命理证据可继续下钻。</p>
+      </div>
+      <div className="compatibility-decision-evidence-grid">
+        {findings.map((finding, index) => (
+          <div key={`${finding.text}-${index}`} className="card compatibility-decision-evidence-card">
+            <span className="compatibility-decision-evidence-index">{index + 1}</span>
+            <p>{finding.text}</p>
+            {hasLinkedEvidence(links, finding.evidenceKeys) && (
+              <a href="#compatibility-claim-evidence" className="compatibility-evidence-link">查看依据</a>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function StageRiskGrid({ risks }: { risks: CompatibilityStageRisk[] }) {
   return (
-    <div className="compatibility-stage-grid">
+    <div className="compatibility-stage-validation-grid">
       {risks.map(risk => (
-        <div key={risk.window} className="card compatibility-stage-card">
+        <div key={risk.window} className="card compatibility-stage-validation-card">
           <div className="compatibility-stage-window">{stageWindowText[risk.window] || risk.window}</div>
-          <div className="compatibility-stage-label">阶段任务</div>
+          <div className="compatibility-stage-label">要验证什么</div>
           <div className="serif compatibility-stage-risk">{risk.main_risk}</div>
-          <p><span>风险触发：</span>{risk.trigger}</p>
+          <p><span>触发场景：</span>{risk.trigger}</p>
           <div className="compatibility-stage-advice">{risk.advice}</div>
         </div>
       ))}
@@ -670,42 +658,45 @@ export default function CompatibilityResultPage() {
   const partnerP = detail.participants.find(p => p.role === 'partner')
   const structuredReport = detail.latest_report?.content_structured
   const durationAssessment = normalizeDurationAssessment(structuredReport?.duration_assessment, reading.duration_assessment)
-  const summaryTags = Array.isArray(reading.summary_tags) ? reading.summary_tags : []
   const reportDimensions = Array.isArray(structuredReport?.dimensions) ? structuredReport.dimensions : []
   const reportRisks = Array.isArray(structuredReport?.risks) ? structuredReport.risks.filter(Boolean) : []
-  const fallbackRisks = detail.evidences
-    .filter(evidence => evidence.polarity === 'negative')
-    .map(evidence => `${evidence.title}：${evidence.detail}`)
-  const insightRisks = reportRisks.length > 0 ? reportRisks : fallbackRisks
-  const insightAdvice = structuredReport?.advice?.trim() || fallbackAdvice(reading.overall_level)
   const consulting = normalizeConsultingAssessment(detail)
+  const decisionStageRisks = buildDecisionStageRisks(consulting.stage_risks, durationAssessment)
+  const decisionDashboard = buildDecisionDashboardData({
+    diagnosis: consulting.relationship_diagnosis,
+    advice: consulting.decision_advice,
+    stageRisks: consulting.stage_risks,
+    duration: durationAssessment,
+    evidences: detail.evidences,
+    overallLevel: reading.overall_level,
+  })
 
   return (
     <div className="page compatibility-result-page">
       <div className="container compatibility-result-container">
-        <DecisionHeroPanel
-          detail={detail}
-          diagnosis={consulting.relationship_diagnosis}
-          advice={consulting.decision_advice}
+        <DecisionDashboardPanel
+          reading={reading}
+          dashboard={decisionDashboard}
           selfName={selfP?.display_name || '我'}
           partnerName={partnerP?.display_name || '对方'}
-          overallLevel={reading.overall_level}
-          summaryTags={summaryTags}
           hasReport={Boolean(detail.latest_report)}
           reportLoading={reportLoading}
           onGenerateReport={handleGenerateReport}
         />
 
-        {consulting.stage_risks.length > 0 && (
-          <div className="compatibility-section">
-            <div className="compatibility-section-header">
-              <h2 className="serif compatibility-section-title">阶段任务与风险</h2>
-              <p className="compatibility-section-desc">按关系推进阶段看任务、触发点和行动建议。</p>
-            </div>
-            <StageRiskGrid risks={consulting.stage_risks} />
-            <DurationTaskSummary assessment={durationAssessment} />
+        <DecisionEvidenceSummary
+          findings={decisionDashboard.findings}
+          links={consulting.claim_evidence_links}
+        />
+
+        <div className="compatibility-section">
+          <div className="compatibility-section-header">
+            <h2 className="serif compatibility-section-title">接下来要验证什么</h2>
+            <p className="compatibility-section-desc">按关系推进阶段看风险、触发点和验证动作。</p>
           </div>
-        )}
+          <StageRiskGrid risks={decisionStageRisks} />
+          <DurationTaskSummary assessment={durationAssessment} />
+        </div>
 
         {consulting.relationship_strategy && (
           <RelationshipStrategyPanel strategy={consulting.relationship_strategy} />
@@ -713,20 +704,8 @@ export default function CompatibilityResultPage() {
 
         <ScoreOverview scores={reading.dimension_scores} />
 
-        <div className="compatibility-section">
-          <div className="compatibility-section-header compatibility-section-header--stacked">
-            <h2 className="serif compatibility-section-title">关系洞察</h2>
-            <p className="compatibility-section-desc">把风险和建议单独提出来，避免被专业术语淹没。</p>
-          </div>
-          <InsightPanel
-            risks={insightRisks}
-            advice={insightAdvice}
-            hasStructuredReport={Boolean(structuredReport)}
-          />
-        </div>
-
         {consulting.claim_evidence_links.length > 0 && (
-          <div className="compatibility-section">
+          <div id="compatibility-claim-evidence" className="compatibility-section">
             <div className="compatibility-section-header">
               <h2 className="serif compatibility-section-title">关键判断依据</h2>
               <p className="compatibility-section-desc">每条咨询判断都可以回看对应命理证据。</p>
@@ -735,36 +714,9 @@ export default function CompatibilityResultPage() {
           </div>
         )}
 
-        <details className="compatibility-professional-details">
-          <summary className="compatibility-professional-summary">
-            <span className="serif">专业命盘细节</span>
-            <span>四柱、五行与结构化依据</span>
-          </summary>
-          <div className="compatibility-professional-body">
-            <div className="compatibility-section">
-              <div className="compatibility-section-header">
-                <h2 className="serif compatibility-section-title">双方命盘摘要</h2>
-                <p className="compatibility-section-desc">确认双方四柱与命盘核心信息。</p>
-              </div>
-              <div className="compatibility-summary-grid">
-                {selfP && <ParticipantSummaryCard participant={selfP} />}
-                {partnerP && <ParticipantSummaryCard participant={partnerP} />}
-              </div>
-            </div>
-
-            <div className="compatibility-section">
-              <div className="compatibility-section-header">
-                <h2 className="serif compatibility-section-title">关键依据</h2>
-                <p className="compatibility-section-desc">这些结构化证据是合盘结论的主要命理依据。</p>
-              </div>
-              <ProfessionalEvidenceGroups evidences={detail.evidences} />
-            </div>
-          </div>
-        </details>
-
         <div className="card compatibility-ai-card">
           <div className="compatibility-ai-header">
-            <h2 className="serif compatibility-section-title">合盘解读</h2>
+            <h2 className="serif compatibility-section-title">深度解读</h2>
           </div>
 
           {error && <p style={{ color: '#e77' }}>{error}</p>}
@@ -795,9 +747,36 @@ export default function CompatibilityResultPage() {
           ) : detail.latest_report ? (
             <div className="compatibility-report-raw">{detail.latest_report.content}</div>
           ) : (
-            <p className="compatibility-report-empty">尚未生成合盘解读。</p>
+            <p className="compatibility-report-empty">尚未生成深度解读。</p>
           )}
         </div>
+
+        <details className="compatibility-professional-details">
+          <summary className="compatibility-professional-summary">
+            <span className="serif">专业命盘细节</span>
+            <span>四柱、五行与结构化依据</span>
+          </summary>
+          <div className="compatibility-professional-body">
+            <div className="compatibility-section">
+              <div className="compatibility-section-header">
+                <h2 className="serif compatibility-section-title">双方命盘摘要</h2>
+                <p className="compatibility-section-desc">确认双方四柱与命盘核心信息。</p>
+              </div>
+              <div className="compatibility-summary-grid">
+                {selfP && <ParticipantSummaryCard participant={selfP} />}
+                {partnerP && <ParticipantSummaryCard participant={partnerP} />}
+              </div>
+            </div>
+
+            <div className="compatibility-section">
+              <div className="compatibility-section-header">
+                <h2 className="serif compatibility-section-title">关键依据</h2>
+                <p className="compatibility-section-desc">这些结构化证据是合盘结论的主要命理依据。</p>
+              </div>
+              <ProfessionalEvidenceGroups evidences={detail.evidences} />
+            </div>
+          </div>
+        </details>
       </div>
     </div>
   )

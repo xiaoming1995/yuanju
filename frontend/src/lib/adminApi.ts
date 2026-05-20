@@ -101,7 +101,9 @@ export const adminCelebritiesAPI = {
 export const adminPromptsAPI = {
   list: () => adminApi.get('/api/admin/prompts'),
   update: (module: string, data: { content: string }) =>
-    adminApi.put(`/api/admin/prompts/${module}`, data)
+    adminApi.put(`/api/admin/prompts/${module}`, data),
+  resetToCanonical: (module: string) =>
+    adminApi.post(`/api/admin/prompts/${module}/reset`)
 }
 
 export const adminAlgoConfigAPI = {

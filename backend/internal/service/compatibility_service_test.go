@@ -6,6 +6,7 @@ import (
 	"testing"
 	"yuanju/internal/model"
 	"yuanju/pkg/bazi"
+	"yuanju/pkg/prompt"
 )
 
 func makeCompatibilitySnapshot(displayName, gender string) *json.RawMessage {
@@ -423,8 +424,8 @@ func TestCompatibilityParticipantSummary_ValidSnapshot(t *testing.T) {
 	}
 }
 
-func TestCompatibilityPromptFallback_ContainsTemplateVars(t *testing.T) {
-	fb := compatibilityPromptFallback()
+func TestCompatibilityCanonical_ContainsTemplateVars(t *testing.T) {
+	fb := prompt.MustGet("compatibility").Content
 	for _, v := range []string{
 		"{{.SelfLabel}}",
 		"{{.PartnerLabel}}",
@@ -449,8 +450,8 @@ func TestCompatibilityPromptFallback_ContainsTemplateVars(t *testing.T) {
 	}
 }
 
-func TestCompatibilityPromptFallback_DefinesQuestionSpecificBranches(t *testing.T) {
-	fb := compatibilityPromptFallback()
+func TestCompatibilityCanonical_DefinesQuestionSpecificBranches(t *testing.T) {
+	fb := prompt.MustGet("compatibility").Content
 	for _, want := range []string{
 		"primary_question = reconciliation_potential",
 		"是否建议复合",

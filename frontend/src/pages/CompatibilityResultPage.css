@@ -331,6 +331,15 @@
   margin-bottom: 20px;
 }
 
+.compatibility-decision-dashboard {
+  padding: 24px;
+  margin-bottom: 20px;
+  border-color: rgba(201, 168, 76, 0.28);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.1), rgba(255, 255, 255, 0.03) 44%),
+    rgba(18, 23, 36, 0.94);
+}
+
 .compatibility-decision-header {
   display: flex;
   align-items: center;
@@ -385,6 +394,73 @@
   margin-bottom: 14px;
 }
 
+.compatibility-decision-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.compatibility-decision-metric {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.compatibility-decision-metric span,
+.compatibility-next-action span,
+.compatibility-avoid-list > span {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.compatibility-decision-metric strong {
+  display: block;
+  color: var(--wu-jin);
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.compatibility-next-action {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(201, 168, 76, 0.22);
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.compatibility-next-action p {
+  margin: 0;
+  color: var(--text-primary);
+  line-height: 1.75;
+}
+
+.compatibility-avoid-list {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(239, 83, 80, 0.07);
+  border: 1px solid rgba(239, 83, 80, 0.18);
+}
+
+.compatibility-avoid-list div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.compatibility-avoid-list em {
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #ffb4ab;
+  font-size: 12px;
+  font-style: normal;
+  background: rgba(239, 83, 80, 0.12);
+}
+
 .compatibility-core-contradiction {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
@@ -414,6 +490,49 @@
 
 .compatibility-decision-report-action {
   margin-top: 18px;
+}
+
+.compatibility-decision-evidence-summary {
+  margin-bottom: 20px;
+}
+
+.compatibility-decision-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-decision-evidence-card {
+  position: relative;
+  padding: 18px;
+}
+
+.compatibility-decision-evidence-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  color: var(--bg-primary);
+  background: var(--wu-jin);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compatibility-decision-evidence-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+.compatibility-evidence-link {
+  display: inline-flex;
+  margin-top: 12px;
+  color: var(--wu-jin);
+  font-size: 13px;
+  text-decoration: none;
 }
 
 .compatibility-consulting-kicker,
@@ -467,6 +586,16 @@
 .compatibility-stage-card {
   color: var(--text-secondary);
   line-height: 1.7;
+}
+
+.compatibility-stage-validation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-stage-validation-card {
+  padding: 18px;
 }
 
 .compatibility-stage-card p {
@@ -781,6 +910,10 @@
     margin-bottom: 16px;
   }
 
+  .compatibility-decision-dashboard {
+    padding: 18px;
+  }
+
   .compatibility-decision-hero {
     padding: 20px;
     margin-top: 14px;
@@ -793,6 +926,26 @@
 
   .compatibility-decision-headline {
     font-size: 24px;
+    line-height: 1.35;
+  }
+
+  .compatibility-decision-metric-grid,
+  .compatibility-decision-evidence-grid,
+  .compatibility-stage-validation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-decision-metric {
+    padding: 12px;
+  }
+
+  .compatibility-decision-metric strong {
+    font-size: 16px;
+  }
+
+  .compatibility-next-action,
+  .compatibility-avoid-list {
+    padding: 13px;
   }
 
   .compatibility-decision-action-grid,

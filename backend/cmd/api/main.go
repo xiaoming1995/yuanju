@@ -16,6 +16,7 @@ import (
 	"yuanju/internal/repository"
 	"yuanju/internal/service"
 	"yuanju/pkg/database"
+	"yuanju/pkg/prompt"
 	"yuanju/pkg/seed"
 
 	"github.com/gin-gonic/gin"
@@ -54,6 +55,11 @@ func main() {
 	// 默认启动路径：跑 ModeStartup 迁移（0001 fatal、0002+ warn-only）
 	if _, err := database.Migrate(database.ModeStartup); err != nil {
 		log.Printf("[migrate] startup unexpected error: %v", err)
+	}
+
+	// Prompt 注册表对齐：把代码侧 Canonical 写入 ai_prompts 表（未自定义行 sync 到当前版本）。
+	if err := prompt.SyncCanonical(database.DB); err != nil {
+		log.Printf("[prompt-sync] startup error: %v", err)
 	}
 
 	// 确保 logo 上传目录存在
@@ -224,6 +230,7 @@ func main() {
 				// Prompt 管理
 				adminAuth.GET("/prompts", handler.GetPrompts)
 				adminAuth.PUT("/prompts/:module", handler.UpdatePrompt)
+				adminAuth.POST("/prompts/:module/reset", handler.ResetPromptToCanonical)
 
 				// 算法参数管理
 				adminAuth.GET("/algo-config", handler.AdminGetAlgoConfig)
