@@ -1255,6 +1255,12 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
      凡 evidence 数组非空，narrative 就必须有内容。
    - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
    - 不同年份的 narrative 之间应有差异化措辞，禁止把多年写成同一段。
+   - **弱信号年安全措辞**：若该年 evidence 仅含"用神基底"或基底+1 个弱信号，
+     可直接使用以下安全句式，禁止省略 narrative：
+     · 「该年信号稀疏，运势相对平顺」
+     · 「基底为吉/凶/中性，本年无明显波动」
+     · 「与大运 {大运干支} 同调，按本段方向延展」
+     上述句式不含"用神位/忌神位/伏吟/反吟/神煞名"等需追溯术语，可安全使用。
    - 严禁编造未在 evidence 中出现的神煞或用神位事件
    - **特别提醒（命理术语易混淆）**：
      · 伏吟 ≠ 反吟：伏吟是流年与原局某柱完全相同；反吟是天克地冲。
