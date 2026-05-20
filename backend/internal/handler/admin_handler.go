@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"yuanju/configs"
 	"yuanju/internal/model"
@@ -11,7 +12,6 @@ import (
 	"yuanju/internal/service"
 	"yuanju/pkg/crypto"
 	"yuanju/pkg/database"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -294,16 +294,21 @@ func AdminGetAIStats(c *gin.Context) {
 func AdminGetUsers(c *gin.Context) {
 	q := c.Query("q")
 	page := 1
+	if p := c.Query("page"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && parsed > 0 {
+			page = parsed
+		}
+	}
 	pageSize := 20
 	offset := (page - 1) * pageSize
 
 	query := `
-		SELECT u.id, u.email, u.nickname, u.created_at,
+		SELECT u.id, u.email, u.nickname, COALESCE(u.source, 'self_registered'), u.created_at,
 		       COUNT(b.id) as chart_count
 		FROM users u
 		LEFT JOIN bazi_charts b ON b.user_id = u.id
 		WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%')
-		GROUP BY u.id, u.email, u.nickname, u.created_at
+		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at
 		ORDER BY u.created_at DESC
 		LIMIT $2 OFFSET $3`
 
@@ -318,13 +323,14 @@ func AdminGetUsers(c *gin.Context) {
 		ID         string `json:"id"`
 		Email      string `json:"email"`
 		Nickname   string `json:"nickname"`
+		Source     string `json:"source"`
 		CreatedAt  string `json:"created_at"`
 		ChartCount int    `json:"chart_count"`
 	}
 	var users []UserRow
 	for rows.Next() {
 		var u UserRow
-		rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.CreatedAt, &u.ChartCount)
+		rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.ChartCount)
 		users = append(users, u)
 	}
 
@@ -332,6 +338,48 @@ func AdminGetUsers(c *gin.Context) {
 	database.DB.QueryRow(`SELECT COUNT(*) FROM users WHERE $1 = '' OR email ILIKE '%' || $1 || '%'`, q).Scan(&total)
 
 	c.JSON(http.StatusOK, gin.H{"users": users, "total": total})
+}
+
+func AdminCreateUser(c *gin.Context) {
+	var req service.AdminCreateUserInput
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	user, err := service.CreateUserByAdmin(req)
+	if err != nil {
+		if err.Error() == "该邮箱已被注册" {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建用户失败"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"user": user})
+}
+
+func AdminGetRegistrationSetting(c *gin.Context) {
+	enabled, err := repository.GetBoolSetting(repository.SettingRegistrationEnabled, true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取注册设置失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"registration_enabled": enabled})
+}
+
+func AdminUpdateRegistrationSetting(c *gin.Context) {
+	var req struct {
+		RegistrationEnabled *bool `json:"registration_enabled" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.RegistrationEnabled == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "registration_enabled 必填"})
+		return
+	}
+	if err := repository.SetBoolSetting(repository.SettingRegistrationEnabled, *req.RegistrationEnabled); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存注册设置失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"registration_enabled": *req.RegistrationEnabled})
 }
 
 // AdminListAILogs 分页查询 AI 调用日志明细

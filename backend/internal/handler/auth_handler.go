@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"yuanju/internal/repository"
 	"yuanju/internal/service"
@@ -21,6 +22,10 @@ func Register(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, service.ErrRegistrationDisabled) {
+			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "注册失败，请稍后重试"})
 		return
 	}
@@ -29,6 +34,15 @@ func Register(c *gin.Context) {
 		"user":  user,
 		"token": token,
 	})
+}
+
+func RegistrationSettings(c *gin.Context) {
+	enabled, err := repository.GetBoolSetting(repository.SettingRegistrationEnabled, true)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取注册设置失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"registration_enabled": enabled})
 }
 
 func Login(c *gin.Context) {

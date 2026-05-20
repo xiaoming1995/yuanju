@@ -36,12 +36,17 @@ api.interceptors.response.use(
 )
 
 // ======= Auth API =======
+export interface RegistrationSettings {
+  registration_enabled: boolean
+}
+
 export const authAPI = {
   register: (data: { email: string; password: string; nickname?: string }) =>
     api.post('/api/auth/register', data),
   login: (data: { email: string; password: string }) =>
     api.post('/api/auth/login', data),
   me: () => api.get('/api/auth/me'),
+  registrationSettings: () => api.get('/api/auth/registration-settings'),
 }
 
 export interface UserProfileStats {

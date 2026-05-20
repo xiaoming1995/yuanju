@@ -1,11 +1,21 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Compass, HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { authAPI } from '../lib/api'
 import './Navbar.css'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [registration_enabled, setRegistrationEnabled] = useState(false)
+
+  useEffect(() => {
+    if (user) return
+    authAPI.registrationSettings()
+      .then(r => setRegistrationEnabled(r.data.registration_enabled))
+      .catch(() => setRegistrationEnabled(true))
+  }, [user])
 
   const handleLogout = () => {
     logout()
@@ -39,7 +49,7 @@ export default function Navbar() {
           ) : (
             <div className="navbar-actions">
               <Link to="/login" className="btn btn-ghost btn-sm">登录</Link>
-              <Link to="/register" className="btn btn-primary btn-sm">注册</Link>
+              {registration_enabled && <Link to="/register" className="btn btn-primary btn-sm">注册</Link>}
             </div>
           )}
         </div>
