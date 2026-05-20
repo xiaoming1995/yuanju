@@ -1,6 +1,9 @@
 package bazi
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // MinSentencesForNarrative is the minimum number of non-empty
 // evidence-anchored sentences required before RenderYearNarrative
@@ -773,4 +776,44 @@ func ExtractYearSignalTypes(ys YearSignals) []string {
 		out = append(out, s.Type)
 	}
 	return out
+}
+
+// RenderYearNarrativeWithFallback 是 RenderYearNarrative 的非空包装。
+// AI 模式下，当 AI 输出 narrative="" 或 validator 清空 narrative 后调用，
+// 保证流年卡片始终有内容，避免前端渲染光秃秃的干支头。
+//
+// 调用方在确实需要"每年都有内容"时使用；不替代 RenderYearNarrative —
+// template 模式仍可保留"<2 句返空"的契约。
+func RenderYearNarrativeWithFallback(ys YearSignals) string {
+	if s := RenderYearNarrative(ys); s != "" {
+		return s
+	}
+	return makeMinimalFallback(ys)
+}
+
+// makeMinimalFallback 按 用神基底 信号的 polarity 选择安全句式。
+//
+// 严禁包含 ValidateYearNarrative 的 28 个 validatedKeywords
+// （用神位/忌神位/伏吟/反吟/神煞名 等）——本兜底文案的目的就是绕开
+// 那些需要 evidence 追溯的强术语。
+func makeMinimalFallback(ys YearSignals) string {
+	polarity := ""
+	for _, s := range ys.Signals {
+		if s.Source == SourceYongshen {
+			polarity = s.Polarity
+			break
+		}
+	}
+	switch polarity {
+	case PolarityJi:
+		return fmt.Sprintf("%d岁%s年，命局基调向吉，本年信号较稀，运势相对平顺，宜稳中求进。", ys.Age, ys.GanZhi)
+	case PolarityXiong:
+		return fmt.Sprintf("%d岁%s年，命局基调偏凶，本年信号较稀，宜守不宜攻，谨慎处事。", ys.Age, ys.GanZhi)
+	default:
+		dy := ys.DayunGanZhi
+		if dy == "" {
+			return fmt.Sprintf("%d岁%s年信号较稀，命局本年无明显波动。", ys.Age, ys.GanZhi)
+		}
+		return fmt.Sprintf("%d岁%s年信号较稀，运势相对平稳，按本段大运%s方向延展即可。", ys.Age, ys.GanZhi, dy)
+	}
 }

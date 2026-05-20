@@ -849,3 +849,32 @@ func TestRenderYearNarrative_ScreenshotRegression_RepetitiveOpenerHidden(t *test
 		openings[opening] = ys.GanZhi
 	}
 }
+
+func TestRenderYearNarrativeWithFallback_NoSignalsReturnsNonEmpty(t *testing.T) {
+	// 0 signals — RenderYearNarrative 返 ""，Fallback 必须兜底
+	ys := YearSignals{Year: 2022, Age: 27, GanZhi: "壬寅", DayunGanZhi: "辛丑"}
+	got := RenderYearNarrativeWithFallback(ys)
+	if got == "" {
+		t.Fatal("expected non-empty fallback for no-signals year")
+	}
+}
+
+func TestRenderYearNarrativeWithFallback_AnchoredYearDelegatesToOriginal(t *testing.T) {
+	// 有真实信号的年应原样返回 RenderYearNarrative 的输出（不调兜底）
+	ys := YearSignals{
+		Year:   2026,
+		Age:    31,
+		GanZhi: "丙午",
+		Signals: []EventSignal{
+			{Type: "健康", Evidence: "流年地支午冲日支子，日柱受冲，体力精神有下滑风险", Polarity: PolarityXiong, Source: SourceZhuwei},
+		},
+	}
+	want := RenderYearNarrative(ys)
+	if want == "" {
+		t.Fatal("test fixture invalid: RenderYearNarrative returned empty for anchored year")
+	}
+	got := RenderYearNarrativeWithFallback(ys)
+	if got != want {
+		t.Errorf("expected wrapper to return original narrative; got %q want %q", got, want)
+	}
+}
