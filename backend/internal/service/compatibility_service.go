@@ -14,9 +14,44 @@ import (
 
 const compatibilityAnalysisVersion = "v2"
 
-func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model.CompatibilityBirthProfile) (*model.CompatibilityDetail, error) {
+var compatibilityRelationshipStageLabels = map[string]string{
+	"ambiguous":              "暧昧中",
+	"dating":                 "恋爱中",
+	"long_distance":          "异地中",
+	"reconciliation":         "分手/复合中",
+	"marriage_or_engagement": "已婚/谈婚论嫁",
+	"crush":                  "单恋/暗恋",
+	"general":                "一般关系判断",
+}
+
+var compatibilityPrimaryQuestionLabels = map[string]string{
+	"continue_investment":      "值不值得继续投入",
+	"marriage_suitability":     "对方适不适合结婚",
+	"recurring_conflict":       "为什么总是反复拉扯",
+	"reconciliation_potential": "复合有没有意义",
+	"long_term_stability":      "长期能不能稳定",
+	"relationship_strategy":    "怎么相处更顺",
+	"general":                  "综合关系判断",
+}
+
+var compatibilityQuestionGuidance = map[string]string{
+	"continue_investment":      "重点回答是否继续投入、下一步观察什么、投入节奏如何控制，以及短期要避免什么。",
+	"marriage_suitability":     "重点回答婚姻适配、长期稳定、现实承接、冲突处理、家庭责任和谈婚前必须确认的问题。",
+	"recurring_conflict":       "重点回答反复拉扯的结构原因、冲突触发点、修复条件，以及哪些互动模式要停止。",
+	"reconciliation_potential": "重点回答是否建议复合、原问题是否可修复、复合后最容易重复的模式、验证信号和边界条件。",
+	"long_term_stability":      "重点回答长期稳定基础、阶段性压力、责任分工和关系持续经营条件。",
+	"relationship_strategy":    "重点回答沟通、冲突、现实安排、边界和投入节奏的具体经营策略。",
+	"general":                  "重点回答关系是否值得继续观察、主要优势、主要风险和下一步行动。",
+}
+
+func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model.CompatibilityBirthProfile, contexts ...model.CompatibilityContext) (*model.CompatibilityDetail, error) {
 	selfProfile = normalizeCompatibilityProfile(selfProfile)
 	partnerProfile = normalizeCompatibilityProfile(partnerProfile)
+	context := model.CompatibilityContext{}
+	if len(contexts) > 0 {
+		context = contexts[0]
+	}
+	context = normalizeCompatibilityContext(context)
 
 	selfChart := bazi.Calculate(
 		selfProfile.Year, selfProfile.Month, selfProfile.Day, selfProfile.Hour,
@@ -52,6 +87,7 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 		consulting,
 		analysis.SummaryTags,
 		compatibilityAnalysisVersion,
+		context,
 	)
 	if err != nil {
 		return nil, err
@@ -485,20 +521,29 @@ func buildCompatibilityPromptData(detail *model.CompatibilityDetail) (*model.Com
 	durationJSON, _ := json.Marshal(detail.Reading.DurationAssessment)
 	consultingJSON, _ := json.Marshal(detail.Reading.ConsultingAssessment)
 	evidencesJSON, _ := json.Marshal(detail.Evidences)
+	context := normalizeCompatibilityContext(model.CompatibilityContext{
+		RelationshipStage: detail.Reading.RelationshipStage,
+		PrimaryQuestion:   detail.Reading.PrimaryQuestion,
+	})
 	evidenceGroupsJSON, _ := json.Marshal(groupCompatibilityEvidences(detail.Evidences))
 
 	return &model.CompatibilityPromptData{
-		SelfLabel:             selfP.DisplayName,
-		PartnerLabel:          partnerP.DisplayName,
-		SelfChartSummary:      selfSummary,
-		PartnerChartSummary:   partnerSummary,
-		ScoresJSON:            string(scoresJSON),
-		ScoreExplanationsJSON: string(scoreExplanationsJSON),
-		DurationJSON:          string(durationJSON),
-		ConsultingJSON:        string(consultingJSON),
-		EvidencesJSON:         string(evidencesJSON),
-		EvidenceGroupsJSON:    string(evidenceGroupsJSON),
-		SummaryTags:           strings.Join(detail.Reading.SummaryTags, "、"),
+		SelfLabel:              selfP.DisplayName,
+		PartnerLabel:           partnerP.DisplayName,
+		RelationshipStage:      context.RelationshipStage,
+		RelationshipStageLabel: compatibilityRelationshipStageLabels[context.RelationshipStage],
+		PrimaryQuestion:        context.PrimaryQuestion,
+		PrimaryQuestionLabel:   compatibilityPrimaryQuestionLabels[context.PrimaryQuestion],
+		QuestionGuidance:       compatibilityQuestionGuidance[context.PrimaryQuestion],
+		SelfChartSummary:       selfSummary,
+		PartnerChartSummary:    partnerSummary,
+		ScoresJSON:             string(scoresJSON),
+		ScoreExplanationsJSON:  string(scoreExplanationsJSON),
+		DurationJSON:           string(durationJSON),
+		ConsultingJSON:         string(consultingJSON),
+		EvidencesJSON:          string(evidencesJSON),
+		EvidenceGroupsJSON:     string(evidenceGroupsJSON),
+		SummaryTags:            strings.Join(detail.Reading.SummaryTags, "、"),
 	}, nil
 }
 
@@ -542,12 +587,29 @@ func normalizeCompatibilityProfile(p model.CompatibilityBirthProfile) model.Comp
 	return p
 }
 
+func normalizeCompatibilityContext(context model.CompatibilityContext) model.CompatibilityContext {
+	context.RelationshipStage = strings.TrimSpace(context.RelationshipStage)
+	context.PrimaryQuestion = strings.TrimSpace(context.PrimaryQuestion)
+	if _, ok := compatibilityRelationshipStageLabels[context.RelationshipStage]; !ok {
+		context.RelationshipStage = "general"
+	}
+	if _, ok := compatibilityPrimaryQuestionLabels[context.PrimaryQuestion]; !ok {
+		context.PrimaryQuestion = "general"
+	}
+	return context
+}
+
 func compatibilityPromptFallback() string {
 	return `你是一位专业、克制、直断的八字合盘分析师。请根据双方命盘摘要、四维分数、分数解释和结构化证据，输出一份关于婚恋/姻缘匹配的分析。
 
 人物标识：
 - A：{{.SelfLabel}}
 - B：{{.PartnerLabel}}
+
+用户关系背景：
+- 当前关系阶段：{{.RelationshipStageLabel}}
+- 用户最关心的问题：{{.PrimaryQuestionLabel}}
+- 报告侧重点：{{.QuestionGuidance}}
 
 A 命盘摘要：
 {{.SelfChartSummary}}
@@ -582,9 +644,21 @@ B 命盘摘要：
 - 不得输出具体结婚、分手、复合、出轨、怀孕等确定事件日期。
 - 若正负证据混合，必须表达条件、边界和可验证行为，不能写成绝对命运。
 
+问题分支要求：
+- 当 primary_question = reconciliation_potential：必须直接回答是否建议复合、原问题是否可修复、复合后最容易重复的模式、需要验证的信号、以及应停止尝试的边界条件。
+- 当 primary_question = marriage_suitability：必须直接回答是否适合进入婚姻/谈婚，覆盖长期稳定、现实承接、冲突处理、家庭责任边界，并列出谈婚前必须确认的问题。
+- 当 primary_question = continue_investment：必须直接回答是否继续投入，覆盖下一步观察点、投入节奏、短期承诺边界、以及当前最该避免的行为。
+- 其他 primary_question：围绕用户问题输出同等颗粒度的判断、验证点和边界条件。
+
 输出严格为 JSON：
 {
   "summary": "总体判断，必须基于输入证据，不使用绝对断语",
+  "question_focus": {
+    "title": "围绕用户问题的章节标题，例如复合判断、婚姻适配判断、继续投入判断",
+    "judgment": "直接回答用户最关心的问题，但必须使用条件语言",
+    "key_checks": ["接下来需要观察或确认的信号"],
+    "boundary_conditions": ["出现这些情况时应放缓、暂停或重新评估"]
+  },
   "relationship_diagnosis": {
     "relationship_type": "短期吸引强、长期承压型",
     "verdict": "建议谨慎观察",

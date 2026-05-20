@@ -15,6 +15,11 @@ type CompatibilityBirthProfile struct {
 	IsLeapMonth  bool   `json:"is_leap_month"`
 }
 
+type CompatibilityContext struct {
+	RelationshipStage string `json:"relationship_stage"`
+	PrimaryQuestion   string `json:"primary_question"`
+}
+
 type CompatibilityDimensionScores struct {
 	Attraction    int `json:"attraction"`
 	Stability     int `json:"stability"`
@@ -121,6 +126,8 @@ type CompatibilityEvidence struct {
 type CompatibilityReading struct {
 	ID                   string                            `json:"id"`
 	UserID               string                            `json:"user_id"`
+	RelationshipStage    string                            `json:"relationship_stage"`
+	PrimaryQuestion      string                            `json:"primary_question"`
 	OverallLevel         string                            `json:"overall_level"`
 	DimensionScores      CompatibilityDimensionScores      `json:"dimension_scores"`
 	ScoreExplanations    []CompatibilityScoreExplanation   `json:"score_explanations"`
@@ -158,8 +165,16 @@ type CompatibilityDimensionNarrative struct {
 	Content string `json:"content"`
 }
 
+type CompatibilityQuestionFocus struct {
+	Title              string   `json:"title"`
+	Judgment           string   `json:"judgment"`
+	KeyChecks          []string `json:"key_checks"`
+	BoundaryConditions []string `json:"boundary_conditions"`
+}
+
 type CompatibilityStructuredReport struct {
 	Summary               string                             `json:"summary"`
+	QuestionFocus         CompatibilityQuestionFocus         `json:"question_focus"`
 	Dimensions            []CompatibilityDimensionNarrative  `json:"dimensions"`
 	DurationAssessment    CompatibilityDurationAssessment    `json:"duration_assessment"`
 	RelationshipDiagnosis CompatibilityRelationshipDiagnosis `json:"relationship_diagnosis"`
@@ -172,17 +187,22 @@ type CompatibilityStructuredReport struct {
 }
 
 type CompatibilityPromptData struct {
-	SelfLabel             string
-	PartnerLabel          string
-	SelfChartSummary      string
-	PartnerChartSummary   string
-	ScoresJSON            string
-	ScoreExplanationsJSON string
-	DurationJSON          string
-	ConsultingJSON        string
-	EvidencesJSON         string
-	EvidenceGroupsJSON    string
-	SummaryTags           string
+	SelfLabel              string
+	PartnerLabel           string
+	RelationshipStage      string
+	RelationshipStageLabel string
+	PrimaryQuestion        string
+	PrimaryQuestionLabel   string
+	QuestionGuidance       string
+	SelfChartSummary       string
+	PartnerChartSummary    string
+	ScoresJSON             string
+	ScoreExplanationsJSON  string
+	DurationJSON           string
+	ConsultingJSON         string
+	EvidencesJSON          string
+	EvidenceGroupsJSON     string
+	SummaryTags            string
 }
 
 type CompatibilityDetail struct {
@@ -193,11 +213,13 @@ type CompatibilityDetail struct {
 }
 
 type CompatibilityHistoryItem struct {
-	ID              string                       `json:"id"`
-	OverallLevel    string                       `json:"overall_level"`
-	DimensionScores CompatibilityDimensionScores `json:"dimension_scores"`
-	SummaryTags     []string                     `json:"summary_tags"`
-	SelfName        string                       `json:"self_name"`
-	PartnerName     string                       `json:"partner_name"`
-	CreatedAt       time.Time                    `json:"created_at"`
+	ID                string                       `json:"id"`
+	RelationshipStage string                       `json:"relationship_stage"`
+	PrimaryQuestion   string                       `json:"primary_question"`
+	OverallLevel      string                       `json:"overall_level"`
+	DimensionScores   CompatibilityDimensionScores `json:"dimension_scores"`
+	SummaryTags       []string                     `json:"summary_tags"`
+	SelfName          string                       `json:"self_name"`
+	PartnerName       string                       `json:"partner_name"`
+	CreatedAt         time.Time                    `json:"created_at"`
 }

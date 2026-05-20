@@ -193,6 +193,34 @@ export interface CompatibilityProfileInput {
   is_leap_month?: boolean
 }
 
+export type CompatibilityRelationshipStage =
+  | 'ambiguous'
+  | 'dating'
+  | 'long_distance'
+  | 'reconciliation'
+  | 'marriage_or_engagement'
+  | 'crush'
+  | 'general'
+
+export type CompatibilityPrimaryQuestion =
+  | 'continue_investment'
+  | 'marriage_suitability'
+  | 'recurring_conflict'
+  | 'reconciliation_potential'
+  | 'long_term_stability'
+  | 'relationship_strategy'
+  | 'general'
+
+export interface CompatibilityContextInput {
+  relationship_stage?: CompatibilityRelationshipStage
+  primary_question?: CompatibilityPrimaryQuestion
+}
+
+export interface CreateCompatibilityReadingInput extends CompatibilityContextInput {
+  self: CompatibilityProfileInput
+  partner: CompatibilityProfileInput
+}
+
 export interface CompatibilityDimensionScores {
   attraction: number
   stability: number
@@ -331,6 +359,8 @@ export interface CompatibilityParticipant {
 export interface CompatibilityReading {
   id: string
   user_id: string
+  relationship_stage: CompatibilityRelationshipStage
+  primary_question: CompatibilityPrimaryQuestion
   overall_level: 'high' | 'medium' | 'low'
   dimension_scores: CompatibilityDimensionScores
   score_explanations: CompatibilityScoreExplanation[]
@@ -342,8 +372,16 @@ export interface CompatibilityReading {
   updated_at: string
 }
 
+export interface CompatibilityQuestionFocus {
+  title: string
+  judgment: string
+  key_checks: string[]
+  boundary_conditions: string[]
+}
+
 export interface CompatibilityStructuredReport {
   summary: string
+  question_focus?: CompatibilityQuestionFocus
   dimensions: Array<{ key: string; title: string; content: string }>
   duration_assessment: CompatibilityDurationAssessment
   relationship_diagnosis?: CompatibilityRelationshipDiagnosis
@@ -373,6 +411,8 @@ export interface CompatibilityDetail {
 
 export interface CompatibilityHistoryItem {
   id: string
+  relationship_stage: CompatibilityRelationshipStage
+  primary_question: CompatibilityPrimaryQuestion
   overall_level: 'high' | 'medium' | 'low'
   dimension_scores: CompatibilityDimensionScores
   summary_tags: string[]
@@ -609,7 +649,7 @@ export const baziAPI = {
 }
 
 export const compatibilityAPI = {
-  createReading: (data: { self: CompatibilityProfileInput; partner: CompatibilityProfileInput }) =>
+  createReading: (data: CreateCompatibilityReadingInput) =>
     api.post('/api/compatibility/readings', data),
   getHistory: () =>
     api.get('/api/compatibility/readings'),

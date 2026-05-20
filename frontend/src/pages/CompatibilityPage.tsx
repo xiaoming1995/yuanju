@@ -2,10 +2,33 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { compatibilityAPI, type CompatibilityProfileInput } from '../lib/api'
+import {
+  compatibilityAPI,
+  type CompatibilityPrimaryQuestion,
+  type CompatibilityProfileInput,
+  type CompatibilityRelationshipStage,
+} from '../lib/api'
 import BirthProfileForm from '../components/BirthProfileForm'
 import { initialBirthProfile, type BirthProfileFormValue } from '../components/birthProfile'
 import './CompatibilityPage.css'
+
+const relationshipStageOptions: Array<{ value: CompatibilityRelationshipStage; label: string }> = [
+  { value: 'ambiguous', label: '暧昧中' },
+  { value: 'dating', label: '恋爱中' },
+  { value: 'long_distance', label: '异地中' },
+  { value: 'reconciliation', label: '分手/复合中' },
+  { value: 'marriage_or_engagement', label: '谈婚论嫁' },
+  { value: 'crush', label: '单恋/暗恋' },
+]
+
+const primaryQuestionOptions: Array<{ value: CompatibilityPrimaryQuestion; label: string }> = [
+  { value: 'continue_investment', label: '值不值得继续投入' },
+  { value: 'marriage_suitability', label: '适不适合结婚' },
+  { value: 'recurring_conflict', label: '为什么反复拉扯' },
+  { value: 'reconciliation_potential', label: '复合有没有意义' },
+  { value: 'long_term_stability', label: '长期能不能稳定' },
+  { value: 'relationship_strategy', label: '怎么相处更顺' },
+]
 
 function toCompatibilityProfileInput(value: BirthProfileFormValue): CompatibilityProfileInput {
   return {
@@ -24,6 +47,8 @@ export default function CompatibilityPage() {
   const { user } = useAuth()
   const [selfProfile, setSelfProfile] = useState<BirthProfileFormValue>(initialBirthProfile('male'))
   const [partnerProfile, setPartnerProfile] = useState<BirthProfileFormValue>(initialBirthProfile('female'))
+  const [relationshipStage, setRelationshipStage] = useState<CompatibilityRelationshipStage>('ambiguous')
+  const [primaryQuestion, setPrimaryQuestion] = useState<CompatibilityPrimaryQuestion>('continue_investment')
   const [activeProfile, setActiveProfile] = useState<'self' | 'partner'>('self')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -39,6 +64,8 @@ export default function CompatibilityPage() {
       const { data } = await compatibilityAPI.createReading({
         self: toCompatibilityProfileInput(selfProfile),
         partner: toCompatibilityProfileInput(partnerProfile),
+        relationship_stage: relationshipStage,
+        primary_question: primaryQuestion,
       })
       navigate(`/compatibility/${data.data.reading.id}`)
     } catch (err: unknown) {
@@ -84,6 +111,40 @@ export default function CompatibilityPage() {
           </div>
           <div className={`card compatibility-profile-panel ${activeProfile === 'partner' ? 'compatibility-profile-panel--active' : ''}`}>
             <BirthProfileForm title="对方的生辰" value={partnerProfile} onChange={setPartnerProfile} showSummary />
+          </div>
+        </div>
+
+        <div className="card compatibility-context-card">
+          <div className="compatibility-context-heading">关系背景</div>
+          <div className="compatibility-context-group">
+            <div className="compatibility-context-title">你们目前是什么关系？</div>
+            <div className="compatibility-context-options">
+              {relationshipStageOptions.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`compatibility-context-option ${relationshipStage === option.value ? 'active' : ''}`}
+                  onClick={() => setRelationshipStage(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="compatibility-context-group">
+            <div className="compatibility-context-title">你最想知道什么？</div>
+            <div className="compatibility-context-options">
+              {primaryQuestionOptions.map(option => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`compatibility-context-option ${primaryQuestion === option.value ? 'active' : ''}`}
+                  onClick={() => setPrimaryQuestion(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

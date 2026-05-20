@@ -20,8 +20,10 @@ type CompatibilityProfileInput struct {
 }
 
 type CreateCompatibilityReadingRequest struct {
-	Self    CompatibilityProfileInput `json:"self" binding:"required"`
-	Partner CompatibilityProfileInput `json:"partner" binding:"required"`
+	Self              CompatibilityProfileInput `json:"self" binding:"required"`
+	Partner           CompatibilityProfileInput `json:"partner" binding:"required"`
+	RelationshipStage string                    `json:"relationship_stage"`
+	PrimaryQuestion   string                    `json:"primary_question"`
 }
 
 func CreateCompatibilityReading(c *gin.Context) {
@@ -35,6 +37,10 @@ func CreateCompatibilityReading(c *gin.Context) {
 		userID.(string),
 		model.CompatibilityBirthProfile(req.Self),
 		model.CompatibilityBirthProfile(req.Partner),
+		model.CompatibilityContext{
+			RelationshipStage: req.RelationshipStage,
+			PrimaryQuestion:   req.PrimaryQuestion,
+		},
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
