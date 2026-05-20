@@ -52,10 +52,20 @@ func (f *fakeStore) UpdateCanonicalContent(m, v, c, h string) error {
 		return err
 	}
 	f.updates = append(f.updates, m)
-	row := f.rows[m]
-	row.Version = v
-	row.Content = c
-	row.CanonicalHash = h
+	old := f.rows[m]
+	// Replace with a fresh struct copy so the caller's `row` pointer (returned from
+	// GetPromptByModule earlier) keeps its old field values, matching real DB semantics.
+	f.rows[m] = &model.AIPrompt{
+		ID:            old.ID,
+		Module:        old.Module,
+		Content:       c,
+		Description:   old.Description,
+		Version:       v,
+		IsCustomized:  old.IsCustomized,
+		CanonicalHash: h,
+		CreatedAt:     old.CreatedAt,
+		UpdatedAt:     old.UpdatedAt,
+	}
 	return nil
 }
 
