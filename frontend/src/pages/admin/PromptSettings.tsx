@@ -10,7 +10,40 @@ interface PromptRecord {
   module: string
   content: string
   description: string
+  version: string
+  is_customized: boolean
+  canonical_hash: string
   updated_at: string
+}
+
+function VersionBadge({ record }: { record: PromptRecord }) {
+  let color: string
+  let bg: string
+  let text: string
+
+  if (record.version === 'unversioned') {
+    color = '#888'
+    bg = 'rgba(136,136,136,0.15)'
+    text = '历史遗留'
+  } else if (record.is_customized) {
+    color = '#f59e0b'
+    bg = 'rgba(245,158,11,0.12)'
+    text = `已自定义（基准 ${record.version}）`
+  } else {
+    color = '#10b981'
+    bg = 'rgba(16,185,129,0.12)'
+    text = `已对齐 ${record.version}`
+  }
+
+  return (
+    <span style={{
+      fontSize: 11, color, background: bg,
+      padding: '2px 8px', borderRadius: 4,
+      marginLeft: 8, fontWeight: 500,
+    }}>
+      {text}
+    </span>
+  )
 }
 
 // 模块分类配置
@@ -34,6 +67,8 @@ const PromptSettings: React.FC = () => {
   const [editingModule, setEditingModule] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
+  const [resettingModule, setResettingModule] = useState<string | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
 
   const fetchPrompts = async () => {
     setLoading(true)
@@ -66,6 +101,25 @@ const PromptSettings: React.FC = () => {
       alert(errorMessage(e, '保存失败'))
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleReset = (module: string) => {
+    setResettingModule(module)
+  }
+
+  const confirmReset = async () => {
+    if (!resettingModule) return
+    setResetLoading(true)
+    try {
+      await adminPromptsAPI.resetToCanonical(resettingModule)
+      alert('已重置为系统默认版本')
+      setResettingModule(null)
+      fetchPrompts()
+    } catch (e: unknown) {
+      alert(errorMessage(e, '重置失败'))
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -113,29 +167,47 @@ const PromptSettings: React.FC = () => {
               }}>
                 {def.module}
               </span>
+              {p && <VersionBadge record={p} />}
             </div>
             <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 13 }}>
               {def.hint}
             </p>
           </div>
-          {p && !isEditing && (
-            <button
-              onClick={() => handleEdit(p)}
-              style={{
-                marginLeft: 16, flexShrink: 0,
-                padding: '6px 14px', borderRadius: 6, fontSize: 13,
-                background: 'transparent',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-text-secondary)',
-                cursor: 'pointer',
-              }}
-            >
-              编辑
-            </button>
-          )}
-          {!p && !loading && (
-            <span style={{ color: '#ff6b6b', fontSize: 12, flexShrink: 0 }}>⚠ 未初始化（请重启后端）</span>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+            {p && !isEditing && p.is_customized && (
+              <button
+                onClick={() => handleReset(p.module)}
+                style={{
+                  marginLeft: 8, flexShrink: 0,
+                  padding: '6px 14px', borderRadius: 6, fontSize: 13,
+                  background: 'transparent',
+                  border: '1px solid #f59e0b',
+                  color: '#f59e0b',
+                  cursor: 'pointer',
+                }}
+              >
+                重置为系统默认
+              </button>
+            )}
+            {p && !isEditing && (
+              <button
+                onClick={() => handleEdit(p)}
+                style={{
+                  marginLeft: 8, flexShrink: 0,
+                  padding: '6px 14px', borderRadius: 6, fontSize: 13,
+                  background: 'transparent',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                }}
+              >
+                编辑
+              </button>
+            )}
+            {!p && !loading && (
+              <span style={{ color: '#ff6b6b', fontSize: 12, flexShrink: 0 }}>⚠ 未初始化（请重启后端）</span>
+            )}
+          </div>
         </div>
 
         {/* Body */}
@@ -294,6 +366,54 @@ const PromptSettings: React.FC = () => {
               {INSTRUCTION_MODULES.map(def => renderModuleCard(def, false))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* 重置确认 Modal */}
+      {resettingModule && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: 'var(--color-bg-secondary)',
+            padding: '24px 28px', borderRadius: 12,
+            border: '1px solid var(--color-border)',
+            maxWidth: 460, width: '90%',
+          }}>
+            <h3 style={{ margin: '0 0 12px', color: 'var(--color-text-primary)' }}>
+              重置 prompt 为系统默认版本
+            </h3>
+            <p style={{ margin: '0 0 20px', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
+              模块：<code style={{ background: '#333', padding: '2px 6px', borderRadius: 3 }}>{resettingModule}</code>
+              <br /><br />
+              重置将丢弃当前的自定义内容，恢复为代码注册表的当前版本。<strong style={{ color: '#f59e0b' }}>此操作不可撤销。</strong>
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setResettingModule(null)}
+                style={{
+                  padding: '8px 16px', borderRadius: 6,
+                  background: 'transparent', border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-secondary)', cursor: 'pointer',
+                }}
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmReset}
+                disabled={resetLoading}
+                style={{
+                  padding: '8px 20px', borderRadius: 6,
+                  background: '#f59e0b', border: 'none',
+                  color: '#000', fontWeight: 500, cursor: 'pointer',
+                }}
+              >
+                {resetLoading ? '重置中...' : '确认重置'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
