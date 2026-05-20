@@ -535,6 +535,34 @@
   gap: 12px;
 }
 
+.compatibility-evidence-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.compatibility-evidence-group {
+  display: grid;
+  gap: 10px;
+}
+
+.compatibility-evidence-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.compatibility-evidence-group-title {
+  font-size: 17px;
+}
+
+.compatibility-evidence-group-count {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 .compatibility-evidence-card {
   padding: 16px;
 }
@@ -570,6 +598,13 @@
 .compatibility-evidence-detail {
   color: var(--text-secondary);
   line-height: 1.7;
+}
+
+.compatibility-evidence-related {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .compatibility-ai-card {
