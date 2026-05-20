@@ -878,3 +878,75 @@ func TestRenderYearNarrativeWithFallback_AnchoredYearDelegatesToOriginal(t *test
 		t.Errorf("expected wrapper to return original narrative; got %q want %q", got, want)
 	}
 }
+
+func TestMakeMinimalFallback_PolarityJi(t *testing.T) {
+	ys := YearSignals{Year: 2020, Age: 25, GanZhi: "庚子", DayunGanZhi: "甲寅",
+		Signals: []EventSignal{{Type: "用神基底", Source: SourceYongshen, Polarity: PolarityJi}}}
+	got := makeMinimalFallback(ys)
+	if !strings.Contains(got, "向吉") {
+		t.Errorf("ji polarity should mention '向吉'; got %q", got)
+	}
+	if !strings.Contains(got, "庚子") {
+		t.Errorf("expected ganzhi in output; got %q", got)
+	}
+}
+
+func TestMakeMinimalFallback_PolarityXiong(t *testing.T) {
+	ys := YearSignals{Year: 2021, Age: 26, GanZhi: "辛丑", DayunGanZhi: "甲寅",
+		Signals: []EventSignal{{Type: "用神基底", Source: SourceYongshen, Polarity: PolarityXiong}}}
+	got := makeMinimalFallback(ys)
+	if !strings.Contains(got, "偏凶") {
+		t.Errorf("xiong polarity should mention '偏凶'; got %q", got)
+	}
+}
+
+func TestMakeMinimalFallback_NeutralWithDayun(t *testing.T) {
+	ys := YearSignals{Year: 2022, Age: 27, GanZhi: "壬寅", DayunGanZhi: "甲寅",
+		Signals: []EventSignal{{Type: "用神基底", Source: SourceYongshen, Polarity: PolarityNeutral}}}
+	got := makeMinimalFallback(ys)
+	if !strings.Contains(got, "按本段大运甲寅方向延展") {
+		t.Errorf("neutral polarity with dayun should reference dayun ganzhi; got %q", got)
+	}
+}
+
+func TestMakeMinimalFallback_NoBasisNoDayun(t *testing.T) {
+	// 没有 SourceYongshen 信号、也没有 DayunGanZhi
+	ys := YearSignals{Year: 2023, Age: 28, GanZhi: "癸卯"}
+	got := makeMinimalFallback(ys)
+	if !strings.Contains(got, "无明显波动") {
+		t.Errorf("absent dayun should fall to 无明显波动 phrasing; got %q", got)
+	}
+	if got == "" {
+		t.Fatal("must not return empty")
+	}
+}
+
+func TestMakeMinimalFallback_KeywordSafe(t *testing.T) {
+	// 兜底文案的任何 polarity 分支都禁止触发 ValidateYearNarrative 的 28 个关键词。
+	forbidden := []string{
+		"用神位", "忌神位", "喜神位",
+		"伏吟", "反吟", "大运合化", "三会", "三合",
+		"受冲", "受刑", "双重命中", "力度倍增",
+		"驿马", "桃花", "华盖", "白虎", "丧门", "吊客", "灾煞", "流霞",
+		"天医", "天喜", "天乙", "天德", "月德", "文昌", "太极", "福星",
+		"红艳", "孤辰", "寡宿", "羊刃", "亡神", "劫煞", "披麻", "咸池",
+		"勾绞", "国印",
+	}
+	cases := []YearSignals{
+		{Year: 2020, Age: 25, GanZhi: "庚子", DayunGanZhi: "甲寅",
+			Signals: []EventSignal{{Type: "用神基底", Source: SourceYongshen, Polarity: PolarityJi}}},
+		{Year: 2021, Age: 26, GanZhi: "辛丑", DayunGanZhi: "甲寅",
+			Signals: []EventSignal{{Type: "用神基底", Source: SourceYongshen, Polarity: PolarityXiong}}},
+		{Year: 2022, Age: 27, GanZhi: "壬寅", DayunGanZhi: "甲寅",
+			Signals: []EventSignal{{Type: "用神基底", Source: SourceYongshen, Polarity: PolarityNeutral}}},
+		{Year: 2023, Age: 28, GanZhi: "癸卯"},
+	}
+	for _, ys := range cases {
+		got := makeMinimalFallback(ys)
+		for _, kw := range forbidden {
+			if strings.Contains(got, kw) {
+				t.Errorf("fallback for %s contains forbidden keyword %q: %q", ys.GanZhi, kw, got)
+			}
+		}
+	}
+}
