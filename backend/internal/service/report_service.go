@@ -1120,21 +1120,22 @@ func cachedDayunSummaryToStreamItem(cached *model.AIDayunSummary, fallbackGanZhi
 }
 
 // computeAutoGenDayunIndexes 返回页面初次打开应当自动生成的 dayun 索引列表
-// "已发生 + 当前段" 语义：StartAge ≤ currentAge 的所有段
-// 未来段（StartAge > currentAge）不在列表中，需用户点击 [生成本段] 触发
-func computeAutoGenDayunIndexes(birthYear int, dayuns []bazi.DayunItem) []int {
-	return computeAutoGenDayunIndexesAt(birthYear, dayuns, time.Now().Year())
+// "已发生 + 当前段" 语义：StartYear ≤ currentYear 的所有段
+// 未来段（StartYear > currentYear）不在列表中，需用户点击 [生成本段] 触发
+//
+// 用 StartYear 而非 StartAge 判定：起运月日精确推算下 StartYear 可能比
+// birthYear+StartAge 早一年（命主在某年踏入新段但还没满 StartAge）。
+// 前端 init 也用 start_year 判 isFuture——前后端必须用同一口径，否则
+// 边界段在前端 loading=true 而后端跳过推送，导致死锁。
+func computeAutoGenDayunIndexes(dayuns []bazi.DayunItem) []int {
+	return computeAutoGenDayunIndexesAt(dayuns, time.Now().Year())
 }
 
 // computeAutoGenDayunIndexesAt 注入 currentYear 的版本，仅测试使用
-func computeAutoGenDayunIndexesAt(birthYear int, dayuns []bazi.DayunItem, currentYear int) []int {
-	currentAge := currentYear - birthYear
-	if currentAge < 0 {
-		return []int{} // 防御性：未来出生命主
-	}
+func computeAutoGenDayunIndexesAt(dayuns []bazi.DayunItem, currentYear int) []int {
 	indexes := make([]int, 0, len(dayuns))
 	for _, dy := range dayuns {
-		if dy.StartAge <= currentAge {
+		if dy.StartYear <= currentYear {
 			indexes = append(indexes, dy.Index)
 		}
 	}
@@ -1282,7 +1283,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 	// 空 dayunIndexes → 应用默认 "auto-gen list"：已发生 + 当前段 + 任何已缓存段
 	// 缓存段并入是为了让用户上次生成过的未来段，下次访问可自动展开渲染（缓存命中即时返回）
 	if len(dayunIndexes) == 0 {
-		dayunIndexes = computeAutoGenDayunIndexes(chart.BirthYear, result.Dayun)
+		dayunIndexes = computeAutoGenDayunIndexes(result.Dayun)
 		if cachedSums, err := repository.ListDayunSummaries(chartID); err == nil {
 			for _, c := range cachedSums {
 				if !slices.Contains(dayunIndexes, c.DayunIndex) {

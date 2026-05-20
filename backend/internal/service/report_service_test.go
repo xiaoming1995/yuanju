@@ -516,20 +516,22 @@ func TestDayunSummaryPrompt_SoftConfidence_OmitsTiaohouSentenceWhenAbsent(t *tes
 
 // ── computeAutoGenDayunIndexes 测试 ──────────────────────────────────
 
-// helper for building DayunItem slices in tests
-func mkDayuns(starts ...int) []bazi.DayunItem {
+// helper for building DayunItem slices in tests; StartYear 由 birthYear + StartAge 推算，
+// 用于模拟"起运正好踩在生日整数年"的常规命盘。需要 StartYear 与 birthYear+StartAge
+// 偏移一年的边界场景时，请直接构造 []bazi.DayunItem 字面量。
+func mkDayuns(birthYear int, starts ...int) []bazi.DayunItem {
 	out := make([]bazi.DayunItem, len(starts))
 	for i, s := range starts {
-		out[i] = bazi.DayunItem{Index: i + 1, StartAge: s}
+		out[i] = bazi.DayunItem{Index: i + 1, StartAge: s, StartYear: birthYear + s}
 	}
 	return out
 }
 
 func TestComputeAutoGenDayunIndexes_MidLifeUser(t *testing.T) {
 	// 1995 生，2026 年 → 31 岁
-	dayuns := mkDayuns(0, 9, 19, 29, 39, 49, 59, 69, 79)
-	got := computeAutoGenDayunIndexesAt(1995, dayuns, 2026)
-	want := []int{1, 2, 3, 4} // 含当前段 (StartAge=29 ≤ 31)
+	dayuns := mkDayuns(1995, 0, 9, 19, 29, 39, 49, 59, 69, 79)
+	got := computeAutoGenDayunIndexesAt(dayuns, 2026)
+	want := []int{1, 2, 3, 4} // 含当前段 (StartYear=2024 ≤ 2026)
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("31岁 命主 expected %v, got %v", want, got)
 	}
@@ -537,9 +539,9 @@ func TestComputeAutoGenDayunIndexes_MidLifeUser(t *testing.T) {
 
 func TestComputeAutoGenDayunIndexes_VeryYoungUser(t *testing.T) {
 	// 2020 生，2026 年 → 6 岁
-	dayuns := mkDayuns(0, 9, 19, 29, 39, 49, 59, 69, 79)
-	got := computeAutoGenDayunIndexesAt(2020, dayuns, 2026)
-	want := []int{1} // 只有 dayun 1 起始年龄 ≤ 6
+	dayuns := mkDayuns(2020, 0, 9, 19, 29, 39, 49, 59, 69, 79)
+	got := computeAutoGenDayunIndexesAt(dayuns, 2026)
+	want := []int{1} // 只有 dayun 1 起始年 ≤ 2026
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("6岁 命主 expected %v, got %v", want, got)
 	}
@@ -547,35 +549,53 @@ func TestComputeAutoGenDayunIndexes_VeryYoungUser(t *testing.T) {
 
 func TestComputeAutoGenDayunIndexes_ElderlyUser(t *testing.T) {
 	// 1950 生，2026 年 → 76 岁
-	dayuns := mkDayuns(0, 9, 19, 29, 39, 49, 59, 69, 79)
-	got := computeAutoGenDayunIndexesAt(1950, dayuns, 2026)
-	want := []int{1, 2, 3, 4, 5, 6, 7, 8} // 79岁段起始 79 > 76，排除
+	dayuns := mkDayuns(1950, 0, 9, 19, 29, 39, 49, 59, 69, 79)
+	got := computeAutoGenDayunIndexesAt(dayuns, 2026)
+	want := []int{1, 2, 3, 4, 5, 6, 7, 8} // 第 9 段 StartYear=2029 > 2026，排除
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("76岁 命主 expected %v, got %v", want, got)
 	}
 }
 
-func TestComputeAutoGenDayunIndexes_BoundaryAtStartAge(t *testing.T) {
-	// 1996 生，2026 年 → 30 岁，正好等于某段 StartAge
-	dayuns := mkDayuns(0, 10, 20, 30, 40)
-	got := computeAutoGenDayunIndexesAt(1996, dayuns, 2026)
-	want := []int{1, 2, 3, 4} // dayun 4 StartAge=30 等于 currentAge=30，包含
+func TestComputeAutoGenDayunIndexes_BoundaryAtStartYear(t *testing.T) {
+	// 1996 生，2026 年，某段 StartYear 正好等于 currentYear
+	dayuns := mkDayuns(1996, 0, 10, 20, 30, 40)
+	got := computeAutoGenDayunIndexesAt(dayuns, 2026)
+	want := []int{1, 2, 3, 4} // dayun 4 StartYear=2026 等于 currentYear=2026，包含
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("边界 currentAge==StartAge expected %v, got %v", want, got)
+		t.Errorf("边界 currentYear==StartYear expected %v, got %v", want, got)
 	}
 }
 
 func TestComputeAutoGenDayunIndexes_FutureBirth(t *testing.T) {
 	// 防御性边界：BirthYear > CurrentYear（不可能但代码不应崩）
-	dayuns := mkDayuns(0, 9, 19)
-	got := computeAutoGenDayunIndexesAt(2030, dayuns, 2026)
+	dayuns := mkDayuns(2030, 0, 9, 19)
+	got := computeAutoGenDayunIndexesAt(dayuns, 2026)
 	if len(got) != 0 {
 		t.Errorf("未来出生命主 expected empty, got %v", got)
 	}
 }
 
+func TestComputeAutoGenDayunIndexes_AtFirstYearOfNewDayun(t *testing.T) {
+	// 起运月日导致 StartYear 比 birthYear+StartAge 早一年（公元年提前跨进新段，
+	// 但命主还没满 StartAge）。判定应以 StartYear ≤ currentYear 为准，否则
+	// 前端把这段标 loading=true、后端却跳过推送 → 死锁转圈。
+	dayuns := []bazi.DayunItem{
+		{Index: 1, StartAge: 2, StartYear: 1996},
+		{Index: 2, StartAge: 12, StartYear: 2006},
+		{Index: 3, StartAge: 22, StartYear: 2016},
+		{Index: 4, StartAge: 32, StartYear: 2026},
+		{Index: 5, StartAge: 42, StartYear: 2036},
+	}
+	got := computeAutoGenDayunIndexesAt(dayuns, 2026)
+	want := []int{1, 2, 3, 4}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("命主踏入新大运起始年 expected %v, got %v", want, got)
+	}
+}
+
 func TestComputeAutoGenDayunIndexes_EmptyDayuns(t *testing.T) {
-	got := computeAutoGenDayunIndexesAt(1990, []bazi.DayunItem{}, 2026)
+	got := computeAutoGenDayunIndexesAt([]bazi.DayunItem{}, 2026)
 	if len(got) != 0 {
 		t.Errorf("空 dayun 列表 expected empty, got %v", got)
 	}
