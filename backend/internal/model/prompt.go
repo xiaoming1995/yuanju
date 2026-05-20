@@ -7,12 +7,15 @@ import (
 
 // AIPrompt 系统 Prompt 模板管理
 type AIPrompt struct {
-	ID          string    `db:"id" json:"id"`
-	Module      string    `db:"module" json:"module"` // 例如 "liunian", "natal"
-	Content     string    `db:"content" json:"content"`
-	Description string    `db:"description" json:"description"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+	ID            string    `db:"id" json:"id"`
+	Module        string    `db:"module" json:"module"` // 例如 "liunian", "natal"
+	Content       string    `db:"content" json:"content"`
+	Description   string    `db:"description" json:"description"`
+	Version       string    `db:"version" json:"version"`
+	IsCustomized  bool      `db:"is_customized" json:"is_customized"`
+	CanonicalHash string    `db:"canonical_hash" json:"canonical_hash"`
+	CreatedAt     time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
 }
 
 // AILiunianReport 流年运势精批报告
