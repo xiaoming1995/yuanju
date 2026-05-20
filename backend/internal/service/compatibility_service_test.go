@@ -125,6 +125,66 @@ func TestBuildCompatibilityPromptData_EmbedsConsultingAssessment(t *testing.T) {
 	}
 }
 
+func TestBuildCompatibilityPromptData_EmbedsDepthEvidenceAndScoreExplanations(t *testing.T) {
+	detail := &model.CompatibilityDetail{
+		Reading: &model.CompatibilityReading{
+			DimensionScores: model.CompatibilityDimensionScores{Attraction: 72, Stability: 58, Communication: 64, Practicality: 66},
+			ScoreExplanations: []model.CompatibilityScoreExplanation{
+				{
+					Dimension:            "stability",
+					PositiveFactor:       "夫妻宫六合",
+					NegativeFactor:       "地支相冲",
+					PositiveEvidenceKeys: []string{"positive_key"},
+					NegativeEvidenceKeys: []string{"negative_key"},
+					Summary:              "稳定度同时有支撑和压力。",
+				},
+			},
+		},
+		Participants: []model.CompatibilityParticipant{
+			{
+				Role:          "self",
+				DisplayName:   "我",
+				ChartSnapshot: makeCompatibilitySnapshot("我", "male"),
+			},
+			{
+				Role:          "partner",
+				DisplayName:   "对方",
+				ChartSnapshot: makeCompatibilitySnapshot("对方", "female"),
+			},
+		},
+		Evidences: []model.CompatibilityEvidence{
+			{
+				EvidenceKey:    "ten_god_key",
+				Dimension:      "communication",
+				Type:           "十神互动-印星",
+				Polarity:       "positive",
+				Source:         "ten_god_interaction",
+				Perspective:    "self_to_partner",
+				Actor:          "self",
+				Target:         "partner",
+				RelatedSources: []string{"day_master"},
+				Title:          "支持与照拂感",
+				Detail:         "directional evidence",
+				Weight:         6,
+			},
+		},
+	}
+
+	got, err := buildCompatibilityPromptData(detail)
+	if err != nil {
+		t.Fatalf("build prompt data: %v", err)
+	}
+	if !strings.Contains(got.ScoreExplanationsJSON, "稳定度同时有支撑和压力") {
+		t.Fatalf("expected score explanations in prompt data, got %s", got.ScoreExplanationsJSON)
+	}
+	if !strings.Contains(got.EvidenceGroupsJSON, "ten_god_interaction") {
+		t.Fatalf("expected grouped depth evidence in prompt data, got %s", got.EvidenceGroupsJSON)
+	}
+	if !strings.Contains(got.EvidencesJSON, "self_to_partner") {
+		t.Fatalf("expected directional metadata in evidences JSON, got %s", got.EvidencesJSON)
+	}
+}
+
 func TestEnsureCompatibilityDurationAssessment_BackfillsMissingDuration(t *testing.T) {
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
@@ -298,9 +358,12 @@ func TestCompatibilityParticipantSummary_ValidSnapshot(t *testing.T) {
 
 func TestCompatibilityPromptFallback_ContainsTemplateVars(t *testing.T) {
 	fb := compatibilityPromptFallback()
-	for _, v := range []string{"{{.SelfLabel}}", "{{.PartnerLabel}}", "{{.ScoresJSON}}", "{{.DurationJSON}}", "{{.ConsultingJSON}}"} {
+	for _, v := range []string{"{{.SelfLabel}}", "{{.PartnerLabel}}", "{{.ScoresJSON}}", "{{.ScoreExplanationsJSON}}", "{{.DurationJSON}}", "{{.ConsultingJSON}}", "{{.EvidenceGroupsJSON}}"} {
 		if !strings.Contains(fb, v) {
 			t.Errorf("expected fallback prompt to contain %q", v)
 		}
+	}
+	if !strings.Contains(fb, "不得输出具体结婚、分手、复合、出轨、怀孕等确定事件日期") {
+		t.Fatal("expected fallback prompt to prohibit deterministic event dates")
 	}
 }

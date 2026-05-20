@@ -8,24 +8,26 @@ import (
 	"yuanju/pkg/database"
 )
 
-func CreateCompatibilityReading(userID, overallLevel string, scores model.CompatibilityDimensionScores, duration model.CompatibilityDurationAssessment, consulting model.CompatibilityConsultingAssessment, summaryTags []string, analysisVersion string) (*model.CompatibilityReading, error) {
+func CreateCompatibilityReading(userID, overallLevel string, scores model.CompatibilityDimensionScores, scoreExplanations []model.CompatibilityScoreExplanation, duration model.CompatibilityDurationAssessment, consulting model.CompatibilityConsultingAssessment, summaryTags []string, analysisVersion string) (*model.CompatibilityReading, error) {
 	scoresJSON, _ := json.Marshal(scores)
+	scoreExplanationsJSON, _ := json.Marshal(scoreExplanations)
 	durationJSON, _ := json.Marshal(duration)
 	consultingJSON, _ := json.Marshal(consulting)
 	tagsJSON, _ := json.Marshal(summaryTags)
 
 	r := &model.CompatibilityReading{}
-	var rawScores, rawDuration, rawConsulting, rawTags []byte
+	var rawScores, rawScoreExplanations, rawDuration, rawConsulting, rawTags []byte
 	err := database.DB.QueryRow(
-		`INSERT INTO compatibility_readings (user_id, overall_level, dimension_scores, duration_assessment, consulting_assessment, summary_tags, analysis_version)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)
-		 RETURNING id, user_id, overall_level, dimension_scores, duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at`,
-		userID, overallLevel, scoresJSON, durationJSON, consultingJSON, tagsJSON, analysisVersion,
-	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
+		`INSERT INTO compatibility_readings (user_id, overall_level, dimension_scores, score_explanations, duration_assessment, consulting_assessment, summary_tags, analysis_version)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		 RETURNING id, user_id, overall_level, dimension_scores, score_explanations, duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at`,
+		userID, overallLevel, scoresJSON, scoreExplanationsJSON, durationJSON, consultingJSON, tagsJSON, analysisVersion,
+	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawScoreExplanations, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
 	_ = json.Unmarshal(rawScores, &r.DimensionScores)
+	_ = json.Unmarshal(rawScoreExplanations, &r.ScoreExplanations)
 	_ = json.Unmarshal(rawDuration, &r.DurationAssessment)
 	_ = json.Unmarshal(rawConsulting, &r.ConsultingAssessment)
 	_ = json.Unmarshal(rawTags, &r.SummaryTags)
@@ -52,12 +54,15 @@ func CreateCompatibilityParticipant(readingID, role, displayName, chartHash stri
 
 func CreateCompatibilityEvidence(readingID string, evidence model.CompatibilityEvidence) (*model.CompatibilityEvidence, error) {
 	out := &model.CompatibilityEvidence{}
+	relatedSourcesJSON, _ := json.Marshal(evidence.RelatedSources)
+	var rawRelatedSources []byte
 	err := database.DB.QueryRow(
-		`INSERT INTO compatibility_evidences (reading_id, evidence_key, dimension, type, polarity, source, title, detail, weight)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		 RETURNING id, reading_id, evidence_key, dimension, type, polarity, source, title, detail, weight, created_at`,
-		readingID, evidence.EvidenceKey, evidence.Dimension, evidence.Type, evidence.Polarity, evidence.Source, evidence.Title, evidence.Detail, evidence.Weight,
-	).Scan(&out.ID, &out.ReadingID, &out.EvidenceKey, &out.Dimension, &out.Type, &out.Polarity, &out.Source, &out.Title, &out.Detail, &out.Weight, &out.CreatedAt)
+		`INSERT INTO compatibility_evidences (reading_id, evidence_key, dimension, type, polarity, source, perspective, actor, target, related_sources, title, detail, weight)
+		 VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), NULLIF($8, ''), NULLIF($9, ''), $10, $11, $12, $13)
+		 RETURNING id, reading_id, evidence_key, dimension, type, polarity, source, COALESCE(perspective, ''), COALESCE(actor, ''), COALESCE(target, ''), related_sources, title, detail, weight, created_at`,
+		readingID, evidence.EvidenceKey, evidence.Dimension, evidence.Type, evidence.Polarity, evidence.Source, evidence.Perspective, evidence.Actor, evidence.Target, relatedSourcesJSON, evidence.Title, evidence.Detail, evidence.Weight,
+	).Scan(&out.ID, &out.ReadingID, &out.EvidenceKey, &out.Dimension, &out.Type, &out.Polarity, &out.Source, &out.Perspective, &out.Actor, &out.Target, &rawRelatedSources, &out.Title, &out.Detail, &out.Weight, &out.CreatedAt)
+	_ = json.Unmarshal(rawRelatedSources, &out.RelatedSources)
 	return out, err
 }
 
@@ -90,13 +95,13 @@ func GetLatestCompatibilityReport(readingID string) (*model.AICompatibilityRepor
 
 func GetCompatibilityReadingByID(readingID string) (*model.CompatibilityReading, error) {
 	r := &model.CompatibilityReading{}
-	var rawScores, rawDuration, rawConsulting, rawTags []byte
+	var rawScores, rawScoreExplanations, rawDuration, rawConsulting, rawTags []byte
 	err := database.DB.QueryRow(
-		`SELECT id, user_id, overall_level, dimension_scores, duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at
+		`SELECT id, user_id, overall_level, dimension_scores, COALESCE(score_explanations, '[]'::jsonb), duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at
 		 FROM compatibility_readings
 		 WHERE id = $1`,
 		readingID,
-	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
+	).Scan(&r.ID, &r.UserID, &r.OverallLevel, &rawScores, &rawScoreExplanations, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -104,6 +109,7 @@ func GetCompatibilityReadingByID(readingID string) (*model.CompatibilityReading,
 		return nil, err
 	}
 	_ = json.Unmarshal(rawScores, &r.DimensionScores)
+	_ = json.Unmarshal(rawScoreExplanations, &r.ScoreExplanations)
 	_ = json.Unmarshal(rawDuration, &r.DurationAssessment)
 	_ = json.Unmarshal(rawConsulting, &r.ConsultingAssessment)
 	_ = json.Unmarshal(rawTags, &r.SummaryTags)
@@ -138,7 +144,7 @@ func GetCompatibilityParticipants(readingID string) ([]model.CompatibilityPartic
 
 func GetCompatibilityEvidences(readingID string) ([]model.CompatibilityEvidence, error) {
 	rows, err := database.DB.Query(
-		`SELECT id, reading_id, evidence_key, dimension, type, polarity, source, title, detail, weight, created_at
+		`SELECT id, reading_id, evidence_key, dimension, type, polarity, source, COALESCE(perspective, ''), COALESCE(actor, ''), COALESCE(target, ''), COALESCE(related_sources, '[]'::jsonb), title, detail, weight, created_at
 		 FROM compatibility_evidences
 		 WHERE reading_id = $1
 		 ORDER BY ABS(weight) DESC, created_at ASC`,
@@ -152,9 +158,11 @@ func GetCompatibilityEvidences(readingID string) ([]model.CompatibilityEvidence,
 	out := []model.CompatibilityEvidence{}
 	for rows.Next() {
 		var item model.CompatibilityEvidence
-		if err := rows.Scan(&item.ID, &item.ReadingID, &item.EvidenceKey, &item.Dimension, &item.Type, &item.Polarity, &item.Source, &item.Title, &item.Detail, &item.Weight, &item.CreatedAt); err != nil {
+		var rawRelatedSources []byte
+		if err := rows.Scan(&item.ID, &item.ReadingID, &item.EvidenceKey, &item.Dimension, &item.Type, &item.Polarity, &item.Source, &item.Perspective, &item.Actor, &item.Target, &rawRelatedSources, &item.Title, &item.Detail, &item.Weight, &item.CreatedAt); err != nil {
 			return nil, err
 		}
+		_ = json.Unmarshal(rawRelatedSources, &item.RelatedSources)
 		out = append(out, item)
 	}
 	return out, rows.Err()

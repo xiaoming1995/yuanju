@@ -223,10 +223,23 @@ export interface CompatibilityEvidence {
   type: string
   polarity: 'positive' | 'negative' | 'mixed' | 'neutral'
   source: string
+  perspective?: 'self_to_partner' | 'partner_to_self' | 'mutual' | string
+  actor?: 'self' | 'partner' | string
+  target?: 'self' | 'partner' | string
+  related_sources?: string[]
   title: string
   detail: string
   weight: number
   created_at: string
+}
+
+export interface CompatibilityScoreExplanation {
+  dimension: 'attraction' | 'stability' | 'communication' | 'practicality'
+  positive_factor?: string
+  negative_factor?: string
+  positive_evidence_keys?: string[]
+  negative_evidence_keys?: string[]
+  summary: string
 }
 
 export interface CompatibilityFinding {
@@ -320,6 +333,7 @@ export interface CompatibilityReading {
   user_id: string
   overall_level: 'high' | 'medium' | 'low'
   dimension_scores: CompatibilityDimensionScores
+  score_explanations: CompatibilityScoreExplanation[]
   duration_assessment: CompatibilityDurationAssessment
   consulting_assessment: CompatibilityConsultingAssessment
   summary_tags: string[]

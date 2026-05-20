@@ -12,7 +12,7 @@ import (
 	"yuanju/pkg/bazi"
 )
 
-const compatibilityAnalysisVersion = "v1"
+const compatibilityAnalysisVersion = "v2"
 
 func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model.CompatibilityBirthProfile) (*model.CompatibilityDetail, error) {
 	selfProfile = normalizeCompatibilityProfile(selfProfile)
@@ -38,6 +38,7 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 			Communication: analysis.DimensionScores.Communication,
 			Practicality:  analysis.DimensionScores.Practicality,
 		},
+		mapCompatibilityScoreExplanations(analysis.ScoreExplanations),
 		model.CompatibilityDurationAssessment{
 			OverallBand: analysis.DurationAssessment.OverallBand,
 			Windows: model.CompatibilityDurationWindows{
@@ -70,14 +71,18 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 
 	for _, item := range analysis.Evidences {
 		if _, err := repository.CreateCompatibilityEvidence(reading.ID, model.CompatibilityEvidence{
-			EvidenceKey: item.EvidenceKey,
-			Dimension:   string(item.Dimension),
-			Type:        item.Type,
-			Polarity:    string(item.Polarity),
-			Source:      item.Source,
-			Title:       item.Title,
-			Detail:      item.Detail,
-			Weight:      item.Weight,
+			EvidenceKey:    item.EvidenceKey,
+			Dimension:      string(item.Dimension),
+			Type:           item.Type,
+			Polarity:       string(item.Polarity),
+			Source:         item.Source,
+			Perspective:    item.Perspective,
+			Actor:          item.Actor,
+			Target:         item.Target,
+			RelatedSources: item.RelatedSources,
+			Title:          item.Title,
+			Detail:         item.Detail,
+			Weight:         item.Weight,
 		}); err != nil {
 			return nil, err
 		}
@@ -186,6 +191,21 @@ func mapCompatibilityClaimLinks(in []bazi.CompatibilityClaimEvidenceLink) []mode
 			EvidenceKeys: item.EvidenceKeys,
 			Reasoning:    item.Reasoning,
 			Caveat:       item.Caveat,
+		})
+	}
+	return out
+}
+
+func mapCompatibilityScoreExplanations(in []bazi.CompatibilityScoreExplanation) []model.CompatibilityScoreExplanation {
+	out := make([]model.CompatibilityScoreExplanation, 0, len(in))
+	for _, item := range in {
+		out = append(out, model.CompatibilityScoreExplanation{
+			Dimension:            string(item.Dimension),
+			PositiveFactor:       item.PositiveFactor,
+			NegativeFactor:       item.NegativeFactor,
+			PositiveEvidenceKeys: item.PositiveEvidenceKeys,
+			NegativeEvidenceKeys: item.NegativeEvidenceKeys,
+			Summary:              item.Summary,
 		})
 	}
 	return out
@@ -461,21 +481,37 @@ func buildCompatibilityPromptData(detail *model.CompatibilityDetail) (*model.Com
 		return nil, err
 	}
 	scoresJSON, _ := json.Marshal(detail.Reading.DimensionScores)
+	scoreExplanationsJSON, _ := json.Marshal(detail.Reading.ScoreExplanations)
 	durationJSON, _ := json.Marshal(detail.Reading.DurationAssessment)
 	consultingJSON, _ := json.Marshal(detail.Reading.ConsultingAssessment)
 	evidencesJSON, _ := json.Marshal(detail.Evidences)
+	evidenceGroupsJSON, _ := json.Marshal(groupCompatibilityEvidences(detail.Evidences))
 
 	return &model.CompatibilityPromptData{
-		SelfLabel:           selfP.DisplayName,
-		PartnerLabel:        partnerP.DisplayName,
-		SelfChartSummary:    selfSummary,
-		PartnerChartSummary: partnerSummary,
-		ScoresJSON:          string(scoresJSON),
-		DurationJSON:        string(durationJSON),
-		ConsultingJSON:      string(consultingJSON),
-		EvidencesJSON:       string(evidencesJSON),
-		SummaryTags:         strings.Join(detail.Reading.SummaryTags, "、"),
+		SelfLabel:             selfP.DisplayName,
+		PartnerLabel:          partnerP.DisplayName,
+		SelfChartSummary:      selfSummary,
+		PartnerChartSummary:   partnerSummary,
+		ScoresJSON:            string(scoresJSON),
+		ScoreExplanationsJSON: string(scoreExplanationsJSON),
+		DurationJSON:          string(durationJSON),
+		ConsultingJSON:        string(consultingJSON),
+		EvidencesJSON:         string(evidencesJSON),
+		EvidenceGroupsJSON:    string(evidenceGroupsJSON),
+		SummaryTags:           strings.Join(detail.Reading.SummaryTags, "、"),
 	}, nil
+}
+
+func groupCompatibilityEvidences(evidences []model.CompatibilityEvidence) map[string][]model.CompatibilityEvidence {
+	groups := map[string][]model.CompatibilityEvidence{}
+	for _, item := range evidences {
+		key := item.Source
+		if key == "" {
+			key = "unknown"
+		}
+		groups[key] = append(groups[key], item)
+	}
+	return groups
 }
 
 func compatibilityParticipantSummary(p *model.CompatibilityParticipant) (string, error) {
@@ -507,7 +543,7 @@ func normalizeCompatibilityProfile(p model.CompatibilityBirthProfile) model.Comp
 }
 
 func compatibilityPromptFallback() string {
-	return `你是一位专业、克制、直断的八字合盘分析师。请根据双方命盘摘要、四维分数和结构化证据，输出一份关于婚恋/姻缘匹配的分析。
+	return `你是一位专业、克制、直断的八字合盘分析师。请根据双方命盘摘要、四维分数、分数解释和结构化证据，输出一份关于婚恋/姻缘匹配的分析。
 
 人物标识：
 - A：{{.SelfLabel}}
@@ -522,6 +558,9 @@ B 命盘摘要：
 四维分数（JSON）：
 {{.ScoresJSON}}
 
+四维分数解释（JSON，包含每个维度的主要支撑与压力证据）：
+{{.ScoreExplanationsJSON}}
+
 缘分时长评估（JSON）：
 {{.DurationJSON}}
 
@@ -533,6 +572,15 @@ B 命盘摘要：
 
 结构化证据（JSON）：
 {{.EvidencesJSON}}
+
+按证据来源分组（JSON）：
+{{.EvidenceGroupsJSON}}
+
+证据约束：
+- 所有主要判断必须引用 evidence_key。
+- 可以使用 perspective/actor/target 理解方向性证据。
+- 不得输出具体结婚、分手、复合、出轨、怀孕等确定事件日期。
+- 若正负证据混合，必须表达条件、边界和可验证行为，不能写成绝对命运。
 
 输出严格为 JSON：
 {

@@ -3,6 +3,7 @@ package bazi
 import (
 	"fmt"
 	"sort"
+	"strings"
 )
 
 type CompatibilityLevel string
@@ -40,14 +41,18 @@ const (
 )
 
 type CompatibilityEvidence struct {
-	EvidenceKey string                 `json:"evidence_key"`
-	Dimension   CompatibilityDimension `json:"dimension"`
-	Type        string                 `json:"type"`
-	Polarity    CompatibilityPolarity  `json:"polarity"`
-	Source      string                 `json:"source"`
-	Title       string                 `json:"title"`
-	Detail      string                 `json:"detail"`
-	Weight      int                    `json:"weight"`
+	EvidenceKey    string                 `json:"evidence_key"`
+	Dimension      CompatibilityDimension `json:"dimension"`
+	Type           string                 `json:"type"`
+	Polarity       CompatibilityPolarity  `json:"polarity"`
+	Source         string                 `json:"source"`
+	Perspective    string                 `json:"perspective,omitempty"`
+	Actor          string                 `json:"actor,omitempty"`
+	Target         string                 `json:"target,omitempty"`
+	RelatedSources []string               `json:"related_sources,omitempty"`
+	Title          string                 `json:"title"`
+	Detail         string                 `json:"detail"`
+	Weight         int                    `json:"weight"`
 }
 
 type CompatibilityFinding struct {
@@ -126,47 +131,183 @@ type CompatibilityDurationAssessment struct {
 	Reasons     []string                     `json:"reasons"`
 }
 
+type CompatibilityScoreExplanation struct {
+	Dimension            CompatibilityDimension `json:"dimension"`
+	PositiveFactor       string                 `json:"positive_factor,omitempty"`
+	NegativeFactor       string                 `json:"negative_factor,omitempty"`
+	PositiveEvidenceKeys []string               `json:"positive_evidence_keys,omitempty"`
+	NegativeEvidenceKeys []string               `json:"negative_evidence_keys,omitempty"`
+	Summary              string                 `json:"summary"`
+}
+
 type CompatibilityAnalysis struct {
 	OverallLevel         CompatibilityLevel                `json:"overall_level"`
 	DimensionScores      CompatibilityDimensionScores      `json:"dimension_scores"`
 	Evidences            []CompatibilityEvidence           `json:"evidences"`
+	ScoreExplanations    []CompatibilityScoreExplanation   `json:"score_explanations"`
 	SummaryTags          []string                          `json:"summary_tags"`
 	DurationAssessment   CompatibilityDurationAssessment   `json:"duration_assessment"`
 	ConsultingAssessment CompatibilityConsultingAssessment `json:"consulting_assessment"`
 }
 
+const (
+	compatibilitySourceDayMaster    = "day_master"
+	compatibilitySourceFiveElements = "five_elements"
+	compatibilitySourceSpousePalace = "spouse_palace"
+	compatibilitySourceSpouseStar   = "spouse_star"
+	compatibilitySourceGanZhi       = "ganzhi"
+	compatibilitySourceShensha      = "shensha"
+
+	compatibilitySourceTenGodInteraction       = "ten_god_interaction"
+	compatibilitySourceFavorableElementSupport = "favorable_element_support"
+	compatibilitySourceGanZhiInteraction       = "ganzhi_interaction"
+	compatibilitySourceRelationshipPattern     = "relationship_pattern"
+	compatibilitySourceTimingContext           = "timing_context"
+
+	compatibilityPerspectiveSelfToPartner = "self_to_partner"
+	compatibilityPerspectivePartnerToSelf = "partner_to_self"
+	compatibilityPerspectiveMutual        = "mutual"
+	compatibilityActorSelf                = "self"
+	compatibilityActorPartner             = "partner"
+)
+
+type compatibilityAnalysisBuilder struct {
+	scores              CompatibilityDimensionScores
+	evidences           []CompatibilityEvidence
+	sourceContributions map[string]int
+}
+
+func newCompatibilityAnalysisBuilder() *compatibilityAnalysisBuilder {
+	return &compatibilityAnalysisBuilder{
+		scores: CompatibilityDimensionScores{
+			Attraction:    60,
+			Stability:     60,
+			Communication: 60,
+			Practicality:  60,
+		},
+		evidences:           make([]CompatibilityEvidence, 0, 8),
+		sourceContributions: map[string]int{},
+	}
+}
+
+func (builder *compatibilityAnalysisBuilder) addEvidence(item CompatibilityEvidence) {
+	item.Weight = builder.capEvidenceWeight(item)
+	builder.evidences = append(builder.evidences, item)
+	switch item.Dimension {
+	case CompatibilityAttraction:
+		builder.scores.Attraction = clampScore(builder.scores.Attraction + item.Weight)
+	case CompatibilityStability:
+		builder.scores.Stability = clampScore(builder.scores.Stability + item.Weight)
+	case CompatibilityCommunication:
+		builder.scores.Communication = clampScore(builder.scores.Communication + item.Weight)
+	case CompatibilityPracticality:
+		builder.scores.Practicality = clampScore(builder.scores.Practicality + item.Weight)
+	}
+}
+
+func (builder *compatibilityAnalysisBuilder) capEvidenceWeight(item CompatibilityEvidence) int {
+	if item.Weight == 0 || item.Source == "" || item.Dimension == "" {
+		return item.Weight
+	}
+	sign := "positive"
+	if item.Weight < 0 {
+		sign = "negative"
+	}
+	key := compatibilityContributionKey(item.Source, item.Dimension, sign)
+	cap := compatibilitySourceContributionCap(item.Source, item.Dimension)
+	used := builder.sourceContributions[key]
+	remaining := cap - used
+	if remaining <= 0 {
+		return 0
+	}
+	absWeight := absInt(item.Weight)
+	if absWeight > remaining {
+		absWeight = remaining
+	}
+	builder.sourceContributions[key] = used + absWeight
+	if item.Weight < 0 {
+		return -absWeight
+	}
+	return absWeight
+}
+
+func compatibilityContributionKey(source string, dimension CompatibilityDimension, sign string) string {
+	return fmt.Sprintf("%s:%s:%s", source, dimension, sign)
+}
+
+func compatibilitySourceContributionCap(source string, dimension CompatibilityDimension) int {
+	sourceCaps := map[string]int{
+		compatibilitySourceDayMaster:               18,
+		compatibilitySourceFiveElements:            16,
+		compatibilitySourceSpousePalace:            28,
+		compatibilitySourceSpouseStar:              20,
+		compatibilitySourceGanZhi:                  16,
+		compatibilitySourceShensha:                 10,
+		compatibilitySourceTenGodInteraction:       18,
+		compatibilitySourceFavorableElementSupport: 16,
+		compatibilitySourceGanZhiInteraction:       22,
+		compatibilitySourceRelationshipPattern:     12,
+		compatibilitySourceTimingContext:           10,
+	}
+	cap, ok := sourceCaps[source]
+	if !ok {
+		return 12
+	}
+	if source == compatibilitySourceGanZhiInteraction && dimension == CompatibilityStability {
+		return cap + 4
+	}
+	return cap
+}
+
 func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
-	scores := CompatibilityDimensionScores{
-		Attraction:    60,
-		Stability:     60,
-		Communication: 60,
-		Practicality:  60,
-	}
-	evidences := make([]CompatibilityEvidence, 0, 8)
-	tags := make([]string, 0, 4)
+	builder := newCompatibilityAnalysisBuilder()
 
-	addEvidence := func(item CompatibilityEvidence) {
-		evidences = append(evidences, item)
-		switch item.Dimension {
-		case CompatibilityAttraction:
-			scores.Attraction = clampScore(scores.Attraction + item.Weight)
-		case CompatibilityStability:
-			scores.Stability = clampScore(scores.Stability + item.Weight)
-		case CompatibilityCommunication:
-			scores.Communication = clampScore(scores.Communication + item.Weight)
-		case CompatibilityPracticality:
-			scores.Practicality = clampScore(scores.Practicality + item.Weight)
+	buildDayMasterSignals(a, b, builder.addEvidence)
+	buildFiveElementSignals(a, b, builder.addEvidence)
+	buildFavorableElementSupportSignals(a, b, builder.addEvidence)
+	buildSpousePalaceSignals(a, b, builder.addEvidence)
+	buildSpouseStarSignals(a, b, builder.addEvidence)
+	buildTenGodInteractionSignals(a, b, builder.addEvidence)
+	buildGanZhiInteractionSignals(a, b, builder.addEvidence)
+	buildGanZhiVolumeSignals(a, b, builder.addEvidence)
+	buildShenshaSignals(a, b, builder.addEvidence)
+	buildRelationshipPatternSignals(builder)
+
+	sort.SliceStable(builder.evidences, func(i, j int) bool {
+		wi, wj := absInt(builder.evidences[i].Weight), absInt(builder.evidences[j].Weight)
+		if wi == wj {
+			return builder.evidences[i].Type < builder.evidences[j].Type
 		}
-	}
+		return wi > wj
+	})
+	assignCompatibilityEvidenceKeys(builder.evidences)
 
-	// 1. 日主关系
+	tags := buildCompatibilityTags(builder.scores, builder.evidences)
+	scoreExplanations := buildCompatibilityScoreExplanations(builder.evidences)
+	duration := buildDurationAssessment(builder.scores, builder.evidences)
+	consulting := buildCompatibilityConsultingAssessment(builder.scores, builder.evidences, duration)
+
+	return CompatibilityAnalysis{
+		OverallLevel:         aggregateCompatibilityLevel(builder.scores, builder.evidences),
+		DimensionScores:      builder.scores,
+		Evidences:            builder.evidences,
+		ScoreExplanations:    scoreExplanations,
+		SummaryTags:          tags,
+		DurationAssessment:   duration,
+		ConsultingAssessment: consulting,
+	}
+}
+
+type compatibilityEvidenceSink func(CompatibilityEvidence)
+
+func buildDayMasterSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
 	switch relation := dayMasterRelation(a.DayGanWuxing, b.DayGanWuxing); relation {
 	case "same":
 		addEvidence(CompatibilityEvidence{
 			Dimension: CompatibilityCommunication,
 			Type:      "日主同气",
 			Polarity:  CompatibilityPositive,
-			Source:    "day_master",
+			Source:    compatibilitySourceDayMaster,
 			Title:     "日主同气",
 			Detail:    fmt.Sprintf("双方日主同属%s，底层气质相近，较容易理解彼此节奏。", a.DayGanWuxing),
 			Weight:    8,
@@ -176,7 +317,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityCommunication,
 			Type:      "日主相生",
 			Polarity:  CompatibilityPositive,
-			Source:    "day_master",
+			Source:    compatibilitySourceDayMaster,
 			Title:     "日主相生",
 			Detail:    fmt.Sprintf("双方日主五行形成相生关系（%s / %s），沟通与情感流动更顺。", a.DayGanWuxing, b.DayGanWuxing),
 			Weight:    10,
@@ -185,7 +326,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityAttraction,
 			Type:      "日主相生",
 			Polarity:  CompatibilityPositive,
-			Source:    "day_master",
+			Source:    compatibilitySourceDayMaster,
 			Title:     "气机互引",
 			Detail:    "双方气机能够互相牵引，初始吸引感更容易建立。",
 			Weight:    6,
@@ -195,7 +336,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityCommunication,
 			Type:      "日主相克",
 			Polarity:  CompatibilityNegative,
-			Source:    "day_master",
+			Source:    compatibilitySourceDayMaster,
 			Title:     "日主相克",
 			Detail:    fmt.Sprintf("双方日主五行互见克制（%s / %s），表达方式和主导感较容易顶撞。", a.DayGanWuxing, b.DayGanWuxing),
 			Weight:    -12,
@@ -204,20 +345,21 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityStability,
 			Type:      "日主相克",
 			Polarity:  CompatibilityNegative,
-			Source:    "day_master",
+			Source:    compatibilitySourceDayMaster,
 			Title:     "关系拉扯",
 			Detail:    "若缺少其他缓冲结构，长期相处更容易形成拉扯。",
 			Weight:    -8,
 		})
 	}
+}
 
-	// 2. 五行互补 / 偏枯
+func buildFiveElementSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
 	if detail, ok, weight := fiveElementComplement(a, b); ok {
 		addEvidence(CompatibilityEvidence{
 			Dimension: CompatibilityPracticality,
 			Type:      "五行互补",
 			Polarity:  CompatibilityPositive,
-			Source:    "five_elements",
+			Source:    compatibilitySourceFiveElements,
 			Title:     "五行互补",
 			Detail:    detail,
 			Weight:    weight,
@@ -227,20 +369,107 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityPracticality,
 			Type:      "五行失衡",
 			Polarity:  CompatibilityNegative,
-			Source:    "five_elements",
+			Source:    compatibilitySourceFiveElements,
 			Title:     "五行失衡",
 			Detail:    detail,
 			Weight:    weight,
 		})
 	}
+}
 
-	// 3. 夫妻宫互动（日支）
+func buildFavorableElementSupportSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
+	buildDirectionalFavorableElementSignal(a, b, compatibilityPerspectiveSelfToPartner, compatibilityActorSelf, compatibilityActorPartner, addEvidence)
+	buildDirectionalFavorableElementSignal(b, a, compatibilityPerspectivePartnerToSelf, compatibilityActorPartner, compatibilityActorSelf, addEvidence)
+}
+
+func buildDirectionalFavorableElementSignal(observer, target *BaziResult, perspective, actor, targetRole string, addEvidence compatibilityEvidenceSink) {
+	if observer == nil || target == nil {
+		return
+	}
+	targetStats := compatibilityStatsCN(target)
+	supports := suppliedElementsFromPhrase(observer.Yongshen, targetStats)
+	pressures := suppliedElementsFromPhrase(observer.Jishen, targetStats)
+	if len(supports) > 0 {
+		addEvidence(CompatibilityEvidence{
+			Dimension:   CompatibilityPracticality,
+			Type:        "五行支持-喜用补足",
+			Polarity:    CompatibilityPositive,
+			Source:      compatibilitySourceFavorableElementSupport,
+			Perspective: perspective,
+			Actor:       actor,
+			Target:      targetRole,
+			Title:       "补足倾向",
+			Detail:      fmt.Sprintf("对方盘面明显带有%s，能补到你命局中的喜用倾向，关系中更容易形成支持与承接。", strings.Join(supports, "、")),
+			Weight:      8,
+		})
+	}
+	if len(pressures) > 0 {
+		addEvidence(CompatibilityEvidence{
+			Dimension:   CompatibilityPracticality,
+			Type:        "五行支持-忌神加压",
+			Polarity:    CompatibilityNegative,
+			Source:      compatibilitySourceFavorableElementSupport,
+			Perspective: perspective,
+			Actor:       actor,
+			Target:      targetRole,
+			Title:       "压力倾向",
+			Detail:      fmt.Sprintf("对方盘面明显带有%s，容易触发你命局中的忌神压力，现实磨合中需留意同类议题被放大。", strings.Join(pressures, "、")),
+			Weight:      -8,
+		})
+	}
+	if observer.Yongshen != "" || observer.Jishen != "" || len(supports) > 0 || len(pressures) > 0 {
+		return
+	}
+	observerStats := compatibilityStatsCN(observer)
+	missing := missingElements(observerStats)
+	fallbackSupports := suppliedMissingElements(missing, targetStats)
+	if len(fallbackSupports) == 0 {
+		return
+	}
+	addEvidence(CompatibilityEvidence{
+		Dimension:   CompatibilityPracticality,
+		Type:        "五行支持-结构互补",
+		Polarity:    CompatibilityPositive,
+		Source:      compatibilitySourceFavorableElementSupport,
+		Perspective: perspective,
+		Actor:       actor,
+		Target:      targetRole,
+		Title:       "结构互补倾向",
+		Detail:      fmt.Sprintf("未使用确定用神结论，仅从五行结构看，对方盘面带有你较少见的%s，存在互补倾向。", strings.Join(fallbackSupports, "、")),
+		Weight:      5,
+	})
+}
+
+func suppliedElementsFromPhrase(phrase string, supplierStats map[string]int) []string {
+	if phrase == "" {
+		return nil
+	}
+	out := []string{}
+	for _, wx := range []string{"木", "火", "土", "金", "水"} {
+		if strings.Contains(phrase, wx) && supplierStats[wx] > 0 {
+			out = append(out, wx)
+		}
+	}
+	return out
+}
+
+func suppliedMissingElements(missing []string, supplierStats map[string]int) []string {
+	out := []string{}
+	for _, wx := range missing {
+		if supplierStats[wx] > 0 {
+			out = append(out, wx)
+		}
+	}
+	return out
+}
+
+func buildSpousePalaceSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
 	if sixHe[a.DayZhi] == b.DayZhi {
 		addEvidence(CompatibilityEvidence{
 			Dimension: CompatibilityStability,
 			Type:      "夫妻宫六合",
 			Polarity:  CompatibilityPositive,
-			Source:    "spouse_palace",
+			Source:    compatibilitySourceSpousePalace,
 			Title:     "夫妻宫六合",
 			Detail:    fmt.Sprintf("双方日支 %s / %s 构成六合，婚恋靠近感和关系推进意愿更强。", a.DayZhi, b.DayZhi),
 			Weight:    18,
@@ -249,7 +478,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityAttraction,
 			Type:      "夫妻宫六合",
 			Polarity:  CompatibilityPositive,
-			Source:    "spouse_palace",
+			Source:    compatibilitySourceSpousePalace,
 			Title:     "亲近感强",
 			Detail:    "日支六合通常会放大彼此愿意靠近与接纳的倾向。",
 			Weight:    8,
@@ -260,7 +489,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityStability,
 			Type:      "夫妻宫六冲",
 			Polarity:  CompatibilityNegative,
-			Source:    "spouse_palace",
+			Source:    compatibilitySourceSpousePalace,
 			Title:     "夫妻宫六冲",
 			Detail:    fmt.Sprintf("双方日支 %s / %s 形成六冲，亲密关系中的节奏和需求容易正面碰撞。", a.DayZhi, b.DayZhi),
 			Weight:    -18,
@@ -269,7 +498,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityCommunication,
 			Type:      "夫妻宫六冲",
 			Polarity:  CompatibilityNegative,
-			Source:    "spouse_palace",
+			Source:    compatibilitySourceSpousePalace,
 			Title:     "情绪冲撞",
 			Detail:    "日支六冲往往让相处中的情绪起伏更大，争执成本更高。",
 			Weight:    -8,
@@ -280,20 +509,21 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityStability,
 			Type:      "夫妻宫刑害",
 			Polarity:  CompatibilityNegative,
-			Source:    "spouse_palace",
+			Source:    compatibilitySourceSpousePalace,
 			Title:     "夫妻宫刑害",
 			Detail:    fmt.Sprintf("双方日支 %s / %s 存在刑害结构，关系中更容易积累别扭和隐性损耗。", a.DayZhi, b.DayZhi),
 			Weight:    -10,
 		})
 	}
+}
 
-	// 4. 配偶星呼应
+func buildSpouseStarSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
 	if spouseDetail, ok := spouseStarResonance(a, b); ok {
 		addEvidence(CompatibilityEvidence{
 			Dimension: CompatibilityAttraction,
 			Type:      "配偶星呼应",
 			Polarity:  CompatibilityPositive,
-			Source:    "spouse_star",
+			Source:    compatibilitySourceSpouseStar,
 			Title:     "配偶星呼应",
 			Detail:    spouseDetail,
 			Weight:    14,
@@ -302,33 +532,243 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityStability,
 			Type:      "配偶星呼应",
 			Polarity:  CompatibilityPositive,
-			Source:    "spouse_star",
+			Source:    compatibilitySourceSpouseStar,
 			Title:     "婚恋指向明确",
 			Detail:    "一方命盘中的婚恋星被对方显著触发，关系更容易朝伴侣关系理解。",
 			Weight:    6,
 		})
 	}
+}
 
-	// 5. 干支合冲总量
+func buildTenGodInteractionSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
+	buildDirectionalTenGodInteractionSignal(a, b, compatibilityPerspectiveSelfToPartner, compatibilityActorSelf, compatibilityActorPartner, addEvidence)
+	buildDirectionalTenGodInteractionSignal(b, a, compatibilityPerspectivePartnerToSelf, compatibilityActorPartner, compatibilityActorSelf, addEvidence)
+}
+
+func buildDirectionalTenGodInteractionSignal(observer, target *BaziResult, perspective, actor, targetRole string, addEvidence compatibilityEvidenceSink) {
+	if observer == nil || target == nil || observer.DayGan == "" || target.DayGan == "" {
+		return
+	}
+	tenGod := GetShiShen(observer.DayGan, target.DayGan)
+	info, ok := TenGodGroupOf(tenGod)
+	if !ok {
+		return
+	}
+	dimension, polarity, title, weight := tenGodCompatibilityMeaning(info.Group)
+	if title == "" {
+		return
+	}
+	addEvidence(CompatibilityEvidence{
+		Dimension:   dimension,
+		Type:        "十神互动-" + info.Label,
+		Polarity:    polarity,
+		Source:      compatibilitySourceTenGodInteraction,
+		Perspective: perspective,
+		Actor:       actor,
+		Target:      targetRole,
+		Title:       title,
+		Detail:      fmt.Sprintf("以%s日主观之，对方日主%s落为%s，关系中容易呈现%s。", observer.DayGan, target.DayGan, tenGod, tenGodCompatibilityPlainText(info.Group)),
+		Weight:      weight,
+	})
+}
+
+func tenGodCompatibilityMeaning(group string) (CompatibilityDimension, CompatibilityPolarity, string, int) {
+	switch group {
+	case TenGodGroupSeal:
+		return CompatibilityCommunication, CompatibilityPositive, "支持与照拂感", 6
+	case TenGodGroupOfficial:
+		return CompatibilityStability, CompatibilityMixed, "责任与压力感", 5
+	case TenGodGroupWealth:
+		return CompatibilityAttraction, CompatibilityPositive, "现实吸引与投入感", 7
+	case TenGodGroupOutput:
+		return CompatibilityCommunication, CompatibilityPositive, "表达与被激发感", 6
+	case TenGodGroupPeer:
+		return CompatibilityCommunication, CompatibilityMixed, "同频与竞争感", 4
+	default:
+		return "", CompatibilityNeutral, "", 0
+	}
+}
+
+func tenGodCompatibilityPlainText(group string) string {
+	switch group {
+	case TenGodGroupSeal:
+		return "被理解、被支持、被照顾的感受"
+	case TenGodGroupOfficial:
+		return "责任、规则、承诺或被要求的压力"
+	case TenGodGroupWealth:
+		return "现实投入、资源牵引和伴侣吸引"
+	case TenGodGroupOutput:
+		return "表达欲、分享欲和情绪外放"
+	case TenGodGroupPeer:
+		return "相似节奏、同频感，也伴随比较和竞争"
+	default:
+		return "关系互动倾向"
+	}
+}
+
+func buildGanZhiVolumeSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
 	if zhiClashCount := branchClashCount(a, b); zhiClashCount >= 2 {
 		addEvidence(CompatibilityEvidence{
 			Dimension: CompatibilityPracticality,
 			Type:      "干支冲克偏多",
 			Polarity:  CompatibilityNegative,
-			Source:    "ganzhi",
+			Source:    compatibilitySourceGanZhi,
 			Title:     "冲克偏多",
 			Detail:    fmt.Sprintf("双方盘面存在 %d 处以上明显地支冲克，现实层面的磨合成本会更高。", zhiClashCount),
 			Weight:    -10,
 		})
 	}
+}
 
-	// 6. 神煞辅助
+type compatibilityPillarPoint struct {
+	Name   string
+	Label  string
+	Gan    string
+	Zhi    string
+	Weight int
+}
+
+func buildGanZhiInteractionSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
+	left := compatibilityPillars(a)
+	right := compatibilityPillars(b)
+	pairs := make([][2]compatibilityPillarPoint, 0, len(left)*len(right))
+	for _, lp := range left {
+		for _, rp := range right {
+			pairs = append(pairs, [2]compatibilityPillarPoint{lp, rp})
+		}
+	}
+	sort.SliceStable(pairs, func(i, j int) bool {
+		return compatibilityInteractionWeight(pairs[i][0], pairs[i][1]) > compatibilityInteractionWeight(pairs[j][0], pairs[j][1])
+	})
+	for _, pair := range pairs {
+		buildStemInteractionSignal(pair[0], pair[1], addEvidence)
+		buildBranchInteractionSignal(pair[0], pair[1], addEvidence)
+	}
+}
+
+func compatibilityPillars(r *BaziResult) []compatibilityPillarPoint {
+	return []compatibilityPillarPoint{
+		{Name: "year", Label: "年柱", Gan: r.YearGan, Zhi: r.YearZhi, Weight: 3},
+		{Name: "month", Label: "月柱", Gan: r.MonthGan, Zhi: r.MonthZhi, Weight: 7},
+		{Name: "day", Label: "日柱", Gan: r.DayGan, Zhi: r.DayZhi, Weight: 12},
+		{Name: "hour", Label: "时柱", Gan: r.HourGan, Zhi: r.HourZhi, Weight: 5},
+	}
+}
+
+func buildStemInteractionSignal(left, right compatibilityPillarPoint, addEvidence compatibilityEvidenceSink) {
+	if left.Gan == "" || right.Gan == "" {
+		return
+	}
+	hua, ok := ganWuhe[[2]string{left.Gan, right.Gan}]
+	if !ok {
+		return
+	}
+	weight := compatibilityInteractionWeight(left, right)
+	addEvidence(CompatibilityEvidence{
+		Dimension: CompatibilityAttraction,
+		Type:      "干支互动-天干五合",
+		Polarity:  CompatibilityPositive,
+		Source:    compatibilitySourceGanZhiInteraction,
+		Title:     "天干相合",
+		Detail:    fmt.Sprintf("双方%s%s与%s%s构成天干五合，化%s，容易带来靠近、协商或彼此牵引。", left.Label, left.Gan, right.Label, right.Gan, wxPinyin2CN[hua]),
+		Weight:    maxInt(4, weight-2),
+	})
+}
+
+func buildBranchInteractionSignal(left, right compatibilityPillarPoint, addEvidence compatibilityEvidenceSink) {
+	if left.Zhi == "" || right.Zhi == "" {
+		return
+	}
+	weight := compatibilityInteractionWeight(left, right)
+	switch {
+	case sixHe[left.Zhi] == right.Zhi:
+		addEvidence(CompatibilityEvidence{
+			Dimension: CompatibilityStability,
+			Type:      "干支互动-地支六合",
+			Polarity:  CompatibilityPositive,
+			Source:    compatibilitySourceGanZhiInteraction,
+			Title:     "地支相合",
+			Detail:    fmt.Sprintf("双方%s%s与%s%s形成六合，能增加关系中的靠近感和协调空间。", left.Label, left.Zhi, right.Label, right.Zhi),
+			Weight:    weight,
+		})
+	case sixChong[left.Zhi] == right.Zhi:
+		addEvidence(CompatibilityEvidence{
+			Dimension: CompatibilityStability,
+			Type:      "干支互动-地支六冲",
+			Polarity:  CompatibilityNegative,
+			Source:    compatibilitySourceGanZhiInteraction,
+			Title:     "地支相冲",
+			Detail:    fmt.Sprintf("双方%s%s与%s%s形成六冲，容易在对应生活层面出现节奏碰撞。", left.Label, left.Zhi, right.Label, right.Zhi),
+			Weight:    -weight,
+		})
+	case sixXing[left.Zhi] == right.Zhi || sixXing[right.Zhi] == left.Zhi || sixHai[left.Zhi] == right.Zhi:
+		addEvidence(CompatibilityEvidence{
+			Dimension: CompatibilityCommunication,
+			Type:      "干支互动-地支刑害",
+			Polarity:  CompatibilityNegative,
+			Source:    compatibilitySourceGanZhiInteraction,
+			Title:     "刑害暗耗",
+			Detail:    fmt.Sprintf("双方%s%s与%s%s存在刑害结构，容易形成误读、别扭或隐性消耗。", left.Label, left.Zhi, right.Label, right.Zhi),
+			Weight:    -maxInt(4, weight-3),
+		})
+	case sameJuGroup(left.Zhi, right.Zhi, sanheGroups):
+		addEvidence(CompatibilityEvidence{
+			Dimension: CompatibilityAttraction,
+			Type:      "干支互动-地支半合",
+			Polarity:  CompatibilityPositive,
+			Source:    compatibilitySourceGanZhiInteraction,
+			Title:     "地支半合",
+			Detail:    fmt.Sprintf("双方%s%s与%s%s落在同一三合结构，容易形成共同兴趣或情绪牵引。", left.Label, left.Zhi, right.Label, right.Zhi),
+			Weight:    maxInt(3, weight/2),
+		})
+	case sameJuGroup(left.Zhi, right.Zhi, sanhuiGroups):
+		addEvidence(CompatibilityEvidence{
+			Dimension: CompatibilityPracticality,
+			Type:      "干支互动-地支半会",
+			Polarity:  CompatibilityMixed,
+			Source:    compatibilitySourceGanZhiInteraction,
+			Title:     "地支半会",
+			Detail:    fmt.Sprintf("双方%s%s与%s%s落在同一三会结构，容易在现实节奏或外部环境上互相带动。", left.Label, left.Zhi, right.Label, right.Zhi),
+			Weight:    maxInt(3, weight/2),
+		})
+	}
+}
+
+func compatibilityInteractionWeight(left, right compatibilityPillarPoint) int {
+	if left.Name == "day" && right.Name == "day" {
+		return 12
+	}
+	return maxInt(3, (left.Weight+right.Weight)/2)
+}
+
+func sameJuGroup(left, right string, groups [4][3]string) bool {
+	if left == right {
+		return false
+	}
+	for _, group := range groups {
+		hasLeft, hasRight := false, false
+		for _, zhi := range group {
+			if zhi == left {
+				hasLeft = true
+			}
+			if zhi == right {
+				hasRight = true
+			}
+		}
+		if hasLeft && hasRight {
+			return true
+		}
+	}
+	return false
+}
+
+func buildShenshaSignals(a, b *BaziResult, addEvidence compatibilityEvidenceSink) {
 	if hasRomanceShensha(a) || hasRomanceShensha(b) {
 		addEvidence(CompatibilityEvidence{
 			Dimension: CompatibilityAttraction,
 			Type:      "桃花助缘",
 			Polarity:  CompatibilityPositive,
-			Source:    "shensha",
+			Source:    compatibilitySourceShensha,
 			Title:     "桃花助缘",
 			Detail:    "盘中带有桃花/天喜/红艳类神煞，能增强关系中的浪漫和被吸引感。",
 			Weight:    6,
@@ -339,34 +779,98 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 			Dimension: CompatibilityStability,
 			Type:      "孤寡错位",
 			Polarity:  CompatibilityNegative,
-			Source:    "shensha",
+			Source:    compatibilitySourceShensha,
 			Title:     "孤寡错位",
 			Detail:    "盘中带有孤辰/寡宿类神煞，容易放大距离感、误读或情绪疏离。",
 			Weight:    -6,
 		})
 	}
+}
 
-	sort.SliceStable(evidences, func(i, j int) bool {
-		wi, wj := absInt(evidences[i].Weight), absInt(evidences[j].Weight)
-		if wi == wj {
-			return evidences[i].Type < evidences[j].Type
-		}
-		return wi > wj
+func buildRelationshipPatternSignals(builder *compatibilityAnalysisBuilder) {
+	negativeCommunication := countCompatibilityEvidence(builder.evidences, func(item CompatibilityEvidence) bool {
+		return item.Polarity == CompatibilityNegative &&
+			(item.Dimension == CompatibilityCommunication || item.Dimension == CompatibilityStability)
 	})
-	assignCompatibilityEvidenceKeys(evidences)
+	positivePracticality := countCompatibilityEvidence(builder.evidences, func(item CompatibilityEvidence) bool {
+		return item.Polarity == CompatibilityPositive &&
+			(item.Dimension == CompatibilityPracticality || item.Source == compatibilitySourceFavorableElementSupport)
+	})
+	positiveAttraction := countCompatibilityEvidence(builder.evidences, func(item CompatibilityEvidence) bool {
+		return item.Polarity == CompatibilityPositive && item.Dimension == CompatibilityAttraction
+	})
+	negativeStability := countCompatibilityEvidence(builder.evidences, func(item CompatibilityEvidence) bool {
+		return item.Polarity == CompatibilityNegative && item.Dimension == CompatibilityStability
+	})
 
-	tags = buildCompatibilityTags(scores, evidences)
-	duration := buildDurationAssessment(scores, evidences)
-	consulting := buildCompatibilityConsultingAssessment(scores, evidences, duration)
-
-	return CompatibilityAnalysis{
-		OverallLevel:         aggregateCompatibilityLevel(scores, evidences),
-		DimensionScores:      scores,
-		Evidences:            evidences,
-		SummaryTags:          tags,
-		DurationAssessment:   duration,
-		ConsultingAssessment: consulting,
+	if negativeCommunication >= 2 {
+		builder.addEvidence(CompatibilityEvidence{
+			Dimension:      CompatibilityCommunication,
+			Type:           "关系模式-冲突触发",
+			Polarity:       CompatibilityNegative,
+			Source:         compatibilitySourceRelationshipPattern,
+			Title:          "冲突触发点清晰",
+			Detail:         "多组稳定或沟通证据同时指向节奏碰撞，关系中需要把冲突触发点提前具体化。",
+			RelatedSources: relatedCompatibilitySources(builder.evidences, CompatibilityNegative),
+			Weight:         -6,
+		})
 	}
+	if positiveAttraction >= 3 && negativeStability >= 1 {
+		builder.addEvidence(CompatibilityEvidence{
+			Dimension:      CompatibilityStability,
+			Type:           "关系模式-高吸引高波动",
+			Polarity:       CompatibilityMixed,
+			Source:         compatibilitySourceRelationshipPattern,
+			Title:          "吸引强但波动也强",
+			Detail:         "吸引证据较多，但稳定压力也同步存在，适合把热度和长期承接分开判断。",
+			RelatedSources: relatedCompatibilitySources(builder.evidences, CompatibilityMixed),
+			Weight:         -4,
+		})
+	}
+	if positivePracticality >= 2 {
+		builder.addEvidence(CompatibilityEvidence{
+			Dimension:      CompatibilityPracticality,
+			Type:           "关系模式-现实承接",
+			Polarity:       CompatibilityPositive,
+			Source:         compatibilitySourceRelationshipPattern,
+			Title:          "现实承接点较多",
+			Detail:         "互补或支持证据较多，关系更容易找到现实层面的分工、照应或共同推进点。",
+			RelatedSources: relatedCompatibilitySources(builder.evidences, CompatibilityPositive),
+			Weight:         5,
+		})
+	}
+}
+
+func countCompatibilityEvidence(evidences []CompatibilityEvidence, match func(CompatibilityEvidence) bool) int {
+	count := 0
+	for _, item := range evidences {
+		if match(item) {
+			count++
+		}
+	}
+	return count
+}
+
+func relatedCompatibilitySources(evidences []CompatibilityEvidence, polarity CompatibilityPolarity) []string {
+	seen := map[string]bool{}
+	out := []string{}
+	for _, item := range evidences {
+		if item.Source == "" || item.Source == compatibilitySourceRelationshipPattern {
+			continue
+		}
+		if polarity != CompatibilityMixed && item.Polarity != polarity {
+			continue
+		}
+		if seen[item.Source] {
+			continue
+		}
+		seen[item.Source] = true
+		out = append(out, item.Source)
+		if len(out) == 4 {
+			return out
+		}
+	}
+	return out
 }
 
 func assignCompatibilityEvidenceKeys(evidences []CompatibilityEvidence) {
@@ -412,6 +916,40 @@ func compatibilityEvidenceTypeSlug(typeName string) string {
 		return "romance_shensha"
 	case "孤寡错位":
 		return "lonely_shensha"
+	case "十神互动-财星":
+		return "ten_god_wealth"
+	case "十神互动-官杀":
+		return "ten_god_official"
+	case "十神互动-印星":
+		return "ten_god_seal"
+	case "十神互动-食伤":
+		return "ten_god_output"
+	case "十神互动-比劫":
+		return "ten_god_peer"
+	case "五行支持-喜用补足":
+		return "favorable_element_support"
+	case "五行支持-忌神加压":
+		return "favorable_element_pressure"
+	case "五行支持-结构互补":
+		return "favorable_element_structural"
+	case "干支互动-天干五合":
+		return "ganzhi_stem_combo"
+	case "干支互动-地支六合":
+		return "ganzhi_branch_liuhe"
+	case "干支互动-地支六冲":
+		return "ganzhi_branch_chong"
+	case "干支互动-地支刑害":
+		return "ganzhi_branch_xing_hai"
+	case "干支互动-地支半合":
+		return "ganzhi_branch_half_combo"
+	case "干支互动-地支半会":
+		return "ganzhi_branch_half_meeting"
+	case "关系模式-冲突触发":
+		return "relationship_pattern_conflict_trigger"
+	case "关系模式-高吸引高波动":
+		return "relationship_pattern_attraction_volatility"
+	case "关系模式-现实承接":
+		return "relationship_pattern_reality_support"
 	default:
 		return "unknown"
 	}
@@ -502,6 +1040,70 @@ func buildCompatibilityConsultingAssessment(scores CompatibilityDimensionScores,
 			Boundary:      "初期保留个人节奏，避免过快形成单方依赖。",
 		},
 		ClaimEvidenceLinks: claimEvidenceLinks,
+	}
+}
+
+func buildCompatibilityScoreExplanations(evidences []CompatibilityEvidence) []CompatibilityScoreExplanation {
+	dimensions := []CompatibilityDimension{
+		CompatibilityAttraction,
+		CompatibilityStability,
+		CompatibilityCommunication,
+		CompatibilityPracticality,
+	}
+	out := make([]CompatibilityScoreExplanation, 0, len(dimensions))
+	for _, dimension := range dimensions {
+		positive := strongestCompatibilityEvidence(evidences, dimension, CompatibilityPositive)
+		negative := strongestCompatibilityEvidence(evidences, dimension, CompatibilityNegative)
+		explanation := CompatibilityScoreExplanation{Dimension: dimension}
+		if positive != nil {
+			explanation.PositiveFactor = positive.Title
+			explanation.PositiveEvidenceKeys = []string{positive.EvidenceKey}
+		}
+		if negative != nil {
+			explanation.NegativeFactor = negative.Title
+			explanation.NegativeEvidenceKeys = []string{negative.EvidenceKey}
+		}
+		switch {
+		case positive != nil && negative != nil:
+			explanation.Summary = fmt.Sprintf("%s同时受%s支撑、受%s牵制，需要看实际相处能否化解压力。", compatibilityDimensionLabel(dimension), positive.Title, negative.Title)
+		case positive != nil:
+			explanation.Summary = fmt.Sprintf("%s主要受%s支撑。", compatibilityDimensionLabel(dimension), positive.Title)
+		case negative != nil:
+			explanation.Summary = fmt.Sprintf("%s主要受%s牵制。", compatibilityDimensionLabel(dimension), negative.Title)
+		default:
+			explanation.Summary = fmt.Sprintf("%s证据有限，宜结合其他维度保守判断。", compatibilityDimensionLabel(dimension))
+		}
+		out = append(out, explanation)
+	}
+	return out
+}
+
+func strongestCompatibilityEvidence(evidences []CompatibilityEvidence, dimension CompatibilityDimension, polarity CompatibilityPolarity) *CompatibilityEvidence {
+	var best *CompatibilityEvidence
+	for i := range evidences {
+		item := &evidences[i]
+		if item.Dimension != dimension || item.Polarity != polarity || item.Weight == 0 {
+			continue
+		}
+		if best == nil || absInt(item.Weight) > absInt(best.Weight) {
+			best = item
+		}
+	}
+	return best
+}
+
+func compatibilityDimensionLabel(dimension CompatibilityDimension) string {
+	switch dimension {
+	case CompatibilityAttraction:
+		return "吸引力"
+	case CompatibilityStability:
+		return "稳定度"
+	case CompatibilityCommunication:
+		return "沟通修复"
+	case CompatibilityPracticality:
+		return "现实磨合"
+	default:
+		return "该维度"
 	}
 }
 
@@ -728,6 +1330,32 @@ func compatibilityStats(r *BaziResult) map[string]int {
 	return stats
 }
 
+func compatibilityStatsCN(r *BaziResult) map[string]int {
+	if r.Wuxing.Total > 0 {
+		return map[string]int{
+			"木": r.Wuxing.Mu,
+			"火": r.Wuxing.Huo,
+			"土": r.Wuxing.Tu,
+			"金": r.Wuxing.Jin,
+			"水": r.Wuxing.Shui,
+		}
+	}
+	stats := map[string]int{"木": 0, "火": 0, "土": 0, "金": 0, "水": 0}
+	for _, wx := range []string{
+		r.YearGanWuxing, r.MonthGanWuxing, r.DayGanWuxing, r.HourGanWuxing,
+		r.YearZhiWuxing, r.MonthZhiWuxing, r.DayZhiWuxing, r.HourZhiWuxing,
+	} {
+		if cn, ok := wxPinyin2CN[wx]; ok {
+			stats[cn]++
+			continue
+		}
+		if _, ok := stats[wx]; ok {
+			stats[wx]++
+		}
+	}
+	return stats
+}
+
 func missingElements(stats map[string]int) []string {
 	out := make([]string, 0, 2)
 	for _, wx := range []string{"木", "火", "土", "金", "水"} {
@@ -872,4 +1500,11 @@ func absInt(v int) int {
 		return -v
 	}
 	return v
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
