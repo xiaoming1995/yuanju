@@ -1141,6 +1141,47 @@ func computeAutoGenDayunIndexesAt(birthYear int, dayuns []bazi.DayunItem, curren
 	return indexes
 }
 
+// parsedYearAI 表示 AI 输出 JSON 中单个 year 项目。
+// 抽出为命名类型让 fillBlankYearNarratives 可独立测试。
+type parsedYearAI struct {
+	Year      int    `json:"year"`
+	GanZhi    string `json:"ganzhi"`
+	Narrative string `json:"narrative"`
+}
+
+// yearOut 是入库到 ai_dayun_summaries.years 的最终 JSON shape。
+type yearOut struct {
+	Year      int    `json:"year"`
+	GanZhi    string `json:"ganzhi"`
+	Narrative string `json:"narrative"`
+}
+
+// fillBlankYearNarratives 校验 AI 输出的逐年 narrative，并对空字符串/校验失败的年
+// 调用 RenderYearNarrativeWithFallback 进行兜底，保证每年 narrative 非空。
+//
+// parsed 与 signals 必须等长且 ganzhi 一一对应（已由上游 GenerateDayunSummariesStream 校验）。
+// dayunIndex 仅用于日志定位。
+func fillBlankYearNarratives(parsed []parsedYearAI, signals []bazi.YearSignals, dayunIndex int) []yearOut {
+	out := make([]yearOut, len(parsed))
+	for i, y := range parsed {
+		narrative := y.Narrative
+		if narrative != "" {
+			if ok, reason := ValidateYearNarrative(narrative, signals[i].Signals); !ok {
+				log.Printf("[fillBlankYearNarratives] dayun=%d year=%d 校验失败丢弃 narrative：%s",
+					dayunIndex, y.Year, reason)
+				narrative = ""
+			}
+		}
+		if narrative == "" {
+			narrative = bazi.RenderYearNarrativeWithFallback(signals[i])
+			log.Printf("[fillBlankYearNarratives] dayun=%d year=%d 使用 template 兜底",
+				dayunIndex, y.Year)
+		}
+		out[i] = yearOut{Year: y.Year, GanZhi: y.GanZhi, Narrative: narrative}
+	}
+	return out
+}
+
 // GenerateDayunSummariesStream 按大运分段调 AI 生成 themes + summary，每段独立缓存与推送
 // dayunIndexes 非空时仅生成列表内的段（用于"展开未来段"的单段触发）；
 // 为空时由调用方决定语义（handler 默认填入 computeAutoGenDayunIndexes 的结果）
@@ -1377,13 +1418,9 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 			raw = raw[:i+1]
 		}
 		var parsed struct {
-			Themes  []string `json:"themes"`
-			Summary string   `json:"summary"`
-			Years   []struct {
-				Year      int    `json:"year"`
-				GanZhi    string `json:"ganzhi"`
-				Narrative string `json:"narrative"`
-			} `json:"years"`
+			Themes  []string       `json:"themes"`
+			Summary string         `json:"summary"`
+			Years   []parsedYearAI `json:"years"`
 		}
 		if jerr := json.Unmarshal([]byte(raw), &parsed); jerr != nil {
 			log.Printf("[GenerateDayunSummariesStream] dayun=%d 解析 AI JSON 失败：%v；output 长度=%d", dy.Index, jerr, len(raw))
@@ -1418,25 +1455,8 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 			continue
 		}
 
-		// 护栏 1：逐年校验 narrative 中的命理术语能在算法 evidence 里追溯到。
-		// 校验失败的年份 narrative 被清空（其他字段保留），日志记录原因。
-		type yearOut struct {
-			Year      int    `json:"year"`
-			GanZhi    string `json:"ganzhi"`
-			Narrative string `json:"narrative"`
-		}
-		validatedYears := make([]yearOut, len(parsed.Years))
-		for i, y := range parsed.Years {
-			validatedYears[i] = yearOut{Year: y.Year, GanZhi: y.GanZhi, Narrative: y.Narrative}
-			if y.Narrative == "" {
-				continue
-			}
-			if ok, reason := ValidateYearNarrative(y.Narrative, dySignals[i].Signals); !ok {
-				log.Printf("[GenerateDayunSummariesStream] dayun=%d year=%d 校验失败丢弃 narrative：%s",
-					dy.Index, y.Year, reason)
-				validatedYears[i].Narrative = ""
-			}
-		}
+		// 护栏 1：逐年校验 narrative；空 narrative 或校验失败的走 template 兜底。
+		validatedYears := fillBlankYearNarratives(parsed.Years, dySignals, dy.Index)
 		yearsJSON, _ := json.Marshal(validatedYears)
 		yearsRaw := json.RawMessage(yearsJSON)
 

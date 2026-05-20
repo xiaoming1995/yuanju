@@ -581,3 +581,64 @@ func TestComputeAutoGenDayunIndexes_EmptyDayuns(t *testing.T) {
 	}
 }
 
+func TestFillBlankYearNarratives_EmptyNarrativeGetsFallback(t *testing.T) {
+	parsed := []parsedYearAI{
+		{Year: 2020, GanZhi: "庚子", Narrative: ""},
+	}
+	signals := []bazi.YearSignals{
+		{Year: 2020, Age: 25, GanZhi: "庚子", DayunGanZhi: "甲寅",
+			Signals: []bazi.EventSignal{
+				{Type: "用神基底", Source: bazi.SourceYongshen, Polarity: bazi.PolarityJi},
+			}},
+	}
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if len(out) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(out))
+	}
+	if out[0].Narrative == "" {
+		t.Error("blank AI narrative should be filled by fallback")
+	}
+	if !strings.Contains(out[0].Narrative, "庚子") {
+		t.Errorf("fallback should reference ganzhi; got %q", out[0].Narrative)
+	}
+}
+
+func TestFillBlankYearNarratives_ValidAIPreserved(t *testing.T) {
+	parsed := []parsedYearAI{
+		{Year: 2020, GanZhi: "庚子", Narrative: "庚子年食神高透，事业稳步推进。"},
+	}
+	signals := []bazi.YearSignals{
+		{Year: 2020, Age: 25, GanZhi: "庚子",
+			Signals: []bazi.EventSignal{
+				{Type: "事业", Evidence: "食神高透", Polarity: bazi.PolarityJi, Source: "天干"},
+			}},
+	}
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if out[0].Narrative != "庚子年食神高透，事业稳步推进。" {
+		t.Errorf("valid AI narrative should be preserved verbatim; got %q", out[0].Narrative)
+	}
+}
+
+func TestFillBlankYearNarratives_ValidatorWipedGetsFallback(t *testing.T) {
+	// AI 写了"用神位受冲"但 evidence 没有"用神位" → validator 清空 → 兜底
+	parsed := []parsedYearAI{
+		{Year: 2020, GanZhi: "庚子", Narrative: "庚子年用神位受冲，运势波动。"},
+	}
+	signals := []bazi.YearSignals{
+		{Year: 2020, Age: 25, GanZhi: "庚子",
+			Signals: []bazi.EventSignal{
+				{Type: "用神基底", Source: bazi.SourceYongshen, Polarity: bazi.PolarityXiong, Evidence: "日干受克"},
+			}},
+	}
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if out[0].Narrative == "庚子年用神位受冲，运势波动。" {
+		t.Error("validator should have wiped the narrative")
+	}
+	if out[0].Narrative == "" {
+		t.Error("wiped narrative should be replaced by fallback, not left empty")
+	}
+	if !strings.Contains(out[0].Narrative, "偏凶") {
+		t.Errorf("xiong basis should produce 偏凶 fallback; got %q", out[0].Narrative)
+	}
+}
+
