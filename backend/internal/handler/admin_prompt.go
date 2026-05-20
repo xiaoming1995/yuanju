@@ -30,6 +30,11 @@ func UpdatePrompt(c *gin.Context) {
 		return
 	}
 
+	if !prompt.Has(module) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未知模块: " + module})
+		return
+	}
+
 	err := repository.UpdatePrompt(module, req.Content)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新 Prompt 失败: " + err.Error()})
@@ -48,7 +53,7 @@ func UpdatePrompt(c *gin.Context) {
 func ResetPromptToCanonical(c *gin.Context) {
 	module := c.Param("module")
 
-	def, ok := prompt.Canonical[module]
+	def, ok := prompt.Lookup(module)
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "unknown module: " + module})
 		return

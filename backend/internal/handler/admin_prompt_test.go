@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -104,6 +105,22 @@ func TestResetPromptToCanonical_UnknownModule_Returns404(t *testing.T) {
 	r.POST("/prompts/:module/reset", ResetPromptToCanonical)
 
 	req := httptest.NewRequest(http.MethodPost, "/prompts/not-a-real-module/reset", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for unknown module, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestAdminSavePrompt_UnknownModule_Returns404(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.PUT("/prompts/:module", UpdatePrompt)
+
+	body := strings.NewReader(`{"content":"x"}`)
+	req := httptest.NewRequest(http.MethodPut, "/prompts/not-a-real-module", body)
+	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 

@@ -28,9 +28,10 @@ type Definition struct {
 	Hash string
 }
 
-// Canonical 是模块名 → Definition 的全局注册表。
+// canonical 是模块名 → Definition 的全局注册表。
 // 由各 canonical_xxx.go 的 init() 写入；运行时只读。
-var Canonical = map[string]Definition{}
+// 外部调用者请使用 Lookup / Has / MustGet。
+var canonical = map[string]Definition{}
 
 var registerMu sync.Mutex
 
@@ -42,20 +43,33 @@ var registerMu sync.Mutex
 func Register(module string, def Definition) {
 	registerMu.Lock()
 	defer registerMu.Unlock()
-	if _, exists := Canonical[module]; exists {
+	if _, exists := canonical[module]; exists {
 		panic(fmt.Sprintf("prompt: module %q already registered", module))
 	}
 	sum := sha256.Sum256([]byte(def.Content))
 	def.Hash = hex.EncodeToString(sum[:])
-	Canonical[module] = def
+	canonical[module] = def
 }
 
 // MustGet 返回指定 module 的 canonical Definition；
 // 未注册的 module 直接 panic（不静默回退空字符串）。
 func MustGet(module string) Definition {
-	def, ok := Canonical[module]
+	def, ok := canonical[module]
 	if !ok {
 		panic(fmt.Sprintf("prompt: module %q not registered in canonical map", module))
 	}
 	return def
+}
+
+// Lookup returns the Definition for module if registered, plus a boolean ok.
+// Use this when the caller can handle the unregistered case (e.g., admin reset endpoint).
+func Lookup(module string) (Definition, bool) {
+	def, ok := canonical[module]
+	return def, ok
+}
+
+// Has reports whether module is registered. Equivalent to `_, ok := Lookup(module)`.
+func Has(module string) bool {
+	_, ok := canonical[module]
+	return ok
 }

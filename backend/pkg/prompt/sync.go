@@ -49,7 +49,7 @@ func SyncCanonical(db *sql.DB) error {
 
 // syncCanonicalWith is the testable core of SyncCanonical.
 func syncCanonicalWith(store syncStore) error {
-	for module, def := range Canonical {
+	for module, def := range canonical {
 		row, err := store.GetPromptByModule(module)
 		if err != nil {
 			log.Printf("[prompt-sync] module=%s action=skip reason=db_error err=%v", module, err)
