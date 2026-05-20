@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"errors"
 	"testing"
 
 	"yuanju/internal/model"
@@ -8,18 +9,29 @@ import (
 
 // fakeStore implements syncStore entirely in memory.
 type fakeStore struct {
-	rows    map[string]*model.AIPrompt
-	inserts []string
-	updates []string
+	rows      map[string]*model.AIPrompt
+	inserts   []string
+	updates   []string
+	getErr    map[string]error  // module → error to return from GetPromptByModule
+	insertErr map[string]error  // module → error to return from InsertCanonical
+	updateErr map[string]error  // module → error to return from UpdateCanonicalContent
 	// dbErr, if non-nil, is returned by GetPromptByModule for all modules.
 	dbErr error
 }
 
 func newFakeStore() *fakeStore {
-	return &fakeStore{rows: map[string]*model.AIPrompt{}}
+	return &fakeStore{
+		rows:      map[string]*model.AIPrompt{},
+		getErr:    map[string]error{},
+		insertErr: map[string]error{},
+		updateErr: map[string]error{},
+	}
 }
 
 func (f *fakeStore) GetPromptByModule(m string) (*model.AIPrompt, error) {
+	if err := f.getErr[m]; err != nil {
+		return nil, err
+	}
 	if f.dbErr != nil {
 		return nil, f.dbErr
 	}
@@ -27,12 +39,18 @@ func (f *fakeStore) GetPromptByModule(m string) (*model.AIPrompt, error) {
 }
 
 func (f *fakeStore) InsertCanonical(m, v, c, h, d string) error {
+	if err := f.insertErr[m]; err != nil {
+		return err
+	}
 	f.inserts = append(f.inserts, m)
 	f.rows[m] = &model.AIPrompt{Module: m, Version: v, Content: c, CanonicalHash: h, Description: d, IsCustomized: false}
 	return nil
 }
 
 func (f *fakeStore) UpdateCanonicalContent(m, v, c, h string) error {
+	if err := f.updateErr[m]; err != nil {
+		return err
+	}
 	f.updates = append(f.updates, m)
 	row := f.rows[m]
 	row.Version = v
@@ -127,5 +145,34 @@ func TestSyncCanonical_NoOpOnAlignedRow(t *testing.T) {
 	}
 	if len(store.inserts) != 0 || len(store.updates) != 0 {
 		t.Errorf("aligned row should be noop; inserts=%v updates=%v", store.inserts, store.updates)
+	}
+}
+
+// TestSyncCanonical_DBErrorOnGetSkipsModuleNoPanic verifies that a GetPromptByModule
+// error does not panic or return error; module is skipped and processing continues.
+func TestSyncCanonical_DBErrorOnGetSkipsModuleNoPanic(t *testing.T) {
+	store := newFakeStore()
+	store.getErr["compatibility"] = errors.New("simulated db down")
+	if err := syncCanonicalWith(store); err != nil {
+		t.Fatalf("SyncCanonical should not return error even on DB failure, got: %v", err)
+	}
+	if len(store.inserts) != 0 {
+		t.Errorf("expected no inserts when Get fails, got %v", store.inserts)
+	}
+	// No panic + returns nil = pass
+}
+
+// TestSyncCanonical_DBErrorOnInsertSkipsModuleNoPanic verifies that an InsertCanonical
+// error does not panic or return error; module is skipped and processing continues.
+func TestSyncCanonical_DBErrorOnInsertSkipsModuleNoPanic(t *testing.T) {
+	store := newFakeStore()
+	// Row is missing, so SyncCanonical tries InsertCanonical
+	store.insertErr["compatibility"] = errors.New("simulated insert failure")
+	if err := syncCanonicalWith(store); err != nil {
+		t.Fatalf("SyncCanonical should not return error even on insert failure, got: %v", err)
+	}
+	// The error is logged and skipped, inserts list should remain empty
+	if len(store.inserts) != 0 {
+		t.Errorf("expected no inserts when insert fails, got %v", store.inserts)
 	}
 }
