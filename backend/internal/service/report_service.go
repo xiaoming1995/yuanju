@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"slices"
 	"strings"
 	"text/template"
 	"time"
@@ -1118,8 +1119,32 @@ func cachedDayunSummaryToStreamItem(cached *model.AIDayunSummary, fallbackGanZhi
 	}, true
 }
 
+// computeAutoGenDayunIndexes 返回页面初次打开应当自动生成的 dayun 索引列表
+// "已发生 + 当前段" 语义：StartAge ≤ currentAge 的所有段
+// 未来段（StartAge > currentAge）不在列表中，需用户点击 [生成本段] 触发
+func computeAutoGenDayunIndexes(birthYear int, dayuns []bazi.DayunItem) []int {
+	return computeAutoGenDayunIndexesAt(birthYear, dayuns, time.Now().Year())
+}
+
+// computeAutoGenDayunIndexesAt 注入 currentYear 的版本，仅测试使用
+func computeAutoGenDayunIndexesAt(birthYear int, dayuns []bazi.DayunItem, currentYear int) []int {
+	currentAge := currentYear - birthYear
+	if currentAge < 0 {
+		return []int{} // 防御性：未来出生命主
+	}
+	indexes := make([]int, 0, len(dayuns))
+	for _, dy := range dayuns {
+		if dy.StartAge <= currentAge {
+			indexes = append(indexes, dy.Index)
+		}
+	}
+	return indexes
+}
+
 // GenerateDayunSummariesStream 按大运分段调 AI 生成 themes + summary，每段独立缓存与推送
-func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(item DayunSummaryStreamItem) error) error {
+// dayunIndexes 非空时仅生成列表内的段（用于"展开未来段"的单段触发）；
+// 为空时由调用方决定语义（handler 默认填入 computeAutoGenDayunIndexes 的结果）
+func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes []int, onItem func(item DayunSummaryStreamItem) error) error {
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
 		return fmt.Errorf("未找到排盘记录")
@@ -1207,7 +1232,29 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 		return fmt.Errorf("dayun_summary prompt 解析失败: %v", terr)
 	}
 
+	// 空 dayunIndexes → 应用默认 "auto-gen list"：已发生 + 当前段 + 任何已缓存段
+	// 缓存段并入是为了让用户上次生成过的未来段，下次访问可自动展开渲染（缓存命中即时返回）
+	if len(dayunIndexes) == 0 {
+		dayunIndexes = computeAutoGenDayunIndexes(chart.BirthYear, result.Dayun)
+		if cachedSums, err := repository.ListDayunSummaries(chartID); err == nil {
+			for _, c := range cachedSums {
+				if !slices.Contains(dayunIndexes, c.DayunIndex) {
+					dayunIndexes = append(dayunIndexes, c.DayunIndex)
+				}
+			}
+		}
+	}
+
+	// filter set：现在 dayunIndexes 必非空（或确实没段要生成），跳过列表外的段
+	allowed := make(map[int]bool, len(dayunIndexes))
+	for _, idx := range dayunIndexes {
+		allowed[idx] = true
+	}
+
 	for _, dy := range result.Dayun {
+		if !allowed[dy.Index] {
+			continue
+		}
 		gz := dy.Gan + dy.Zhi
 		dayunPower := bazi.BuildDayunTenGodPower(result, dy)
 
@@ -1246,7 +1293,9 @@ func GenerateDayunSummariesStream(chartID string, userID *string, onItem func(it
 				Signals:         sigs,
 			})
 		}
-		dySigsJSON, _ := json.Marshal(dySignals)
+		// 用 prompt-only 压缩版本喂 AI（drop AI 不需要的字段 + strip evidence 括号注脚）
+		// 持久化/SSE/前端各处仍用原始 dySignals 数据
+		dySigsJSON, _ := bazi.CompressYearSignalsForPrompt(dySignals)
 
 		dayunInfo := fmt.Sprintf("%s %d-%d岁（%d-%d年）[%s/%s]",
 			gz, dy.StartAge, dy.StartAge+9, dy.StartYear, dy.EndYear, dy.GanShiShen, dy.ZhiShiShen)
