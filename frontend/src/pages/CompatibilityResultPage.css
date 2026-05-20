@@ -603,11 +603,13 @@
   padding: 18px;
 }
 
-.compatibility-stage-card p {
+.compatibility-stage-card p,
+.compatibility-stage-validation-card p {
   margin: 8px 0;
 }
 
-.compatibility-stage-card p span {
+.compatibility-stage-card p span,
+.compatibility-stage-validation-card p span {
   color: var(--wu-jin);
 }
 

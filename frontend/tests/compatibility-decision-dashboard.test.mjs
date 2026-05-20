@@ -1,12 +1,28 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
+import { runInNewContext } from 'node:vm'
+import ts from 'typescript'
 
 const helperPath = new URL('../src/lib/compatibilityDecision.ts', import.meta.url)
 const pagePath = new URL('../src/pages/CompatibilityResultPage.tsx', import.meta.url)
+const cssPath = new URL('../src/pages/CompatibilityResultPage.css', import.meta.url)
 
 function read(path) {
   return readFileSync(path, 'utf8')
+}
+
+function loadDecisionHelpers() {
+  const source = read(helperPath)
+  const output = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2020,
+    },
+  }).outputText
+  const exports = {}
+  runInNewContext(output, { exports })
+  return exports
 }
 
 test('compatibility decision helper exposes required derivation API', () => {
@@ -21,6 +37,44 @@ test('compatibility decision helper exposes required derivation API', () => {
   assert.match(source, /export function hasLinkedEvidence/)
   assert.match(source, /maxRisk/)
   assert.match(source, /nextAction/)
+})
+
+test('compatibility decision dashboard chooses highest stage risk as max risk', () => {
+  const { buildDecisionDashboardData } = loadDecisionHelpers()
+  const dashboard = buildDecisionDashboardData({
+    duration: {
+      overall_band: 'medium',
+      summary: '',
+      reasons: [],
+      windows: {
+        three_months: { level: 'low' },
+        one_year: { level: 'medium' },
+        two_years_plus: { level: 'high' },
+      },
+    },
+    evidences: [],
+    overallLevel: 'medium',
+    stageRisks: [
+      {
+        window: 'three_months',
+        risk_level: 'low',
+        main_risk: '短期节奏稳定',
+        trigger: '短期推进时',
+        advice: '保持观察。',
+        evidence_keys: [],
+      },
+      {
+        window: 'two_years_plus',
+        risk_level: 'high',
+        main_risk: '长期现实承压明显',
+        trigger: '长期规划落地时',
+        advice: '先验证责任分工。',
+        evidence_keys: [],
+      },
+    ],
+  })
+
+  assert.equal(dashboard.maxRisk, '长期现实承压明显')
 })
 
 test('compatibility result page renders decision-dashboard sections before scores and AI report', () => {
@@ -53,4 +107,11 @@ test('compatibility result page includes decision-dashboard CSS hooks', () => {
   assert.match(source, /compatibility-decision-metric-grid/)
   assert.match(source, /compatibility-decision-evidence-summary/)
   assert.match(source, /compatibility-stage-validation-grid/)
+})
+
+test('compatibility result page styles stage validation card paragraphs', () => {
+  const source = read(cssPath)
+
+  assert.match(source, /\.compatibility-stage-validation-card p\s*\{/)
+  assert.match(source, /\.compatibility-stage-validation-card p span\s*\{/)
 })

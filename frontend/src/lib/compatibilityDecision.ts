@@ -62,12 +62,27 @@ const durationRiskText: Record<string, string> = {
   low: '阶段压力较低',
 }
 
+const riskPriority: Record<string, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
+}
+
 function compact(values: Array<string | undefined | null>) {
   return values.map(value => value?.trim()).filter((value): value is string => Boolean(value))
 }
 
 function firstNonEmpty(values: Array<string | undefined | null>, fallback: string) {
   return compact(values)[0] || fallback
+}
+
+function highestStageRisk(stageRisks: CompatibilityStageRisk[]) {
+  return stageRisks.reduce<CompatibilityStageRisk | undefined>((current, risk) => {
+    if (!current) return risk
+    const currentPriority = riskPriority[current.risk_level] || 0
+    const riskValue = riskPriority[risk.risk_level] || 0
+    return riskValue > currentPriority ? risk : current
+  }, undefined)
 }
 
 export function verdictFromOverallLevel(overallLevel: string) {
@@ -150,10 +165,11 @@ export function buildDecisionDashboardData({
   overallLevel: string
 }): DecisionDashboardData {
   const resolvedStageRisks = buildDecisionStageRisks(stageRisks, duration)
+  const primaryStageRisk = highestStageRisk(resolvedStageRisks)
   const negativeEvidence = evidences.find(evidence => evidence.polarity === 'negative')
   const maxRisk = firstNonEmpty(
     [
-      resolvedStageRisks[0]?.main_risk,
+      primaryStageRisk?.main_risk,
       negativeEvidence ? `${negativeEvidence.title}：${negativeEvidence.detail}` : '',
     ],
     '短期先验证沟通节奏和现实安排是否稳定。',
