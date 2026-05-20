@@ -52,6 +52,9 @@ interface DayunSummary {
   years?: YearNarrativeEntry[]
   loading?: boolean
   error?: string
+  // 未来段折叠态：true 表示该段在页面打开时不自动生成 AI 批语
+  // 用户点击 [展开 ▼] 后变 false（仍未生成 AI），再点"生成本段"才触发
+  folded?: boolean
 }
 
 const SIGNAL_LABEL: Record<string, { label: string; color: string }> = {
@@ -116,10 +119,16 @@ export default function PastEventsPage() {
       const data = resp.data
       setEvents(data.years || [])
       setDayunMeta(data.dayun_meta || [])
-      // 初始化各大运 summary 占位（含远期大运，全量 AI 生成）
+      // 初始化各大运 summary 占位
+      // 未来段（start_year > currentYear）默认 folded=true，不参与 stage 2 自动生成
+      // 已发生 + 当前段默认 loading=true，等流式拉取（可能 cache 命中也可能 AI 新生成）
+      // 后端若发现 future 段在 cache 中，会主动 emit → setSummaries 把 folded 切回 false
       const init: Record<number, DayunSummary> = {}
       for (const dm of data.dayun_meta || []) {
-        init[dm.index] = { themes: [], summary: '', loading: true }
+        const isFuture = dm.start_year > currentYear
+        init[dm.index] = isFuture
+          ? { themes: [], summary: '', folded: true }
+          : { themes: [], summary: '', loading: true }
       }
       setSummaries(init)
       setYearsLoaded(true)
@@ -136,13 +145,15 @@ export default function PastEventsPage() {
         setSummaries((prev) => {
           const next = { ...prev }
           if (item.error) {
-            next[item.dayun_index] = { themes: [], summary: '', error: item.error, loading: false }
+            next[item.dayun_index] = { themes: [], summary: '', error: item.error, loading: false, folded: false }
           } else {
+            // 收到 SSE 即意味着该段已成功生成（或缓存命中）→ 一律展开
             next[item.dayun_index] = {
               themes: item.themes || [],
               summary: item.summary || '',
               years: item.years || undefined,
               loading: false,
+              folded: false,
             }
           }
           return next
@@ -156,6 +167,60 @@ export default function PastEventsPage() {
         setStreamDone(true)
         inflightRef.current = false
       },
+    )
+  }, [chartId])
+
+  // 用户点击 [展开 ▼] —— 折叠段进入"已展开但未生成 AI"状态
+  // 还不调任何 API，只切换 folded 状态显示 chips
+  const handleExpand = useCallback((dayunIndex: number) => {
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: { ...prev[dayunIndex], folded: false },
+    }))
+  }, [])
+
+  // 用户点击 [收起 ▲] —— 折回但保留已加载的 AI 内容（下次展开不重新调）
+  const handleCollapse = useCallback((dayunIndex: number) => {
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: { ...prev[dayunIndex], folded: true },
+    }))
+  }, [])
+
+  // 用户点击 [生成本段 AI 批语] —— 触发单段 SSE 生成
+  const handleGenerateSegment = useCallback((dayunIndex: number) => {
+    if (!chartId) return
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: { ...prev[dayunIndex], loading: true, error: undefined },
+    }))
+    baziAPI.streamDayunSummaries(
+      chartId,
+      (item) => {
+        setSummaries((prev) => {
+          const next = { ...prev }
+          if (item.error) {
+            next[item.dayun_index] = { ...next[item.dayun_index], error: item.error, loading: false }
+          } else {
+            next[item.dayun_index] = {
+              themes: item.themes || [],
+              summary: item.summary || '',
+              years: item.years || undefined,
+              loading: false,
+              folded: false,
+            }
+          }
+          return next
+        })
+      },
+      (err) => {
+        setSummaries((prev) => ({
+          ...prev,
+          [dayunIndex]: { ...prev[dayunIndex], error: err, loading: false },
+        }))
+      },
+      () => {},
+      [dayunIndex],
     )
   }, [chartId])
 
@@ -315,7 +380,37 @@ export default function PastEventsPage() {
                         主导：{meta.ten_god_power.plain_title}
                       </div>
                     )}
+                    {/* 未来段折叠/展开切换 */}
+                    {dySum?.folded !== undefined && (
+                      <button
+                        onClick={() => dySum?.folded ? handleExpand(meta.index) : handleCollapse(meta.index)}
+                        style={{
+                          marginLeft: 'auto',
+                          background: 'none',
+                          border: '1px solid var(--border-subtle)',
+                          borderRadius: 4,
+                          padding: '2px 8px',
+                          color: 'var(--text-muted)',
+                          cursor: 'pointer',
+                          fontSize: '0.72rem',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >{dySum?.folded ? '展开 ▼' : '收起 ▲'}</button>
+                    )}
                   </div>
+
+                  {dySum?.folded && (
+                    <div style={{
+                      fontSize: '0.72rem',
+                      color: 'var(--text-muted)',
+                      padding: '4px 0 12px',
+                      lineHeight: 1.6,
+                    }}>
+                      未来大运段，点击 "展开 ▼" 查看流年信号；展开后可按需生成 AI 批语
+                    </div>
+                  )}
+
+                  {!dySum?.folded && (<>
 
                   {/* 大运整体总结块 */}
                   {dySum && (
@@ -523,6 +618,27 @@ export default function PastEventsPage() {
                       )
                     })}
                   </div>
+
+                  {/* 展开但未生成 AI 批语 → 生成本段按钮 */}
+                  {dySum?.folded === false && !dySum?.loading && !dySum?.years && !dySum?.error && dySum?.summary === '' && (
+                    <div style={{ marginTop: 16, textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleGenerateSegment(meta.index)}
+                        style={{
+                          background: `color-mix(in srgb, var(--wu-${dyWx}) 16%, transparent)`,
+                          border: `1px solid color-mix(in srgb, var(--wu-${dyWx}) 50%, transparent)`,
+                          borderRadius: 8,
+                          padding: '10px 24px',
+                          color: `var(--wu-${dyWx})`,
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          fontWeight: 600,
+                        }}
+                      >🔮 生成本段 AI 批语</button>
+                    </div>
+                  )}
+
+                  </>)}
                 </div>
               )
             })}

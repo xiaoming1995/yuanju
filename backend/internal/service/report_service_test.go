@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 	"text/template"
@@ -510,6 +511,134 @@ func TestDayunSummaryPrompt_SoftConfidence_OmitsTiaohouSentenceWhenAbsent(t *tes
 	}
 	if strings.Contains(out, "调候用神 ") {
 		t.Errorf("soft band w/o tiaohou should not show empty tiaohou label; got: %s", out)
+	}
+}
+
+// ── computeAutoGenDayunIndexes 测试 ──────────────────────────────────
+
+// helper for building DayunItem slices in tests
+func mkDayuns(starts ...int) []bazi.DayunItem {
+	out := make([]bazi.DayunItem, len(starts))
+	for i, s := range starts {
+		out[i] = bazi.DayunItem{Index: i + 1, StartAge: s}
+	}
+	return out
+}
+
+func TestComputeAutoGenDayunIndexes_MidLifeUser(t *testing.T) {
+	// 1995 生，2026 年 → 31 岁
+	dayuns := mkDayuns(0, 9, 19, 29, 39, 49, 59, 69, 79)
+	got := computeAutoGenDayunIndexesAt(1995, dayuns, 2026)
+	want := []int{1, 2, 3, 4} // 含当前段 (StartAge=29 ≤ 31)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("31岁 命主 expected %v, got %v", want, got)
+	}
+}
+
+func TestComputeAutoGenDayunIndexes_VeryYoungUser(t *testing.T) {
+	// 2020 生，2026 年 → 6 岁
+	dayuns := mkDayuns(0, 9, 19, 29, 39, 49, 59, 69, 79)
+	got := computeAutoGenDayunIndexesAt(2020, dayuns, 2026)
+	want := []int{1} // 只有 dayun 1 起始年龄 ≤ 6
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("6岁 命主 expected %v, got %v", want, got)
+	}
+}
+
+func TestComputeAutoGenDayunIndexes_ElderlyUser(t *testing.T) {
+	// 1950 生，2026 年 → 76 岁
+	dayuns := mkDayuns(0, 9, 19, 29, 39, 49, 59, 69, 79)
+	got := computeAutoGenDayunIndexesAt(1950, dayuns, 2026)
+	want := []int{1, 2, 3, 4, 5, 6, 7, 8} // 79岁段起始 79 > 76，排除
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("76岁 命主 expected %v, got %v", want, got)
+	}
+}
+
+func TestComputeAutoGenDayunIndexes_BoundaryAtStartAge(t *testing.T) {
+	// 1996 生，2026 年 → 30 岁，正好等于某段 StartAge
+	dayuns := mkDayuns(0, 10, 20, 30, 40)
+	got := computeAutoGenDayunIndexesAt(1996, dayuns, 2026)
+	want := []int{1, 2, 3, 4} // dayun 4 StartAge=30 等于 currentAge=30，包含
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("边界 currentAge==StartAge expected %v, got %v", want, got)
+	}
+}
+
+func TestComputeAutoGenDayunIndexes_FutureBirth(t *testing.T) {
+	// 防御性边界：BirthYear > CurrentYear（不可能但代码不应崩）
+	dayuns := mkDayuns(0, 9, 19)
+	got := computeAutoGenDayunIndexesAt(2030, dayuns, 2026)
+	if len(got) != 0 {
+		t.Errorf("未来出生命主 expected empty, got %v", got)
+	}
+}
+
+func TestComputeAutoGenDayunIndexes_EmptyDayuns(t *testing.T) {
+	got := computeAutoGenDayunIndexesAt(1990, []bazi.DayunItem{}, 2026)
+	if len(got) != 0 {
+		t.Errorf("空 dayun 列表 expected empty, got %v", got)
+	}
+}
+
+func TestFillBlankYearNarratives_EmptyNarrativeGetsFallback(t *testing.T) {
+	parsed := []parsedYearAI{
+		{Year: 2020, GanZhi: "庚子", Narrative: ""},
+	}
+	signals := []bazi.YearSignals{
+		{Year: 2020, Age: 25, GanZhi: "庚子", DayunGanZhi: "甲寅",
+			Signals: []bazi.EventSignal{
+				{Type: "用神基底", Source: bazi.SourceYongshen, Polarity: bazi.PolarityJi},
+			}},
+	}
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if len(out) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(out))
+	}
+	if out[0].Narrative == "" {
+		t.Error("blank AI narrative should be filled by fallback")
+	}
+	if !strings.Contains(out[0].Narrative, "庚子") {
+		t.Errorf("fallback should reference ganzhi; got %q", out[0].Narrative)
+	}
+}
+
+func TestFillBlankYearNarratives_ValidAIPreserved(t *testing.T) {
+	parsed := []parsedYearAI{
+		{Year: 2020, GanZhi: "庚子", Narrative: "庚子年食神高透，事业稳步推进。"},
+	}
+	signals := []bazi.YearSignals{
+		{Year: 2020, Age: 25, GanZhi: "庚子",
+			Signals: []bazi.EventSignal{
+				{Type: "事业", Evidence: "食神高透", Polarity: bazi.PolarityJi, Source: "天干"},
+			}},
+	}
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if out[0].Narrative != "庚子年食神高透，事业稳步推进。" {
+		t.Errorf("valid AI narrative should be preserved verbatim; got %q", out[0].Narrative)
+	}
+}
+
+func TestFillBlankYearNarratives_ValidatorWipedGetsFallback(t *testing.T) {
+	// AI 写了"用神位受冲"但 evidence 没有"用神位" → validator 清空 → 兜底
+	parsed := []parsedYearAI{
+		{Year: 2020, GanZhi: "庚子", Narrative: "庚子年用神位受冲，运势波动。"},
+	}
+	signals := []bazi.YearSignals{
+		{Year: 2020, Age: 25, GanZhi: "庚子",
+			Signals: []bazi.EventSignal{
+				{Type: "用神基底", Source: bazi.SourceYongshen, Polarity: bazi.PolarityXiong, Evidence: "日干受克"},
+			}},
+	}
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if out[0].Narrative == "庚子年用神位受冲，运势波动。" {
+		t.Error("validator should have wiped the narrative")
+	}
+	if out[0].Narrative == "" {
+		t.Error("wiped narrative should be replaced by fallback, not left empty")
+	}
+	if !strings.Contains(out[0].Narrative, "偏凶") {
+		t.Errorf("xiong basis should produce 偏凶 fallback; got %q", out[0].Narrative)
 	}
 }
 

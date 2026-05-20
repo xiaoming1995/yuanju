@@ -11,21 +11,25 @@ import (
 // ---- 用户 ----
 
 func CreateUser(email, passwordHash, nickname string) (*model.User, error) {
+	return CreateUserWithSource(email, passwordHash, nickname, "self_registered")
+}
+
+func CreateUserWithSource(email, passwordHash, nickname, source string) (*model.User, error) {
 	user := &model.User{}
 	err := database.DB.QueryRow(
-		`INSERT INTO users (email, password_hash, nickname) VALUES ($1, $2, $3)
-		 RETURNING id, email, nickname, created_at`,
-		email, passwordHash, nickname,
-	).Scan(&user.ID, &user.Email, &user.Nickname, &user.CreatedAt)
+		`INSERT INTO users (email, password_hash, nickname, source) VALUES ($1, $2, $3, $4)
+		 RETURNING id, email, nickname, source, created_at`,
+		email, passwordHash, nickname, source,
+	).Scan(&user.ID, &user.Email, &user.Nickname, &user.Source, &user.CreatedAt)
 	return user, err
 }
 
 func GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
 	err := database.DB.QueryRow(
-		`SELECT id, email, password_hash, nickname, created_at FROM users WHERE email=$1`,
+		`SELECT id, email, password_hash, nickname, COALESCE(source, 'self_registered'), created_at FROM users WHERE email=$1`,
 		email,
-	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Nickname, &user.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Nickname, &user.Source, &user.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -35,8 +39,8 @@ func GetUserByEmail(email string) (*model.User, error) {
 func GetUserByID(id string) (*model.User, error) {
 	user := &model.User{}
 	err := database.DB.QueryRow(
-		`SELECT id, email, nickname, created_at FROM users WHERE id=$1`, id,
-	).Scan(&user.ID, &user.Email, &user.Nickname, &user.CreatedAt)
+		`SELECT id, email, nickname, COALESCE(source, 'self_registered'), created_at FROM users WHERE id=$1`, id,
+	).Scan(&user.ID, &user.Email, &user.Nickname, &user.Source, &user.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

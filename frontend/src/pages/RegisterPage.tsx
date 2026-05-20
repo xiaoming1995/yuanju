@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI } from '../lib/api'
@@ -10,10 +10,23 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ email: '', password: '', nickname: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [registration_enabled, setRegistrationEnabled] = useState(true)
+  const [settingsLoading, setSettingsLoading] = useState(true)
+
+  useEffect(() => {
+    authAPI.registrationSettings()
+      .then(r => setRegistrationEnabled(r.data.registration_enabled))
+      .catch(() => setRegistrationEnabled(true))
+      .finally(() => setSettingsLoading(false))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (!registration_enabled) {
+      setError('当前暂未开放公开注册')
+      return
+    }
     if (form.password.length < 8) {
       setError('密码至少需要8位')
       return
@@ -40,6 +53,12 @@ export default function RegisterPage() {
             <p className="auth-desc">注册账号，开启你的命理之旅</p>
           </div>
 
+          {!settingsLoading && !registration_enabled ? (
+            <div className="auth-unavailable">
+              <p>当前暂未开放公开注册</p>
+              <Link to="/login" className="btn btn-primary btn-lg auth-submit">返回登录</Link>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} id="register-form">
             <div className="form-group">
               <label className="form-label" htmlFor="reg-email">邮箱地址</label>
@@ -91,6 +110,7 @@ export default function RegisterPage() {
               {loading ? <><span className="loading-spinner-dark" /> 注册中...</> : '注册'}
             </button>
           </form>
+          )}
 
           <p className="auth-switch">
             已有账号？<Link to="/login">立即登录</Link>

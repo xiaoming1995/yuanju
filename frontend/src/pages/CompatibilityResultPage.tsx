@@ -53,6 +53,26 @@ const polarityColor: Record<string, string> = {
   neutral: 'var(--text-muted)',
 }
 
+const evidenceSourceText: Record<string, string> = {
+  day_master: '日主关系',
+  five_elements: '五行结构',
+  spouse_palace: '夫妻宫',
+  spouse_star: '配偶星',
+  ganzhi: '冲克总量',
+  shensha: '神煞辅助',
+  ten_god_interaction: '十神互动',
+  favorable_element_support: '喜忌互补',
+  ganzhi_interaction: '干支合冲刑害',
+  relationship_pattern: '关系模式',
+  timing_context: '阶段时机',
+}
+
+const perspectiveText: Record<string, string> = {
+  self_to_partner: '我看对方',
+  partner_to_self: '对方看我',
+  mutual: '双方互见',
+}
+
 const durationLevelText: Record<string, string> = {
   high: '偏高',
   medium: '中等',
@@ -221,6 +241,11 @@ function EvidenceCard({ evidence }: { evidence: CompatibilityEvidence }) {
           >
             {dimensionText[evidence.dimension] || evidence.dimension}
           </span>
+          {evidence.perspective && (
+            <span className="compatibility-evidence-badge">
+              {perspectiveText[evidence.perspective] || evidence.perspective}
+            </span>
+          )}
           <span
             className="compatibility-evidence-badge"
             style={{
@@ -234,6 +259,47 @@ function EvidenceCard({ evidence }: { evidence: CompatibilityEvidence }) {
         </div>
       </div>
       <div className="compatibility-evidence-detail">{evidence.detail}</div>
+      {Array.isArray(evidence.related_sources) && evidence.related_sources.length > 0 && (
+        <div className="compatibility-evidence-related">
+          关联：{evidence.related_sources.map(source => evidenceSourceText[source] || source).join(' / ')}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function groupEvidenceBySource(evidences: CompatibilityEvidence[]) {
+  const groups = new Map<string, CompatibilityEvidence[]>()
+  evidences.forEach(evidence => {
+    const key = evidence.source || 'unknown'
+    const items = groups.get(key) || []
+    items.push(evidence)
+    groups.set(key, items)
+  })
+  return Array.from(groups.entries())
+    .filter(([, items]) => items.length > 0)
+    .sort(([a], [b]) => (evidenceSourceText[a] || a).localeCompare(evidenceSourceText[b] || b, 'zh-Hans-CN'))
+}
+
+function ProfessionalEvidenceGroups({ evidences }: { evidences: CompatibilityEvidence[] }) {
+  const groups = groupEvidenceBySource(evidences)
+  if (groups.length === 0) {
+    return <p className="compatibility-report-empty">暂无结构化依据。</p>
+  }
+
+  return (
+    <div className="compatibility-evidence-groups">
+      {groups.map(([source, items]) => (
+        <section key={source} className="compatibility-evidence-group">
+          <div className="compatibility-evidence-group-header">
+            <div className="serif compatibility-evidence-group-title">{evidenceSourceText[source] || source}</div>
+            <div className="compatibility-evidence-group-count">{items.length} 条</div>
+          </div>
+          <div className="compatibility-evidence-grid">
+            {items.map(evidence => <EvidenceCard key={evidence.id || evidence.evidence_key} evidence={evidence} />)}
+          </div>
+        </section>
+      ))}
     </div>
   )
 }
@@ -691,9 +757,7 @@ export default function CompatibilityResultPage() {
                 <h2 className="serif compatibility-section-title">关键依据</h2>
                 <p className="compatibility-section-desc">这些结构化证据是合盘结论的主要命理依据。</p>
               </div>
-              <div className="compatibility-evidence-grid">
-                {detail.evidences.map(evidence => <EvidenceCard key={evidence.id} evidence={evidence} />)}
-              </div>
+              <ProfessionalEvidenceGroups evidences={detail.evidences} />
             </div>
           </div>
         </details>

@@ -125,6 +125,7 @@ func main() {
 		// 普通用户认证路由
 		auth := api.Group("/auth")
 		{
+			auth.GET("/registration-settings", handler.RegistrationSettings)
 			auth.POST("/register", handler.Register)
 			auth.POST("/login", handler.Login)
 			auth.GET("/me", middleware.Auth(), handler.Me)
@@ -192,6 +193,9 @@ func main() {
 
 				// 用户与数据流水管理
 				adminAuth.GET("/users", handler.AdminGetUsers)
+				adminAuth.POST("/users", handler.AdminCreateUser)
+				adminAuth.GET("/settings/registration", handler.AdminGetRegistrationSetting)
+				adminAuth.PUT("/settings/registration", handler.AdminUpdateRegistrationSetting)
 				adminAuth.GET("/charts", handler.AdminListCharts)
 				adminAuth.GET("/charts/:chart_id/liunian", handler.AdminListLiunianReports)
 

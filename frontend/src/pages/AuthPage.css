@@ -54,6 +54,12 @@
 
 .auth-switch a:hover { text-decoration: underline; }
 
+.auth-unavailable {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 .loading-spinner-dark {
   display: inline-block;
   width: 14px;

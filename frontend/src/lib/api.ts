@@ -36,12 +36,17 @@ api.interceptors.response.use(
 )
 
 // ======= Auth API =======
+export interface RegistrationSettings {
+  registration_enabled: boolean
+}
+
 export const authAPI = {
   register: (data: { email: string; password: string; nickname?: string }) =>
     api.post('/api/auth/register', data),
   login: (data: { email: string; password: string }) =>
     api.post('/api/auth/login', data),
   me: () => api.get('/api/auth/me'),
+  registrationSettings: () => api.get('/api/auth/registration-settings'),
 }
 
 export interface UserProfileStats {
@@ -246,10 +251,23 @@ export interface CompatibilityEvidence {
   type: string
   polarity: 'positive' | 'negative' | 'mixed' | 'neutral'
   source: string
+  perspective?: 'self_to_partner' | 'partner_to_self' | 'mutual' | string
+  actor?: 'self' | 'partner' | string
+  target?: 'self' | 'partner' | string
+  related_sources?: string[]
   title: string
   detail: string
   weight: number
   created_at: string
+}
+
+export interface CompatibilityScoreExplanation {
+  dimension: 'attraction' | 'stability' | 'communication' | 'practicality'
+  positive_factor?: string
+  negative_factor?: string
+  positive_evidence_keys?: string[]
+  negative_evidence_keys?: string[]
+  summary: string
 }
 
 export interface CompatibilityFinding {
@@ -345,6 +363,7 @@ export interface CompatibilityReading {
   primary_question: CompatibilityPrimaryQuestion
   overall_level: 'high' | 'medium' | 'low'
   dimension_scores: CompatibilityDimensionScores
+  score_explanations: CompatibilityScoreExplanation[]
   duration_assessment: CompatibilityDurationAssessment
   consulting_assessment: CompatibilityConsultingAssessment
   summary_tags: string[]
@@ -505,6 +524,8 @@ export const baziAPI = {
     api.post(`/api/bazi/past-events/years/${chartId}`),
 
   // 思路 E：按大运分段流式 AI 总结
+  // dayunIndexes: 可选，仅生成列表中的段（用于"展开未来段"的单段触发）；
+  //               未传/空数组 → 后端按命主当前年龄自动选"已发生+当前段"
   streamDayunSummaries: async (
     chartId: string,
     onItem: (item: {
@@ -518,6 +539,7 @@ export const baziAPI = {
     }) => void,
     onError: (err: string) => void,
     onDone: () => void,
+    dayunIndexes?: number[],
   ) => {
     const token = localStorage.getItem('yj_token')
     const baseURL = import.meta.env.VITE_API_URL || ''
@@ -527,6 +549,9 @@ export const baziAPI = {
       const response = await fetch(`${baseURL}/api/bazi/past-events/dayun-summary-stream/${chartId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+        body: dayunIndexes && dayunIndexes.length > 0
+          ? JSON.stringify({ dayun_indexes: dayunIndexes })
+          : undefined,
       })
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
       const reader = response.body?.getReader()

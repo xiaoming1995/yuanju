@@ -2,52 +2,52 @@
 
 ### 1. Mapping function
 
-- [ ] 1.1 Add `BuildFavorableShishen(dayGan, yongshen, jishen string, strength string) (favorable, adverse []string, confidence string)` in `backend/pkg/bazi/yongshen.go`.
-- [ ] 1.2 Implement 古法 mapping per `design.md` Decision 1:
+- [x] 1.1 Add `BuildFavorableShishen(dayGan, yongshen, jishen string, strength string) (favorable, adverse []string, confidence string)` in `backend/pkg/bazi/yongshen.go`.
+- [x] 1.2 Implement 古法 mapping per `design.md` Decision 1:
       vstrong/strong → 喜 食神 伤官 偏财 正财 正官 七杀；忌 比肩 劫财 偏印 正印
       vweak/weak     → 喜 偏印 正印 比肩 劫财；忌 食神 伤官 偏财 正财 正官 七杀
       neutral        → both empty, confidence="soft"
-- [ ] 1.3 Compute confidence band:
+- [x] 1.3 Compute confidence band:
       vstrong/vweak → "hard"; strong/weak → "medium"; neutral → "soft".
 
 ### 2. Tests for mapping
 
-- [ ] 2.1 Add `backend/pkg/bazi/yongshen_test.go` test cases:
+- [x] 2.1 Add `backend/pkg/bazi/yongshen_test.go` test cases:
       one per (5 strength tiers × 1 representative day-master) = 5 cases minimum.
       Each verifies favorable list, adverse list, and confidence string.
-- [ ] 2.2 Edge case: 当 Yongshen/Jishen 五行字段为空时返回 empty lists + confidence="soft".
-- [ ] 2.3 Run `go test ./pkg/bazi/...` and confirm all pass.
+- [x] 2.2 Edge case: 当 Yongshen/Jishen 五行字段为空时返回 empty lists + confidence="soft".
+- [x] 2.3 Run `go test ./pkg/bazi/...` and confirm all pass.
 
 ### 3. Integrate into BaziResult
 
-- [ ] 3.1 Add three new JSON-tagged fields to `BaziResult` in `backend/pkg/bazi/engine.go`:
+- [x] 3.1 Add three new JSON-tagged fields to `BaziResult` in `backend/pkg/bazi/engine.go`:
       `FavorableShishen []string \`json:"favorable_shishen,omitempty"\``
       `AdverseShishen   []string \`json:"adverse_shishen,omitempty"\``
       `ShishenConfidence string  \`json:"shishen_confidence,omitempty"\``
-- [ ] 3.2 In `inferYongshenWithTiaohouPriority` callsite (or wherever Yongshen/Jishen are finalized), call `BuildFavorableShishen` and populate the new fields on the returned `BaziResult`.
-- [ ] 3.3 Run `go build ./...` and confirm no compile errors.
+- [x] 3.2 In `inferYongshenWithTiaohouPriority` callsite (or wherever Yongshen/Jishen are finalized), call `BuildFavorableShishen` and populate the new fields on the returned `BaziResult`.
+- [x] 3.3 Run `go build ./...` and confirm no compile errors.
 
 ### 4. Prompt injection
 
-- [ ] 4.1 Extend `model.DayunSummaryTemplateData` in `backend/internal/model/model.go` with three new fields matching `BaziResult` additions.
-- [ ] 4.2 Wire them in `GenerateDayunSummariesStream` (~line 1237 in `report_service.go`) when constructing `tplData`.
-- [ ] 4.3 Update the prompt template (around `report_service.go:1125`) to add the confidence-gated block per `design.md` Decision 3.
-- [ ] 4.4 Add an integration test in `backend/internal/service/` that renders the template with a fixture `BaziResult` and asserts the new lines appear in the prompt output.
+- [x] 4.1 Extend `model.DayunSummaryTemplateData` in `backend/internal/model/model.go` with three new fields matching `BaziResult` additions.
+- [x] 4.2 Wire them in `GenerateDayunSummariesStream` (~line 1237 in `report_service.go`) when constructing `tplData`.
+- [x] 4.3 Update the prompt template (around `report_service.go:1125`) to add the confidence-gated block per `design.md` Decision 3.
+- [x] 4.4 Add an integration test in `backend/internal/service/` that renders the template with a fixture `BaziResult` and asserts the new lines appear in the prompt output.
 
 ### 5. algorithm_version columns
 
-- [ ] 5.1 Add migration `backend/pkg/database/migrations/00006_add_algorithm_version_columns.sql`:
+- [x] 5.1 Add migration `backend/pkg/database/migrations/00006_add_algorithm_version_columns.sql`:
       `ALTER TABLE ai_dayun_summaries ADD COLUMN algorithm_version VARCHAR(32);`
       `ALTER TABLE ai_reports ADD COLUMN algorithm_version VARCHAR(32);`
-- [ ] 5.2 Update `UpsertDayunSummary` (in `dayun_summary_repository.go`) to write `'v2-yongshen-shishen'` for new rows.
-- [ ] 5.3 Update `ai_reports` insert path similarly (search for the report-cache upsert).
-- [ ] 5.4 Verify the migration runs cleanly via `docker-compose up -d backend` and `goose` startup log.
+- [x] 5.2 Update `UpsertDayunSummary` (in `dayun_summary_repository.go`) to write `'v2-yongshen-shishen'` for new rows.
+- [x] 5.3 Update `ai_reports` insert path similarly (search for the report-cache upsert).
+- [x] 5.4 Verify the migration runs cleanly via `docker-compose up -d backend` and `goose` startup log.
 
 ### 6. Regression sanity
 
-- [ ] 6.1 Generate a fresh past-events recap for one known chart and grep the backend prompt log for the new lines.
-- [ ] 6.2 Manually inspect 3 generated year narratives — confirm AI references 喜忌十神 when judging 财官印比 polarity.
-- [ ] 6.3 Confirm token usage logs show prompt size increased by < 50 tokens per call.
+- [x] 6.1 Generate a fresh past-events recap for one known chart and grep the backend prompt log for the new lines.
+- [x] 6.2 Manually inspect 3 generated year narratives — confirm AI references 喜忌十神 when judging 财官印比 polarity.
+- [x] 6.3 Confirm token usage logs show prompt size increased by < 50 tokens per call.
 
 ### 7. Observability + 2-week measurement
 

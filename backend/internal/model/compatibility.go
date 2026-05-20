@@ -44,6 +44,15 @@ type CompatibilityDurationAssessment struct {
 	Reasons     []string                     `json:"reasons"`
 }
 
+type CompatibilityScoreExplanation struct {
+	Dimension            string   `json:"dimension"`
+	PositiveFactor       string   `json:"positive_factor,omitempty"`
+	NegativeFactor       string   `json:"negative_factor,omitempty"`
+	PositiveEvidenceKeys []string `json:"positive_evidence_keys,omitempty"`
+	NegativeEvidenceKeys []string `json:"negative_evidence_keys,omitempty"`
+	Summary              string   `json:"summary"`
+}
+
 type CompatibilityFinding struct {
 	Text         string   `json:"text"`
 	EvidenceKeys []string `json:"evidence_keys"`
@@ -97,17 +106,21 @@ type CompatibilityConsultingAssessment struct {
 }
 
 type CompatibilityEvidence struct {
-	ID          string    `json:"id"`
-	ReadingID   string    `json:"reading_id"`
-	EvidenceKey string    `json:"evidence_key"`
-	Dimension   string    `json:"dimension"`
-	Type        string    `json:"type"`
-	Polarity    string    `json:"polarity"`
-	Source      string    `json:"source"`
-	Title       string    `json:"title"`
-	Detail      string    `json:"detail"`
-	Weight      int       `json:"weight"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID             string    `json:"id"`
+	ReadingID      string    `json:"reading_id"`
+	EvidenceKey    string    `json:"evidence_key"`
+	Dimension      string    `json:"dimension"`
+	Type           string    `json:"type"`
+	Polarity       string    `json:"polarity"`
+	Source         string    `json:"source"`
+	Perspective    string    `json:"perspective,omitempty"`
+	Actor          string    `json:"actor,omitempty"`
+	Target         string    `json:"target,omitempty"`
+	RelatedSources []string  `json:"related_sources,omitempty"`
+	Title          string    `json:"title"`
+	Detail         string    `json:"detail"`
+	Weight         int       `json:"weight"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type CompatibilityReading struct {
@@ -117,6 +130,7 @@ type CompatibilityReading struct {
 	PrimaryQuestion      string                            `json:"primary_question"`
 	OverallLevel         string                            `json:"overall_level"`
 	DimensionScores      CompatibilityDimensionScores      `json:"dimension_scores"`
+	ScoreExplanations    []CompatibilityScoreExplanation   `json:"score_explanations"`
 	DurationAssessment   CompatibilityDurationAssessment   `json:"duration_assessment"`
 	ConsultingAssessment CompatibilityConsultingAssessment `json:"consulting_assessment"`
 	SummaryTags          []string                          `json:"summary_tags"`
@@ -183,9 +197,11 @@ type CompatibilityPromptData struct {
 	SelfChartSummary       string
 	PartnerChartSummary    string
 	ScoresJSON             string
+	ScoreExplanationsJSON  string
 	DurationJSON           string
 	ConsultingJSON         string
 	EvidencesJSON          string
+	EvidenceGroupsJSON     string
 	SummaryTags            string
 }
 

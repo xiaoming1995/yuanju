@@ -55,6 +55,17 @@ export const adminStatsAPI = {
   clearChartCache: (chartId: string) => adminApi.delete(`/api/admin/reports/cache/${chartId}`),
 }
 
+export const adminUsersAPI = {
+  create: (data: { email: string; password: string; nickname?: string }) =>
+    adminApi.post('/api/admin/users', data),
+}
+
+export const adminRegistrationSettingsAPI = {
+  get: () => adminApi.get<{ registration_enabled: boolean }>('/api/admin/settings/registration'),
+  update: (data: { registration_enabled: boolean }) =>
+    adminApi.put<{ registration_enabled: boolean }>('/api/admin/settings/registration', data),
+}
+
 export const adminChartsAPI = {
   list: (page: number = 1, pageSize: number = 20) =>
     adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}`),

@@ -368,13 +368,13 @@ export default function PrintLayout({
 
           {/* 日主标识行 */}
           <div style={{ textAlign: 'center', margin: '4px 0 10px', fontSize: 12, color: midBrown }}>
-            <span style={{ color: midBrown, fontWeight: 700, marginRight: 8, letterSpacing: 2 }}>日　主</span>
+            <span style={{ color: midBrown, fontWeight: 700, marginRight: 8, letterSpacing: 2 }}>日 主</span>
             <span style={{
               display: 'inline-block', padding: '1px 8px', borderRadius: 2,
               border: `1px solid ${gold}`, color: darkBrown, background: '#fffaf0',
               fontWeight: 700, letterSpacing: 1,
             }}>
-              {tenGodRelation.day_master.gan}　{tenGodRelation.day_master.wuxing}
+              {tenGodRelation.day_master.gan} {tenGodRelation.day_master.wuxing}
             </span>
             <span style={{ marginLeft: 12, color: '#888', fontSize: 11 }}>
               命盘参照点，其它干支均以此推算

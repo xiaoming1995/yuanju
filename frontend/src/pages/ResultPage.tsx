@@ -2,7 +2,7 @@ import { useLocation, useParams, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { Diamond, X, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { baziAPI, brandAPI, fetchShenshaAnnotations } from '../lib/api'
+import { authAPI, baziAPI, brandAPI, fetchShenshaAnnotations } from '../lib/api'
 import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, ExportBrand } from '../lib/api'
 import { cleanReportText } from '../lib/reportText'
 import WuxingRadar from '../components/WuxingRadar'
@@ -347,6 +347,7 @@ export default function ResultPage() {
   const [result, setResult] = useState<BaziResult | null>(location.state?.result || null)
   const [report, setReport] = useState<AIReport | null>(location.state?.report || null)
   const [isGuest] = useState(location.state?.isGuest ?? !user)
+  const [registration_enabled, setRegistrationEnabled] = useState(false)
   const [loading, setLoading] = useState(!result && !!id)
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('detail')
   const [reportTab, setReportTab] = useState<'original' | 'polished'>('original')
@@ -376,6 +377,13 @@ export default function ResultPage() {
       })
       .catch(() => { /* 注解加载失败不影响主功能 */ })
   }, [])
+
+  useEffect(() => {
+    if (!isGuest) return
+    authAPI.registrationSettings()
+      .then(r => setRegistrationEnabled(r.data.registration_enabled))
+      .catch(() => setRegistrationEnabled(true))
+  }, [isGuest])
 
   // 加载用户导出品牌定制
   useEffect(() => {
@@ -1140,7 +1148,9 @@ export default function ResultPage() {
                   ) : (
                     <div className="guest-banner">
                       <span>登录后可获得完整解读报告，并保存命盘记录</span>
-                      <a href="/register" className="btn btn-primary btn-sm">立即注册</a>
+                      {registration_enabled
+                        ? <a href="/register" className="btn btn-primary btn-sm">立即注册</a>
+                        : <a href="/login" className="btn btn-primary btn-sm">登录账号</a>}
                     </div>
                   )}
                 </>
