@@ -465,6 +465,8 @@ export const baziAPI = {
     api.post(`/api/bazi/past-events/years/${chartId}`),
 
   // 思路 E：按大运分段流式 AI 总结
+  // dayunIndexes: 可选，仅生成列表中的段（用于"展开未来段"的单段触发）；
+  //               未传/空数组 → 后端按命主当前年龄自动选"已发生+当前段"
   streamDayunSummaries: async (
     chartId: string,
     onItem: (item: {
@@ -478,6 +480,7 @@ export const baziAPI = {
     }) => void,
     onError: (err: string) => void,
     onDone: () => void,
+    dayunIndexes?: number[],
   ) => {
     const token = localStorage.getItem('yj_token')
     const baseURL = import.meta.env.VITE_API_URL || ''
@@ -487,6 +490,9 @@ export const baziAPI = {
       const response = await fetch(`${baseURL}/api/bazi/past-events/dayun-summary-stream/${chartId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+        body: dayunIndexes && dayunIndexes.length > 0
+          ? JSON.stringify({ dayun_indexes: dayunIndexes })
+          : undefined,
       })
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
       const reader = response.body?.getReader()

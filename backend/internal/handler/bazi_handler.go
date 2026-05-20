@@ -382,6 +382,12 @@ func HandleDayunSummariesStream(c *gin.Context) {
 		return
 	}
 
+	// 可选 body：{"dayun_indexes": [N, ...]} — 空或缺失则 service 按 currentAge 自动取已发生+当前段
+	var body struct {
+		DayunIndexes []int `json:"dayun_indexes"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
 	userIDStr := userID.(string)
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -390,7 +396,7 @@ func HandleDayunSummariesStream(c *gin.Context) {
 	c.Header("X-Accel-Buffering", "no")
 	c.Writer.Flush()
 
-	err = service.GenerateDayunSummariesStream(chartID, &userIDStr, func(item service.DayunSummaryStreamItem) error {
+	err = service.GenerateDayunSummariesStream(chartID, &userIDStr, body.DayunIndexes, func(item service.DayunSummaryStreamItem) error {
 		bytes, _ := json.Marshal(item)
 		fmt.Fprintf(c.Writer, "event: dayun\ndata: %s\n\n", string(bytes))
 		c.Writer.Flush()
