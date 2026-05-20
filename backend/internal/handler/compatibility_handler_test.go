@@ -91,9 +91,30 @@ func TestCreateCompatibilityReading_MissingFields(t *testing.T) {
 	}
 }
 
+func TestCreateCompatibilityReadingRequest_DecodesRelationshipContext(t *testing.T) {
+	body := []byte(`{
+		"relationship_stage": "dating",
+		"primary_question": "marriage_suitability",
+		"self": {"year": 1990, "month": 1, "day": 1, "hour": 0, "gender": "male"},
+		"partner": {"year": 1992, "month": 6, "day": 15, "hour": 12, "gender": "female"}
+	}`)
+	var req CreateCompatibilityReadingRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.RelationshipStage != "dating" {
+		t.Fatalf("expected relationship stage to decode, got %q", req.RelationshipStage)
+	}
+	if req.PrimaryQuestion != "marriage_suitability" {
+		t.Fatalf("expected primary question to decode, got %q", req.PrimaryQuestion)
+	}
+}
+
 func TestCompatibilityDetailJSON_IncludesConsultingShape(t *testing.T) {
 	detail := model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
+			RelationshipStage: "reconciliation",
+			PrimaryQuestion:   "reconciliation_potential",
 			ConsultingAssessment: model.CompatibilityConsultingAssessment{
 				RelationshipDiagnosis: model.CompatibilityRelationshipDiagnosis{
 					RelationshipType: "短期吸引强、长期承压型",
@@ -118,5 +139,53 @@ func TestCompatibilityDetailJSON_IncludesConsultingShape(t *testing.T) {
 	}
 	if !strings.Contains(body, `"evidence_key"`) {
 		t.Fatalf("expected evidence key in json: %s", body)
+	}
+	if !strings.Contains(body, `"relationship_stage":"reconciliation"`) {
+		t.Fatalf("expected relationship stage in json: %s", body)
+	}
+	if !strings.Contains(body, `"primary_question":"reconciliation_potential"`) {
+		t.Fatalf("expected primary question in json: %s", body)
+	}
+}
+
+func TestCompatibilityHistoryItemJSON_IncludesRelationshipContext(t *testing.T) {
+	item := model.CompatibilityHistoryItem{
+		ID:                "reading-id",
+		RelationshipStage: "ambiguous",
+		PrimaryQuestion:   "continue_investment",
+		OverallLevel:      "medium",
+	}
+	raw, err := json.Marshal(item)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(raw)
+	if !strings.Contains(body, `"relationship_stage":"ambiguous"`) {
+		t.Fatalf("expected relationship stage in history json: %s", body)
+	}
+	if !strings.Contains(body, `"primary_question":"continue_investment"`) {
+		t.Fatalf("expected primary question in history json: %s", body)
+	}
+}
+
+func TestCompatibilityStructuredReportJSON_IncludesQuestionFocus(t *testing.T) {
+	report := model.CompatibilityStructuredReport{
+		QuestionFocus: model.CompatibilityQuestionFocus{
+			Title:              "复合判断",
+			Judgment:           "建议先验证原问题是否可修复。",
+			KeyChecks:          []string{"冲突后能否修复"},
+			BoundaryConditions: []string{"不要在规则未稳定前复合"},
+		},
+	}
+	raw, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(raw)
+	if !strings.Contains(body, `"question_focus"`) {
+		t.Fatalf("expected question focus in json: %s", body)
+	}
+	if !strings.Contains(body, `"boundary_conditions"`) {
+		t.Fatalf("expected boundary conditions in json: %s", body)
 	}
 }

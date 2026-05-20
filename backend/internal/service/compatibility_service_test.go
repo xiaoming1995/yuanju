@@ -125,6 +125,73 @@ func TestBuildCompatibilityPromptData_EmbedsConsultingAssessment(t *testing.T) {
 	}
 }
 
+func TestNormalizeCompatibilityContext_DefaultsAndFallbacks(t *testing.T) {
+	got := normalizeCompatibilityContext(model.CompatibilityContext{})
+	if got.RelationshipStage != "general" {
+		t.Fatalf("expected default relationship stage general, got %q", got.RelationshipStage)
+	}
+	if got.PrimaryQuestion != "general" {
+		t.Fatalf("expected default primary question general, got %q", got.PrimaryQuestion)
+	}
+
+	got = normalizeCompatibilityContext(model.CompatibilityContext{
+		RelationshipStage: "reconciliation",
+		PrimaryQuestion:   "marriage_suitability",
+	})
+	if got.RelationshipStage != "reconciliation" || got.PrimaryQuestion != "marriage_suitability" {
+		t.Fatalf("expected valid context to be preserved, got %+v", got)
+	}
+
+	got = normalizeCompatibilityContext(model.CompatibilityContext{
+		RelationshipStage: "unknown-stage",
+		PrimaryQuestion:   "unknown-question",
+	})
+	if got.RelationshipStage != "general" || got.PrimaryQuestion != "general" {
+		t.Fatalf("expected unknown context to fall back to general, got %+v", got)
+	}
+}
+
+func TestBuildCompatibilityPromptData_EmbedsRelationshipContext(t *testing.T) {
+	detail := &model.CompatibilityDetail{
+		Reading: &model.CompatibilityReading{
+			RelationshipStage: "reconciliation",
+			PrimaryQuestion:   "reconciliation_potential",
+			DimensionScores: model.CompatibilityDimensionScores{
+				Attraction:    78,
+				Stability:     54,
+				Communication: 66,
+				Practicality:  48,
+			},
+		},
+		Participants: []model.CompatibilityParticipant{
+			{
+				Role:          "self",
+				DisplayName:   "我",
+				ChartSnapshot: makeCompatibilitySnapshot("我", "male"),
+			},
+			{
+				Role:          "partner",
+				DisplayName:   "对方",
+				ChartSnapshot: makeCompatibilitySnapshot("对方", "female"),
+			},
+		},
+	}
+
+	got, err := buildCompatibilityPromptData(detail)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.RelationshipStage != "reconciliation" {
+		t.Fatalf("expected relationship stage in prompt data, got %q", got.RelationshipStage)
+	}
+	if got.PrimaryQuestion != "reconciliation_potential" {
+		t.Fatalf("expected primary question in prompt data, got %q", got.PrimaryQuestion)
+	}
+	if got.RelationshipStageLabel == "" || got.PrimaryQuestionLabel == "" || got.QuestionGuidance == "" {
+		t.Fatalf("expected context labels and guidance, got %+v", got)
+	}
+}
+
 func TestEnsureCompatibilityDurationAssessment_BackfillsMissingDuration(t *testing.T) {
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
@@ -298,9 +365,37 @@ func TestCompatibilityParticipantSummary_ValidSnapshot(t *testing.T) {
 
 func TestCompatibilityPromptFallback_ContainsTemplateVars(t *testing.T) {
 	fb := compatibilityPromptFallback()
-	for _, v := range []string{"{{.SelfLabel}}", "{{.PartnerLabel}}", "{{.ScoresJSON}}", "{{.DurationJSON}}", "{{.ConsultingJSON}}"} {
+	for _, v := range []string{
+		"{{.SelfLabel}}",
+		"{{.PartnerLabel}}",
+		"{{.RelationshipStageLabel}}",
+		"{{.PrimaryQuestionLabel}}",
+		"{{.QuestionGuidance}}",
+		"{{.ScoresJSON}}",
+		"{{.DurationJSON}}",
+		"{{.ConsultingJSON}}",
+	} {
 		if !strings.Contains(fb, v) {
 			t.Errorf("expected fallback prompt to contain %q", v)
+		}
+	}
+	if !strings.Contains(fb, `"question_focus"`) {
+		t.Errorf("expected fallback prompt to require question_focus output")
+	}
+}
+
+func TestCompatibilityPromptFallback_DefinesQuestionSpecificBranches(t *testing.T) {
+	fb := compatibilityPromptFallback()
+	for _, want := range []string{
+		"primary_question = reconciliation_potential",
+		"是否建议复合",
+		"primary_question = marriage_suitability",
+		"谈婚前必须确认",
+		"primary_question = continue_investment",
+		"是否继续投入",
+	} {
+		if !strings.Contains(fb, want) {
+			t.Fatalf("expected question-specific prompt branch %q", want)
 		}
 	}
 }

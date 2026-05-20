@@ -23,13 +23,11 @@ test('compatibility result css uses mobile score rows and bottom nav safe area',
   assert.match(css, /\.compatibility-quick-score-bar/)
   assert.match(css, /\.compatibility-quick-score-fill/)
   assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-professional-details\s*\{[^}]*margin-top:/s)
-  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-hero-card\s*\{[^}]*padding:\s*20px;/s)
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-decision-hero\s*\{[^}]*padding:\s*20px;/s)
 })
 
 test('compatibility result page defines consulting report sections', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
-  assert.match(page, /ConsultingOverview/)
-  assert.match(page, /DecisionAdvicePanel/)
   assert.match(page, /StageRiskGrid/)
   assert.match(page, /RelationshipStrategyPanel/)
   assert.match(page, /EvidenceLinkedClaims/)
@@ -37,6 +35,45 @@ test('compatibility result page defines consulting report sections', () => {
 
 test('compatibility result page exposes a single report generation action', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
-  const generateClicks = page.match(/onClick=\{handleGenerateReport\}/g) || []
+  const generateClicks = page.match(/onClick=\{onGenerateReport\}/g) || []
   assert.equal(generateClicks.length, 1)
+  assert.match(page, /onGenerateReport=\{handleGenerateReport\}/)
+})
+
+test('compatibility result page uses decision-first consulting hierarchy', () => {
+  const page = read('src/pages/CompatibilityResultPage.tsx')
+  assert.match(page, /DecisionHeroPanel/)
+  assert.match(page, /relationshipStageText/)
+  assert.match(page, /primaryQuestionText/)
+  assert.match(page, /关系背景/)
+  assert.match(page, /核心矛盾/)
+  assert.match(page, /下一步/)
+  assert.doesNotMatch(page, /compatibility-hero-card/)
+  const decisionIndex = page.indexOf('<DecisionHeroPanel')
+  const stageRiskIndex = page.indexOf('<StageRiskGrid')
+  const scoreIndex = page.indexOf('<ScoreOverview')
+  const evidenceIndex = page.indexOf('<EvidenceLinkedClaims')
+  assert.ok(decisionIndex > -1, 'decision hero should render')
+  assert.ok(stageRiskIndex > decisionIndex, 'stage risks should render after decision hero')
+  assert.ok(scoreIndex > stageRiskIndex, 'scores should render after stage risks')
+  assert.ok(evidenceIndex > scoreIndex, 'professional evidence should render after scores')
+  assert.match(page, /onGenerateReport=\{handleGenerateReport\}/)
+  assert.match(page, /hasReport=\{Boolean\(detail\.latest_report\)\}/)
+})
+
+test('compatibility result page explains scores and stages as user questions', () => {
+  const page = read('src/pages/CompatibilityResultPage.tsx')
+  assert.match(page, /会不会互相吸引/)
+  assert.match(page, /能不能长期稳定/)
+  assert.match(page, /吵架后能不能修复/)
+  assert.match(page, /现实条件能不能落地/)
+  assert.match(page, /阶段任务/)
+  assert.match(page, /风险触发/)
+})
+
+test('compatibility result page renders question-aware report focus', () => {
+  const page = read('src/pages/CompatibilityResultPage.tsx')
+  assert.match(page, /QuestionFocusPanel/)
+  assert.match(page, /question_focus/)
+  assert.match(page, /boundary_conditions/)
 })

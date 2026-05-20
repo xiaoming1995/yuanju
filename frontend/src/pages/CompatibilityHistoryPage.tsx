@@ -11,6 +11,26 @@ const levelText: Record<string, string> = {
   low: '磨合成本偏高',
 }
 
+const relationshipStageText: Record<string, string> = {
+  ambiguous: '暧昧中',
+  dating: '恋爱中',
+  long_distance: '异地中',
+  reconciliation: '分手/复合中',
+  marriage_or_engagement: '谈婚论嫁',
+  crush: '单恋/暗恋',
+  general: '综合关系判断',
+}
+
+const primaryQuestionText: Record<string, string> = {
+  continue_investment: '值不值得继续投入',
+  marriage_suitability: '适不适合结婚',
+  recurring_conflict: '为什么反复拉扯',
+  reconciliation_potential: '复合有没有意义',
+  long_term_stability: '长期能不能稳定',
+  relationship_strategy: '怎么相处更顺',
+  general: '综合关系判断',
+}
+
 export default function CompatibilityHistoryPage() {
   const { user, isLoading } = useAuth()
   const navigate = useNavigate()
@@ -82,6 +102,11 @@ export default function CompatibilityHistoryPage() {
                     <div className="compatibility-history-level">{levelText[item.overall_level] || item.overall_level}</div>
                   </div>
                   <span className="compatibility-history-action">查看合盘</span>
+                </div>
+                <div className="compatibility-history-context-title">关系背景</div>
+                <div className="compatibility-history-context">
+                  <span>{relationshipStageText[item.relationship_stage] || relationshipStageText.general}</span>
+                  <span>{primaryQuestionText[item.primary_question] || primaryQuestionText.general}</span>
                 </div>
                 <div className="compatibility-history-tags">
                   {item.summary_tags.length > 0 ? item.summary_tags.map(tag => (
