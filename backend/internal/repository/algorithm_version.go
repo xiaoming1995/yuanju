@@ -9,4 +9,6 @@ package repository
 //   v1            (NULL) — pre-yongshen-realignment baseline
 //   v2-yongshen-shishen   — 喜忌十神 prompt 注入 + algorithm_version 列建立
 //   v3-progressive-compressed — lazy-load dayun_indexes 过滤 + YearsData prompt 压缩
-const CurrentAlgorithmVersion = "v3-progressive-compressed"
+//   v3.1-narrative-guarded — AI 空 narrative / validator 清空走 template 兜底，
+//                            prompt 追加弱信号年安全措辞指引
+const CurrentAlgorithmVersion = "v3.1-narrative-guarded"
