@@ -18,6 +18,7 @@ test('compatibility decision helper exposes required derivation API', () => {
   assert.match(source, /recommendationLabelMap/)
   assert.match(source, /confidenceLabelMap/)
   assert.match(source, /verdictFromOverallLevel/)
+  assert.match(source, /export function hasLinkedEvidence/)
   assert.match(source, /maxRisk/)
   assert.match(source, /nextAction/)
 })
