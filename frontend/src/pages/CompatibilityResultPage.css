@@ -409,6 +409,10 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
+.compatibility-decision-metric--wide {
+  grid-column: span 1;
+}
+
 .compatibility-decision-metric span,
 .compatibility-next-action span,
 .compatibility-avoid-list > span {
@@ -462,6 +466,7 @@
 }
 
 .compatibility-core-contradiction {
+  margin-top: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.04);
   border-radius: 8px;
