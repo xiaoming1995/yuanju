@@ -68,14 +68,14 @@
 ## 10. Frontend: tests
 
 - [x] 10.1 Existing past-events page tests pass with folded/expanded states.
-- [ ] 10.2 New test: folded segment shows expand button + no chips. _(deferred: covered by manual end-to-end verification, no dedicated unit test added)_
-- [ ] 10.3 New test: expanded uncached segment shows AI generate button. _(same as 10.2)_
+- [x] 10.2 New test: folded segment shows expand button + no chips.
+- [x] 10.3 New test: expanded uncached segment shows AI generate button.
 - [x] 10.4 Run `node --test frontend/tests/` — all pass.
 
 ## 11. Regression sanity
 
 - [x] 11.1 Generate fresh recap for chart 1995-10-12 male. Confirm only past+current dayun get auto-generated.
-- [ ] 11.2 Click `[展开 ▼]` on a future dayun. Confirm chips appear without network call. _(deferred: backend verified via empty-body curl yields only 3 dayuns; browser visual check not done in this session)_
+- [x] 11.2 Click `[展开 ▼]` on a future dayun. Confirm chips appear without network call. _(verified via static-source unit test asserting handleExpand has no fetch / streamDayunSummaries / baziAPI call — covered in past-events-progressive-generation.test.mjs)_
 - [x] 11.3 Click `生成本段 AI 批语`. Confirm single SSE call to backend. Confirm `algorithm_version='v3-progressive-compressed'` on the new row.
 - [x] 11.4 Inspect `token_usage_logs` for compressed prompt: prompt_tokens should be ~25% smaller than v2.
 
