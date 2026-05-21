@@ -1197,8 +1197,20 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 		return err
 	}
 
-	// 用神信息 / 身强弱明细 / 大运合化 标签缓存
-	yongshenInfo := formatYongshenInfo(result)
+	// 经典命理用神：寒热→扶抑→透干优先，仅覆盖本路径下游 collect* 读取的 natal.Yongshen/Jishen
+	// 不写回 DB、不影响 yongshen.go 原算法、不影响其他 AI 报告路径
+	classical := bazi.ComputeClassicalYongshen(result)
+	localResult := *result
+	localResult.Yongshen = classical.WuxingSet
+	localResult.Jishen = classical.JishenSet
+	localResult.FavorableShishen = nil
+	localResult.AdverseShishen = nil
+	localResult.ShishenConfidence = ""
+	result = &localResult
+	log.Printf("[GenerateDayunSummariesStream] chart=%s 本地用神=%s 忌神=%s primary=%s strategy=%s",
+		chartID, classical.WuxingSet, classical.JishenSet, classical.PrimaryGan, classical.Strategy)
+
+	// 身强弱明细 / 大运合化 标签缓存（用神信息按公式 Q1=A 不喂 AI）
 	strengthLevel, strengthScore, strengthDtl := bazi.GetStrengthDetail(result)
 	levelMap := map[string]string{"vstrong": "极强", "strong": "强", "neutral": "中和", "weak": "弱", "vweak": "极弱"}
 	strengthDetail := fmt.Sprintf("%s(评分%d): %s", levelMap[strengthLevel], strengthScore, strengthDtl)
@@ -1223,11 +1235,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 
 命主：性别{{.Gender}} / 日干{{.DayGan}}
 原局：{{.NatalSummary}}
-{{if .YongshenInfo}}用忌神：{{.YongshenInfo}}{{end}}
 {{if .StrengthDetail}}身强弱：{{.StrengthDetail}}{{end}}
-{{if eq .ShishenConfidence "hard"}}本命喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；本命忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（强势二元判定，请以此为流年吉凶主轴）
-{{else if eq .ShishenConfidence "medium"}}本命偏向喜十神：{{range $i, $s := .FavorableShishen}}{{if $i}}、{{end}}{{$s}}{{end}}；偏忌十神：{{range $i, $s := .AdverseShishen}}{{if $i}}、{{end}}{{$s}}{{end}}（中等强度，调候/格局可微调）
-{{else if eq .ShishenConfidence "soft"}}本命喜忌不显（身强弱中和），{{if .TiaohouSummary}}以调候用神 {{.TiaohouSummary}} 为主{{else}}以调候为主{{end}}，AI 自行从年度 evidence 判断{{end}}
 
 当前大运：{{.DayunInfo}}
 {{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
@@ -1364,20 +1372,17 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 		}
 		lifeStageHint := buildLifeStageHint(youngCount, totalCount)
 
+		// 按 Q1=A 决策：不传 YongshenInfo / FavorableShishen / AdverseShishen / ShishenConfidence / TiaohouSummary
+		// AI 仅看身强弱 + 大运信息 + 算法信号 evidence，自行判吉凶
 		tplData := model.DayunSummaryTemplateData{
-			Gender:            genderLabel,
-			DayGan:            result.DayGan,
-			NatalSummary:      natalSummary,
-			YongshenInfo:      yongshenInfo,
-			StrengthDetail:    strengthDetail,
-			DayunInfo:         dayunInfo,
-			HuaheTag:          huaheMap[gz],
-			YearsData:         string(dySigsJSON),
-			LifeStageHint:     lifeStageHint,
-			FavorableShishen:  result.FavorableShishen,
-			AdverseShishen:    result.AdverseShishen,
-			ShishenConfidence: result.ShishenConfidence,
-			TiaohouSummary:    formatTiaohouSummary(result),
+			Gender:         genderLabel,
+			DayGan:         result.DayGan,
+			NatalSummary:   natalSummary,
+			StrengthDetail: strengthDetail,
+			DayunInfo:      dayunInfo,
+			HuaheTag:       huaheMap[gz],
+			YearsData:      string(dySigsJSON),
+			LifeStageHint:  lifeStageHint,
 		}
 		var pbuf bytes.Buffer
 		if err := tmpl.Execute(&pbuf, tplData); err != nil {
