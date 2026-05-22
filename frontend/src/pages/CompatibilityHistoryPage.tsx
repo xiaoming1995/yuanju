@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Compass, HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { compatibilityAPI, type CompatibilityHistoryItem } from '../lib/api'
+import { getPersonalityMatchType } from '../lib/compatibilityPersonality'
 import './CompatibilityHistoryPage.css'
 
 const levelText: Record<string, string> = {
@@ -29,6 +30,11 @@ const primaryQuestionText: Record<string, string> = {
   long_term_stability: '长期能不能稳定',
   relationship_strategy: '怎么相处更顺',
   general: '综合关系判断',
+}
+
+function getHistoryContinuationLabel(item: CompatibilityHistoryItem) {
+  if (item.primary_question === 'relationship_strategy') return '继续看性格合盘'
+  return '查看合盘 · 查看性格合盘'
 }
 
 export default function CompatibilityHistoryPage() {
@@ -103,6 +109,10 @@ export default function CompatibilityHistoryPage() {
                   </div>
                   <span className="compatibility-history-action">查看合盘</span>
                 </div>
+                <div className="compatibility-history-personality">
+                  <span>性格匹配</span>
+                  <strong>{getPersonalityMatchType(item.dimension_scores, item.primary_question, item.relationship_stage)}</strong>
+                </div>
                 <div className="compatibility-history-context-title">关系背景</div>
                 <div className="compatibility-history-context">
                   <span>{relationshipStageText[item.relationship_stage] || relationshipStageText.general}</span>
@@ -113,11 +123,14 @@ export default function CompatibilityHistoryPage() {
                     <span key={tag}>{tag}</span>
                   )) : <span>{levelText[item.overall_level] || item.overall_level}</span>}
                 </div>
-                <div className="compatibility-score-list">
-                  <span>吸引力 {item.dimension_scores.attraction}</span>
-                  <span>稳定度 {item.dimension_scores.stability}</span>
-                  <span>沟通协同 {item.dimension_scores.communication}</span>
-                  <span>现实磨合 {item.dimension_scores.practicality}</span>
+                <div className="compatibility-history-score-summary">
+                  <span>分数参考</span>
+                  <strong>
+                    吸引 {item.dimension_scores.attraction} · 稳定 {item.dimension_scores.stability} · 沟通 {item.dimension_scores.communication} · 现实 {item.dimension_scores.practicality}
+                  </strong>
+                </div>
+                <div className="compatibility-history-continuation">
+                  <span>{getHistoryContinuationLabel(item)}</span>
                 </div>
               </Link>
             ))}

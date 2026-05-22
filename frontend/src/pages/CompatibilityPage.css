@@ -45,13 +45,50 @@
 
 .compatibility-context-card {
   padding: 20px;
-  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.compatibility-personality-consultation {
+  border-color: rgba(201, 168, 76, 0.24);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0.03) 58%),
+    rgba(18, 23, 36, 0.92);
 }
 
 .compatibility-context-heading {
   color: var(--wu-jin);
   font-size: 13px;
   margin-bottom: 12px;
+}
+
+.compatibility-step-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.compatibility-step-item {
+  min-width: 0;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.compatibility-step-item span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.compatibility-step-item strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .compatibility-context-group + .compatibility-context-group {
@@ -85,6 +122,42 @@
   border-color: rgba(201, 168, 76, 0.5);
   background: rgba(201, 168, 76, 0.12);
   color: var(--primary);
+}
+
+.compatibility-personality-preview {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.compatibility-personality-preview-title {
+  color: var(--wu-jin);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.compatibility-personality-preview p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.compatibility-personality-preview-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.compatibility-personality-preview-list span {
+  padding: 5px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
 }
 
 .compatibility-error {
@@ -126,7 +199,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    margin-bottom: 12px;
+    margin: 12px 0;
   }
 
   .compatibility-mobile-tab {
@@ -155,12 +228,45 @@
 
   .compatibility-context-card {
     padding: 16px;
-    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+
+  .compatibility-step-progress {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .compatibility-step-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 12px;
+  }
+
+  .compatibility-step-item span {
+    margin-bottom: 0;
+    flex: 0 0 auto;
+  }
+
+  .compatibility-step-item strong {
+    text-align: right;
+    font-size: 13px;
   }
 
   .compatibility-context-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .compatibility-personality-preview {
+    padding: 14px;
+  }
+
+  .compatibility-personality-preview-list {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .compatibility-actions {

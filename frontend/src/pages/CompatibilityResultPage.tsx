@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -14,6 +14,7 @@ import {
   type CompatibilityQuestionFocus,
   type CompatibilityRelationshipStrategy,
   type CompatibilityStageRisk,
+  type CompatibilityStructuredReport,
 } from '../lib/api'
 import {
   buildDecisionDashboardData,
@@ -22,6 +23,13 @@ import {
   type DecisionDashboardData,
   type DecisionFinding,
 } from '../lib/compatibilityDecision'
+import {
+  buildPersonalityFitSummary,
+  buildPersonalityValidationPlan,
+  type PersonalityFitSummary,
+  type PersonalityPoint,
+  type PersonalityValidationPlan,
+} from '../lib/compatibilityPersonality'
 import './CompatibilityResultPage.css'
 
 const dimensionText: Record<string, string> = {
@@ -325,17 +333,11 @@ function DecisionDashboardPanel({
   partnerName,
   reading,
   dashboard,
-  hasReport,
-  reportLoading,
-  onGenerateReport,
 }: {
   selfName: string
   partnerName: string
   reading: CompatibilityDetail['reading']
   dashboard: DecisionDashboardData
-  hasReport: boolean
-  reportLoading: boolean
-  onGenerateReport: () => void
 }) {
   const stageLabel = relationshipStageText[reading.relationship_stage] || relationshipStageText.general
   const questionLabel = primaryQuestionText[reading.primary_question] || primaryQuestionText.general
@@ -389,14 +391,6 @@ function DecisionDashboardPanel({
         <span>核心矛盾</span>
         <p>{dashboard.summary}</p>
       </div>
-
-      {!hasReport && (
-        <div className="compatibility-decision-report-action">
-          <button className="btn btn-primary" onClick={onGenerateReport} disabled={reportLoading}>
-            {reportLoading ? '生成中' : '生成深度解读'}
-          </button>
-        </div>
-      )}
     </section>
   )
 }
@@ -441,6 +435,116 @@ function DecisionEvidenceSummary({
             )}
           </div>
         ))}
+      </div>
+    </section>
+  )
+}
+
+function ResultReadingMap() {
+  const items = [
+    { href: '#compatibility-personality-fit', label: '性格合不合' },
+    { href: '#compatibility-conflict-validation', label: '冲突/验证' },
+    { href: '#compatibility-score-evidence', label: '分数依据' },
+    { href: '#compatibility-professional-details', label: '专业细节' },
+  ]
+
+  return (
+    <nav className="compatibility-result-map" aria-label="合盘结果阅读顺序">
+      {items.map(item => (
+        <a key={item.href} href={item.href}>{item.label}</a>
+      ))}
+    </nav>
+  )
+}
+
+function PersonalityPointList({ title, points }: { title: string; points: PersonalityPoint[] }) {
+  return (
+    <div className="compatibility-personality-list">
+      <div className="compatibility-personality-list-title">{title}</div>
+      {points.map(point => (
+        <div key={`${title}-${point.title}-${point.evidenceKey || point.dimension || point.detail}`} className="compatibility-personality-point">
+          <strong>{point.title}</strong>
+          <p>{point.detail}</p>
+          {point.evidenceKey && <a href="#compatibility-claim-evidence">查看性格依据</a>}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PersonalityFitPanel({ summary }: { summary: PersonalityFitSummary }) {
+  return (
+    <section id="compatibility-personality-fit" className="card compatibility-personality-fit compatibility-personality-fit--polished">
+      <div className="compatibility-section-header compatibility-section-header--stacked">
+        <div className="compatibility-consulting-kicker">性格相处画像</div>
+        <h2 className="serif compatibility-section-title">{summary.headline}</h2>
+        <p className="compatibility-personality-type-desc">{summary.matchTypeDescription}</p>
+        <p className="compatibility-section-desc">
+          当前问题：{summary.questionLabel} · 关系阶段：{summary.stageLabel}
+        </p>
+      </div>
+
+      <p className="compatibility-personality-summary">{summary.summary}</p>
+
+      <div className="compatibility-personality-pattern-grid">
+        <div className="compatibility-personality-pattern">
+          <span>{summary.selfPattern.title}</span>
+          <p>{summary.selfPattern.detail}</p>
+        </div>
+        <div className="compatibility-personality-pattern">
+          <span>{summary.partnerPattern.title}</span>
+          <p>{summary.partnerPattern.detail}</p>
+        </div>
+      </div>
+
+      <div className="compatibility-personality-grid">
+        <PersonalityPointList title="自然合的地方" points={summary.fitPoints} />
+        <PersonalityPointList title="容易冲突的地方" points={summary.clashPoints} />
+        <PersonalityPointList title="沟通建议" points={summary.communicationGuidance} />
+      </div>
+
+      <div className="compatibility-personality-note">
+        <span>{summary.reportNote}</span>
+        {summary.evidenceTargets.length > 0 && <a href="#compatibility-claim-evidence">查看性格判断依据</a>}
+      </div>
+    </section>
+  )
+}
+
+function PersonalityValidationPlanPanel({
+  plan,
+  children,
+}: {
+  plan: PersonalityValidationPlan
+  children: ReactNode
+}) {
+  const groups: Array<{ title: string; items: string[]; anchor?: string }> = [
+    plan.shortTerm,
+    plan.mediumTerm,
+    plan.avoid,
+  ]
+
+  return (
+    <section id="compatibility-conflict-validation" className="compatibility-section compatibility-validation-plan" aria-label="7 天观察与30 天验证">
+      <div className="compatibility-section-header">
+        <div>
+          <h2 className="serif compatibility-section-title">性格验证计划</h2>
+          <p className="compatibility-section-desc">用短期观察确认性格判断，不把一时吸引直接当成结论。</p>
+        </div>
+      </div>
+      <div className="compatibility-validation-plan-grid">
+        {groups.map(group => (
+          <div key={group.title} className="card compatibility-validation-plan-card">
+            <div className="compatibility-validation-plan-title">{group.title}</div>
+            {group.items.map(item => <p key={item}>{item}</p>)}
+            {group.anchor && <a href={group.anchor}>查看阶段验证</a>}
+          </div>
+        ))}
+      </div>
+      <p className="compatibility-validation-plan-note">{plan.supportNote}</p>
+      <div className="compatibility-validation-detail">
+        <div className="compatibility-validation-detail-heading">阶段风险明细</div>
+        {children}
       </div>
     </section>
   )
@@ -513,15 +617,20 @@ function EvidenceLinkedClaims({
   evidences: CompatibilityEvidence[]
 }) {
   const byKey = new Map(evidences.map(evidence => [evidence.evidence_key || evidence.id, evidence]))
+  const previewText = (text: string) => text.length > 72 ? `${text.slice(0, 72)}...` : text
 
   return (
     <div className="compatibility-claim-list">
-      {links.map(link => (
-        <details key={link.claim_id || link.claim} className="card compatibility-claim-card">
+      {links.map((link, index) => (
+        <details key={link.claim_id || link.claim} className="card compatibility-claim-card" open={index === 0}>
           <summary>
             <span className="serif">{link.claim}</span>
-            <span>查看依据</span>
+            <span className="compatibility-claim-toggle">
+              <span className="compatibility-claim-toggle-open">收起依据</span>
+              <span className="compatibility-claim-toggle-closed">查看完整依据</span>
+            </span>
           </summary>
+          <div className="compatibility-claim-preview">{previewText(link.reasoning)}</div>
           <p>{link.reasoning}</p>
           {link.caveat && <p className="compatibility-claim-caveat">{link.caveat}</p>}
           <div className="compatibility-claim-evidence">
@@ -532,6 +641,92 @@ function EvidenceLinkedClaims({
           </div>
         </details>
       ))}
+    </div>
+  )
+}
+
+function DeepReportPanel({
+  hasReport,
+  structuredReport,
+  reportDimensions,
+  reportRisks,
+  rawContent,
+  error,
+  reportLoading,
+  onGenerateReport,
+}: {
+  structuredReport?: CompatibilityStructuredReport | null
+  reportDimensions: CompatibilityStructuredReport['dimensions']
+  reportRisks: string[]
+  rawContent?: string
+  error: string
+  reportLoading: boolean
+  onGenerateReport: () => void
+  hasReport: boolean
+}) {
+  const reportStateClass = hasReport ? 'compatibility-ai-card--generated' : 'compatibility-ai-card--empty'
+
+  return (
+    <div className={reportStateClass}>
+      <div className="compatibility-ai-header">
+        <div>
+          <div className="compatibility-consulting-kicker">可选扩展</div>
+          <h2 className="serif compatibility-section-title">深度解读</h2>
+        </div>
+        {!hasReport && (
+          <button className="btn btn-primary compatibility-report-action" onClick={onGenerateReport} disabled={reportLoading}>
+            {reportLoading ? '生成中' : '生成深度解读'}
+          </button>
+        )}
+      </div>
+
+      {error && (
+        <div className="compatibility-report-state compatibility-report-state--error">
+          {error}
+        </div>
+      )}
+
+      {reportLoading && (
+        <div className="compatibility-report-state">
+          正在生成 AI 深度解读，请稍候。
+        </div>
+      )}
+
+      {structuredReport ? (
+        <div className="compatibility-report-content">
+          <QuestionFocusPanel focus={structuredReport.question_focus} />
+          <p className="compatibility-report-summary">{structuredReport.summary}</p>
+          {reportDimensions.map(item => (
+            <div key={item.key} className="compatibility-report-section">
+              <div className="serif compatibility-report-title">{item.title}</div>
+              <div className="compatibility-report-text">{item.content}</div>
+            </div>
+          ))}
+          {reportRisks.length > 0 && (
+            <div className="compatibility-report-section">
+              <div className="serif compatibility-report-title">风险点</div>
+              <ul className="compatibility-report-list">
+                {reportRisks.map(risk => <li key={risk}>{risk}</li>)}
+              </ul>
+            </div>
+          )}
+          <div className="compatibility-report-section">
+            <div className="serif compatibility-report-title">建议</div>
+            <div className="compatibility-report-text">{structuredReport.advice}</div>
+          </div>
+        </div>
+      ) : rawContent ? (
+        <div className="compatibility-report-raw">{rawContent}</div>
+      ) : (
+        <div className="compatibility-report-empty">
+          <p>当前合盘结果已包含性格画像、冲突验证和关键依据。AI 深度解读会补充更完整的关系叙事、风险解释和相处建议。</p>
+          <div className="compatibility-report-empty-grid">
+            <span>关系叙事</span>
+            <span>冲突解释</span>
+            <span>相处建议</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -670,6 +865,29 @@ export default function CompatibilityResultPage() {
     evidences: detail.evidences,
     overallLevel: reading.overall_level,
   })
+  const personalitySummary = buildPersonalityFitSummary({
+    scores: reading.dimension_scores,
+    evidences: detail.evidences,
+    relationshipDiagnosis: consulting.relationship_diagnosis,
+    relationshipStage: reading.relationship_stage,
+    primaryQuestion: reading.primary_question,
+    self: {
+      name: selfP?.display_name,
+      dayGan: selfP?.chart_snapshot?.day_gan,
+    },
+    partner: {
+      name: partnerP?.display_name,
+      dayGan: partnerP?.chart_snapshot?.day_gan,
+    },
+    hasReport: Boolean(detail.latest_report),
+  })
+  const personalityValidationPlan = buildPersonalityValidationPlan({
+    personality: personalitySummary,
+    advice: consulting.decision_advice,
+    stageRisks: consulting.stage_risks,
+    duration: durationAssessment,
+    hasEvidence: detail.evidences.length > 0 || consulting.claim_evidence_links.length > 0,
+  })
 
   return (
     <div className="page compatibility-result-page">
@@ -679,83 +897,63 @@ export default function CompatibilityResultPage() {
           dashboard={decisionDashboard}
           selfName={selfP?.display_name || '我'}
           partnerName={partnerP?.display_name || '对方'}
-          hasReport={Boolean(detail.latest_report)}
-          reportLoading={reportLoading}
-          onGenerateReport={handleGenerateReport}
         />
+
+        <ResultReadingMap />
 
         <DecisionEvidenceSummary
           findings={decisionDashboard.findings}
           links={consulting.claim_evidence_links}
         />
 
-        <div className="compatibility-section">
-          <div className="compatibility-section-header">
-            <h2 className="serif compatibility-section-title">接下来要验证什么</h2>
-            <p className="compatibility-section-desc">按关系推进阶段看风险、触发点和验证动作。</p>
-          </div>
+        <PersonalityFitPanel summary={personalitySummary} />
+
+        <PersonalityValidationPlanPanel plan={personalityValidationPlan}>
           <StageRiskGrid risks={decisionStageRisks} />
           <DurationTaskSummary assessment={durationAssessment} />
-        </div>
+        </PersonalityValidationPlanPanel>
 
         {consulting.relationship_strategy && (
           <RelationshipStrategyPanel strategy={consulting.relationship_strategy} />
         )}
 
-        <ScoreOverview scores={reading.dimension_scores} />
+        <div id="compatibility-score-evidence" className="compatibility-section-anchor">
+          <ScoreOverview scores={reading.dimension_scores} />
 
-        {consulting.claim_evidence_links.length > 0 && (
-          <div id="compatibility-claim-evidence" className="compatibility-section">
-            <div className="compatibility-section-header">
-              <h2 className="serif compatibility-section-title">关键判断依据</h2>
-              <p className="compatibility-section-desc">每条咨询判断都可以回看对应命理证据。</p>
-            </div>
-            <EvidenceLinkedClaims links={consulting.claim_evidence_links} evidences={detail.evidences} />
-          </div>
-        )}
-
-        <div className="card compatibility-ai-card">
-          <div className="compatibility-ai-header">
-            <h2 className="serif compatibility-section-title">深度解读</h2>
-          </div>
-
-          {error && <p style={{ color: '#e77' }}>{error}</p>}
-
-          {structuredReport ? (
-            <div className="compatibility-report-content">
-              <QuestionFocusPanel focus={structuredReport.question_focus} />
-              <p className="compatibility-report-summary">{structuredReport.summary}</p>
-              {reportDimensions.map(item => (
-                <div key={item.key} className="compatibility-report-section">
-                  <div className="serif compatibility-report-title">{item.title}</div>
-                  <div className="compatibility-report-text">{item.content}</div>
-                </div>
-              ))}
-              {reportRisks.length > 0 && (
-                <div className="compatibility-report-section">
-                  <div className="serif compatibility-report-title">风险点</div>
-                  <ul className="compatibility-report-list">
-                    {reportRisks.map(risk => <li key={risk}>{risk}</li>)}
-                  </ul>
-                </div>
-              )}
-              <div className="compatibility-report-section">
-                <div className="serif compatibility-report-title">建议</div>
-                <div className="compatibility-report-text">{structuredReport.advice}</div>
+          {consulting.claim_evidence_links.length > 0 && (
+            <div id="compatibility-claim-evidence" className="compatibility-section">
+              <div className="compatibility-section-header">
+                <h2 className="serif compatibility-section-title">关键判断依据</h2>
+                <p className="compatibility-section-desc">每条咨询判断都可以回看对应命理证据。</p>
               </div>
+              <EvidenceLinkedClaims links={consulting.claim_evidence_links} evidences={detail.evidences} />
             </div>
-          ) : detail.latest_report ? (
-            <div className="compatibility-report-raw">{detail.latest_report.content}</div>
-          ) : (
-            <p className="compatibility-report-empty">尚未生成深度解读。</p>
           )}
         </div>
 
-        <details className="compatibility-professional-details">
+        <div className="card compatibility-ai-card">
+          <DeepReportPanel
+            hasReport={Boolean(detail.latest_report)}
+            structuredReport={structuredReport}
+            reportDimensions={reportDimensions}
+            reportRisks={reportRisks}
+            rawContent={detail.latest_report?.content}
+            error={error}
+            reportLoading={reportLoading}
+            onGenerateReport={handleGenerateReport}
+          />
+        </div>
+
+        <details className="compatibility-professional-details" id="compatibility-professional-details" open>
           <summary className="compatibility-professional-summary">
             <span className="serif">专业命盘细节</span>
             <span>四柱、五行与结构化依据</span>
           </summary>
+          <div className="compatibility-professional-summary-grid">
+            <span>双方四柱</span>
+            <span>五行摘要</span>
+            <span>结构化依据</span>
+          </div>
           <div className="compatibility-professional-body">
             <div className="compatibility-section">
               <div className="compatibility-section-header">

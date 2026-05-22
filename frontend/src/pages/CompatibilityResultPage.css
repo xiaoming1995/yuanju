@@ -29,6 +29,10 @@
   margin-bottom: 20px;
 }
 
+.compatibility-section-anchor {
+  margin-bottom: 20px;
+}
+
 .compatibility-section-header {
   display: flex;
   justify-content: space-between;
@@ -323,6 +327,175 @@
 .compatibility-strategy-card {
   padding: 24px;
   margin-bottom: 20px;
+}
+
+.compatibility-result-map {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: -6px 0 20px;
+}
+
+.compatibility-result-map a {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-secondary);
+  text-align: center;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.compatibility-result-map a:hover {
+  border-color: rgba(201, 168, 76, 0.36);
+  color: var(--wu-jin);
+}
+
+.compatibility-personality-fit {
+  padding: 24px;
+  margin-bottom: 20px;
+  border-color: rgba(201, 168, 76, 0.24);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0.035) 46%),
+    rgba(18, 23, 36, 0.92);
+}
+
+.compatibility-personality-fit--polished {
+  scroll-margin-top: 20px;
+}
+
+.compatibility-personality-type-desc {
+  margin: 8px 0 0;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.compatibility-personality-summary {
+  margin: 0 0 16px;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.compatibility-personality-pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.compatibility-personality-pattern {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.compatibility-personality-pattern span,
+.compatibility-personality-list-title,
+.compatibility-validation-plan-title {
+  color: var(--wu-jin);
+  font-size: 13px;
+}
+
+.compatibility-personality-pattern p {
+  margin: 7px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.compatibility-personality-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-personality-list {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.compatibility-personality-point + .compatibility-personality-point {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.compatibility-personality-point strong {
+  display: block;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.compatibility-personality-point p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+.compatibility-personality-point a,
+.compatibility-personality-note a,
+.compatibility-validation-plan-card a {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--wu-jin);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.compatibility-personality-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.compatibility-validation-plan {
+  margin-bottom: 20px;
+}
+
+.compatibility-validation-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-validation-plan-card {
+  padding: 16px;
+}
+
+.compatibility-validation-plan-card p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.compatibility-validation-plan-note {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.compatibility-validation-detail {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.compatibility-validation-detail-heading {
+  margin-bottom: 12px;
+  color: var(--wu-jin);
+  font-size: 13px;
 }
 
 .compatibility-decision-hero {
@@ -667,9 +840,46 @@
   justify-content: space-between;
   gap: 16px;
   list-style: none;
+  align-items: flex-start;
 }
 
 .compatibility-claim-card summary::-webkit-details-marker {
+  display: none;
+}
+
+.compatibility-claim-card[open] {
+  border-color: rgba(201, 168, 76, 0.26);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.06), rgba(255, 255, 255, 0.035) 50%),
+    rgba(18, 23, 36, 0.9);
+}
+
+.compatibility-claim-toggle {
+  color: var(--wu-jin);
+  flex: 0 0 auto;
+  font-size: 13px;
+}
+
+.compatibility-claim-toggle-open {
+  display: none;
+}
+
+.compatibility-claim-card[open] .compatibility-claim-toggle-open {
+  display: inline;
+}
+
+.compatibility-claim-card[open] .compatibility-claim-toggle-closed {
+  display: none;
+}
+
+.compatibility-claim-preview {
+  margin-top: 10px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+.compatibility-claim-card[open] .compatibility-claim-preview {
   display: none;
 }
 
@@ -701,6 +911,7 @@
 
 .compatibility-professional-details {
   margin-bottom: 20px;
+  border-radius: 12px;
 }
 
 .compatibility-professional-summary {
@@ -714,6 +925,12 @@
   border-radius: 12px;
   border: 1px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.035);
+}
+
+.compatibility-professional-details[open] .compatibility-professional-summary {
+  border-color: rgba(201, 168, 76, 0.26);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .compatibility-professional-summary::-webkit-details-marker {
@@ -731,6 +948,22 @@
 
 .compatibility-professional-body {
   margin-top: 12px;
+}
+
+.compatibility-professional-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.compatibility-professional-summary-grid span {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
 }
 
 .compatibility-evidence-grid {
@@ -815,6 +1048,17 @@
   margin-top: 20px;
 }
 
+.compatibility-ai-card--empty {
+  border-color: rgba(201, 168, 76, 0.22);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.07), rgba(255, 255, 255, 0.03) 52%),
+    rgba(18, 23, 36, 0.9);
+}
+
+.compatibility-ai-card--generated {
+  background: rgba(18, 23, 36, 0.92);
+}
+
 .compatibility-ai-header {
   display: flex;
   justify-content: space-between;
@@ -822,6 +1066,25 @@
   align-items: center;
   margin-bottom: 12px;
   flex-wrap: wrap;
+}
+
+.compatibility-report-action {
+  flex: 0 0 auto;
+}
+
+.compatibility-report-state {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  color: var(--text-secondary);
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.compatibility-report-state--error {
+  border-color: rgba(239, 83, 80, 0.24);
+  color: #ffb4ab;
+  background: rgba(239, 83, 80, 0.08);
 }
 
 .compatibility-report-content {
@@ -839,6 +1102,13 @@
   margin-bottom: 6px;
 }
 
+.compatibility-report-section {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.035);
+}
+
 .compatibility-report-text,
 .compatibility-report-raw {
   color: var(--text-secondary);
@@ -846,6 +1116,10 @@
 }
 
 .compatibility-report-raw {
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.035);
   white-space: pre-wrap;
 }
 
@@ -858,6 +1132,28 @@
 .compatibility-report-empty {
   margin: 0;
   color: var(--text-muted);
+}
+
+.compatibility-report-empty p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+.compatibility-report-empty-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.compatibility-report-empty-grid span {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 168, 76, 0.22);
+  color: var(--wu-jin);
+  background: rgba(201, 168, 76, 0.09);
+  font-size: 12px;
 }
 
 @media (max-width: 768px) {
@@ -917,6 +1213,23 @@
     margin-bottom: 16px;
   }
 
+  .compatibility-result-map {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .compatibility-personality-fit {
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .compatibility-personality-pattern-grid,
+  .compatibility-personality-grid,
+  .compatibility-validation-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
   .compatibility-decision-dashboard {
     padding: 18px;
   }
@@ -972,6 +1285,16 @@
     align-items: flex-start;
     flex-direction: column;
     padding: 14px 16px;
+  }
+
+  .compatibility-professional-summary-grid,
+  .compatibility-duration-task-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-claim-card summary {
+    flex-direction: column;
+    gap: 8px;
   }
 
   .compatibility-ai-card {
