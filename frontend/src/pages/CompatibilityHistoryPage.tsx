@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Compass, HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { compatibilityAPI, type CompatibilityHistoryItem } from '../lib/api'
+import {
+  compatibilityAPI,
+  type CompatibilityHistoryItem,
+  type CompatibilityDimensionScoresLegacy,
+} from '../lib/api'
 import { getPersonalityMatchType } from '../lib/compatibilityPersonality'
 import './CompatibilityHistoryPage.css'
 
@@ -100,40 +104,56 @@ export default function CompatibilityHistoryPage() {
           </div>
         ) : (
           <div className="compatibility-history-list">
-            {items.map(item => (
-              <Link key={item.id} to={`/compatibility/${item.id}`} className="compatibility-history-card card">
-                <div className="compatibility-history-card-head">
-                  <div>
-                    <div className="serif compatibility-history-names">{item.self_name} × {item.partner_name}</div>
-                    <div className="compatibility-history-level">{levelText[item.overall_level] || item.overall_level}</div>
+            {items.map(item => {
+              const isV3 = item.analysis_version === 'v3'
+              const legacyScores = item.dimension_scores as CompatibilityDimensionScoresLegacy
+              return (
+                <Link key={item.id} to={`/compatibility/${item.id}`} className="compatibility-history-card card">
+                  <div className="compatibility-history-card-head">
+                    <div>
+                      <div className="serif compatibility-history-names">{item.self_name} × {item.partner_name}</div>
+                      <div className="compatibility-history-level">{levelText[item.overall_level] || item.overall_level}</div>
+                    </div>
+                    <span className="compatibility-history-action">查看合盘</span>
                   </div>
-                  <span className="compatibility-history-action">查看合盘</span>
-                </div>
-                <div className="compatibility-history-personality">
-                  <span>性格匹配</span>
-                  <strong>{getPersonalityMatchType(item.dimension_scores, item.primary_question, item.relationship_stage)}</strong>
-                </div>
-                <div className="compatibility-history-context-title">关系背景</div>
-                <div className="compatibility-history-context">
-                  <span>{relationshipStageText[item.relationship_stage] || relationshipStageText.general}</span>
-                  <span>{primaryQuestionText[item.primary_question] || primaryQuestionText.general}</span>
-                </div>
-                <div className="compatibility-history-tags">
-                  {item.summary_tags.length > 0 ? item.summary_tags.map(tag => (
-                    <span key={tag}>{tag}</span>
-                  )) : <span>{levelText[item.overall_level] || item.overall_level}</span>}
-                </div>
-                <div className="compatibility-history-score-summary">
-                  <span>分数参考</span>
-                  <strong>
-                    吸引 {item.dimension_scores.attraction} · 稳定 {item.dimension_scores.stability} · 沟通 {item.dimension_scores.communication} · 现实 {item.dimension_scores.practicality}
-                  </strong>
-                </div>
-                <div className="compatibility-history-continuation">
-                  <span>{getHistoryContinuationLabel(item)}</span>
-                </div>
-              </Link>
-            ))}
+                  {isV3 ? (
+                    <div className="compat-history__score-v3">
+                      <span className="compat-history__score-v3-value">{item.overall_score}</span>
+                      <span className="compat-history__score-v3-unit">/100</span>
+                      <span className={`compat-history__level compat-history__level--${item.overall_level}`}>
+                        {item.overall_level === 'high' ? '上吉' : item.overall_level === 'medium' ? '中' : '低'}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="compatibility-history-personality">
+                      <span>性格匹配</span>
+                      <strong>{getPersonalityMatchType(legacyScores, item.primary_question, item.relationship_stage)}</strong>
+                    </div>
+                  )}
+                  <div className="compatibility-history-context-title">关系背景</div>
+                  <div className="compatibility-history-context">
+                    <span>{relationshipStageText[item.relationship_stage] || relationshipStageText.general}</span>
+                    <span>{primaryQuestionText[item.primary_question] || primaryQuestionText.general}</span>
+                  </div>
+                  <div className="compatibility-history-tags">
+                    {item.summary_tags.length > 0 ? item.summary_tags.map(tag => (
+                      <span key={tag}>{tag}</span>
+                    )) : <span>{levelText[item.overall_level] || item.overall_level}</span>}
+                  </div>
+                  {!isV3 && (
+                    <div className="compatibility-history-score-summary">
+                      <span>分数参考</span>
+                      <strong>
+                        吸引 {legacyScores.attraction} · 稳定 {legacyScores.stability} · 沟通 {legacyScores.communication} · 现实 {legacyScores.practicality}
+                      </strong>
+                    </div>
+                  )}
+                  <div className="compatibility-history-continuation">
+                    <span>{getHistoryContinuationLabel(item)}</span>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         )}
       </div>
