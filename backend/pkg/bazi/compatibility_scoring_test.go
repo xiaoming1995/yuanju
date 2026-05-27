@@ -89,3 +89,39 @@ func TestSanheGroupName(t *testing.T) {
 		}
 	}
 }
+
+func TestScoreZodiac_Liuhe_Returns50(t *testing.T) {
+	if got := scoreZodiac("子", "丑"); got != 50 {
+		t.Errorf("子丑 liuhe: got %d, want 50", got)
+	}
+}
+
+func TestScoreZodiac_Sanhe_Returns50(t *testing.T) {
+	if got := scoreZodiac("申", "子"); got != 50 {
+		t.Errorf("申子 半三合: got %d, want 50", got)
+	}
+	if got := scoreZodiac("子", "辰"); got != 50 {
+		t.Errorf("子辰 半三合: got %d, want 50", got)
+	}
+}
+
+func TestScoreZodiac_NoHit_Returns0(t *testing.T) {
+	cases := [][2]string{
+		{"子", "午"}, // 六冲
+		{"子", "未"}, // 六害
+		{"子", "卯"}, // 相刑
+		{"子", "子"}, // 同支（自刑）
+		{"寅", "卯"}, // 双生（五行同），不命中
+	}
+	for _, p := range cases {
+		if got := scoreZodiac(p[0], p[1]); got != 0 {
+			t.Errorf("scoreZodiac(%q,%q) = %d, want 0", p[0], p[1], got)
+		}
+	}
+}
+
+func TestScoreZodiac_Empty_Returns0(t *testing.T) {
+	if scoreZodiac("", "子") != 0 || scoreZodiac("子", "") != 0 {
+		t.Error("empty branch should score 0")
+	}
+}

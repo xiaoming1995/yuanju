@@ -61,3 +61,12 @@ func sanheGroupName(a, b string) string {
 	}
 	return group[0] + group[1] + group[2]
 }
+
+// scoreZodiac 计算「合属相」模块得分（满分 50）。
+// 输入为两人年支；命中六合或三合（含半三合）即得 50，否则 0。
+func scoreZodiac(yearZhiA, yearZhiB string) int {
+	if branchCompatible(yearZhiA, yearZhiB) {
+		return 50
+	}
+	return 0
+}
