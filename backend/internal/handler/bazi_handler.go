@@ -353,7 +353,7 @@ func normalizeChartDisplayName(input string) (string, error) {
 }
 
 type updateChartDisplayNameRequest struct {
-	DisplayName string `json:"display_name"`
+	DisplayName *string `json:"display_name"`
 }
 
 func UpdateHistoryDisplayName(c *gin.Context) {
@@ -364,7 +364,11 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误"})
 		return
 	}
-	displayName, err := normalizeChartDisplayName(req.DisplayName)
+	if req.DisplayName == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "display_name 不能为空"})
+		return
+	}
+	displayName, err := normalizeChartDisplayName(*req.DisplayName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
