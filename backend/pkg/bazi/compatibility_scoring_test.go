@@ -344,13 +344,17 @@ func TestScoreZodiac_Sheng_Returns20(t *testing.T) {
 	}
 }
 
-func TestScoreZodiac_Priority_LiuheBeatsSameElement(t *testing.T) {
-	// 子丑：六合（土水？ 实际是六合，五行不同行）→ 50
-	if got := scoreZodiac("子", "丑"); got != 50 {
-		t.Errorf("scoreZodiac(子,丑) = %d, want 50 (六合优先)", got)
+func TestScoreZodiac_Priority_LiuheBeatsSheng(t *testing.T) {
+	// 验证 cascade 优先级：同时构成 六合 与 五行相生 时，必须命中上档 50（不掉落到下档 20）。
+	// （备注：六合 / 三合 与 同行(双生) 无法同时命中——所有 liuhe/sanhe 对的两支五行都不同行——所以
+	// 无法用单一 input 测试 liuhe-vs-same-element 的优先级；priority guard 在 liuhe-vs-sheng 上才有实测价值。）
+	cases := [][2]string{
+		{"寅", "亥"}, // 六合 + 亥水生寅木 → 50
+		{"午", "未"}, // 六合 + 午火生未土 → 50
 	}
-	// 巳申：六合，金水化水（五行不同）→ 50
-	if got := scoreZodiac("巳", "申"); got != 50 {
-		t.Errorf("scoreZodiac(巳,申) = %d, want 50 (六合优先)", got)
+	for _, p := range cases {
+		if got := scoreZodiac(p[0], p[1]); got != 50 {
+			t.Errorf("scoreZodiac(%q,%q) = %d, want 50 (liuhe 上档优先于 sheng 下档)", p[0], p[1], got)
+		}
 	}
 }
