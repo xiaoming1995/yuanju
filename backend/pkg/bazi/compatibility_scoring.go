@@ -84,3 +84,43 @@ func scoreNayin(yearGanZhiA, yearGanZhiB string) int {
 		return 0
 	}
 }
+
+// scoreDayPillar 计算「合日柱」模块得分（满分 10）。
+// 上档 (10)：日支合 + (干五合 OR 干五行相生)
+// 下档 (5) ：日支合 + (干五行相同 OR 干相克 OR 干无关)
+// 不命中(0)：日支不合，无论干如何
+func scoreDayPillar(dayGanA, dayZhiA, dayGanB, dayZhiB string) int {
+	if !branchCompatible(dayZhiA, dayZhiB) {
+		return 0
+	}
+	if ganUpperTier(dayGanA, dayGanB) {
+		return 10
+	}
+	return 5
+}
+
+// ganUpperTier 判定两天干是否构成「合日柱上档」的强化条件：
+//   - 天干五合（甲己/乙庚/丙辛/丁壬/戊癸）
+//   - 天干五行相生
+//
+// 干相同 / 干相克 / 干无关 一律返回 false（落到下档 5 分）。
+func ganUpperTier(a, b string) bool {
+	if a == "" || b == "" {
+		return false
+	}
+	if _, ok := ganWuhe[[2]string{a, b}]; ok {
+		return true
+	}
+	wxA := ganWuxing[a]
+	wxB := ganWuxing[b]
+	if wxA == "" || wxB == "" {
+		return false
+	}
+	if wxA == wxB {
+		return false // 同行 → 下档（不算上档）
+	}
+	if wxSheng[wxA] == wxB || wxSheng[wxB] == wxA {
+		return true
+	}
+	return false
+}

@@ -149,3 +149,45 @@ func TestScoreNayin_Empty_Returns0(t *testing.T) {
 		t.Error("empty / unknown ganzhi should score 0")
 	}
 }
+
+func TestScoreDayPillar_UpperTier_GanHe(t *testing.T) {
+	got := scoreDayPillar("甲", "子", "己", "丑")
+	if got != 10 {
+		t.Errorf("甲子/己丑 上档: got %d, want 10", got)
+	}
+}
+
+func TestScoreDayPillar_UpperTier_GanSheng(t *testing.T) {
+	got := scoreDayPillar("甲", "子", "丁", "丑")
+	if got != 10 {
+		t.Errorf("甲子/丁丑 上档: got %d, want 10", got)
+	}
+}
+
+func TestScoreDayPillar_LowerTier_GanTong(t *testing.T) {
+	got := scoreDayPillar("甲", "子", "乙", "丑")
+	if got != 5 {
+		t.Errorf("甲子/乙丑 下档(干同): got %d, want 5", got)
+	}
+}
+
+func TestScoreDayPillar_LowerTier_GanKe(t *testing.T) {
+	got := scoreDayPillar("甲", "子", "戊", "丑")
+	if got != 5 {
+		t.Errorf("甲子/戊丑 下档(干克): got %d, want 5", got)
+	}
+}
+
+func TestScoreDayPillar_ZhiNotCompatible_Returns0(t *testing.T) {
+	got := scoreDayPillar("甲", "子", "己", "未")
+	if got != 0 {
+		t.Errorf("甲子/己未 支不合: got %d, want 0", got)
+	}
+}
+
+func TestScoreDayPillar_SanheZhi(t *testing.T) {
+	got := scoreDayPillar("甲", "子", "己", "辰")
+	if got != 10 {
+		t.Errorf("甲子/己辰 上档(三合支): got %d, want 10", got)
+	}
+}
