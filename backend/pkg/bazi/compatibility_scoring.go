@@ -124,3 +124,28 @@ func ganUpperTier(a, b string) bool {
 	}
 	return false
 }
+
+// scoreEightChars 计算「合八字」模块得分（满分 20）。
+// 输入为年/月/时三柱（不含日柱）双方的干支。每柱独立按 scoreDayPillar 规则得 0/5/10。
+// 三柱总和 ∈ [0,30]，归一化到 [0,20]：(sum*2 + 1) / 3（整数四舍五入）。
+func scoreEightChars(
+	yearGanA, yearZhiA, yearGanB, yearZhiB string,
+	monthGanA, monthZhiA, monthGanB, monthZhiB string,
+	hourGanA, hourZhiA, hourGanB, hourZhiB string,
+) int {
+	y := scoreDayPillar(yearGanA, yearZhiA, yearGanB, yearZhiB)
+	m := scoreDayPillar(monthGanA, monthZhiA, monthGanB, monthZhiB)
+	h := scoreDayPillar(hourGanA, hourZhiA, hourGanB, hourZhiB)
+	return normalizeEightCharsSum(y + m + h)
+}
+
+// normalizeEightCharsSum 把三柱总和（0..30）归一化到 [0,20]，整数四舍五入。
+func normalizeEightCharsSum(sum int) int {
+	if sum <= 0 {
+		return 0
+	}
+	if sum >= 30 {
+		return 20
+	}
+	return (sum*2 + 1) / 3
+}

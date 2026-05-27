@@ -191,3 +191,59 @@ func TestScoreDayPillar_SanheZhi(t *testing.T) {
 		t.Errorf("甲子/己辰 上档(三合支): got %d, want 10", got)
 	}
 }
+
+func TestScoreEightChars_AllUpper_Returns20(t *testing.T) {
+	got := scoreEightChars(
+		"甲", "子", "己", "丑",
+		"甲", "子", "己", "丑",
+		"甲", "子", "己", "丑",
+	)
+	if got != 20 {
+		t.Errorf("三柱全上档: got %d, want 20", got)
+	}
+}
+
+func TestScoreEightChars_AllLower_Returns10(t *testing.T) {
+	got := scoreEightChars(
+		"甲", "子", "乙", "丑",
+		"甲", "子", "乙", "丑",
+		"甲", "子", "乙", "丑",
+	)
+	if got != 10 {
+		t.Errorf("三柱全下档: got %d, want 10", got)
+	}
+}
+
+func TestScoreEightChars_OneUpperOnly_Returns7(t *testing.T) {
+	got := scoreEightChars(
+		"甲", "子", "己", "丑",
+		"甲", "午", "甲", "午",
+		"甲", "午", "甲", "午",
+	)
+	if got != 7 {
+		t.Errorf("一柱上档 其余不合: got %d, want 7", got)
+	}
+}
+
+func TestScoreEightChars_NothingHits_Returns0(t *testing.T) {
+	got := scoreEightChars(
+		"甲", "午", "甲", "午",
+		"甲", "午", "甲", "午",
+		"甲", "午", "甲", "午",
+	)
+	if got != 0 {
+		t.Errorf("全不命中: got %d, want 0", got)
+	}
+}
+
+func TestScoreEightChars_RoundingTable(t *testing.T) {
+	cases := []struct {
+		sum  int
+		want int
+	}{{0, 0}, {5, 3}, {10, 7}, {15, 10}, {20, 13}, {25, 17}, {30, 20}}
+	for _, tc := range cases {
+		if got := normalizeEightCharsSum(tc.sum); got != tc.want {
+			t.Errorf("normalizeEightCharsSum(%d) = %d, want %d", tc.sum, got, tc.want)
+		}
+	}
+}
