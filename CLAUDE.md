@@ -1,145 +1,92 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+旨在减少大型语言模型（LLM）常见编程错误的行为准则。请根据需要将其与特定项目的指令相结合。
 
-## Project Overview
+**权衡考量：** 这些准则倾向于“求稳”而非“求快”。对于琐碎简单的任务，请自行酌情处理。
 
-**缘聚 (Yuanju)** is a Chinese numerology (八字/Bazi) analysis web platform. It combines algorithmic calculations (via `lunar-go`) with AI-powered natural language interpretation (DeepSeek/OpenAI). The codebase has a Go+Gin backend, React+TypeScript frontend, and PostgreSQL database — all orchestrated via Docker Compose.
+## 1. 编码前先思考
+
+**切勿臆测。切勿隐瞒困惑。明确揭示权衡点。**
+
+在着手实现之前：
+- 明确陈述你的假设。如有不确定之处，请提问。
+- 如果存在多种解读方式，请将其一一列出——切勿在未说明的情况下擅自选定某一种。
+- 如果存在更简单的实现方案，请如实指出。在必要时，请提出异议或反建议。
+- 如果遇到任何不明确之处，请立即停下。明确指出困惑点所在，并提出疑问。
+
+## 2. 简约至上
+
+**仅编写解决问题所需的最低限度代码。切勿包含任何臆测性的内容。**
+
+- 切勿添加超出需求范围的功能特性。
+- 切勿为仅供单次使用的代码引入抽象层。
+- 切勿在未被要求的情况下，擅自增加“灵活性”或“可配置性”。
+- 切勿为绝无可能发生的场景编写错误处理逻辑。
+- 如果你写了200行代码，而实际上只需50行即可完成，请将其重写。
+
+请自问：“一位资深工程师是否会认为这段代码过于复杂？”如果答案为“是”，请将其简化。
+
+## 3. 精准修改（Surgical Changes）
+
+**仅触碰必须修改之处。仅清理由你自己制造的“烂摊子”。**
+
+在修改现有代码时：
+- 切勿擅自“优化”相邻的代码、注释或格式排版。
+- 切勿重构那些本身并未损坏或存在问题的代码。
+- 请严格遵循现有的代码风格，即使你个人偏好另一种风格。
+- 如果你发现与当前任务无关的“死代码”（Dead Code），请予以提及——但切勿将其删除。
+
+当你的修改导致代码中出现“孤儿”（Orphans）时：
+- 移除那些因**你的**修改而变得不再被使用的导入项、变量或函数。
+- 除非明确要求，否则切勿移除那些在修改前就已存在的“死代码”。
+
+检验标准：代码中被修改的每一行，都应当能够直接追溯并对应到用户的具体需求上。
+
+## 4. 目标导向的执行
+
+**明确定义成功的判定标准。** **循环迭代，直至通过验证。**
+
+将任务转化为可验证的目标：
+- “添加验证” → “针对无效输入编写测试，然后确保测试通过”
+- “修复 Bug” → “编写一个能重现该 Bug 的测试，然后确保测试通过”
+- “重构 X” → “确保重构前后所有测试均能通过”
+
+对于包含多个步骤的任务，请拟定一份简要计划：
+```
+1. [步骤] → 验证方式：[检查项]
+2. [步骤] → 验证方式：[检查项]
+3. [步骤] → 验证方式：[检查项]
+```
+
+明确且强有力的成功标准，能让你独立自主地开展迭代工作；而模糊且薄弱的标准（例如“让它能跑就行”），则往往需要你反复寻求澄清。
+
+## 5. 代码质量护栏
+
+§2 反对“无中生有的抽象”，本节补充“何时不抽是错的”——两者依靠**阈值**和**层次**区分，并不矛盾。
+
+### 5.1 复用与抽象的阈值
+
+- **复用优先**：动手写任何工具函数、常量表、组件、SQL 语句之前，先用 `grep` 在相关目录搜一遍是否已经存在。已存在就复用；找不到再写。
+- **第 3 次复制即抽离**：第 1、2 次复制保持原样（避免过早抽象），第 3 次出现时停下来抽出公共函数 / 组件 / hook，并把前两处一起迁移过去。
+- **抽象的最低标准**：抽出来的单元必须有清晰的单一职责、有意义的命名、稳定的接口。如果只是为了“少写几行”而抽出意义不明的 helper，不如不抽。
+
+### 5.2 分层与边界
+
+- 项目本身的分层约束（哪一层可以做什么）记录在项目级文档中（如 `ENGINEERING.md` / `AGENTS.md` / 项目根 `CLAUDE.md`）。**编码前必读这些文件**，未确认分层规则之前不要新增代码。
+- 破坏分层（例：把本应在数据访问层的逻辑塞进控制器层、把本应在配置层的环境变量读取散落到业务代码里）一律视为 Bug，即使“只用一次”也不允许。
+
+### 5.3 在遗留代码中工作
+
+§3 的“精准修改”针对**结构尚可**的代码。当待修改文件本身已经违反项目硬约束（如文件行数上限、单一职责、分层规则），处理顺序如下：
+
+1. **先指出**：在动手前明确告知用户“此文件已超过 X 行 / 已混合多种职责”，征求处理方式。
+2. **优先拆分**：用户同意后，先做最小拆分把新增功能放进合理位置（新文件或合适的既有层），不要“再加一点点就好”。
+3. **不允许借口**：现有违反规则的代码不构成新增违反规则代码的理由。
+
+### 5.4 命名与返回值一致性
+
+修改文件时观察周围 5-10 个同类函数 / 接口的命名、返回值约定、错误处理风格，**对齐它们**而不是发明新写法。如果发现项目内部不一致（同一类操作存在多套风格），向用户指出但不擅自统一。
 
 ---
 
-## Commands
-
-### Frontend (`cd frontend`)
-```bash
-npm run dev      # Dev server on port 5200, proxies /api → localhost:9002
-npm run build    # TypeScript check + Vite production build
-npm run lint     # ESLint
-npm run preview  # Preview production build
-```
-
-### Backend (`cd backend`)
-```bash
-go run ./cmd/api                           # Run API server (port 9002 by default)
-go run ./cmd/api --migrate-dry-run         # List pending migrations as JSON, no DB writes
-go run ./cmd/api --migrate-apply           # Apply all pending migrations (fatal-on-error), then exit
-go test ./...                              # Run all tests
-go test ./pkg/bazi/...                     # Run bazi-specific tests
-go test ./pkg/bazi/... -run TestFuncName   # Run a single test
-```
-
-### Full Stack
-```bash
-./scripts/docker-compose-up.sh   # 首次自动生成 backend/.env.docker，再启动整套服务
-docker-compose down
-docker-compose logs -f
-```
-
----
-
-## Architecture
-
-```
-frontend (React 19 + TS + Vite)
-  └── src/lib/api.ts, adminApi.ts        # Axios clients
-      src/lib/wuxingColorSystem.ts       # 五行 color mapping utility
-      src/contexts/                      # AuthContext, AdminAuthContext
-      src/pages/                         # User pages
-        ResultPage, HistoryPage, PastEventsPage
-        CompatibilityPage, CompatibilityHistoryPage, CompatibilityResultPage
-      src/pages/admin/                   # Admin pages
-        AdminDashboardPage, AdminLLMPage, AdminUsersPage
-        AdminCelebritiesPage, AdminChartsPage, AdminAILogsPage
-        PromptSettings, AlgoConfigPage, TokenUsagePage, ShenshaAnnotationsPage
-      src/components/                    # Shared UI components
-        DayunTimeline, LiuYueDrawer, TiaohouCard, WuxingRadar
-        YongshenBadge, MingpanAvatar, BottomNav, Navbar
-        PrintLayout, ShareCard, ParticleBackground
-
-backend (Go + Gin)
-  └── cmd/api/main.go                # Entry point, route registration
-      configs/config.go              # Env config struct (reads .env)
-      internal/handler/              # HTTP handlers
-        auth_handler.go, bazi_handler.go
-        admin_handler.go, admin_prompt.go
-        celebrity_handler.go, shensha_handler.go
-        algo_config_handler.go, algo_tiaohou_handler.go
-        compatibility_handler.go, token_usage_handler.go
-      internal/middleware/           # JWT auth (user vs admin are separate)
-      internal/model/                # Data structs (model.go, admin.go, compatibility.go, prompt.go)
-      internal/repository/           # All SQL — no SQL outside this layer
-        repository.go, admin_repository.go, prompt_repository.go
-        compatibility_repository.go, celebrity_repository.go
-        liunian_repository.go, shensha_repo.go
-        algo_config_repository.go, algo_tiaohou_repository.go
-        past_events_repository.go    # ai_past_events table cache
-        dayun_summary_repository.go  # ai_dayun_summaries table cache
-        token_usage_repository.go    # token usage tracking + LLM pricing
-      internal/service/              # Business logic, AI client
-        ai_client.go, auth_service.go, report_service.go
-        celebrity_service.go, algo_config_service.go
-        compatibility_service.go
-        llm_pricing.go               # CalcCost(): CNY cost estimate per model + token count
-      pkg/bazi/                      # Numerology algorithm engine
-        engine.go                    # Core 四柱 calculation (lunar-go)
-        shishen.go                   # 十神 (Ten Gods) classification
-        shensha.go, shensha_dayun.go # 神煞 (Spirit Stars)
-        tiaohou.go, tiaohou_dict.go  # 调候用神 (Seasonal Adjustment)
-        yongshen.go                  # 用神推算入口（t0 调候字典优先，t1 月令权重扶抑 fallback）
-        liuyue.go                    # 流月 (monthly luck) calculations
-        jin_bu_huan_dict.go          # 进不换 lookup table
-        algo_config.go               # Algorithmic configuration management
-        event_signals.go             # 过往年份事件信号引擎（神煞/用神基底/三会三刑/伏吟反吟/空亡/大运合化/加权身强弱）
-        event_narrative.go           # RenderYearNarrative(): structured signals → 白话批语 prose
-        mingge.go                    # 命格（格局）推算 — 七优先级透干取格法
-        compatibility.go             # 合盘双命盘信号引擎
-      pkg/crypto/crypto.go           # AES-256-GCM for API key storage
-      pkg/database/database.go       # PostgreSQL connection (Connect/Close, exposes *sql.DB)
-      pkg/database/migrations.go     # goose-based Migrate(mode): ModeStartup/ModeDryRun/ModeApply
-      pkg/database/migrations/       # NNNN_name.sql migration files (baseline = 00001_baseline.sql)
-      pkg/seed/seed.go               # Seeds LLM providers + pricing from .env on startup
-```
-
-**Data flow (core features):**
-1. User submits birth data → `POST /api/bazi/calculate` → `pkg/bazi/engine.go` (lunar-go)
-2. User requests AI report → `POST /api/bazi/report/:chart_id` → prompt template from DB → DeepSeek API → cached in `ai_reports` table
-3. Streaming report → `POST /api/bazi/report-stream/:chart_id` → SSE (Server-Sent Events), handler in `bazi_handler.go:GenerateReportStream`
-4. Liunian (流年) report → `POST /api/bazi/liunian-report/:chart_id` → AI analysis for a specific year
-5. Compatibility (合盘) → `POST /api/compatibility` → dual BaziResult signal engine → scores/evidences saved in `compatibility_readings` + `compatibility_evidences`; AI report cached in `ai_compatibility_reports`. Partner chart stored as JSON snapshot in `compatibility_participants` only — does NOT appear in user's `/history` bazi charts.
-6. Admin manages LLM providers, prompts, algo config, and tiaohou rules via `/api/admin/` routes
-
-**Auth:** Two independent JWT systems — user token (`yj_token`) and admin token (`yj_admin_token`). They use separate secrets (`JWT_SECRET` vs `ADMIN_JWT_SECRET`) and separate middleware. `OptionalAuth()` middleware allows unauthenticated access while passing user context when a token is present.
-
----
-
-## Key Conventions
-
-### Backend
-- **No ORM.** All DB access via `lib/pq` directly in `internal/repository/`. Never write SQL in handlers or services.
-- **DDL migrations live in `pkg/database/migrations/NNNN_name.sql`** (goose, embedded via `//go:embed`). Add new tables/columns by creating the next-numbered file — never edit `00001_baseline.sql` or hand-write SQL in `database.go`. Startup runs `Migrate(ModeStartup)`: baseline (0001) is fatal-on-error, but later migrations are warn-only so the app still boots if one breaks. CLI flags `--migrate-dry-run` / `--migrate-apply` give fatal-on-error semantics for ops. `runMigrations` uses goose's package-global state and is **not goroutine-safe** — only call from `main()` / CLI paths.
-- **AI prompts are canonical-versioned.** Templates live in `pkg/prompt/canonical_<module>.go` registered via `Register(module, Definition{Version, Description, Content})` in `init()`. Backend startup (`cmd/api/main.go`) runs `prompt.SyncCanonical(database.DB)` which inserts/upgrades DB rows whose `is_customized=false`; admin edits via UI automatically set `is_customized=true` so subsequent syncs skip them. To ship a new prompt body for an existing module, bump the `Version` string in the canonical_*.go file — startup sync will upgrade unedited rows. Admin UI has a "重置为系统默认" button per module to discard customization and re-align with canonical.
-- **API keys** must be encrypted with `pkg/crypto` (AES-256-GCM) before storing. Never store plaintext keys.
-- **Config** is read exclusively via `configs/config.go` `Config` struct — no direct `os.Getenv` elsewhere.
-- Error response: `{"error": "message"}` — Success response: `{"data": ...}` or direct object.
-- **500-line file limit.** Split files that exceed this.
-- **Algo config** (`algo_config.go`) is loaded on startup via `service.LoadAlgoConfig()` and provides runtime-tunable algorithm parameters managed through the admin UI.
-- **流年信号语义按年龄分段** (`event_signals.go::YoungAgeCutoff = 18`)：起运 ~ 18 岁前自动启用读书期语义重映射，财/官/印/食伤/比劫/桃花/合冲日支 等事件输出 `学业_*` / `性格_*` Type；18 岁及以后回归原 财运/事业/婚恋 语义。`GenerateDayunSummariesStream` 按该段大运中 age<18 占比给 AI prompt 注入读书期/跨界期提示词。
-
-### Frontend
-- **No UI frameworks.** Pure CSS Variables only — no Tailwind, Ant Design, MUI.
-- Admin routes use `adminApi.ts` + `AdminAuthContext`. User routes use `api.ts` + `AuthContext`.
-- Routes are defined in `App.tsx`. Check there before adding new pages.
-
-### Before Writing Any Code
-Per `ENGINEERING.md`: always scan existing code first.
-- New backend feature → check `internal/handler/`, `internal/service/`, `internal/repository/`
-- New bazi algorithm → check `pkg/bazi/` (engine.go, shishen.go, shensha.go, tiaohou.go)
-- New frontend component → check `src/components/`, `src/lib/`
-- DB changes → add a new `pkg/database/migrations/NNNN_*.sql` file (do **not** edit `database.go` or the baseline)
-
-### OpenSpec Change Management
-New features use the OpenSpec workflow:
-- `/opsx:propose` → propose change
-- `/opsx:apply` → implement tasks
-- `/opsx:archive` → archive after completion
-- Changes live in `openspec/changes/<change-name>/`
+**若出现以下迹象，则表明这些准则正在发挥实效：**代码变更对比（Diffs）中不再包含大量冗余的修改；因过度设计导致代码过于复杂、从而不得不推倒重写的现象显著减少；且所有需要澄清的疑问均在正式着手实现之前提出，而非等到犯错之后才去追问。
