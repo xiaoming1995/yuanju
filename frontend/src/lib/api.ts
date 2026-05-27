@@ -221,11 +221,31 @@ export interface CreateCompatibilityReadingInput extends CompatibilityContextInp
   partner: CompatibilityProfileInput
 }
 
-export interface CompatibilityDimensionScores {
+// v1/v2 legacy（保留以兼容历史记录渲染）
+export type CompatibilityDimensionScoresLegacy = {
   attraction: number
   stability: number
   communication: number
   practicality: number
+}
+
+// v3 新结构
+export type CompatibilityDimensionScoresV3 = {
+  zodiac: number
+  nayin: number
+  day_pillar: number
+  eight_chars: number
+}
+
+// 联合类型 — 由 analysis_version 鉴别
+export type CompatibilityDimensionScores =
+  | CompatibilityDimensionScoresLegacy
+  | CompatibilityDimensionScoresV3
+
+export function isV3DimensionScores(
+  scores: CompatibilityDimensionScores,
+): scores is CompatibilityDimensionScoresV3 {
+  return 'zodiac' in scores
 }
 
 export interface CompatibilityDurationWindow {
@@ -362,12 +382,13 @@ export interface CompatibilityReading {
   relationship_stage: CompatibilityRelationshipStage
   primary_question: CompatibilityPrimaryQuestion
   overall_level: 'high' | 'medium' | 'low'
+  overall_score: number
   dimension_scores: CompatibilityDimensionScores
   score_explanations: CompatibilityScoreExplanation[]
   duration_assessment: CompatibilityDurationAssessment
   consulting_assessment: CompatibilityConsultingAssessment
   summary_tags: string[]
-  analysis_version: string
+  analysis_version: 'v1' | 'v2' | 'v3'
   created_at: string
   updated_at: string
 }
@@ -414,10 +435,12 @@ export interface CompatibilityHistoryItem {
   relationship_stage: CompatibilityRelationshipStage
   primary_question: CompatibilityPrimaryQuestion
   overall_level: 'high' | 'medium' | 'low'
+  overall_score: number
   dimension_scores: CompatibilityDimensionScores
   summary_tags: string[]
   self_name: string
   partner_name: string
+  analysis_version: 'v1' | 'v2' | 'v3'
   created_at: string
 }
 
