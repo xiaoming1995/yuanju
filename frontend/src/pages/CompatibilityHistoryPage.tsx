@@ -105,7 +105,7 @@ export default function CompatibilityHistoryPage() {
         ) : (
           <div className="compatibility-history-list">
             {items.map(item => {
-              const isV3 = item.analysis_version === 'v3'
+              const isV3 = item.analysis_version === 'v3' || item.analysis_version === 'v3.1'
               const legacyScores = item.dimension_scores as CompatibilityDimensionScoresLegacy
               return (
                 <Link key={item.id} to={`/compatibility/${item.id}`} className="compatibility-history-card card">

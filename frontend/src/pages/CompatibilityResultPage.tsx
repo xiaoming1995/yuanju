@@ -939,7 +939,7 @@ export default function CompatibilityResultPage() {
     evidences: detail.evidences,
     overallLevel: reading.overall_level,
   })
-  const isV3 = reading.analysis_version === 'v3' && isV3DimensionScores(reading.dimension_scores)
+  const isV3 = (reading.analysis_version === 'v3' || reading.analysis_version === 'v3.1') && isV3DimensionScores(reading.dimension_scores)
   const legacyScores = isV3 ? null : (reading.dimension_scores as CompatibilityDimensionScoresLegacy)
   const v3Scores = isV3 ? (reading.dimension_scores as CompatibilityDimensionScoresV3) : null
   const personalitySummary = legacyScores
