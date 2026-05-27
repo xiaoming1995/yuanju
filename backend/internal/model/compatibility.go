@@ -21,10 +21,10 @@ type CompatibilityContext struct {
 }
 
 type CompatibilityDimensionScores struct {
-	Attraction    int `json:"attraction"`
-	Stability     int `json:"stability"`
-	Communication int `json:"communication"`
-	Practicality  int `json:"practicality"`
+	Zodiac     int `json:"zodiac"`
+	Nayin      int `json:"nayin"`
+	DayPillar  int `json:"day_pillar"`
+	EightChars int `json:"eight_chars"`
 }
 
 type CompatibilityDurationWindow struct {
@@ -128,6 +128,7 @@ type CompatibilityReading struct {
 	UserID               string                            `json:"user_id"`
 	RelationshipStage    string                            `json:"relationship_stage"`
 	PrimaryQuestion      string                            `json:"primary_question"`
+	OverallScore         int                               `json:"overall_score"`
 	OverallLevel         string                            `json:"overall_level"`
 	DimensionScores      CompatibilityDimensionScores      `json:"dimension_scores"`
 	ScoreExplanations    []CompatibilityScoreExplanation   `json:"score_explanations"`
@@ -216,6 +217,7 @@ type CompatibilityHistoryItem struct {
 	ID                string                       `json:"id"`
 	RelationshipStage string                       `json:"relationship_stage"`
 	PrimaryQuestion   string                       `json:"primary_question"`
+	OverallScore      int                          `json:"overall_score"`
 	OverallLevel      string                       `json:"overall_level"`
 	DimensionScores   CompatibilityDimensionScores `json:"dimension_scores"`
 	SummaryTags       []string                     `json:"summary_tags"`
