@@ -8,6 +8,7 @@ import {
   type CompatibilityClaimEvidenceLink,
   type CompatibilityDetail,
   type CompatibilityDimensionScores,
+  type CompatibilityDimensionScoresV3,
   type CompatibilityDurationAssessment,
   type CompatibilityEvidence,
   type CompatibilityParticipant,
@@ -298,6 +299,78 @@ function ProfessionalEvidenceGroups({ evidences }: { evidences: CompatibilityEvi
         </section>
       ))}
     </div>
+  )
+}
+
+const dimensionHintV3: Record<keyof CompatibilityDimensionScoresV3, string> = {
+  zodiac: '属相（年支）层：六合/三合 命中即满分 50',
+  nayin: '纳音五行：相生/相同 命中即满分 20',
+  day_pillar: '日柱（亲密层）：支合 + 干合/生 满分 10',
+  eight_chars: '年/月/时三柱：外围承接，最高 20',
+}
+
+const dimensionLabelV3: Record<keyof CompatibilityDimensionScoresV3, string> = {
+  zodiac: '合属相',
+  nayin: '合纳音',
+  day_pillar: '合日柱',
+  eight_chars: '合八字',
+}
+
+const dimensionMaxV3: Record<keyof CompatibilityDimensionScoresV3, number> = {
+  zodiac: 50,
+  nayin: 20,
+  day_pillar: 10,
+  eight_chars: 20,
+}
+
+function ScoreOverviewV3({
+  scores,
+  overallScore,
+  overallLevel,
+}: {
+  scores: CompatibilityDimensionScoresV3
+  overallScore: number
+  overallLevel: 'high' | 'medium' | 'low'
+}) {
+  const keys: Array<keyof CompatibilityDimensionScoresV3> = [
+    'zodiac',
+    'nayin',
+    'day_pillar',
+    'eight_chars',
+  ]
+  return (
+    <section className="compat-score-v3">
+      <header className="compat-score-v3__header">
+        <span className="compat-score-v3__total">{overallScore}</span>
+        <span className="compat-score-v3__unit">/100</span>
+        <span className={`compat-score-v3__badge compat-score-v3__badge--${overallLevel}`}>
+          {overallLevel === 'high' ? '上吉' : overallLevel === 'medium' ? '中' : '低'}
+        </span>
+      </header>
+      <ul className="compat-score-v3__modules">
+        {keys.map((key) => {
+          const value = scores[key]
+          const max = dimensionMaxV3[key]
+          return (
+            <li key={key} className="compat-score-v3__module">
+              <div className="compat-score-v3__module-row">
+                <span className="compat-score-v3__module-label">{dimensionLabelV3[key]}</span>
+                <span className="compat-score-v3__module-value">
+                  {value}<span className="compat-score-v3__module-max">/{max}</span>
+                </span>
+              </div>
+              <div className="compat-score-v3__module-hint">{dimensionHintV3[key]}</div>
+              <div className="compat-score-v3__module-bar">
+                <div
+                  className="compat-score-v3__module-bar-fill"
+                  style={{ width: `${(value / max) * 100}%` }}
+                />
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 
