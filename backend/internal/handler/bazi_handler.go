@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 	"yuanju/internal/model"
 	"yuanju/internal/repository"
 	"yuanju/internal/service"
@@ -337,6 +339,50 @@ func GetHistoryDetail(c *gin.Context) {
 		"result": result,
 		"report": report,
 	})
+}
+
+func normalizeChartDisplayName(input string) (string, error) {
+	name := strings.TrimSpace(input)
+	if name == "" {
+		return "", nil
+	}
+	if utf8.RuneCountInString(name) > 20 {
+		return "", fmt.Errorf("称呼不能超过20个字符")
+	}
+	return name, nil
+}
+
+type updateChartDisplayNameRequest struct {
+	DisplayName string `json:"display_name"`
+}
+
+func UpdateHistoryDisplayName(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	chartID := c.Param("id")
+	var req updateChartDisplayNameRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误"})
+		return
+	}
+	displayName, err := normalizeChartDisplayName(req.DisplayName)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "记录不存在"})
+		return
+	}
+	if chart.UserID == nil || *chart.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+	if err := repository.UpdateChartDisplayName(chartID, displayName); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存称呼失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"id": chartID, "display_name": displayName}})
 }
 
 // HandlePastEventsYears 即时返回算法+模板生成的所有年份叙述（无 AI，毫秒级）
