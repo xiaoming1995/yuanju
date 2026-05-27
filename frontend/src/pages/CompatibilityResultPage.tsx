@@ -4,10 +4,11 @@ import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   compatibilityAPI,
+  isV3DimensionScores,
   type CompatibilityChartSnapshot,
   type CompatibilityClaimEvidenceLink,
   type CompatibilityDetail,
-  type CompatibilityDimensionScores,
+  type CompatibilityDimensionScoresLegacy,
   type CompatibilityDimensionScoresV3,
   type CompatibilityDurationAssessment,
   type CompatibilityEvidence,
@@ -40,7 +41,7 @@ const dimensionText: Record<string, string> = {
   practicality: '现实条件能不能落地？',
 }
 
-const dimensionHint: Record<keyof CompatibilityDimensionScores, string> = {
+const dimensionHint: Record<keyof CompatibilityDimensionScoresLegacy, string> = {
   attraction: '初期靠近感与彼此牵引',
   stability: '长期承接与持续投入',
   communication: '冲突后的理解和修复',
@@ -211,13 +212,13 @@ function scoreTone(value: number) {
   return 'low'
 }
 
-function getDimensionItems(scores: CompatibilityDimensionScores) {
+function getDimensionItems(scores: CompatibilityDimensionScoresLegacy) {
   return ([
     ['attraction', scores.attraction],
     ['stability', scores.stability],
     ['communication', scores.communication],
     ['practicality', scores.practicality],
-  ] as Array<[keyof CompatibilityDimensionScores, number]>).map(([key, value]) => ({
+  ] as Array<[keyof CompatibilityDimensionScoresLegacy, number]>).map(([key, value]) => ({
     key,
     label: dimensionText[key],
     hint: dimensionHint[key],
@@ -374,7 +375,7 @@ function ScoreOverviewV3({
   )
 }
 
-function ScoreOverview({ scores }: { scores: CompatibilityDimensionScores }) {
+function ScoreOverview({ scores }: { scores: CompatibilityDimensionScoresLegacy }) {
   return (
     <div className="card compatibility-quick-score">
       <div className="compatibility-section-header compatibility-section-header--stacked">
@@ -938,29 +939,36 @@ export default function CompatibilityResultPage() {
     evidences: detail.evidences,
     overallLevel: reading.overall_level,
   })
-  const personalitySummary = buildPersonalityFitSummary({
-    scores: reading.dimension_scores,
-    evidences: detail.evidences,
-    relationshipDiagnosis: consulting.relationship_diagnosis,
-    relationshipStage: reading.relationship_stage,
-    primaryQuestion: reading.primary_question,
-    self: {
-      name: selfP?.display_name,
-      dayGan: selfP?.chart_snapshot?.day_gan,
-    },
-    partner: {
-      name: partnerP?.display_name,
-      dayGan: partnerP?.chart_snapshot?.day_gan,
-    },
-    hasReport: Boolean(detail.latest_report),
-  })
-  const personalityValidationPlan = buildPersonalityValidationPlan({
-    personality: personalitySummary,
-    advice: consulting.decision_advice,
-    stageRisks: consulting.stage_risks,
-    duration: durationAssessment,
-    hasEvidence: detail.evidences.length > 0 || consulting.claim_evidence_links.length > 0,
-  })
+  const isV3 = reading.analysis_version === 'v3' && isV3DimensionScores(reading.dimension_scores)
+  const legacyScores = isV3 ? null : (reading.dimension_scores as CompatibilityDimensionScoresLegacy)
+  const v3Scores = isV3 ? (reading.dimension_scores as CompatibilityDimensionScoresV3) : null
+  const personalitySummary = legacyScores
+    ? buildPersonalityFitSummary({
+        scores: legacyScores,
+        evidences: detail.evidences,
+        relationshipDiagnosis: consulting.relationship_diagnosis,
+        relationshipStage: reading.relationship_stage,
+        primaryQuestion: reading.primary_question,
+        self: {
+          name: selfP?.display_name,
+          dayGan: selfP?.chart_snapshot?.day_gan,
+        },
+        partner: {
+          name: partnerP?.display_name,
+          dayGan: partnerP?.chart_snapshot?.day_gan,
+        },
+        hasReport: Boolean(detail.latest_report),
+      })
+    : null
+  const personalityValidationPlan = personalitySummary
+    ? buildPersonalityValidationPlan({
+        personality: personalitySummary,
+        advice: consulting.decision_advice,
+        stageRisks: consulting.stage_risks,
+        duration: durationAssessment,
+        hasEvidence: detail.evidences.length > 0 || consulting.claim_evidence_links.length > 0,
+      })
+    : null
 
   return (
     <div className="page compatibility-result-page">
@@ -979,19 +987,38 @@ export default function CompatibilityResultPage() {
           links={consulting.claim_evidence_links}
         />
 
-        <PersonalityFitPanel summary={personalitySummary} />
+        {personalitySummary && <PersonalityFitPanel summary={personalitySummary} />}
 
-        <PersonalityValidationPlanPanel plan={personalityValidationPlan}>
-          <StageRiskGrid risks={decisionStageRisks} />
-          <DurationTaskSummary assessment={durationAssessment} />
-        </PersonalityValidationPlanPanel>
+        {personalityValidationPlan ? (
+          <PersonalityValidationPlanPanel plan={personalityValidationPlan}>
+            <StageRiskGrid risks={decisionStageRisks} />
+            <DurationTaskSummary assessment={durationAssessment} />
+          </PersonalityValidationPlanPanel>
+        ) : (
+          <section id="compatibility-conflict-validation" className="compatibility-section">
+            <div className="compatibility-section-header">
+              <h2 className="serif compatibility-section-title">阶段风险与时段</h2>
+              <p className="compatibility-section-desc">分阶段查看主要风险点和时段强弱。</p>
+            </div>
+            <StageRiskGrid risks={decisionStageRisks} />
+            <DurationTaskSummary assessment={durationAssessment} />
+          </section>
+        )}
 
         {consulting.relationship_strategy && (
           <RelationshipStrategyPanel strategy={consulting.relationship_strategy} />
         )}
 
         <div id="compatibility-score-evidence" className="compatibility-section-anchor">
-          <ScoreOverview scores={reading.dimension_scores} />
+          {v3Scores ? (
+            <ScoreOverviewV3
+              scores={v3Scores}
+              overallScore={reading.overall_score}
+              overallLevel={reading.overall_level}
+            />
+          ) : (
+            <ScoreOverview scores={legacyScores as CompatibilityDimensionScoresLegacy} />
+          )}
 
           {consulting.claim_evidence_links.length > 0 && (
             <div id="compatibility-claim-evidence" className="compatibility-section">

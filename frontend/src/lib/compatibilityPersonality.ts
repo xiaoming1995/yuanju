@@ -1,6 +1,6 @@
 import type {
   CompatibilityDecisionAdvice,
-  CompatibilityDimensionScores,
+  CompatibilityDimensionScoresLegacy,
   CompatibilityDurationAssessment,
   CompatibilityEvidence,
   CompatibilityRelationshipDiagnosis,
@@ -16,7 +16,7 @@ interface PersonalityParticipantInput {
 }
 
 interface PersonalityFitInput {
-  scores: CompatibilityDimensionScores
+  scores: CompatibilityDimensionScoresLegacy
   evidences?: Array<Partial<CompatibilityEvidence>>
   relationshipDiagnosis?: CompatibilityRelationshipDiagnosis | null
   relationshipStage?: RelationshipStage
@@ -32,7 +32,7 @@ export interface PersonalityPoint {
   title: string
   detail: string
   evidenceKey?: string
-  dimension?: keyof CompatibilityDimensionScores | string
+  dimension?: keyof CompatibilityDimensionScoresLegacy | string
 }
 
 export interface PersonalityFitSummary {
@@ -120,7 +120,7 @@ function average(values: number[]) {
 }
 
 export function getPersonalityMatchType(
-  scores: CompatibilityDimensionScores,
+  scores: CompatibilityDimensionScoresLegacy,
   primaryQuestion?: PrimaryQuestion,
   relationshipStage?: RelationshipStage
 ) {
@@ -147,7 +147,7 @@ export function getPersonalityMatchTypeDescription(matchType: string) {
   return descriptions[matchType] || '这类关系需要先观察真实互动，再决定投入强度。'
 }
 
-function scorePoint(dimension: keyof CompatibilityDimensionScores, value: number): PersonalityPoint {
+function scorePoint(dimension: keyof CompatibilityDimensionScoresLegacy, value: number): PersonalityPoint {
   const label = dimensionLabels[dimension]
   if (dimension === 'attraction') {
     return {
@@ -179,7 +179,7 @@ function scorePoint(dimension: keyof CompatibilityDimensionScores, value: number
 
 function pointFromEvidence(evidence: Partial<CompatibilityEvidence>): PersonalityPoint {
   return {
-    title: evidence.title || scorePoint((evidence.dimension || 'communication') as keyof CompatibilityDimensionScores, 50).title,
+    title: evidence.title || scorePoint((evidence.dimension || 'communication') as keyof CompatibilityDimensionScoresLegacy, 50).title,
     detail: evidence.detail || '这条依据提示双方互动中存在可观察的相处模式。',
     evidenceKey: evidence.evidence_key || evidence.id,
     dimension: evidence.dimension,
@@ -191,7 +191,7 @@ function compactPoints(points: PersonalityPoint[], fallback: PersonalityPoint, m
   return (filtered.length > 0 ? filtered : [fallback]).slice(0, max)
 }
 
-function participantPattern(name: string, role: 'self' | 'partner', scores: CompatibilityDimensionScores, dayGan?: string | null): PersonalityPoint {
+function participantPattern(name: string, role: 'self' | 'partner', scores: CompatibilityDimensionScoresLegacy, dayGan?: string | null): PersonalityPoint {
   const communication = clamp(scores.communication)
   const stability = clamp(scores.stability)
   const dayMaster = dayGan ? `日主${dayGan}` : '命盘结构'
@@ -219,13 +219,13 @@ export function buildPersonalityFitSummary(input: PersonalityFitInput): Personal
     ['stability', input.scores.stability],
     ['communication', input.scores.communication],
     ['practicality', input.scores.practicality],
-  ] as Array<[keyof CompatibilityDimensionScores, number]>).sort((a, b) => b[1] - a[1])[0]
+  ] as Array<[keyof CompatibilityDimensionScoresLegacy, number]>).sort((a, b) => b[1] - a[1])[0]
   const lowDimension = ([
     ['attraction', input.scores.attraction],
     ['stability', input.scores.stability],
     ['communication', input.scores.communication],
     ['practicality', input.scores.practicality],
-  ] as Array<[keyof CompatibilityDimensionScores, number]>).sort((a, b) => a[1] - b[1])[0]
+  ] as Array<[keyof CompatibilityDimensionScoresLegacy, number]>).sort((a, b) => a[1] - b[1])[0]
 
   const questionLabel = getCompatibilityQuestionLabel(input.primaryQuestion)
   const stageLabel = getCompatibilityStageLabel(input.relationshipStage)
