@@ -192,3 +192,100 @@ func durationReasonsFromEvidence(evidences []CompatibilityEvidence) []string {
 	}
 	return out
 }
+
+// buildStageRisksV3 生成 3 个窗口的风险描述。文案按 (窗口×level) 9 套模板。
+func buildStageRisksV3(duration CompatibilityDurationAssessment, evidences []CompatibilityEvidence) []CompatibilityStageRisk {
+	zodiacKeys := evidenceKeysByDimension(evidences, "zodiac", "nayin")
+	dayKeys := evidenceKeysByDimension(evidences, "day_pillar")
+	eightKeys := evidenceKeysByDimension(evidences, "eight_chars")
+	return []CompatibilityStageRisk{
+		stageRiskV3("three_months", duration.Windows.ThreeMonths.Level, zodiacKeys),
+		stageRiskV3("one_year", duration.Windows.OneYear.Level, dayKeys),
+		stageRiskV3("two_years_plus", duration.Windows.TwoYearsPlus.Level, eightKeys),
+	}
+}
+
+func stageRiskV3(window string, level CompatibilityDurationLevel, evidenceKeys []string) CompatibilityStageRisk {
+	main, trigger, advice := stageRiskTextV3(window, level)
+	return CompatibilityStageRisk{
+		Window:       window,
+		RiskLevel:    string(level),
+		MainRisk:     main,
+		Trigger:      trigger,
+		Advice:       advice,
+		EvidenceKeys: evidenceKeys,
+	}
+}
+
+func stageRiskTextV3(window string, level CompatibilityDurationLevel) (main, trigger, advice string) {
+	switch window {
+	case "three_months":
+		switch level {
+		case CompatibilityDurationHigh:
+			return "靠近感强但节奏需要校准", "对方推进速度与你不同步时", "保持轻量频繁互动，不急于规则化关系。"
+		case CompatibilityDurationMedium:
+			return "短期吸引点有限", "缺乏话题或场景持续输入时", "刻意制造共同体验，避免单方追逐。"
+		default:
+			return "短期吸引基础薄弱", "热度退去后缺少留存点", "用现实生活节奏检验是否值得继续投入。"
+		}
+	case "one_year":
+		switch level {
+		case CompatibilityDurationHigh:
+			return "亲密层稳固但仍需经营", "生活节奏被外部压力打乱时", "建立稳定的冲突修复机制。"
+		case CompatibilityDurationMedium:
+			return "亲密层有支撑但易波动", "情绪强度替代具体沟通时", "把分歧拆成具体事项，不情绪化判断关系本身。"
+		default:
+			return "亲密层缺乏天然契合", "对方亲密表达与你期待错位时", "先观察互相调整的意愿，再做长期承诺。"
+		}
+	default:
+		switch level {
+		case CompatibilityDurationHigh:
+			return "长期稳定基础好", "责任分工与资源投入需要落地时", "建立可持续的责任分工与共同计划。"
+		case CompatibilityDurationMedium:
+			return "长期承接强度中等", "现实压力（住、家庭、收入）进入关系时", "用阶段性目标替代『未来无限期』式承诺。"
+		default:
+			return "长期承接薄弱", "需要共同处理重大现实议题时", "在做长期承诺前重新评估关系结构。"
+		}
+	}
+}
+
+func evidenceKeysByDimension(evidences []CompatibilityEvidence, dims ...string) []string {
+	set := map[string]bool{}
+	for _, d := range dims {
+		set[d] = true
+	}
+	out := make([]string, 0, 2)
+	for _, ev := range evidences {
+		if set[ev.Dimension] && ev.EvidenceKey != "" {
+			out = append(out, ev.EvidenceKey)
+		}
+	}
+	return out
+}
+
+// buildRelationshipStrategyV3 按 recommendation 三档切换 12 句策略模板（4 句 × 3 档）。
+func buildRelationshipStrategyV3(recommendation string) CompatibilityRelationshipStrategy {
+	switch recommendation {
+	case "continue":
+		return CompatibilityRelationshipStrategy{
+			Communication: "重要议题用明确约定替代情绪试探。",
+			Conflict:      "冲突先暂停升级，再回到具体事件与责任分工。",
+			Reality:       "长期计划拆成可验证的小步骤，逐项落地。",
+			Boundary:      "保持双方个人节奏，避免过早形成单向依赖。",
+		}
+	case "observe":
+		return CompatibilityRelationshipStrategy{
+			Communication: "重要话题做到事先沟通规则，再讨论内容。",
+			Conflict:      "争执后给彼此 24 小时冷却，再回到事实层处理。",
+			Reality:       "用 1–2 个生活议题（出行、家庭联系）观察现实承接能力。",
+			Boundary:      "在关系规则未稳定前，避免重大物质或时间投入。",
+		}
+	default:
+		return CompatibilityRelationshipStrategy{
+			Communication: "用具体行为而非情绪强度作为判断锚点。",
+			Conflict:      "冲突后先评估是否值得继续修复，再决定行动。",
+			Reality:       "把共同决策的频率与强度降到最低，先稳定个人节奏。",
+			Boundary:      "明确可暂停 / 可退出的关系边界，避免被动滑入承诺。",
+		}
+	}
+}

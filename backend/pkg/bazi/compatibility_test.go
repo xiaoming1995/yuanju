@@ -230,3 +230,47 @@ func TestBuildDurationAssessmentV3_Branches(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildStageRisksV3_AllWindowsHaveLevelAndKeys(t *testing.T) {
+	evidences := []CompatibilityEvidence{
+		{EvidenceKey: "zodiac_liuhe", Dimension: "zodiac"},
+		{EvidenceKey: "nayin_sheng", Dimension: "nayin"},
+		{EvidenceKey: "day_pillar_upper", Dimension: "day_pillar"},
+		{EvidenceKey: "eight_chars_year_upper", Dimension: "eight_chars"},
+	}
+	duration := CompatibilityDurationAssessment{
+		Windows: CompatibilityDurationWindows{
+			ThreeMonths:  CompatibilityDurationWindow{Level: CompatibilityDurationHigh},
+			OneYear:      CompatibilityDurationWindow{Level: CompatibilityDurationMedium},
+			TwoYearsPlus: CompatibilityDurationWindow{Level: CompatibilityDurationLow},
+		},
+	}
+	risks := buildStageRisksV3(duration, evidences)
+	if len(risks) != 3 {
+		t.Fatalf("expected 3 windows, got %d", len(risks))
+	}
+	for _, r := range risks {
+		if r.RiskLevel == "" || r.MainRisk == "" || r.Trigger == "" || r.Advice == "" {
+			t.Errorf("incomplete risk: %+v", r)
+		}
+	}
+	if !containsString(risks[0].EvidenceKeys, "zodiac_liuhe") &&
+		!containsString(risks[0].EvidenceKeys, "nayin_sheng") {
+		t.Error("3-month window should reference zodiac/nayin evidence")
+	}
+	if !containsString(risks[1].EvidenceKeys, "day_pillar_upper") {
+		t.Error("1-year window should reference day_pillar evidence")
+	}
+	if !containsString(risks[2].EvidenceKeys, "eight_chars_year_upper") {
+		t.Error("2-year+ window should reference eight_chars evidence")
+	}
+}
+
+func TestBuildRelationshipStrategyV3_ThreeTiers(t *testing.T) {
+	for _, rec := range []string{"continue", "observe", "caution"} {
+		s := buildRelationshipStrategyV3(rec)
+		if s.Communication == "" || s.Conflict == "" || s.Reality == "" || s.Boundary == "" {
+			t.Errorf("recommendation %q produced empty strategy: %+v", rec, s)
+		}
+	}
+}
