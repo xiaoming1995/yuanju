@@ -37,3 +37,14 @@ test('history page supports chart naming and compatibility launch role choice', 
   assert.match(css, /history-display-name/)
   assert.match(css, /history-role-dialog/)
 })
+
+test('history page guards nested actions and role dialog keyboard focus', () => {
+  const page = read('src/pages/HistoryPage.tsx')
+  assert.match(page, /isInteractiveTarget/)
+  assert.match(page, /target\.closest\('button, input, select, textarea, a'\)/)
+  assert.match(page, /roleDialogRef/)
+  assert.match(page, /roleDialogRef\.current\?\.focus\(\)/)
+  assert.match(page, /event\.key === 'Escape'/)
+  assert.match(page, /previous\?\.focus\(\)/)
+  assert.match(page, /tabIndex=\{-1\}/)
+})

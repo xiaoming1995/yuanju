@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { CalendarDays, Compass, HeartHandshake, Sparkles } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -28,9 +28,14 @@ function chartDisplayName(chart: Chart) {
   return chart.display_name?.trim() || chartFallbackName(chart)
 }
 
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof HTMLElement && Boolean(target.closest('button, input, select, textarea, a'))
+}
+
 export default function HistoryPage() {
   const { user, isLoading } = useAuth()
   const navigate = useNavigate()
+  const roleDialogRef = useRef<HTMLDivElement | null>(null)
   const [charts, setCharts] = useState<Chart[]>([])
   const [loading, setLoading] = useState(true)
   const [editingChartId, setEditingChartId] = useState<string | null>(null)
@@ -46,6 +51,20 @@ export default function HistoryPage() {
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [user, isLoading, navigate])
+
+  useEffect(() => {
+    if (!compatibilityRoleChart) return
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    roleDialogRef.current?.focus()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setCompatibilityRoleChart(null)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previous?.focus()
+    }
+  }, [compatibilityRoleChart])
 
   const latestChart = charts[0]
   const maleCount = charts.filter(chart => chart.gender === 'male').length
@@ -153,8 +172,12 @@ export default function HistoryPage() {
                 className="history-record-card card"
                 role="link"
                 tabIndex={0}
-                onClick={() => navigate(`/history/${c.id}`)}
+                onClick={(event) => {
+                  if (isInteractiveTarget(event.target)) return
+                  navigate(`/history/${c.id}`)
+                }}
                 onKeyDown={(event) => {
+                  if (isInteractiveTarget(event.target)) return
                   if (event.key === 'Enter' || event.key === ' ') {
                     event.preventDefault()
                     navigate(`/history/${c.id}`)
@@ -251,7 +274,12 @@ export default function HistoryPage() {
             aria-label="选择合盘身份"
             onClick={() => setCompatibilityRoleChart(null)}
           >
-            <div className="history-role-dialog-panel" onClick={(event) => event.stopPropagation()}>
+            <div
+              ref={roleDialogRef}
+              className="history-role-dialog-panel"
+              tabIndex={-1}
+              onClick={(event) => event.stopPropagation()}
+            >
               <p className="history-kicker">选择合盘身份</p>
               <h2 className="serif">{chartDisplayName(compatibilityRoleChart)}</h2>
               <p>请选择这份命盘在合盘中的角色。</p>
