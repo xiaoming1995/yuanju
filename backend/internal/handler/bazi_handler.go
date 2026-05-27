@@ -15,6 +15,7 @@ import (
 	"yuanju/pkg/bazi"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type CalculateInput struct {
@@ -371,6 +372,10 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 	displayName, err := normalizeChartDisplayName(*req.DisplayName)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if _, err := uuid.Parse(chartID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的命盘ID"})
 		return
 	}
 	chart, err := repository.GetChartByID(chartID)

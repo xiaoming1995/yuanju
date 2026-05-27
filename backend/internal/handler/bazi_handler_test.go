@@ -62,14 +62,29 @@ func TestUpdateChartDisplayNameRequest_RejectsNullDisplayName(t *testing.T) {
 	}
 }
 
+func TestUpdateChartDisplayNameRequest_RejectsMalformedChartID(t *testing.T) {
+	recorder := performUpdateHistoryDisplayNameRequestAtPath(t, "/history/not-a-uuid/display-name", `{"display_name":"小王"}`)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), "无效的命盘ID") {
+		t.Fatalf("expected invalid chart id error, got %s", recorder.Body.String())
+	}
+}
+
 func performUpdateHistoryDisplayNameRequest(t *testing.T, body string) *httptest.ResponseRecorder {
+	return performUpdateHistoryDisplayNameRequestAtPath(t, "/history/chart-1/display-name", body)
+}
+
+func performUpdateHistoryDisplayNameRequestAtPath(t *testing.T, path, body string) *httptest.ResponseRecorder {
 	t.Helper()
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.PATCH("/history/:id/display-name", UpdateHistoryDisplayName)
 
-	req := httptest.NewRequest(http.MethodPatch, "/history/chart-1/display-name", bytes.NewBufferString(body))
+	req := httptest.NewRequest(http.MethodPatch, path, bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
 	recorder := httptest.NewRecorder()
 

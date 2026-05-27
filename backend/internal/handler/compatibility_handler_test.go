@@ -10,6 +10,8 @@ import (
 	"yuanju/internal/model"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 func init() {
@@ -126,6 +128,23 @@ func TestCreateCompatibilityReadingRequest_DecodesDisplayNames(t *testing.T) {
 	}
 	if req.PartnerDisplayName != "小王" {
 		t.Fatalf("expected partner display name to decode, got %q", req.PartnerDisplayName)
+	}
+}
+
+func TestCompatibilityProfileInput_AllowsZeroHour(t *testing.T) {
+	validate, ok := binding.Validator.Engine().(*validator.Validate)
+	if !ok {
+		t.Fatal("expected gin validator engine")
+	}
+	input := CompatibilityProfileInput{
+		Year:   1990,
+		Month:  1,
+		Day:    1,
+		Hour:   0,
+		Gender: "male",
+	}
+	if err := validate.Struct(input); err != nil {
+		t.Fatalf("expected hour 0 to be valid, got %v", err)
 	}
 }
 
