@@ -100,3 +100,95 @@ func decisionAdviceTextsV3(recommendation string) (conditions, doNext, avoid []s
 			}
 	}
 }
+
+// buildDurationAssessmentV3 按 design §5.3 三窗口阈值生成评估。
+func buildDurationAssessmentV3(s CompatibilityDimensionScores) CompatibilityDurationAssessment {
+	short := shortWindowLevel(s)
+	mid := midWindowLevel(s)
+	long := longWindowLevel(s)
+	return CompatibilityDurationAssessment{
+		OverallBand: durationBandV3(long),
+		Windows: CompatibilityDurationWindows{
+			ThreeMonths:  CompatibilityDurationWindow{Level: short},
+			OneYear:      CompatibilityDurationWindow{Level: mid},
+			TwoYearsPlus: CompatibilityDurationWindow{Level: long},
+		},
+		Summary: durationSummaryV3(short, long),
+		Reasons: nil, // 由调用方注入 evidence reasons
+	}
+}
+
+func shortWindowLevel(s CompatibilityDimensionScores) CompatibilityDurationLevel {
+	switch {
+	case s.Zodiac == 50 && s.Nayin == 20:
+		return CompatibilityDurationHigh
+	case s.Zodiac == 50 || s.Nayin == 20:
+		return CompatibilityDurationMedium
+	default:
+		return CompatibilityDurationLow
+	}
+}
+
+func midWindowLevel(s CompatibilityDimensionScores) CompatibilityDurationLevel {
+	switch {
+	case s.DayPillar == 10 || (s.DayPillar == 5 && s.Zodiac == 50):
+		return CompatibilityDurationHigh
+	case s.DayPillar >= 5:
+		return CompatibilityDurationMedium
+	default:
+		return CompatibilityDurationLow
+	}
+}
+
+func longWindowLevel(s CompatibilityDimensionScores) CompatibilityDurationLevel {
+	switch {
+	case s.EightChars >= 14 && s.DayPillar >= 5:
+		return CompatibilityDurationHigh
+	case s.EightChars >= 7 || s.DayPillar == 10:
+		return CompatibilityDurationMedium
+	default:
+		return CompatibilityDurationLow
+	}
+}
+
+func durationBandV3(longLevel CompatibilityDurationLevel) string {
+	switch longLevel {
+	case CompatibilityDurationHigh:
+		return "long_term"
+	case CompatibilityDurationMedium:
+		return "medium_term"
+	default:
+		return "short_term"
+	}
+}
+
+func durationSummaryV3(short, long CompatibilityDurationLevel) string {
+	switch {
+	case short == CompatibilityDurationHigh && long == CompatibilityDurationHigh:
+		return "属相与纳音支撑短期吸引，日柱与八字承接长期稳定，关系发展通道顺畅。"
+	case short == CompatibilityDurationHigh && long == CompatibilityDurationLow:
+		return "短期靠近感强，但长期承接薄弱——关系更像「先热后难」型，需要把短期热度引导到现实安排。"
+	case long == CompatibilityDurationHigh:
+		return "短期需要时间培养亲近感，长期承接稳——关系更适合慢热经营。"
+	default:
+		return "这段关系的维持性更依赖阶段中的现实磨合而非最初的命盘指向。"
+	}
+}
+
+// durationReasonsFromEvidence 把前 3 条命中 evidence 转为 Reason 字符串。
+func durationReasonsFromEvidence(evidences []CompatibilityEvidence) []string {
+	out := make([]string, 0, 3)
+	for _, ev := range evidences {
+		if ev.Polarity != "positive" {
+			continue
+		}
+		out = append(out, ev.Title+"："+ev.Detail)
+		if len(out) >= 3 {
+			break
+		}
+	}
+	if len(out) == 0 {
+		out = append(out, "当前盘面未触发任何加分模块，建议结合现实相处判断维持性。")
+	}
+	return out
+}

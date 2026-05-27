@@ -189,3 +189,44 @@ func TestBuildDecisionAdviceV3_AllBranches(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildDurationAssessmentV3_Branches(t *testing.T) {
+	cases := []struct {
+		name                                 string
+		zodiac, nayin, dayPillar, eightChars int
+		wantShort, wantMid, wantLong         CompatibilityDurationLevel
+	}{
+		{"all high",
+			50, 20, 10, 20,
+			CompatibilityDurationHigh, CompatibilityDurationHigh, CompatibilityDurationHigh},
+		{"zodiac+nayin only",
+			50, 20, 0, 0,
+			CompatibilityDurationHigh, CompatibilityDurationLow, CompatibilityDurationLow},
+		{"day_pillar lower with zodiac",
+			50, 0, 5, 0,
+			CompatibilityDurationMedium, CompatibilityDurationHigh, CompatibilityDurationLow},
+		{"eight_chars strong only",
+			0, 0, 0, 17,
+			CompatibilityDurationLow, CompatibilityDurationLow, CompatibilityDurationMedium},
+		{"all miss",
+			0, 0, 0, 0,
+			CompatibilityDurationLow, CompatibilityDurationLow, CompatibilityDurationLow},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			da := buildDurationAssessmentV3(CompatibilityDimensionScores{
+				Zodiac: tc.zodiac, Nayin: tc.nayin,
+				DayPillar: tc.dayPillar, EightChars: tc.eightChars,
+			})
+			if da.Windows.ThreeMonths.Level != tc.wantShort {
+				t.Errorf("short: got %q, want %q", da.Windows.ThreeMonths.Level, tc.wantShort)
+			}
+			if da.Windows.OneYear.Level != tc.wantMid {
+				t.Errorf("mid: got %q, want %q", da.Windows.OneYear.Level, tc.wantMid)
+			}
+			if da.Windows.TwoYearsPlus.Level != tc.wantLong {
+				t.Errorf("long: got %q, want %q", da.Windows.TwoYearsPlus.Level, tc.wantLong)
+			}
+		})
+	}
+}
