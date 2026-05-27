@@ -1,15 +1,22 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
+  baziAPI,
   compatibilityAPI,
+  type BaziHistoryChart,
   type CompatibilityPrimaryQuestion,
   type CompatibilityProfileInput,
   type CompatibilityRelationshipStage,
 } from '../lib/api'
 import BirthProfileForm from '../components/BirthProfileForm'
-import { initialBirthProfile, type BirthProfileFormValue } from '../components/birthProfile'
+import {
+  chartToBirthProfile,
+  initialBirthProfile,
+  type BirthProfileFormValue,
+  type BirthProfileImportSource,
+} from '../components/birthProfile'
 import { buildPersonalityConsultationPreview } from '../lib/compatibilityPersonality'
 import './CompatibilityPage.css'
 
@@ -43,22 +50,145 @@ function toCompatibilityProfileInput(value: BirthProfileFormValue): Compatibilit
   }
 }
 
+function buildImportSource(chart: BaziHistoryChart): BirthProfileImportSource {
+  const profile = chartToBirthProfile(chart)
+  return {
+    chartId: chart.id,
+    displayName: chart.display_name?.trim() || '',
+    profile,
+  }
+}
+
 export default function CompatibilityPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const { user, isLoading } = useAuth()
+  const handledImportQueryRef = useRef('')
+  const chartPickerRef = useRef<HTMLDivElement | null>(null)
   const [selfProfile, setSelfProfile] = useState<BirthProfileFormValue>(initialBirthProfile('male'))
   const [partnerProfile, setPartnerProfile] = useState<BirthProfileFormValue>(initialBirthProfile('female'))
   const [relationshipStage, setRelationshipStage] = useState<CompatibilityRelationshipStage>('ambiguous')
   const [primaryQuestion, setPrimaryQuestion] = useState<CompatibilityPrimaryQuestion>('continue_investment')
   const [activeProfile, setActiveProfile] = useState<'self' | 'partner'>('self')
+  const [historyCharts, setHistoryCharts] = useState<BaziHistoryChart[]>([])
+  const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [pickerRole, setPickerRole] = useState<'self' | 'partner' | null>(null)
+  const [selfImportSource, setSelfImportSource] = useState<BirthProfileImportSource | null>(null)
+  const [partnerImportSource, setPartnerImportSource] = useState<BirthProfileImportSource | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const consultationPreview = buildPersonalityConsultationPreview(relationshipStage, primaryQuestion)
   const questionProgressLabel = primaryQuestionOptions.find(option => option.value === primaryQuestion)?.label || '性格合不合'
   const stageProgressLabel = relationshipStageOptions.find(option => option.value === relationshipStage)?.label || '综合关系判断'
   const birthProfileProgressLabel = selfProfile && partnerProfile ? '双方生辰已可起盘' : '待补双方生辰'
+  const userKey = user?.id || user?.email || ''
+
+  const loadHistoryCharts = async () => {
+    if (isLoading) return []
+    if (!user) {
+      navigate('/login')
+      return []
+    }
+    if (historyLoaded) return historyCharts
+    const res = await baziAPI.getHistory()
+    const charts = (res.data.charts || []) as BaziHistoryChart[]
+    setHistoryCharts(charts)
+    setHistoryLoaded(true)
+    return charts
+  }
+
+  const applyImportedChart = useCallback((role: 'self' | 'partner', chart: BaziHistoryChart) => {
+    const source = buildImportSource(chart)
+    if (role === 'self') {
+      setSelfProfile(source.profile)
+      setSelfImportSource(source)
+      setActiveProfile('self')
+    } else {
+      setPartnerProfile(source.profile)
+      setPartnerImportSource(source)
+      setActiveProfile('partner')
+    }
+  }, [])
+
+  const importChartFromHistory = useCallback(async (role: 'self' | 'partner', chartId: string) => {
+    try {
+      const res = await baziAPI.getHistoryDetail(chartId)
+      applyImportedChart(role, res.data.chart as BaziHistoryChart)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '命盘不存在或无权访问')
+    }
+  }, [applyImportedChart])
+
+  const importLatestChart = async (role: 'self' | 'partner') => {
+    if (isLoading) return
+    const charts = await loadHistoryCharts()
+    if (charts.length === 0) {
+      setError('还没有命盘档案，请先新建命盘')
+      return
+    }
+    applyImportedChart(role, charts[0])
+  }
+
+  useEffect(() => {
+    const chartId = searchParams.get('importChart')
+    const role = searchParams.get('role')
+    if (!chartId || (role !== 'self' && role !== 'partner')) return
+    if (isLoading) return
+    if (!userKey) {
+      navigate('/login')
+      return
+    }
+    const importKey = `${chartId}:${role}`
+    if (handledImportQueryRef.current === importKey) return
+    handledImportQueryRef.current = importKey
+    importChartFromHistory(role, chartId)
+  }, [searchParams, isLoading, userKey, navigate, importChartFromHistory])
+
+  useEffect(() => {
+    if (!pickerRole) return
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    chartPickerRef.current?.focus()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPickerRole(null)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previous?.focus()
+    }
+  }, [pickerRole])
+
+  const handleSelfProfileChange = (next: BirthProfileFormValue) => {
+    setSelfProfile(next)
+  }
+
+  const handlePartnerProfileChange = (next: BirthProfileFormValue) => {
+    setPartnerProfile(next)
+  }
+
+  const isProfileModified = (source: BirthProfileImportSource | null, current: BirthProfileFormValue) => {
+    if (!source) return false
+    return JSON.stringify(source.profile) !== JSON.stringify(current)
+  }
+
+  const importSourceLabel = (source: BirthProfileImportSource | null, current: BirthProfileFormValue, fallback: string) => {
+    if (!source) return ''
+    const name = source.displayName || fallback
+    return isProfileModified(source, current) ? `已基于${name}修改` : `已导入：${name}`
+  }
+
+  const displayNameForSubmit = (source: BirthProfileImportSource | null, current: BirthProfileFormValue) => {
+    return source && !isProfileModified(source, current) && source.displayName ? source.displayName : undefined
+  }
+
+  const openChartPicker = async (role: 'self' | 'partner') => {
+    if (isLoading) return
+    setPickerRole(role)
+    await loadHistoryCharts()
+  }
 
   const handleSubmit = async () => {
+    if (isLoading) return
     if (!user) {
       navigate('/login')
       return
@@ -71,6 +201,8 @@ export default function CompatibilityPage() {
         partner: toCompatibilityProfileInput(partnerProfile),
         relationship_stage: relationshipStage,
         primary_question: primaryQuestion,
+        self_display_name: displayNameForSubmit(selfImportSource, selfProfile),
+        partner_display_name: displayNameForSubmit(partnerImportSource, partnerProfile),
       })
       navigate(`/compatibility/${data.data.reading.id}`)
     } catch (err: unknown) {
@@ -167,17 +299,43 @@ export default function CompatibilityPage() {
 
         <div className="compatibility-forms">
           <div className={`card compatibility-profile-panel ${activeProfile === 'self' ? 'compatibility-profile-panel--active' : ''}`}>
-            <BirthProfileForm title="我的生辰" value={selfProfile} onChange={setSelfProfile} showSummary />
+            <div className="compatibility-import-toolbar">
+              <button type="button" className="btn btn-ghost" onClick={() => importLatestChart('self')}>
+                导入最近命盘
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => openChartPicker('self')}>
+                从命盘档案选择
+              </button>
+            </div>
+            {selfImportSource && (
+              <p className="compatibility-import-source">
+                {importSourceLabel(selfImportSource, selfProfile, '我的命盘')}
+              </p>
+            )}
+            <BirthProfileForm title="我的生辰" value={selfProfile} onChange={handleSelfProfileChange} showSummary />
           </div>
           <div className={`card compatibility-profile-panel ${activeProfile === 'partner' ? 'compatibility-profile-panel--active' : ''}`}>
-            <BirthProfileForm title="对方的生辰" value={partnerProfile} onChange={setPartnerProfile} showSummary />
+            <div className="compatibility-import-toolbar">
+              <button type="button" className="btn btn-ghost" onClick={() => importLatestChart('partner')}>
+                导入最近命盘
+              </button>
+              <button type="button" className="btn btn-ghost" onClick={() => openChartPicker('partner')}>
+                从命盘档案选择
+              </button>
+            </div>
+            {partnerImportSource && (
+              <p className="compatibility-import-source">
+                {importSourceLabel(partnerImportSource, partnerProfile, '对方命盘')}
+              </p>
+            )}
+            <BirthProfileForm title="对方的生辰" value={partnerProfile} onChange={handlePartnerProfileChange} showSummary />
           </div>
         </div>
 
         {error && <p className="compatibility-error">{error}</p>}
 
         <div className="compatibility-actions">
-          <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting || isLoading}>
             {submitting ? '正在起盘合盘...' : '开始合盘'}
           </button>
           <button className="btn btn-ghost" onClick={() => navigate('/compatibility/history')}>
@@ -185,6 +343,41 @@ export default function CompatibilityPage() {
           </button>
         </div>
       </div>
+
+      {pickerRole && (
+        <div className="compatibility-chart-picker" role="dialog" aria-modal="true" aria-label="选择命盘档案">
+          <div className="compatibility-chart-picker-panel" ref={chartPickerRef} tabIndex={-1}>
+            <div className="compatibility-chart-picker-head">
+              <strong>选择命盘档案</strong>
+              <button type="button" className="btn btn-ghost" onClick={() => setPickerRole(null)}>
+                关闭
+              </button>
+            </div>
+            {historyCharts.length === 0 ? (
+              <div className="compatibility-chart-picker-empty">先新建命盘</div>
+            ) : (
+              <div className="compatibility-chart-picker-list">
+                {historyCharts.map(chart => (
+                  <button
+                    key={chart.id}
+                    type="button"
+                    className="compatibility-chart-picker-item"
+                    onClick={() => {
+                      applyImportedChart(pickerRole, chart)
+                      setPickerRole(null)
+                    }}
+                  >
+                    <span>{chart.display_name?.trim() || `${chart.year_gan}${chart.year_zhi} ${chart.day_gan}${chart.day_zhi}`}</span>
+                    <small>
+                      {chart.birth_year}-{chart.birth_month}-{chart.birth_day} {chart.birth_hour}:00
+                    </small>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

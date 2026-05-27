@@ -152,6 +152,7 @@ func main() {
 			bazi.POST("/past-events/dayun-summary-stream/:chart_id", middleware.Auth(), handler.HandleDayunSummariesStream)
 			bazi.GET("/history", middleware.Auth(), handler.GetHistory)
 			bazi.GET("/history/:id", middleware.Auth(), handler.GetHistoryDetail)
+			bazi.PATCH("/history/:id/display-name", middleware.Auth(), handler.UpdateHistoryDisplayName)
 			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
 		}
 

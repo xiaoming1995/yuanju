@@ -356,6 +356,9 @@ export default function ResultPage() {
   const [polishError, setPolishError] = useState<string | null>(null)
   const [savingImage, setSavingImage] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
+  const [chartDisplayNameDraft, setChartDisplayNameDraft] = useState('')
+  const [chartDisplayNameSaving, setChartDisplayNameSaving] = useState(false)
+  const [chartDisplayNameError, setChartDisplayNameError] = useState('')
   const shareCardRef = useRef<HTMLDivElement>(null)
 
   // 神煞注解状态
@@ -572,11 +575,38 @@ export default function ResultPage() {
         .then(res => {
           setResult(res.data.result || res.data.chart || null)
           setReport(res.data.report || null)
+          if (res.data.chart) {
+            setChartDisplayNameDraft(res.data.chart?.display_name || '')
+          }
         })
         .catch(() => navigate('/history'))
         .finally(() => setLoading(false))
     }
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSaveChartDisplayName = async () => {
+    if (!targetId) return
+    const nextName = chartDisplayNameDraft.trim()
+    if (Array.from(nextName).length > 20) {
+      setChartDisplayNameError('称呼不能超过20个字符')
+      return
+    }
+    setChartDisplayNameSaving(true)
+    setChartDisplayNameError('')
+    try {
+      const res = await baziAPI.updateHistoryDisplayName(targetId, nextName)
+      setChartDisplayNameDraft(res.data.data.display_name)
+    } catch (err: unknown) {
+      setChartDisplayNameError(err instanceof Error ? err.message : '保存称呼失败')
+    } finally {
+      setChartDisplayNameSaving(false)
+    }
+  }
+
+  const launchCompatibilityFromResult = (role: 'self' | 'partner') => {
+    if (!targetId) return
+    navigate(`/compatibility?importChart=${targetId}&role=${role}`)
+  }
 
   // 点击"生成 AI 解读"按钮
   const handleGenerateReport = async () => {
@@ -697,6 +727,61 @@ export default function ResultPage() {
             )}
           </div>
         </div>
+
+        {!isGuest && targetId && (
+          <section className="chart-archive-tools card animate-fade-up" aria-label="命盘档案工具">
+            <div>
+              <span className="chart-archive-kicker">命盘档案</span>
+              <h2 className="section-title serif">档案称呼</h2>
+            </div>
+
+            <div className="chart-archive-editor">
+              <label className="form-label" htmlFor="chart-display-name">档案称呼</label>
+              <input
+                id="chart-display-name"
+                className="form-input"
+                value={chartDisplayNameDraft}
+                onChange={(event) => {
+                  setChartDisplayNameDraft(event.target.value)
+                  setChartDisplayNameError('')
+                }}
+                maxLength={20}
+                placeholder="例如：我 / 小王"
+              />
+              {chartDisplayNameError && (
+                <p className="chart-archive-error">{chartDisplayNameError}</p>
+              )}
+            </div>
+
+            <div className="chart-archive-actions">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleSaveChartDisplayName}
+                disabled={chartDisplayNameSaving}
+              >
+                {chartDisplayNameSaving ? '保存中...' : '保存称呼'}
+              </button>
+              <span>用此命盘发起合盘</span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                data-import-query="role=self"
+                onClick={() => launchCompatibilityFromResult('self')}
+              >
+                作为我
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                data-import-query="role=partner"
+                onClick={() => launchCompatibilityFromResult('partner')}
+              >
+                作为对方
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* 命盘详情 */}
         <div className="professional-view animate-fade-up">

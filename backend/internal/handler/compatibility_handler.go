@@ -13,17 +13,19 @@ type CompatibilityProfileInput struct {
 	Year         int    `json:"year" binding:"required,min=1900,max=2100"`
 	Month        int    `json:"month" binding:"required,min=1,max=12"`
 	Day          int    `json:"day" binding:"required,min=1,max=31"`
-	Hour         int    `json:"hour" binding:"required,min=0,max=23"`
+	Hour         int    `json:"hour" binding:"min=0,max=23"`
 	Gender       string `json:"gender" binding:"required,oneof=male female"`
 	CalendarType string `json:"calendar_type" binding:"omitempty,oneof=solar lunar"`
 	IsLeapMonth  bool   `json:"is_leap_month"`
 }
 
 type CreateCompatibilityReadingRequest struct {
-	Self              CompatibilityProfileInput `json:"self" binding:"required"`
-	Partner           CompatibilityProfileInput `json:"partner" binding:"required"`
-	RelationshipStage string                    `json:"relationship_stage"`
-	PrimaryQuestion   string                    `json:"primary_question"`
+	Self               CompatibilityProfileInput `json:"self" binding:"required"`
+	Partner            CompatibilityProfileInput `json:"partner" binding:"required"`
+	SelfDisplayName    string                    `json:"self_display_name"`
+	PartnerDisplayName string                    `json:"partner_display_name"`
+	RelationshipStage  string                    `json:"relationship_stage"`
+	PrimaryQuestion    string                    `json:"primary_question"`
 }
 
 func CreateCompatibilityReading(c *gin.Context) {
@@ -40,6 +42,10 @@ func CreateCompatibilityReading(c *gin.Context) {
 		model.CompatibilityContext{
 			RelationshipStage: req.RelationshipStage,
 			PrimaryQuestion:   req.PrimaryQuestion,
+		},
+		model.CompatibilityDisplayNames{
+			Self:    req.SelfDisplayName,
+			Partner: req.PartnerDisplayName,
 		},
 	)
 	if err != nil {

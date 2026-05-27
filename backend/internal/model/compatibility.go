@@ -20,6 +20,11 @@ type CompatibilityContext struct {
 	PrimaryQuestion   string `json:"primary_question"`
 }
 
+type CompatibilityDisplayNames struct {
+	Self    string
+	Partner string
+}
+
 type CompatibilityDimensionScores struct {
 	Zodiac     int `json:"zodiac"`
 	Nayin      int `json:"nayin"`

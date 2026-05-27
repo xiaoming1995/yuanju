@@ -10,6 +10,8 @@ import (
 	"yuanju/internal/model"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
 func init() {
@@ -107,6 +109,42 @@ func TestCreateCompatibilityReadingRequest_DecodesRelationshipContext(t *testing
 	}
 	if req.PrimaryQuestion != "marriage_suitability" {
 		t.Fatalf("expected primary question to decode, got %q", req.PrimaryQuestion)
+	}
+}
+
+func TestCreateCompatibilityReadingRequest_DecodesDisplayNames(t *testing.T) {
+	body := []byte(`{
+		"self_display_name": "我",
+		"partner_display_name": "小王",
+		"self": {"year": 1990, "month": 1, "day": 1, "hour": 0, "gender": "male"},
+		"partner": {"year": 1992, "month": 6, "day": 15, "hour": 12, "gender": "female"}
+	}`)
+	var req CreateCompatibilityReadingRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		t.Fatal(err)
+	}
+	if req.SelfDisplayName != "我" {
+		t.Fatalf("expected self display name to decode, got %q", req.SelfDisplayName)
+	}
+	if req.PartnerDisplayName != "小王" {
+		t.Fatalf("expected partner display name to decode, got %q", req.PartnerDisplayName)
+	}
+}
+
+func TestCompatibilityProfileInput_AllowsZeroHour(t *testing.T) {
+	validate, ok := binding.Validator.Engine().(*validator.Validate)
+	if !ok {
+		t.Fatal("expected gin validator engine")
+	}
+	input := CompatibilityProfileInput{
+		Year:   1990,
+		Month:  1,
+		Day:    1,
+		Hour:   0,
+		Gender: "male",
+	}
+	if err := validate.Struct(input); err != nil {
+		t.Fatalf("expected hour 0 to be valid, got %v", err)
 	}
 }
 

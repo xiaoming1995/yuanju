@@ -9,23 +9,24 @@ type UserProfileStats struct {
 }
 
 type UserProfileChartSummary struct {
-	ID         string    `json:"id"`
-	BirthYear  int       `json:"birth_year"`
-	BirthMonth int       `json:"birth_month"`
-	BirthDay   int       `json:"birth_day"`
-	BirthHour  int       `json:"birth_hour"`
-	Gender     string    `json:"gender"`
-	YearGan    string    `json:"year_gan"`
-	YearZhi    string    `json:"year_zhi"`
-	MonthGan   string    `json:"month_gan"`
-	MonthZhi   string    `json:"month_zhi"`
-	DayGan     string    `json:"day_gan"`
-	DayZhi     string    `json:"day_zhi"`
-	HourGan    string    `json:"hour_gan"`
-	HourZhi    string    `json:"hour_zhi"`
-	Yongshen   string    `json:"yongshen"`
-	Jishen     string    `json:"jishen"`
-	CreatedAt  time.Time `json:"created_at"`
+	ID          string    `json:"id"`
+	BirthYear   int       `json:"birth_year"`
+	BirthMonth  int       `json:"birth_month"`
+	BirthDay    int       `json:"birth_day"`
+	BirthHour   int       `json:"birth_hour"`
+	Gender      string    `json:"gender"`
+	DisplayName string    `json:"display_name"`
+	YearGan     string    `json:"year_gan"`
+	YearZhi     string    `json:"year_zhi"`
+	MonthGan    string    `json:"month_gan"`
+	MonthZhi    string    `json:"month_zhi"`
+	DayGan      string    `json:"day_gan"`
+	DayZhi      string    `json:"day_zhi"`
+	HourGan     string    `json:"hour_gan"`
+	HourZhi     string    `json:"hour_zhi"`
+	Yongshen    string    `json:"yongshen"`
+	Jishen      string    `json:"jishen"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type UserProfileCompatibilitySummary struct {
