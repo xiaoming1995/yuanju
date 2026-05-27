@@ -39,6 +39,10 @@ const dimensionText: Record<string, string> = {
   stability: '能不能长期稳定？',
   communication: '吵架后能不能修复？',
   practicality: '现实条件能不能落地？',
+  zodiac: '合属相',
+  nayin: '合纳音',
+  day_pillar: '合日柱',
+  eight_chars: '合八字',
 }
 
 const dimensionHint: Record<keyof CompatibilityDimensionScoresLegacy, string> = {
@@ -74,6 +78,10 @@ const evidenceSourceText: Record<string, string> = {
   ganzhi_interaction: '干支合冲刑害',
   relationship_pattern: '关系模式',
   timing_context: '阶段时机',
+  zodiac: '合属相',
+  nayin: '合纳音',
+  day_pillar: '合日柱',
+  eight_chars: '合八字',
 }
 
 const perspectiveText: Record<string, string> = {
