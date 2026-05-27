@@ -1,3 +1,5 @@
+-- +goose Up
+
 -- Compatibility v3: rename rationale comment + add overall_score column.
 -- The new 100-point scoring formula stores per-module breakdown in the
 -- existing dimension_scores JSONB column with new keys (zodiac/nayin/
