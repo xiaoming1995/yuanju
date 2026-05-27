@@ -391,7 +391,7 @@ export interface CompatibilityReading {
   duration_assessment: CompatibilityDurationAssessment
   consulting_assessment: CompatibilityConsultingAssessment
   summary_tags: string[]
-  analysis_version: 'v1' | 'v2' | 'v3'
+  analysis_version: 'v1' | 'v2' | 'v3' | 'v3.1'
   created_at: string
   updated_at: string
 }
@@ -443,7 +443,7 @@ export interface CompatibilityHistoryItem {
   summary_tags: string[]
   self_name: string
   partner_name: string
-  analysis_version: 'v1' | 'v2' | 'v3'
+  analysis_version: 'v1' | 'v2' | 'v3' | 'v3.1'
   created_at: string
 }
 
