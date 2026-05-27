@@ -28,6 +28,8 @@
 5. **附加结构全部保留**（`evidences` / `score_explanations` / `summary_tags` / `duration_assessment` / `consulting_assessment`），仅重接驱动数据源
 6. **历史记录不动**：以 `analysis_version` 字段区分；旧记录走旧渲染路径，新查询走新算法
 
+**Version 标签备注**：现有代码已将 `analysis_version` 写入为 `"v2"`（自首个 compatibility commit 起），DB schema default 为 `"v1"`。本次新算法**统一标记为 `"v3"`**；前端将 `"v1"` / `"v2"` 视为同一类 legacy 走旧渲染分支。
+
 ## 3. 算法规范
 
 ### 3.1 评分网格
@@ -89,7 +91,7 @@ type CompatibilityDimensionScores struct {
     Practicality  int `json:"practicality"`
 }
 
-// 新（v2 schema）
+// 新（v3 schema）
 type CompatibilityDimensionScores struct {
     Zodiac     int `json:"zodiac"`       // 合属相 0–50
     Nayin      int `json:"nayin"`        // 合纳音 0–20
@@ -113,7 +115,7 @@ type CompatibilityAnalysis struct {
 }
 ```
 
-`CompatibilityReading.AnalysisVersion` 新写入固定为 `"v2"`。
+`CompatibilityReading.AnalysisVersion` 新写入固定为 `"v3"`。
 
 ### 4.2 evidence 列表
 
@@ -256,7 +258,7 @@ type CompatibilityDimensionScores = {
 type CompatibilityReading = {
   // ...
   overall_score: number;                  // 新增
-  analysis_version: 'v1' | 'v2';
+  analysis_version: 'v1' | 'v2' | 'v3';   // v1/v2 = legacy 4-dim, v3 = new formula
   dimension_scores: CompatibilityDimensionScores;
 }
 ```
@@ -264,9 +266,9 @@ type CompatibilityReading = {
 ### 7.2 渲染分支（`CompatibilityResultPage.tsx`）
 
 - 读 `reading.analysis_version`：
-  - `v2` → 走新组件 `ScoreOverviewV2`，按 4 模块渲染
-  - `v1` 或缺失 → **保留**现行 `ScoreOverview` + dimension/evidence/consulting 渲染路径作为兼容分支
-- 顶部摘要新增「总分」大数字 + level 徽章（仅 v2 路径）
+  - `v3` → 走新组件 `ScoreOverviewV3`，按 4 模块（zodiac/nayin/day_pillar/eight_chars）渲染
+  - `v1` / `v2` / 缺失 → **保留**现行 `ScoreOverview` + dimension/evidence/consulting 渲染路径作为兼容分支
+- 顶部摘要新增「总分」大数字 + level 徽章（仅 v3 路径）
 
 ### 7.3 dimensionHint 文案
 
@@ -281,14 +283,14 @@ const dimensionHintV2 = {
 
 ### 7.4 历史列表（`CompatibilityHistoryPage.tsx`）
 
-mini-renderer 也按 version 分两路；v2 路径显示总分大数字与 level。
+mini-renderer 也按 version 分两路；v3 路径显示总分大数字与 level。
 
 ## 8. DB / 历史兼容
 
 - **不做 DDL 结构改动**：`dimension_scores` 是 JSONB，键名变化不需要 ALTER TABLE
-- **新 migration** `00011_compatibility_v2_analysis.sql`：仅写 `COMMENT ON COLUMN ... analysis_version` 标注 v1/v2 含义
-- **新写入**：`compatibility_repository.go` INSERT 时硬编码 `analysis_version = 'v2'`
-- **旧记录**：保留原状，前端按 version 切渲染
+- **新 migration** `00011_compatibility_v3_analysis.sql`：仅写 `COMMENT ON COLUMN ... analysis_version` 标注 v1/v2/v3 含义
+- **新写入**：`compatibility_service.go` 中 `compatibilityAnalysisVersion` 常量由 `"v2"` 改为 `"v3"`
+- **旧记录**：保留原状（含历史的 v1 / v2），前端按 version 切渲染
 - **不做** lazy-recompute、不做批量 backfill、不做删除
 
 ## 9. 拆分后的文件布局
@@ -346,10 +348,10 @@ openspec/changes/compatibility-scoring-formula-v2/
 | `backend/pkg/bazi/compatibility_assessment.go` | **新增** ~200 行 |
 | `backend/pkg/bazi/compatibility_test.go` | 634 → ~400 行重写 |
 | `backend/internal/model/compatibility.go` | DimensionScores 字段重命名 + OverallScore 新增 |
-| `backend/internal/repository/compatibility_repository.go` | INSERT 标 `analysis_version='v2'` |
+| `backend/internal/repository/compatibility_repository.go` | INSERT 标 `analysis_version='v3'` |
 | `backend/internal/service/compatibility_service.go` | I/O 字段同步 |
 | `backend/pkg/prompt/canonical_compatibility.go` | prompt 模板重写 |
-| `backend/pkg/database/migrations/00011_compatibility_v2_analysis.sql` | 新增（仅 COMMENT） |
+| `backend/pkg/database/migrations/00011_compatibility_v3_analysis.sql` | 新增（仅 COMMENT） |
 | `frontend/src/lib/api.ts` | 类型重定义 + overall_score |
 | `frontend/src/pages/CompatibilityResultPage.tsx` | version 分两路渲染；ScoreOverviewV2 |
 | `frontend/src/pages/CompatibilityHistoryPage.tsx` | 列表按 version 分两路 |
