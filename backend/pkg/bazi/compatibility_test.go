@@ -106,3 +106,40 @@ func TestAnalyzeCompatibility_Stub_ReturnsTypesOnly(t *testing.T) {
 
 // 占位避免 unused import: strings 包将在 Task 14b 引入更多用途
 var _ = strings.Contains
+
+func TestBuildSummaryTagsV3_AllHits(t *testing.T) {
+	got := buildSummaryTagsV3(CompatibilityDimensionScores{
+		Zodiac: 50, Nayin: 20, DayPillar: 10, EightChars: 20,
+	}, 100)
+	if !containsString(got, "上吉合盘") {
+		t.Errorf("expected 上吉合盘 tag, got %v", got)
+	}
+	if !containsString(got, "属相相合") {
+		t.Errorf("expected 属相相合 tag, got %v", got)
+	}
+}
+
+func TestBuildSummaryTagsV3_AllMiss(t *testing.T) {
+	got := buildSummaryTagsV3(CompatibilityDimensionScores{}, 0)
+	if !containsString(got, "合盘无加成") {
+		t.Errorf("expected 合盘无加成 tag, got %v", got)
+	}
+}
+
+func TestBuildSummaryTagsV3_MaxFour(t *testing.T) {
+	got := buildSummaryTagsV3(CompatibilityDimensionScores{
+		Zodiac: 50, Nayin: 20, DayPillar: 10, EightChars: 20,
+	}, 100)
+	if len(got) > 4 {
+		t.Errorf("tags exceeded 4: %v", got)
+	}
+}
+
+func containsString(slice []string, s string) bool {
+	for _, x := range slice {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}

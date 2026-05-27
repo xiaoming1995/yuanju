@@ -243,3 +243,35 @@ func eightCharsSummary(a, b *BaziResult) string {
 		return fmt.Sprintf("年 / 月 / 时三柱中有 %d 柱合，外围层有支撑。", hits)
 	}
 }
+
+// buildSummaryTagsV3 按 design §4.4 规则生成最多 4 条 tag。
+// 总分级 tag（上吉合盘 / 合盘无加成）作为整体定性，优先放在最前；
+// 之后按模块顺序追加，最终截断为 4 条。
+func buildSummaryTagsV3(scores CompatibilityDimensionScores, total int) []string {
+	tags := make([]string, 0, 4)
+	if total >= 80 {
+		tags = append(tags, "上吉合盘")
+	}
+	if total < 60 && scores.Zodiac == 0 && scores.Nayin == 0 &&
+		scores.DayPillar == 0 && scores.EightChars == 0 {
+		tags = append(tags, "合盘无加成")
+	}
+	if scores.Zodiac >= 50 {
+		tags = append(tags, "属相相合")
+	}
+	if scores.Nayin >= 20 {
+		tags = append(tags, "纳音同气")
+	}
+	if scores.DayPillar == 10 {
+		tags = append(tags, "日柱上吉")
+	} else if scores.DayPillar == 5 {
+		tags = append(tags, "日柱次吉")
+	}
+	if scores.EightChars >= 14 {
+		tags = append(tags, "八字承接好")
+	}
+	if len(tags) > 4 {
+		tags = tags[:4]
+	}
+	return tags
+}
