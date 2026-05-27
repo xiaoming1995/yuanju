@@ -62,11 +62,20 @@ func sanheGroupName(a, b string) string {
 	return group[0] + group[1] + group[2]
 }
 
-// scoreZodiac 计算「合属相」模块得分（满分 50）。
-// 输入为两人年支；命中六合或三合（含半三合）即得 50，否则 0。
+// scoreZodiac 计算「合属相」模块得分（满分 50，v3.1 三级）。
+// 上档 50：年支六合或三合（含半三合）
+// 中档 30：年支五行相同（双生）；即便同时构成六冲（辰戌/丑未）也按中档计分，与「纯加分制」原则一致
+// 下档 20：年支五行相生（任一方向）
+// 0    ：相克 / 相冲（不同行的子午等）/ 相穿 / 相害 / 自刑 / 同支
 func scoreZodiac(yearZhiA, yearZhiB string) int {
 	if branchCompatible(yearZhiA, yearZhiB) {
 		return 50
+	}
+	if branchSameElement(yearZhiA, yearZhiB) {
+		return 30
+	}
+	if branchShengElement(yearZhiA, yearZhiB) {
+		return 20
 	}
 	return 0
 }

@@ -106,12 +106,12 @@ func TestScoreZodiac_Sanhe_Returns50(t *testing.T) {
 }
 
 func TestScoreZodiac_NoHit_Returns0(t *testing.T) {
+	// v3.1：相克/相冲（不同行）/相穿/相害/自刑 → 0
+	// 注：子卯 虽然相刑，但水生木（相生）→ v3.1 按相生 20 计，已移至 _Sheng_Returns20 覆盖
 	cases := [][2]string{
-		{"子", "午"}, // 六冲
-		{"子", "未"}, // 六害
-		{"子", "卯"}, // 相刑
+		{"子", "午"}, // 六冲（水克火）
+		{"子", "未"}, // 六害（水土相克）
 		{"子", "子"}, // 同支（自刑）
-		{"寅", "卯"}, // 双生（五行同），不命中
 	}
 	for _, p := range cases {
 		if got := scoreZodiac(p[0], p[1]); got != 0 {
@@ -305,5 +305,52 @@ func TestBranchShengElement_FalseCases(t *testing.T) {
 		if branchShengElement(p[0], p[1]) {
 			t.Errorf("branchShengElement(%q,%q) = true, want false", p[0], p[1])
 		}
+	}
+}
+
+func TestScoreZodiac_SameElement_Returns30(t *testing.T) {
+	// 五行同（双生）：上档(六合/三合)不命中 → 中档 30
+	cases := [][2]string{
+		{"亥", "子"}, // 水
+		{"寅", "卯"}, // 木
+		{"巳", "午"}, // 火
+		{"申", "酉"}, // 金
+		{"辰", "戌"}, // 土，同时也是六冲——按 v3.1 优先级判中档 30
+		{"丑", "未"}, // 土，同时也是六冲——同上
+	}
+	for _, p := range cases {
+		if got := scoreZodiac(p[0], p[1]); got != 30 {
+			t.Errorf("scoreZodiac(%q,%q) = %d, want 30", p[0], p[1], got)
+		}
+	}
+}
+
+func TestScoreZodiac_Sheng_Returns20(t *testing.T) {
+	// 五行相生：上档(六合/三合) + 中档(同行) 均不命中 → 下档 20
+	// 注：辰申同属申子辰三合，用戌申（土生金、无三合/六合关系）替代
+	// 子卯 虽相刑，但水生木，v3.1 纯加分制取正档 20
+	cases := [][2]string{
+		{"子", "寅"}, // 水生木
+		{"子", "卯"}, // 水生木（相刑，但正面取优）
+		{"寅", "巳"}, // 木生火
+		{"巳", "辰"}, // 火生土
+		{"戌", "申"}, // 土生金（辰申三合，故改用戌申）
+		{"申", "亥"}, // 金生水
+	}
+	for _, p := range cases {
+		if got := scoreZodiac(p[0], p[1]); got != 20 {
+			t.Errorf("scoreZodiac(%q,%q) = %d, want 20", p[0], p[1], got)
+		}
+	}
+}
+
+func TestScoreZodiac_Priority_LiuheBeatsSameElement(t *testing.T) {
+	// 子丑：六合（土水？ 实际是六合，五行不同行）→ 50
+	if got := scoreZodiac("子", "丑"); got != 50 {
+		t.Errorf("scoreZodiac(子,丑) = %d, want 50 (六合优先)", got)
+	}
+	// 巳申：六合，金水化水（五行不同）→ 50
+	if got := scoreZodiac("巳", "申"); got != 50 {
+		t.Errorf("scoreZodiac(巳,申) = %d, want 50 (六合优先)", got)
 	}
 }
