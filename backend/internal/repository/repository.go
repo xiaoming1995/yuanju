@@ -61,12 +61,12 @@ func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 
 	err := database.DB.QueryRow(`
 		INSERT INTO bazi_charts
-		(user_id, birth_year, birth_month, birth_day, birth_hour, gender,
+		(user_id, birth_year, birth_month, birth_day, birth_hour, gender, display_name,
 		 year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
 		 wuxing, dayun, yongshen, jishen, chart_hash, calendar_type, is_leap_month)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
 		RETURNING id, chart_hash, created_at`,
-		userID, chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour, chart.Gender,
+		userID, chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour, chart.Gender, chart.DisplayName,
 		chart.YearGan, chart.YearZhi, chart.MonthGan, chart.MonthZhi,
 		chart.DayGan, chart.DayZhi, chart.HourGan, chart.HourZhi,
 		wuxingJSON, dayunJSON, chart.Yongshen, chart.Jishen, chart.ChartHash,
@@ -93,6 +93,7 @@ func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 	result.BirthDay = chart.BirthDay
 	result.BirthHour = chart.BirthHour
 	result.Gender = chart.Gender
+	result.DisplayName = chart.DisplayName
 	result.CalendarType = chart.CalendarType
 	result.IsLeapMonth = chart.IsLeapMonth
 	return result, nil

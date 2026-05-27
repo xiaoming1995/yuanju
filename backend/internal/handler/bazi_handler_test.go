@@ -2,6 +2,8 @@ package handler
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -90,4 +92,39 @@ func performUpdateHistoryDisplayNameRequestAtPath(t *testing.T, path, body strin
 
 	router.ServeHTTP(recorder, req)
 	return recorder
+}
+
+func TestCalculateInput_BindsDisplayName(t *testing.T) {
+	var input CalculateInput
+	body := `{"year":2001,"month":1,"day":1,"hour":12,"gender":"male","display_name":"小王"}`
+	if err := json.Unmarshal([]byte(body), &input); err != nil {
+		t.Fatal(err)
+	}
+	if input.DisplayName != "小王" {
+		t.Fatalf("expected DisplayName=小王, got %q", input.DisplayName)
+	}
+}
+
+func TestCalculate_RejectsLongDisplayName(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/calculate", Calculate)
+
+	longName := strings.Repeat("命", 21)
+	body := fmt.Sprintf(
+		`{"year":2001,"month":1,"day":1,"hour":12,"gender":"male","display_name":%q}`,
+		longName,
+	)
+
+	req := httptest.NewRequest(http.MethodPost, "/calculate", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), "20") {
+		t.Fatalf("expected error to mention length limit, got %s", recorder.Body.String())
+	}
 }

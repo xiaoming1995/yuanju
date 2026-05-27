@@ -28,6 +28,7 @@ type CalculateInput struct {
 	Longitude    float64 `json:"longitude"`                                           // 出生地经度，用于真太阳时修正，0 表示不修正
 	CalendarType string  `json:"calendar_type" binding:"omitempty,oneof=solar lunar"` // solar: 公历, lunar: 农历
 	IsLeapMonth  bool    `json:"is_leap_month"`                                       // 是否为闰月
+	DisplayName  string  `json:"display_name"`                                        // 档案称呼（可选，≤20 字符，由 normalizeChartDisplayName 校验）
 }
 
 // Calculate 计算八字（无需登录，但若是已登录用户起盘，则自动落库保存历史）
@@ -40,6 +41,12 @@ func Calculate(c *gin.Context) {
 
 	if input.CalendarType == "" {
 		input.CalendarType = "solar" // 默认兼容公历
+	}
+
+	displayName, err := normalizeChartDisplayName(input.DisplayName)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
 	}
 
 	result := bazi.Calculate(input.Year, input.Month, input.Day, input.Hour,
@@ -64,6 +71,7 @@ func Calculate(c *gin.Context) {
 		BirthDay:   input.Day,
 		BirthHour:  input.Hour,
 		Gender:     input.Gender,
+		DisplayName: displayName,
 		YearGan:    result.YearGan, YearZhi: result.YearZhi,
 		MonthGan: result.MonthGan, MonthZhi: result.MonthZhi,
 		DayGan: result.DayGan, DayZhi: result.DayZhi,
