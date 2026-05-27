@@ -137,7 +137,7 @@ func dayPillarEvidence(a, b *BaziResult) []CompatibilityEvidence {
 		return []CompatibilityEvidence{{
 			EvidenceKey: "day_pillar_safe",
 			Dimension:   "day_pillar",
-			Type:        "日柱安慰",
+			Type:        "日柱安慰分",
 			Polarity:    "positive",
 			Source:      "day_pillar",
 			Title:       "日柱安慰分",
