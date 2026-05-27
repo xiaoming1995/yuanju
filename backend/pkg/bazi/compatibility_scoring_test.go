@@ -386,3 +386,55 @@ func TestScoreDayPillar_Ke_Returns0(t *testing.T) {
 		t.Errorf("甲子/戊戌 日支(水土相克): got %d, want 0", got)
 	}
 }
+
+func TestRealCase_1996_1995_FourModules(t *testing.T) {
+	// Person A 1996-02-08 20时: 丙子 / 庚寅 / 乙亥 / 丙戌
+	// Person B 1995-02-02 16时（立春前回退）: 甲戌 / 丁丑 / 甲子 / 壬申
+	yearGanA, yearZhiA := "丙", "子"
+	monthGanA, monthZhiA := "庚", "寅"
+	dayGanA, dayZhiA := "乙", "亥"
+	hourGanA, hourZhiA := "丙", "戌"
+
+	yearGanB, yearZhiB := "甲", "戌"
+	monthGanB, monthZhiB := "丁", "丑"
+	dayGanB, dayZhiB := "甲", "子"
+	hourGanB, hourZhiB := "壬", "申"
+
+	// 合属相: 年支 子vs戌 (水vs土，土克水) → 0
+	if got := scoreZodiac(yearZhiA, yearZhiB); got != 0 {
+		t.Errorf("zodiac: got %d, want 0", got)
+	}
+
+	// 合纳音: 涧下水 vs 山头火，水克火 → 0
+	if got := scoreNayin(yearGanA+yearZhiA, yearGanB+yearZhiB); got != 0 {
+		t.Errorf("nayin: got %d, want 0", got)
+	}
+
+	// 合日柱: 日支 亥vs子（双生水），干 乙vs甲（同木）→ 下档 3
+	if got := scoreDayPillar(dayGanA, dayZhiA, dayGanB, dayZhiB); got != 3 {
+		t.Errorf("day_pillar: got %d, want 3", got)
+	}
+
+	// 合八字三柱:
+	//   年 子vs戌 土克水 → 0
+	//   月 寅vs丑 木被土克 → 0
+	//   时 戌vs申 土生金 → 3
+	//   sum=3 → 归一化 (3*2+1)/3 = 7/3 = 2
+	got := scoreEightChars(
+		yearGanA, yearZhiA, yearGanB, yearZhiB,
+		monthGanA, monthZhiA, monthGanB, monthZhiB,
+		hourGanA, hourZhiA, hourGanB, hourZhiB,
+	)
+	if got != 2 {
+		t.Errorf("eight_chars: got %d, want 2", got)
+	}
+
+	// 总分预期 5/100 (0+0+3+2)
+	total := scoreZodiac(yearZhiA, yearZhiB) +
+		scoreNayin(yearGanA+yearZhiA, yearGanB+yearZhiB) +
+		scoreDayPillar(dayGanA, dayZhiA, dayGanB, dayZhiB) +
+		got
+	if total != 5 {
+		t.Errorf("total: got %d, want 5", total)
+	}
+}
