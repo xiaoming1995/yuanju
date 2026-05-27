@@ -2,7 +2,7 @@ package prompt
 
 func init() {
 	Register("compatibility", Definition{
-		Version:     "v3-question-aware",
+		Version:     "v3-question-aware-2",
 		Description: "合盘决策咨询 prompt（含 question_focus / decision_advice / stage_risks）",
 		Content:     compatibilityCanonicalContent,
 	})
@@ -120,10 +120,10 @@ B 命盘摘要：
     }
   ],
   "dimensions": [
-    { "key": "attraction", "title": "吸引力", "content": "基于证据的维度解释" },
-    { "key": "stability", "title": "稳定度", "content": "基于证据的维度解释" },
-    { "key": "communication", "title": "沟通协同", "content": "基于证据的维度解释" },
-    { "key": "practicality", "title": "现实磨合", "content": "基于证据的维度解释" }
+    { "key": "zodiac", "title": "合属相", "content": "围绕年支六合 / 三合的关系基础" },
+    { "key": "nayin", "title": "合纳音", "content": "围绕年柱纳音五行的能量流动" },
+    { "key": "day_pillar", "title": "合日柱", "content": "围绕日柱亲密层的结构" },
+    { "key": "eight_chars", "title": "合八字", "content": "围绕年/月/时三柱的外围承接" }
   ],
   "duration_assessment": {
     "overall_band": "medium_term",
