@@ -31,12 +31,21 @@ export default function HomePage() {
   const [ziHourMode, setZiHourMode] = useState<ZiHourMode>('late')
   const [province, setProvince] = useState('')
   const [showAdvancedCalibration, setShowAdvancedCalibration] = useState(false)
+  const [chartDisplayName, setChartDisplayName] = useState('')
+  const [displayNameError, setDisplayNameError] = useState('')
 
   const calibrationSummary = province ? `${province}真太阳时校准` : '按北京时间排盘'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setDisplayNameError('')
+    const trimmedName = chartDisplayName.trim()
+    if (Array.from(trimmedName).length > 20) {
+      setDisplayNameError('称呼不能超过20个字符')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -57,6 +66,7 @@ export default function HomePage() {
         longitude: PROVINCE_LONGITUDE[province] || 0,
         calendar_type: birthProfile.calendarType,
         is_leap_month: birthProfile.isLeapMonth,
+        display_name: trimmedName || undefined,
       }
 
       // 统一调用算法排盘（快速），AI 解读由用户在结果页按钮触发
@@ -104,6 +114,26 @@ export default function HomePage() {
                 ziHourMode={ziHourMode}
                 onZiHourModeChange={setZiHourMode}
               />
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="chart-display-name">
+                  档案称呼（选填）
+                  <span className="field-note">用于在历史与合盘中识别此命盘，最多 20 字</span>
+                </label>
+                <input
+                  id="chart-display-name"
+                  className="form-input"
+                  type="text"
+                  value={chartDisplayName}
+                  onChange={(e) => {
+                    setChartDisplayName(e.target.value)
+                    if (displayNameError) setDisplayNameError('')
+                  }}
+                  maxLength={20}
+                  placeholder="例如：我 / 小王"
+                />
+                {displayNameError && <p className="form-error">{displayNameError}</p>}
+              </div>
 
               <div className="advanced-calibration">
                 <button
