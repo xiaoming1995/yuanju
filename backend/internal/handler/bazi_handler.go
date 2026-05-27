@@ -374,7 +374,11 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 		return
 	}
 	chart, err := repository.GetChartByID(chartID)
-	if err != nil || chart == nil {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取命盘失败"})
+		return
+	}
+	if chart == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "记录不存在"})
 		return
 	}
