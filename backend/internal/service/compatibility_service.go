@@ -13,7 +13,7 @@ import (
 	"yuanju/pkg/prompt"
 )
 
-const compatibilityAnalysisVersion = "v2"
+const compatibilityAnalysisVersion = "v3"
 
 var compatibilityRelationshipStageLabels = map[string]string{
 	"ambiguous":              "暧昧中",
@@ -69,10 +69,10 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 		userID,
 		string(analysis.OverallLevel),
 		model.CompatibilityDimensionScores{
-			Attraction:    analysis.DimensionScores.Attraction,
-			Stability:     analysis.DimensionScores.Stability,
-			Communication: analysis.DimensionScores.Communication,
-			Practicality:  analysis.DimensionScores.Practicality,
+			Zodiac:     analysis.DimensionScores.Zodiac,
+			Nayin:      analysis.DimensionScores.Nayin,
+			DayPillar:  analysis.DimensionScores.DayPillar,
+			EightChars: analysis.DimensionScores.EightChars,
 		},
 		mapCompatibilityScoreExplanations(analysis.ScoreExplanations),
 		model.CompatibilityDurationAssessment{
@@ -93,6 +93,7 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 	if err != nil {
 		return nil, err
 	}
+	reading.OverallScore = analysis.OverallScore
 
 	selfSnapshot, _ := json.Marshal(selfChart)
 	partnerSnapshot, _ := json.Marshal(partnerChart)
