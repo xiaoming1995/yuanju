@@ -45,14 +45,11 @@ var compatibilityQuestionGuidance = map[string]string{
 	"general":                  "重点回答关系是否值得继续观察、主要优势、主要风险和下一步行动。",
 }
 
-func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model.CompatibilityBirthProfile, contexts ...model.CompatibilityContext) (*model.CompatibilityDetail, error) {
+func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model.CompatibilityBirthProfile, context model.CompatibilityContext, displayNames model.CompatibilityDisplayNames) (*model.CompatibilityDetail, error) {
 	selfProfile = normalizeCompatibilityProfile(selfProfile)
 	partnerProfile = normalizeCompatibilityProfile(partnerProfile)
-	context := model.CompatibilityContext{}
-	if len(contexts) > 0 {
-		context = contexts[0]
-	}
 	context = normalizeCompatibilityContext(context)
+	displayNames = normalizeCompatibilityDisplayNames(displayNames)
 
 	selfChart := bazi.Calculate(
 		selfProfile.Year, selfProfile.Month, selfProfile.Day, selfProfile.Hour,
@@ -99,10 +96,10 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 	selfRaw := json.RawMessage(selfSnapshot)
 	partnerRaw := json.RawMessage(partnerSnapshot)
 
-	if _, err := repository.CreateCompatibilityParticipant(reading.ID, "self", "我", selfChart.ChartHash, selfProfile, &selfRaw); err != nil {
+	if _, err := repository.CreateCompatibilityParticipant(reading.ID, "self", displayNames.Self, selfChart.ChartHash, selfProfile, &selfRaw); err != nil {
 		return nil, err
 	}
-	if _, err := repository.CreateCompatibilityParticipant(reading.ID, "partner", "对方", partnerChart.ChartHash, partnerProfile, &partnerRaw); err != nil {
+	if _, err := repository.CreateCompatibilityParticipant(reading.ID, "partner", displayNames.Partner, partnerChart.ChartHash, partnerProfile, &partnerRaw); err != nil {
 		return nil, err
 	}
 
@@ -601,4 +598,22 @@ func normalizeCompatibilityContext(context model.CompatibilityContext) model.Com
 		context.PrimaryQuestion = "general"
 	}
 	return context
+}
+
+func normalizeCompatibilityDisplayNames(in model.CompatibilityDisplayNames) model.CompatibilityDisplayNames {
+	self := strings.TrimSpace(in.Self)
+	partner := strings.TrimSpace(in.Partner)
+	if self == "" {
+		self = "我"
+	}
+	if partner == "" {
+		partner = "对方"
+	}
+	if len([]rune(self)) > 20 {
+		self = string([]rune(self)[:20])
+	}
+	if len([]rune(partner)) > 20 {
+		partner = string([]rune(partner)[:20])
+	}
+	return model.CompatibilityDisplayNames{Self: self, Partner: partner}
 }

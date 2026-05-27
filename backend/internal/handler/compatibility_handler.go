@@ -20,10 +20,12 @@ type CompatibilityProfileInput struct {
 }
 
 type CreateCompatibilityReadingRequest struct {
-	Self              CompatibilityProfileInput `json:"self" binding:"required"`
-	Partner           CompatibilityProfileInput `json:"partner" binding:"required"`
-	RelationshipStage string                    `json:"relationship_stage"`
-	PrimaryQuestion   string                    `json:"primary_question"`
+	Self               CompatibilityProfileInput `json:"self" binding:"required"`
+	Partner            CompatibilityProfileInput `json:"partner" binding:"required"`
+	SelfDisplayName    string                    `json:"self_display_name"`
+	PartnerDisplayName string                    `json:"partner_display_name"`
+	RelationshipStage  string                    `json:"relationship_stage"`
+	PrimaryQuestion    string                    `json:"primary_question"`
 }
 
 func CreateCompatibilityReading(c *gin.Context) {
@@ -40,6 +42,10 @@ func CreateCompatibilityReading(c *gin.Context) {
 		model.CompatibilityContext{
 			RelationshipStage: req.RelationshipStage,
 			PrimaryQuestion:   req.PrimaryQuestion,
+		},
+		model.CompatibilityDisplayNames{
+			Self:    req.SelfDisplayName,
+			Partner: req.PartnerDisplayName,
 		},
 	)
 	if err != nil {

@@ -20,6 +20,11 @@ type CompatibilityContext struct {
 	PrimaryQuestion   string `json:"primary_question"`
 }
 
+type CompatibilityDisplayNames struct {
+	Self    string
+	Partner string
+}
+
 type CompatibilityDimensionScores struct {
 	Attraction    int `json:"attraction"`
 	Stability     int `json:"stability"`
