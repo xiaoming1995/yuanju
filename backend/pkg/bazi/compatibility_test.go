@@ -632,3 +632,34 @@ func isASCII(value string) bool {
 	}
 	return true
 }
+
+func TestBuildEvidences_ZodiacLiuhe(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "壬午", "丁未", "male")
+	b := makeCompatNatal("己丑", "戊辰", "庚申", "辛酉", "female")
+	ev := buildCompatibilityEvidencesV3(a, b)
+	found := false
+	for _, item := range ev {
+		if item.EvidenceKey == "zodiac_liuhe" {
+			if item.Weight != 50 || item.Dimension != "zodiac" || item.Polarity != "positive" {
+				t.Errorf("zodiac_liuhe: bad shape %+v", item)
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Error("expected zodiac_liuhe evidence for 子/丑 pair")
+	}
+}
+
+func TestBuildEvidences_AllHits_Count6(t *testing.T) {
+	// 构造一组让 4 模块全部命中、且 eight_chars 三柱全命中的盘。
+	// 甲子/乙丑：年支 子/丑 六合（zodiac），纳音同为「金」（nayin same），
+	// 日柱地支六合 + 干五行同行 → 下档命中（day_pillar），三柱同理（eight_chars × 3）。
+	a := makeCompatNatal("甲子", "甲子", "甲子", "甲子", "male")
+	b := makeCompatNatal("乙丑", "乙丑", "乙丑", "乙丑", "female")
+	ev := buildCompatibilityEvidencesV3(a, b)
+	// zodiac + nayin + day_pillar + eight_chars(year/month/hour) = 1+1+1+3 = 6
+	if len(ev) != 6 {
+		t.Errorf("all-hit case: got %d evidences, want 6", len(ev))
+	}
+}
