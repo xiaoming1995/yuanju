@@ -24,3 +24,16 @@ test('birth profile helper converts saved charts into compatibility form values'
   assert.match(helper, /calendarType:\s*chart\.calendar_type\s*\|\|\s*'solar'/)
   assert.match(helper, /isLeapMonth:\s*Boolean\(chart\.is_leap_month\)/)
 })
+
+test('history page supports chart naming and compatibility launch role choice', () => {
+  const page = read('src/pages/HistoryPage.tsx')
+  const css = read('src/pages/HistoryPage.css')
+  assert.match(page, /editingChartId/)
+  assert.match(page, /handleSaveDisplayName/)
+  assert.match(page, /compatibilityRoleChart/)
+  assert.match(page, /作为我/)
+  assert.match(page, /作为对方/)
+  assert.match(page, /\/compatibility\?importChart=\$\{compatibilityRoleChart\.id\}&role=/)
+  assert.match(css, /history-display-name/)
+  assert.match(css, /history-role-dialog/)
+})
