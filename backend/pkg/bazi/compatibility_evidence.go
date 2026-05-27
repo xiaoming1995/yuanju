@@ -159,7 +159,7 @@ func buildScoreExplanationsV3(a, b *BaziResult, evidences []CompatibilityEvidenc
 	out := make([]CompatibilityScoreExplanation, 0, 4)
 	for _, dim := range dimensions {
 		hit := findEvidenceByDimension(evidences, dim)
-		exp := CompatibilityScoreExplanation{Dimension: CompatibilityDimension(dim)}
+		exp := CompatibilityScoreExplanation{Dimension: dim}
 		if hit != nil {
 			exp.PositiveFactor = hit.Title
 			exp.PositiveEvidenceKeys = []string{hit.EvidenceKey}
