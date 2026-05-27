@@ -48,3 +48,14 @@ test('history page guards nested actions and role dialog keyboard focus', () => 
   assert.match(page, /previous\?\.focus\(\)/)
   assert.match(page, /tabIndex=\{-1\}/)
 })
+
+test('result page exposes chart archive naming and compatibility import action', () => {
+  const page = read('src/pages/ResultPage.tsx')
+  const css = read('src/pages/ResultPage.css')
+  assert.match(page, /chartDisplayNameDraft/)
+  assert.match(page, /handleSaveChartDisplayName/)
+  assert.match(page, /用此命盘发起合盘/)
+  assert.match(page, /role=self/)
+  assert.match(page, /role=partner/)
+  assert.match(css, /chart-archive-tools/)
+})
