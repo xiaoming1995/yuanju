@@ -93,20 +93,6 @@ func TestBuildScoreExplanationsV3_UnHitModule_HasSummary(t *testing.T) {
 	}
 }
 
-// AnalyzeCompatibility 现在是 stub — 仅验证类型可用
-func TestAnalyzeCompatibility_Stub_ReturnsTypesOnly(t *testing.T) {
-	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
-	b := makeCompatNatal("己丑", "戊辰", "己丑", "庚申", "female")
-	got := AnalyzeCompatibility(a, b)
-	// stub 阶段允许 zero 值；只检查不 panic 且类型已实例化
-	_ = got.DimensionScores.Zodiac
-	_ = got.OverallScore
-	_ = got.OverallLevel
-}
-
-// 占位避免 unused import: strings 包将在 Task 14b 引入更多用途
-var _ = strings.Contains
-
 func TestBuildSummaryTagsV3_AllHits(t *testing.T) {
 	got := buildSummaryTagsV3(CompatibilityDimensionScores{
 		Zodiac: 50, Nayin: 20, DayPillar: 10, EightChars: 20,
@@ -322,5 +308,116 @@ func TestBuildConsultingAssessmentV3_Integration(t *testing.T) {
 	}
 	if got.RelationshipStrategy.Communication == "" {
 		t.Error("missing strategy")
+	}
+}
+
+func TestAnalyzeCompatibility_ReturnsV3CoreShape(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
+	b := makeCompatNatal("己丑", "戊辰", "己丑", "庚申", "female")
+	got := AnalyzeCompatibility(a, b)
+	if got.OverallLevel == "" {
+		t.Fatal("expected overall level")
+	}
+	if got.OverallScore < 0 || got.OverallScore > 100 {
+		t.Fatalf("overall_score out of range: %d", got.OverallScore)
+	}
+	if got.DimensionScores.Zodiac < 0 || got.DimensionScores.Zodiac > 50 {
+		t.Errorf("zodiac out of range: %d", got.DimensionScores.Zodiac)
+	}
+	if got.DimensionScores.Nayin < 0 || got.DimensionScores.Nayin > 20 {
+		t.Errorf("nayin out of range: %d", got.DimensionScores.Nayin)
+	}
+	if got.DimensionScores.DayPillar < 0 || got.DimensionScores.DayPillar > 10 {
+		t.Errorf("day_pillar out of range: %d", got.DimensionScores.DayPillar)
+	}
+	if got.DimensionScores.EightChars < 0 || got.DimensionScores.EightChars > 20 {
+		t.Errorf("eight_chars out of range: %d", got.DimensionScores.EightChars)
+	}
+	wantTotal := got.DimensionScores.Zodiac + got.DimensionScores.Nayin +
+		got.DimensionScores.DayPillar + got.DimensionScores.EightChars
+	if got.OverallScore != wantTotal {
+		t.Errorf("overall_score %d != sum of modules %d", got.OverallScore, wantTotal)
+	}
+	if got.ConsultingAssessment.RelationshipDiagnosis.RelationshipType == "" {
+		t.Error("missing relationship type")
+	}
+}
+
+func TestAnalyzeCompatibility_PerfectHit(t *testing.T) {
+	// 注意：plan 原稿用 甲子/己丑 但纳音是 金 vs 火 (火克金) → nayin 不命中。
+	// 改用 乙丑（也是海中金，纳音=same，可达 nayin=20 满分）。
+	a := makeCompatNatal("甲子", "甲子", "甲子", "甲子", "male")
+	b := makeCompatNatal("乙丑", "乙丑", "乙丑", "乙丑", "female")
+	got := AnalyzeCompatibility(a, b)
+	if got.DimensionScores.Zodiac != 50 {
+		t.Errorf("zodiac: got %d, want 50", got.DimensionScores.Zodiac)
+	}
+	if got.DimensionScores.Nayin != 20 {
+		t.Errorf("nayin: got %d, want 20", got.DimensionScores.Nayin)
+	}
+	// 甲乙同行木（不属上档干合/干生），只能下档 5
+	if got.DimensionScores.DayPillar != 5 {
+		t.Errorf("day_pillar: got %d, want 5 (下档干同)", got.DimensionScores.DayPillar)
+	}
+	// 三柱每柱下档 5，总 15 → 归一化 10
+	if got.DimensionScores.EightChars != 10 {
+		t.Errorf("eight_chars: got %d, want 10", got.DimensionScores.EightChars)
+	}
+	// 50 + 20 + 5 + 10 = 85 → high
+	if got.OverallScore != 85 {
+		t.Errorf("overall_score: got %d, want 85", got.OverallScore)
+	}
+	if got.OverallLevel != CompatibilityHigh {
+		t.Errorf("overall_level: got %q, want %q", got.OverallLevel, CompatibilityHigh)
+	}
+}
+
+func TestAnalyzeCompatibility_AllMiss(t *testing.T) {
+	a := makeCompatNatal("甲午", "甲午", "甲午", "甲午", "male")
+	b := makeCompatNatal("庚子", "庚子", "庚子", "庚子", "female")
+	got := AnalyzeCompatibility(a, b)
+	// 子午六冲（不算分）—— 合属相必为 0
+	if got.DimensionScores.Zodiac != 0 {
+		t.Errorf("子午冲: zodiac should be 0, got %d", got.DimensionScores.Zodiac)
+	}
+	if got.OverallScore < 0 || got.OverallScore > 100 {
+		t.Errorf("overall_score out of range: %d", got.OverallScore)
+	}
+}
+
+func TestAnalyzeCompatibility_OverallLevelThresholds(t *testing.T) {
+	cases := []struct {
+		total int
+		want  CompatibilityLevel
+	}{
+		{100, CompatibilityHigh},
+		{80, CompatibilityHigh},
+		{79, CompatibilityMedium},
+		{60, CompatibilityMedium},
+		{59, CompatibilityLow},
+		{0, CompatibilityLow},
+	}
+	for _, tc := range cases {
+		got := overallLevelFromScoreV3(tc.total)
+		if got != tc.want {
+			t.Errorf("score %d: got %q, want %q", tc.total, got, tc.want)
+		}
+	}
+}
+
+func TestAnalyzeCompatibility_EvidenceKeyAndShape(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "甲子", "丁卯", "male")
+	b := makeCompatNatal("己丑", "戊辰", "己丑", "庚申", "female")
+	got := AnalyzeCompatibility(a, b)
+	for _, ev := range got.Evidences {
+		if ev.Polarity != "positive" {
+			t.Errorf("v3 evidence should always be positive, got %q", ev.Polarity)
+		}
+		if ev.EvidenceKey == "" {
+			t.Errorf("evidence missing key: %+v", ev)
+		}
+		if !strings.HasPrefix(ev.EvidenceKey, ev.Dimension+"_") {
+			t.Errorf("evidence_key %q does not start with dimension %q", ev.EvidenceKey, ev.Dimension)
+		}
 	}
 }

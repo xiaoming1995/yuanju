@@ -3,10 +3,6 @@ package bazi
 // Compatibility scoring v3 — 100-point classical formula
 // (zodiac 50 / nayin 20 / day_pillar 10 / eight_chars 20).
 // Design: docs/superpowers/specs/2026-05-27-compatibility-scoring-formula-v2-design.md
-//
-// NOTE: AnalyzeCompatibility 当前是 stub（返回零值）。Task 14b 会把它接到
-// buildSummaryTagsV3 / buildDurationAssessmentV3 / buildConsultingAssessmentV3
-// 等 Tasks 9-13 才定义的函数上。
 
 type CompatibilityLevel string
 
@@ -135,14 +131,43 @@ type CompatibilityAnalysis struct {
 	ConsultingAssessment CompatibilityConsultingAssessment `json:"consulting_assessment"`
 }
 
-// AnalyzeCompatibility 当前是占位 stub —— Task 14b 会替换为真实实现。
-// 调用方现阶段不应依赖具体返回值；类型已稳定可用。
+// AnalyzeCompatibility 是合盘评分 v3 的公开入口。
+// 计算 4 模块得分（合属相 / 合纳音 / 合日柱 / 合八字），汇总到总分（0–100），
+// 并产出 evidence / score_explanations / summary_tags / duration / consulting 全套结构。
 func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
-	_ = a
-	_ = b
+	if a == nil || b == nil {
+		return CompatibilityAnalysis{
+			OverallLevel:    CompatibilityLow,
+			DimensionScores: CompatibilityDimensionScores{},
+		}
+	}
+	scores := CompatibilityDimensionScores{
+		Zodiac:    scoreZodiac(a.YearZhi, b.YearZhi),
+		Nayin:     scoreNayin(a.YearGan+a.YearZhi, b.YearGan+b.YearZhi),
+		DayPillar: scoreDayPillar(a.DayGan, a.DayZhi, b.DayGan, b.DayZhi),
+		EightChars: scoreEightChars(
+			a.YearGan, a.YearZhi, b.YearGan, b.YearZhi,
+			a.MonthGan, a.MonthZhi, b.MonthGan, b.MonthZhi,
+			a.HourGan, a.HourZhi, b.HourGan, b.HourZhi,
+		),
+	}
+	total := scores.Zodiac + scores.Nayin + scores.DayPillar + scores.EightChars
+	evidences := buildCompatibilityEvidencesV3(a, b)
+	explanations := buildScoreExplanationsV3(a, b, evidences)
+	tags := buildSummaryTagsV3(scores, total)
+	duration := buildDurationAssessmentV3(scores)
+	duration.Reasons = durationReasonsFromEvidence(evidences)
+	hits := countHitsV3(scores)
+	consulting := buildConsultingAssessmentV3(total, hits, scores, evidences, duration)
 	return CompatibilityAnalysis{
-		OverallLevel:    CompatibilityLow,
-		DimensionScores: CompatibilityDimensionScores{},
+		OverallScore:         total,
+		OverallLevel:         overallLevelFromScoreV3(total),
+		DimensionScores:      scores,
+		Evidences:            evidences,
+		ScoreExplanations:    explanations,
+		SummaryTags:          tags,
+		DurationAssessment:   duration,
+		ConsultingAssessment: consulting,
 	}
 }
 
