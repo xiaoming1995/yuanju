@@ -29,10 +29,10 @@ func TestBuildCompatibilityPromptData_EmbedsDurationAssessment(t *testing.T) {
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
 			DimensionScores: model.CompatibilityDimensionScores{
-				Attraction:    78,
-				Stability:     54,
-				Communication: 66,
-				Practicality:  48,
+				Zodiac:     20,
+				Nayin:      14,
+				DayPillar:  16,
+				EightChars: 12,
 			},
 			SummaryTags: []string{"吸引力强", "关系波动"},
 			DurationAssessment: model.CompatibilityDurationAssessment{
@@ -76,10 +76,10 @@ func TestBuildCompatibilityPromptData_EmbedsConsultingAssessment(t *testing.T) {
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
 			DimensionScores: model.CompatibilityDimensionScores{
-				Attraction:    78,
-				Stability:     54,
-				Communication: 66,
-				Practicality:  48,
+				Zodiac:     20,
+				Nayin:      14,
+				DayPillar:  16,
+				EightChars: 12,
 			},
 			DurationAssessment: model.CompatibilityDurationAssessment{
 				OverallBand: "medium_term",
@@ -158,10 +158,10 @@ func TestBuildCompatibilityPromptData_EmbedsRelationshipContext(t *testing.T) {
 			RelationshipStage: "reconciliation",
 			PrimaryQuestion:   "reconciliation_potential",
 			DimensionScores: model.CompatibilityDimensionScores{
-				Attraction:    78,
-				Stability:     54,
-				Communication: 66,
-				Practicality:  48,
+				Zodiac:     20,
+				Nayin:      14,
+				DayPillar:  16,
+				EightChars: 12,
 			},
 		},
 		Participants: []model.CompatibilityParticipant{
@@ -196,7 +196,7 @@ func TestBuildCompatibilityPromptData_EmbedsRelationshipContext(t *testing.T) {
 func TestBuildCompatibilityPromptData_EmbedsDepthEvidenceAndScoreExplanations(t *testing.T) {
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
-			DimensionScores: model.CompatibilityDimensionScores{Attraction: 72, Stability: 58, Communication: 64, Practicality: 66},
+			DimensionScores: model.CompatibilityDimensionScores{Zodiac: 18, Nayin: 14, DayPillar: 17, EightChars: 17},
 			ScoreExplanations: []model.CompatibilityScoreExplanation{
 				{
 					Dimension:            "stability",
@@ -257,10 +257,10 @@ func TestEnsureCompatibilityDurationAssessment_BackfillsMissingDuration(t *testi
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
 			DimensionScores: model.CompatibilityDimensionScores{
-				Attraction:    72,
-				Stability:     58,
-				Communication: 61,
-				Practicality:  55,
+				Zodiac:     18,
+				Nayin:      14,
+				DayPillar:  16,
+				EightChars: 14,
 			},
 		},
 		Participants: []model.CompatibilityParticipant{
@@ -296,10 +296,10 @@ func TestEnsureCompatibilityConsultingAssessment_BackfillsMissingConsulting(t *t
 	detail := &model.CompatibilityDetail{
 		Reading: &model.CompatibilityReading{
 			DimensionScores: model.CompatibilityDimensionScores{
-				Attraction:    72,
-				Stability:     58,
-				Communication: 61,
-				Practicality:  55,
+				Zodiac:     18,
+				Nayin:      14,
+				DayPillar:  16,
+				EightChars: 14,
 			},
 		},
 		Participants: []model.CompatibilityParticipant{

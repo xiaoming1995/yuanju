@@ -8,7 +8,7 @@ import (
 	"yuanju/pkg/database"
 )
 
-func CreateCompatibilityReading(userID, overallLevel string, scores model.CompatibilityDimensionScores, scoreExplanations []model.CompatibilityScoreExplanation, duration model.CompatibilityDurationAssessment, consulting model.CompatibilityConsultingAssessment, summaryTags []string, analysisVersion string, context model.CompatibilityContext) (*model.CompatibilityReading, error) {
+func CreateCompatibilityReading(userID, overallLevel string, overallScore int, scores model.CompatibilityDimensionScores, scoreExplanations []model.CompatibilityScoreExplanation, duration model.CompatibilityDurationAssessment, consulting model.CompatibilityConsultingAssessment, summaryTags []string, analysisVersion string, context model.CompatibilityContext) (*model.CompatibilityReading, error) {
 	scoresJSON, _ := json.Marshal(scores)
 	scoreExplanationsJSON, _ := json.Marshal(scoreExplanations)
 	durationJSON, _ := json.Marshal(duration)
@@ -18,11 +18,11 @@ func CreateCompatibilityReading(userID, overallLevel string, scores model.Compat
 	r := &model.CompatibilityReading{}
 	var rawScores, rawScoreExplanations, rawDuration, rawConsulting, rawTags []byte
 	err := database.DB.QueryRow(
-		`INSERT INTO compatibility_readings (user_id, overall_level, dimension_scores, score_explanations, duration_assessment, consulting_assessment, summary_tags, analysis_version, relationship_stage, primary_question)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		 RETURNING id, user_id, relationship_stage, primary_question, overall_level, dimension_scores, score_explanations, duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at`,
-		userID, overallLevel, scoresJSON, scoreExplanationsJSON, durationJSON, consultingJSON, tagsJSON, analysisVersion, context.RelationshipStage, context.PrimaryQuestion,
-	).Scan(&r.ID, &r.UserID, &r.RelationshipStage, &r.PrimaryQuestion, &r.OverallLevel, &rawScores, &rawScoreExplanations, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
+		`INSERT INTO compatibility_readings (user_id, overall_level, overall_score, dimension_scores, score_explanations, duration_assessment, consulting_assessment, summary_tags, analysis_version, relationship_stage, primary_question)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		 RETURNING id, user_id, relationship_stage, primary_question, overall_score, overall_level, dimension_scores, score_explanations, duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at`,
+		userID, overallLevel, overallScore, scoresJSON, scoreExplanationsJSON, durationJSON, consultingJSON, tagsJSON, analysisVersion, context.RelationshipStage, context.PrimaryQuestion,
+	).Scan(&r.ID, &r.UserID, &r.RelationshipStage, &r.PrimaryQuestion, &r.OverallScore, &r.OverallLevel, &rawScores, &rawScoreExplanations, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -97,11 +97,11 @@ func GetCompatibilityReadingByID(readingID string) (*model.CompatibilityReading,
 	r := &model.CompatibilityReading{}
 	var rawScores, rawScoreExplanations, rawDuration, rawConsulting, rawTags []byte
 	err := database.DB.QueryRow(
-		`SELECT id, user_id, relationship_stage, primary_question, overall_level, dimension_scores, COALESCE(score_explanations, '[]'::jsonb), duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at
+		`SELECT id, user_id, relationship_stage, primary_question, overall_score, overall_level, dimension_scores, COALESCE(score_explanations, '[]'::jsonb), duration_assessment, consulting_assessment, summary_tags, analysis_version, created_at, updated_at
 		 FROM compatibility_readings
 		 WHERE id = $1`,
 		readingID,
-	).Scan(&r.ID, &r.UserID, &r.RelationshipStage, &r.PrimaryQuestion, &r.OverallLevel, &rawScores, &rawScoreExplanations, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
+	).Scan(&r.ID, &r.UserID, &r.RelationshipStage, &r.PrimaryQuestion, &r.OverallScore, &r.OverallLevel, &rawScores, &rawScoreExplanations, &rawDuration, &rawConsulting, &rawTags, &r.AnalysisVersion, &r.CreatedAt, &r.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -239,7 +239,7 @@ func GetCompatibilityReadingOwner(readingID string) (string, error) {
 
 func ListCompatibilityHistory(userID string, limit, offset int) ([]model.CompatibilityHistoryItem, error) {
 	rows, err := database.DB.Query(
-		`SELECT id, relationship_stage, primary_question, overall_level, dimension_scores, summary_tags, created_at
+		`SELECT id, relationship_stage, primary_question, overall_score, overall_level, dimension_scores, summary_tags, created_at
 		 FROM compatibility_readings
 		 WHERE user_id = $1
 		 ORDER BY created_at DESC
@@ -255,7 +255,7 @@ func ListCompatibilityHistory(userID string, limit, offset int) ([]model.Compati
 	for rows.Next() {
 		var item model.CompatibilityHistoryItem
 		var rawScores, rawTags []byte
-		if err := rows.Scan(&item.ID, &item.RelationshipStage, &item.PrimaryQuestion, &item.OverallLevel, &rawScores, &rawTags, &item.CreatedAt); err != nil {
+		if err := rows.Scan(&item.ID, &item.RelationshipStage, &item.PrimaryQuestion, &item.OverallScore, &item.OverallLevel, &rawScores, &rawTags, &item.CreatedAt); err != nil {
 			return nil, err
 		}
 		_ = json.Unmarshal(rawScores, &item.DimensionScores)

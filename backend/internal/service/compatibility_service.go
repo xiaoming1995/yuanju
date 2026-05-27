@@ -68,6 +68,7 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 	reading, err := repository.CreateCompatibilityReading(
 		userID,
 		string(analysis.OverallLevel),
+		analysis.OverallScore,
 		model.CompatibilityDimensionScores{
 			Zodiac:     analysis.DimensionScores.Zodiac,
 			Nayin:      analysis.DimensionScores.Nayin,
@@ -93,7 +94,6 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 	if err != nil {
 		return nil, err
 	}
-	reading.OverallScore = analysis.OverallScore
 
 	selfSnapshot, _ := json.Marshal(selfChart)
 	partnerSnapshot, _ := json.Marshal(partnerChart)
