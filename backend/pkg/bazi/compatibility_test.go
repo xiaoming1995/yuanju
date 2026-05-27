@@ -274,3 +274,53 @@ func TestBuildRelationshipStrategyV3_ThreeTiers(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildClaimEvidenceLinksV3_FromHits(t *testing.T) {
+	evidences := []CompatibilityEvidence{
+		{EvidenceKey: "zodiac_liuhe"},
+		{EvidenceKey: "day_pillar_upper"},
+	}
+	links := buildClaimEvidenceLinksV3("适合继续推进", evidences)
+	if len(links) != 1 {
+		t.Fatalf("expected 1 link, got %d", len(links))
+	}
+	if links[0].ClaimID != "relationship_main_judgement" {
+		t.Errorf("bad ClaimID: %q", links[0].ClaimID)
+	}
+	if len(links[0].EvidenceKeys) != 2 {
+		t.Errorf("expected 2 evidence keys, got %v", links[0].EvidenceKeys)
+	}
+}
+
+func TestBuildClaimEvidenceLinksV3_NoEvidence_EmptyResult(t *testing.T) {
+	links := buildClaimEvidenceLinksV3("不宜过早重投入", nil)
+	if len(links) != 0 {
+		t.Errorf("no evidence should produce no link, got %d", len(links))
+	}
+}
+
+func TestBuildConsultingAssessmentV3_Integration(t *testing.T) {
+	scores := CompatibilityDimensionScores{Zodiac: 50, Nayin: 20, DayPillar: 10, EightChars: 17}
+	total := 97
+	hits := 4
+	evidences := []CompatibilityEvidence{
+		{EvidenceKey: "zodiac_liuhe", Dimension: "zodiac"},
+		{EvidenceKey: "nayin_sheng", Dimension: "nayin"},
+		{EvidenceKey: "day_pillar_upper", Dimension: "day_pillar"},
+		{EvidenceKey: "eight_chars_year_upper", Dimension: "eight_chars"},
+	}
+	duration := buildDurationAssessmentV3(scores)
+	got := buildConsultingAssessmentV3(total, hits, scores, evidences, duration)
+	if got.RelationshipDiagnosis.RelationshipType != "高契合型" {
+		t.Errorf("bad relationship type: %q", got.RelationshipDiagnosis.RelationshipType)
+	}
+	if got.DecisionAdvice.Recommendation != "continue" {
+		t.Errorf("bad recommendation: %q", got.DecisionAdvice.Recommendation)
+	}
+	if len(got.StageRisks) != 3 {
+		t.Errorf("expected 3 stage risks, got %d", len(got.StageRisks))
+	}
+	if got.RelationshipStrategy.Communication == "" {
+		t.Error("missing strategy")
+	}
+}

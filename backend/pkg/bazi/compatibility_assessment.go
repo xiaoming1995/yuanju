@@ -289,3 +289,90 @@ func buildRelationshipStrategyV3(recommendation string) CompatibilityRelationshi
 		}
 	}
 }
+
+// buildClaimEvidenceLinksV3 把"main judgement" claim 与所有命中 evidence_key 关联。
+// evidences 为空则返回空切片。
+func buildClaimEvidenceLinksV3(verdict string, evidences []CompatibilityEvidence) []CompatibilityClaimEvidenceLink {
+	keys := make([]string, 0, len(evidences))
+	for _, ev := range evidences {
+		if ev.EvidenceKey != "" {
+			keys = append(keys, ev.EvidenceKey)
+		}
+	}
+	if len(keys) == 0 {
+		return nil
+	}
+	return []CompatibilityClaimEvidenceLink{{
+		ClaimID:      "relationship_main_judgement",
+		Claim:        verdict,
+		EvidenceKeys: keys,
+		Reasoning:    "主要判断综合 4 模块（合属相 / 合纳音 / 合日柱 / 合八字）的命中结果与总分。",
+		Caveat:       "合盘表达的是关系倾向，现实选择与相处方式会改变结果表现。",
+	}}
+}
+
+// buildConsultingAssessmentV3 把所有 consulting 字段拼装为完整结构。
+func buildConsultingAssessmentV3(
+	total, hitsCount int,
+	scores CompatibilityDimensionScores,
+	evidences []CompatibilityEvidence,
+	duration CompatibilityDurationAssessment,
+) CompatibilityConsultingAssessment {
+	adv := buildDecisionAdviceV3(total, hitsCount)
+	relType := classifyRelationshipTypeV3(total, scores)
+	stageRisks := buildStageRisksV3(duration, evidences)
+	strategy := buildRelationshipStrategyV3(adv.Recommendation)
+	links := buildClaimEvidenceLinksV3(adv.Verdict, evidences)
+	topKeys := make([]string, 0, len(evidences))
+	for _, ev := range evidences {
+		if ev.EvidenceKey != "" {
+			topKeys = append(topKeys, ev.EvidenceKey)
+			if len(topKeys) >= 3 {
+				break
+			}
+		}
+	}
+	return CompatibilityConsultingAssessment{
+		RelationshipDiagnosis: CompatibilityRelationshipDiagnosis{
+			RelationshipType: relType,
+			Verdict:          adv.Verdict,
+			Summary:          relationshipDiagnosisSummaryV3(relType, adv.Recommendation),
+			TopFindings: []CompatibilityFinding{{
+				Text:         summaryFindingTextV3(adv.Recommendation),
+				EvidenceKeys: topKeys,
+			}},
+		},
+		DecisionAdvice: CompatibilityDecisionAdvice{
+			Recommendation: adv.Recommendation,
+			Confidence:     adv.Confidence,
+			Conditions:     adv.Conditions,
+			DoNext:         adv.DoNext,
+			Avoid:          adv.Avoid,
+		},
+		StageRisks:           stageRisks,
+		RelationshipStrategy: strategy,
+		ClaimEvidenceLinks:   links,
+	}
+}
+
+func relationshipDiagnosisSummaryV3(relType, recommendation string) string {
+	switch recommendation {
+	case "continue":
+		return relType + "：4 模块共同支撑，关系具备继续推进的基础。"
+	case "observe":
+		return relType + "：合盘提示有支点也有缺口，需要边推进边观察。"
+	default:
+		return relType + "：合盘加分有限，长期稳定需先通过现实相处验证。"
+	}
+}
+
+func summaryFindingTextV3(recommendation string) string {
+	switch recommendation {
+	case "continue":
+		return "4 模块命中较多，关系优势具备结构性支撑。"
+	case "observe":
+		return "命中与未命中并存，重点观察缺口模块对应的相处场景。"
+	default:
+		return "命中模块稀少，建议把合盘结论与现实接触配合判断。"
+	}
+}
