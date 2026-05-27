@@ -312,10 +312,10 @@ function ProfessionalEvidenceGroups({ evidences }: { evidences: CompatibilityEvi
 }
 
 const dimensionHintV3: Record<keyof CompatibilityDimensionScoresV3, string> = {
-  zodiac: '属相（年支）层：六合/三合 命中即满分 50',
+  zodiac: '属相（年支）：六合/三合 50、五行同（双生）30、五行相生 20',
   nayin: '纳音五行：相生/相同 命中即满分 20',
-  day_pillar: '日柱（亲密层）：支合 + 干合/生 满分 10',
-  eight_chars: '年/月/时三柱：外围承接，最高 20',
+  day_pillar: '日柱（亲密层）：支六合/三合 + 干合/生 10、支六合/三合 5、支五行同/相生 3',
+  eight_chars: '年/月/时三柱：按日柱规则评分，最高 20',
 }
 
 const dimensionLabelV3: Record<keyof CompatibilityDimensionScoresV3, string> = {
