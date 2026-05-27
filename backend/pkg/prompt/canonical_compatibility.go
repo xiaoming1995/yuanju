@@ -2,7 +2,7 @@ package prompt
 
 func init() {
 	Register("compatibility", Definition{
-		Version:     "v3-question-aware-2",
+		Version:     "v3.1-question-aware-1",
 		Description: "合盘决策咨询 prompt（含 question_focus / decision_advice / stage_risks）",
 		Content:     compatibilityCanonicalContent,
 	})
@@ -25,14 +25,14 @@ A 命盘摘要：
 B 命盘摘要：
 {{.PartnerChartSummary}}
 
-四模块分数（JSON，v3 评分公式）：
+四模块分数（JSON，v3.1 评分公式）：
 {{.ScoresJSON}}
 
 评分规则说明：
-- zodiac（合属相，0–50）：年支六合或三合命中即满分 50，否则 0。
+- zodiac（合属相，0–50，v3.1 三级）：年支六合/三合 = 50；五行同行（双生）= 30；五行相生 = 20；相克/相冲/相穿 = 0。
 - nayin（合纳音，0–20）：年柱纳音五行相生或相同得 20，相克 0。
-- day_pillar（合日柱，0–10）：日支合 + 干合/相生 = 10，日支合 + 其他 = 5，日支不合 = 0。
-- eight_chars（合八字，0–20）：年/月/时三柱独立按合日柱规则得 0/5/10，三柱和归一化到 [0,20]。
+- day_pillar（合日柱，0–10，v3.1 四级）：日支六合/三合 + 干合/相生 = 10；日支六合/三合 = 5；日支五行同/相生 = 3；日支相克/相冲 = 0。
+- eight_chars（合八字，0–20）：年/月/时三柱独立按合日柱规则得 0/3/5/10，三柱和归一化到 [0,20]。
 - 总分 = 四模块直接相加 ∈ [0,100]：≥80 high；60–79 medium；<60 low。
 - 本算法采用「纯加分制」，所有 evidence 的 polarity 均为 positive；不命中的模块得 0 分，不产生 evidence。
 
