@@ -125,3 +125,27 @@ func TestScoreZodiac_Empty_Returns0(t *testing.T) {
 		t.Error("empty branch should score 0")
 	}
 }
+
+func TestScoreNayin_Sheng_Returns20(t *testing.T) {
+	if got := scoreNayin("甲子", "庚午"); got != 20 {
+		t.Errorf("甲子(金)+庚午(土) 相生: got %d, want 20", got)
+	}
+}
+
+func TestScoreNayin_Same_Returns20(t *testing.T) {
+	if got := scoreNayin("甲子", "乙丑"); got != 20 {
+		t.Errorf("甲子(金)+乙丑(金) 同金: got %d, want 20", got)
+	}
+}
+
+func TestScoreNayin_Ke_Returns0(t *testing.T) {
+	if got := scoreNayin("甲子", "戊辰"); got != 0 {
+		t.Errorf("甲子(金)+戊辰(木) 相克: got %d, want 0", got)
+	}
+}
+
+func TestScoreNayin_Empty_Returns0(t *testing.T) {
+	if scoreNayin("", "甲子") != 0 || scoreNayin("甲子", "") != 0 || scoreNayin("XX", "YY") != 0 {
+		t.Error("empty / unknown ganzhi should score 0")
+	}
+}

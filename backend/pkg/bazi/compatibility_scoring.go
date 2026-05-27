@@ -70,3 +70,17 @@ func scoreZodiac(yearZhiA, yearZhiB string) int {
 	}
 	return 0
 }
+
+// scoreNayin 计算「合纳音」模块得分（满分 20）。
+// 输入为两人年柱干支字符串（如 "甲子"）；
+// 纳音五行 相生 或 相同 即得 20，相克或无法识别返回 0。
+func scoreNayin(yearGanZhiA, yearGanZhiB string) int {
+	wxA := nayinElement(yearGanZhiA)
+	wxB := nayinElement(yearGanZhiB)
+	switch nayinRelation(wxA, wxB) {
+	case "sheng", "same":
+		return 20
+	default:
+		return 0
+	}
+}
