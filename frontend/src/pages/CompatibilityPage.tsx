@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -50,6 +50,15 @@ function toCompatibilityProfileInput(value: BirthProfileFormValue): Compatibilit
   }
 }
 
+function buildImportSource(chart: BaziHistoryChart): BirthProfileImportSource {
+  const profile = chartToBirthProfile(chart)
+  return {
+    chartId: chart.id,
+    displayName: chart.display_name?.trim() || '',
+    profile,
+  }
+}
+
 export default function CompatibilityPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -88,16 +97,7 @@ export default function CompatibilityPage() {
     return charts
   }
 
-  const buildImportSource = (chart: BaziHistoryChart): BirthProfileImportSource => {
-    const profile = chartToBirthProfile(chart)
-    return {
-      chartId: chart.id,
-      displayName: chart.display_name?.trim() || '',
-      profile,
-    }
-  }
-
-  const applyImportedChart = (role: 'self' | 'partner', chart: BaziHistoryChart) => {
+  const applyImportedChart = useCallback((role: 'self' | 'partner', chart: BaziHistoryChart) => {
     const source = buildImportSource(chart)
     if (role === 'self') {
       setSelfProfile(source.profile)
@@ -108,16 +108,16 @@ export default function CompatibilityPage() {
       setPartnerImportSource(source)
       setActiveProfile('partner')
     }
-  }
+  }, [])
 
-  const importChartFromHistory = async (role: 'self' | 'partner', chartId: string) => {
+  const importChartFromHistory = useCallback(async (role: 'self' | 'partner', chartId: string) => {
     try {
       const res = await baziAPI.getHistoryDetail(chartId)
       applyImportedChart(role, res.data.chart as BaziHistoryChart)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '命盘不存在或无权访问')
     }
-  }
+  }, [applyImportedChart])
 
   const importLatestChart = async (role: 'self' | 'partner') => {
     if (isLoading) return
@@ -134,7 +134,7 @@ export default function CompatibilityPage() {
     const role = searchParams.get('role')
     if (!chartId || (role !== 'self' && role !== 'partner')) return
     if (isLoading) return
-    if (!user) {
+    if (!userKey) {
       navigate('/login')
       return
     }
@@ -142,7 +142,7 @@ export default function CompatibilityPage() {
     if (handledImportQueryRef.current === importKey) return
     handledImportQueryRef.current = importKey
     importChartFromHistory(role, chartId)
-  }, [searchParams, isLoading, userKey, navigate])
+  }, [searchParams, isLoading, userKey, navigate, importChartFromHistory])
 
   useEffect(() => {
     if (!pickerRole) return
