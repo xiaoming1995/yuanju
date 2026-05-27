@@ -247,3 +247,63 @@ func TestScoreEightChars_RoundingTable(t *testing.T) {
 		}
 	}
 }
+
+func TestBranchSameElement_TrueCases(t *testing.T) {
+	cases := [][2]string{
+		{"亥", "子"}, {"子", "亥"}, // 水
+		{"寅", "卯"}, {"卯", "寅"}, // 木
+		{"巳", "午"}, {"午", "巳"}, // 火
+		{"申", "酉"}, {"酉", "申"}, // 金
+		{"辰", "戌"}, {"丑", "未"}, {"辰", "丑"}, {"戌", "未"}, // 土
+	}
+	for _, p := range cases {
+		if !branchSameElement(p[0], p[1]) {
+			t.Errorf("branchSameElement(%q,%q) = false, want true", p[0], p[1])
+		}
+	}
+}
+
+func TestBranchSameElement_FalseCases(t *testing.T) {
+	cases := [][2]string{
+		{"子", "子"},   // 同支
+		{"子", "寅"},   // 水生木（不同行）
+		{"子", "丑"},   // 不同行（水/土）
+		{"", "子"}, {"子", ""},
+	}
+	for _, p := range cases {
+		if branchSameElement(p[0], p[1]) {
+			t.Errorf("branchSameElement(%q,%q) = true, want false", p[0], p[1])
+		}
+	}
+}
+
+func TestBranchShengElement_TrueCases(t *testing.T) {
+	cases := [][2]string{
+		{"子", "寅"}, {"寅", "子"}, // 水生木
+		{"寅", "巳"}, {"巳", "寅"}, // 木生火
+		{"巳", "辰"}, {"辰", "巳"}, // 火生土
+		{"辰", "申"}, {"申", "辰"}, // 土生金
+		{"申", "亥"}, {"亥", "申"}, // 金生水
+	}
+	for _, p := range cases {
+		if !branchShengElement(p[0], p[1]) {
+			t.Errorf("branchShengElement(%q,%q) = false, want true", p[0], p[1])
+		}
+	}
+}
+
+func TestBranchShengElement_FalseCases(t *testing.T) {
+	cases := [][2]string{
+		{"子", "子"},   // 同支
+		{"亥", "子"},   // 同行水（不是相生）
+		{"子", "未"},   // 水土相克
+		{"子", "辰"},   // 水土相克
+		{"子", "午"},   // 水火相克
+		{"", "子"}, {"子", ""},
+	}
+	for _, p := range cases {
+		if branchShengElement(p[0], p[1]) {
+			t.Errorf("branchShengElement(%q,%q) = true, want false", p[0], p[1])
+		}
+	}
+}

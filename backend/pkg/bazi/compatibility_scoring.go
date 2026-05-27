@@ -149,3 +149,31 @@ func normalizeEightCharsSum(sum int) int {
 	}
 	return (sum*2 + 1) / 3
 }
+
+// branchSameElement 判定两个地支非空、不相等、且五行相同（"双生"）。
+// 复用 event_signals.go 的 zhiWuxing 映射。
+func branchSameElement(a, b string) bool {
+	if a == "" || b == "" || a == b {
+		return false
+	}
+	wxA, wxB := zhiWuxing[a], zhiWuxing[b]
+	if wxA == "" || wxB == "" {
+		return false
+	}
+	return wxA == wxB
+}
+
+// branchShengElement 判定两个地支非空、不相等、且五行存在 相生 关系（任一方向）。
+func branchShengElement(a, b string) bool {
+	if a == "" || b == "" || a == b {
+		return false
+	}
+	wxA, wxB := zhiWuxing[a], zhiWuxing[b]
+	if wxA == "" || wxB == "" {
+		return false
+	}
+	if wxA == wxB {
+		return false
+	}
+	return wxSheng[wxA] == wxB || wxSheng[wxB] == wxA
+}
