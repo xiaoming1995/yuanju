@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -53,7 +53,9 @@ function toCompatibilityProfileInput(value: BirthProfileFormValue): Compatibilit
 export default function CompatibilityPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+  const handledImportQueryRef = useRef('')
+  const chartPickerRef = useRef<HTMLDivElement | null>(null)
   const [selfProfile, setSelfProfile] = useState<BirthProfileFormValue>(initialBirthProfile('male'))
   const [partnerProfile, setPartnerProfile] = useState<BirthProfileFormValue>(initialBirthProfile('female'))
   const [relationshipStage, setRelationshipStage] = useState<CompatibilityRelationshipStage>('ambiguous')
@@ -70,8 +72,10 @@ export default function CompatibilityPage() {
   const questionProgressLabel = primaryQuestionOptions.find(option => option.value === primaryQuestion)?.label || '性格合不合'
   const stageProgressLabel = relationshipStageOptions.find(option => option.value === relationshipStage)?.label || '综合关系判断'
   const birthProfileProgressLabel = selfProfile && partnerProfile ? '双方生辰已可起盘' : '待补双方生辰'
+  const userKey = user?.id || user?.email || ''
 
   const loadHistoryCharts = async () => {
+    if (isLoading) return []
     if (!user) {
       navigate('/login')
       return []
@@ -116,6 +120,7 @@ export default function CompatibilityPage() {
   }
 
   const importLatestChart = async (role: 'self' | 'partner') => {
+    if (isLoading) return
     const charts = await loadHistoryCharts()
     if (charts.length === 0) {
       setError('还没有命盘档案，请先新建命盘')
@@ -128,12 +133,30 @@ export default function CompatibilityPage() {
     const chartId = searchParams.get('importChart')
     const role = searchParams.get('role')
     if (!chartId || (role !== 'self' && role !== 'partner')) return
+    if (isLoading) return
     if (!user) {
       navigate('/login')
       return
     }
+    const importKey = `${chartId}:${role}`
+    if (handledImportQueryRef.current === importKey) return
+    handledImportQueryRef.current = importKey
     importChartFromHistory(role, chartId)
-  }, [searchParams, user])
+  }, [searchParams, isLoading, userKey, navigate])
+
+  useEffect(() => {
+    if (!pickerRole) return
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    chartPickerRef.current?.focus()
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setPickerRole(null)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      previous?.focus()
+    }
+  }, [pickerRole])
 
   const handleSelfProfileChange = (next: BirthProfileFormValue) => {
     setSelfProfile(next)
@@ -154,7 +177,12 @@ export default function CompatibilityPage() {
     return isProfileModified(source, current) ? `已基于${name}修改` : `已导入：${name}`
   }
 
+  const displayNameForSubmit = (source: BirthProfileImportSource | null, current: BirthProfileFormValue) => {
+    return source && !isProfileModified(source, current) && source.displayName ? source.displayName : undefined
+  }
+
   const openChartPicker = async (role: 'self' | 'partner') => {
+    if (isLoading) return
     setPickerRole(role)
     await loadHistoryCharts()
   }
@@ -172,8 +200,8 @@ export default function CompatibilityPage() {
         partner: toCompatibilityProfileInput(partnerProfile),
         relationship_stage: relationshipStage,
         primary_question: primaryQuestion,
-        self_display_name: selfImportSource?.displayName || undefined,
-        partner_display_name: partnerImportSource?.displayName || undefined,
+        self_display_name: displayNameForSubmit(selfImportSource, selfProfile),
+        partner_display_name: displayNameForSubmit(partnerImportSource, partnerProfile),
       })
       navigate(`/compatibility/${data.data.reading.id}`)
     } catch (err: unknown) {
@@ -317,7 +345,7 @@ export default function CompatibilityPage() {
 
       {pickerRole && (
         <div className="compatibility-chart-picker" role="dialog" aria-modal="true" aria-label="选择命盘档案">
-          <div className="compatibility-chart-picker-panel">
+          <div className="compatibility-chart-picker-panel" ref={chartPickerRef} tabIndex={-1}>
             <div className="compatibility-chart-picker-head">
               <strong>选择命盘档案</strong>
               <button type="button" className="btn btn-ghost" onClick={() => setPickerRole(null)}>

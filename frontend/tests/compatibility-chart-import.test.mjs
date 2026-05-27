@@ -74,3 +74,17 @@ test('compatibility page imports saved charts into either profile and submits di
   assert.match(css, /compatibility-import-toolbar/)
   assert.match(css, /compatibility-chart-picker/)
 })
+
+test('compatibility page guards import idempotency, auth loading, and picker focus', () => {
+  const page = read('src/pages/CompatibilityPage.tsx')
+  assert.match(page, /useRef/)
+  assert.match(page, /handledImportQueryRef/)
+  assert.match(page, /\$\{chartId\}:\$\{role\}/)
+  assert.match(page, /isLoading/)
+  assert.match(page, /displayNameForSubmit/)
+  assert.match(page, /chartPickerRef/)
+  assert.match(page, /chartPickerRef\.current\?\.focus\(\)/)
+  assert.match(page, /event\.key === 'Escape'/)
+  assert.match(page, /previous\?\.focus\(\)/)
+  assert.match(page, /tabIndex=\{-1\}/)
+})
