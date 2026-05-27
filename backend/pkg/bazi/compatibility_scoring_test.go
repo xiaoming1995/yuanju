@@ -358,3 +358,31 @@ func TestScoreZodiac_Priority_LiuheBeatsSheng(t *testing.T) {
 		}
 	}
 }
+
+func TestScoreDayPillar_LowerTier3_SameElement(t *testing.T) {
+	// 日支双生（亥子同水），干任意 → 3
+	if got := scoreDayPillar("甲", "亥", "丙", "子"); got != 3 {
+		t.Errorf("甲亥/丙子 双生日支: got %d, want 3", got)
+	}
+	// 干同（甲乙同木）也不影响下档分
+	if got := scoreDayPillar("甲", "亥", "乙", "子"); got != 3 {
+		t.Errorf("甲亥/乙子 双生日支(干同): got %d, want 3", got)
+	}
+}
+
+func TestScoreDayPillar_LowerTier3_Sheng(t *testing.T) {
+	// 日支五行相生（子→寅 水生木），干任意 → 3
+	if got := scoreDayPillar("甲", "子", "丙", "寅"); got != 3 {
+		t.Errorf("甲子/丙寅 水生木日支: got %d, want 3", got)
+	}
+}
+
+func TestScoreDayPillar_Ke_Returns0(t *testing.T) {
+	// 日支相克 / 相冲 / 相害 → 0
+	if got := scoreDayPillar("甲", "子", "戊", "未"); got != 0 {
+		t.Errorf("甲子/戊未 日支相害: got %d, want 0", got)
+	}
+	if got := scoreDayPillar("甲", "子", "戊", "戌"); got != 0 {
+		t.Errorf("甲子/戊戌 日支(水土相克): got %d, want 0", got)
+	}
+}
