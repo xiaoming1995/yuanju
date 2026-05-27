@@ -663,3 +663,37 @@ func TestBuildEvidences_AllHits_Count6(t *testing.T) {
 		t.Errorf("all-hit case: got %d evidences, want 6", len(ev))
 	}
 }
+
+func TestBuildScoreExplanationsV3_FourEntries(t *testing.T) {
+	a := makeCompatNatal("甲子", "丙寅", "壬午", "丁未", "male")
+	b := makeCompatNatal("己丑", "戊辰", "庚申", "辛酉", "female")
+	ev := buildCompatibilityEvidencesV3(a, b)
+	exps := buildScoreExplanationsV3(a, b, ev)
+	if len(exps) != 4 {
+		t.Fatalf("expected exactly 4 explanations (one per module), got %d", len(exps))
+	}
+	dims := map[string]bool{}
+	for _, e := range exps {
+		dims[string(e.Dimension)] = true
+		if e.NegativeFactor != "" || len(e.NegativeEvidenceKeys) != 0 {
+			t.Errorf("v3 should never set negative factors, got %+v", e)
+		}
+	}
+	for _, d := range []string{"zodiac", "nayin", "day_pillar", "eight_chars"} {
+		if !dims[d] {
+			t.Errorf("missing dimension %q", d)
+		}
+	}
+}
+
+func TestBuildScoreExplanationsV3_UnHitModule_HasSummary(t *testing.T) {
+	a := makeCompatNatal("甲午", "丙寅", "壬午", "丁未", "male")
+	b := makeCompatNatal("乙未", "戊辰", "庚申", "辛酉", "female") // 午未六合，但其他模块可能不命中
+	ev := buildCompatibilityEvidencesV3(a, b)
+	exps := buildScoreExplanationsV3(a, b, ev)
+	for _, e := range exps {
+		if e.Summary == "" {
+			t.Errorf("dimension %q has empty summary", e.Dimension)
+		}
+	}
+}

@@ -151,3 +151,95 @@ func eightCharsEvidence(a, b *BaziResult) []CompatibilityEvidence {
 	}
 	return out
 }
+
+// buildScoreExplanationsV3 按 4 模块各出一条解释（zodiac/nayin/day_pillar/eight_chars）。
+// 纯加分制下 NegativeFactor / NegativeEvidenceKeys 永远为空。
+func buildScoreExplanationsV3(a, b *BaziResult, evidences []CompatibilityEvidence) []CompatibilityScoreExplanation {
+	dimensions := []string{"zodiac", "nayin", "day_pillar", "eight_chars"}
+	out := make([]CompatibilityScoreExplanation, 0, 4)
+	for _, dim := range dimensions {
+		hit := findEvidenceByDimension(evidences, dim)
+		exp := CompatibilityScoreExplanation{Dimension: CompatibilityDimension(dim)}
+		if hit != nil {
+			exp.PositiveFactor = hit.Title
+			exp.PositiveEvidenceKeys = []string{hit.EvidenceKey}
+		}
+		exp.Summary = scoreExplanationSummaryV3(dim, hit, a, b)
+		out = append(out, exp)
+	}
+	return out
+}
+
+func findEvidenceByDimension(evidences []CompatibilityEvidence, dim string) *CompatibilityEvidence {
+	for i := range evidences {
+		if string(evidences[i].Dimension) == dim {
+			return &evidences[i]
+		}
+	}
+	return nil
+}
+
+func scoreExplanationSummaryV3(dim string, hit *CompatibilityEvidence, a, b *BaziResult) string {
+	switch dim {
+	case "zodiac":
+		if hit == nil {
+			return fmt.Sprintf("双方年支 %s/%s 无六合 / 三合，属相层级无加成。", a.YearZhi, b.YearZhi)
+		}
+		if hit.EvidenceKey == "zodiac_liuhe" {
+			return fmt.Sprintf("双方属相 %s/%s 构成六合，关系基础线吸引力强。", a.YearZhi, b.YearZhi)
+		}
+		return fmt.Sprintf("双方属相 %s/%s 同属 %s 三合局，气场协同。",
+			a.YearZhi, b.YearZhi, sanheGroupName(a.YearZhi, b.YearZhi))
+	case "nayin":
+		wxA := nayinElement(a.YearGan + a.YearZhi)
+		wxB := nayinElement(b.YearGan + b.YearZhi)
+		if hit == nil {
+			return fmt.Sprintf("%s 与 %s 纳音五行相克，纳音层无加分。", wxA, wxB)
+		}
+		if hit.EvidenceKey == "nayin_sheng" {
+			return fmt.Sprintf("%s 与 %s 纳音五行相生，资源 / 情绪流动顺。", wxA, wxB)
+		}
+		return fmt.Sprintf("双方纳音同为 %s，本质同气。", wxA)
+	case "day_pillar":
+		if hit == nil {
+			return fmt.Sprintf("日柱 %s%s/%s%s 地支不合，亲密层无加成。",
+				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
+		}
+		if hit.EvidenceKey == "day_pillar_upper" {
+			return fmt.Sprintf("日柱 %s%s/%s%s 地支合且天干五合 / 相生，亲密层结构稳。",
+				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
+		}
+		return fmt.Sprintf("日柱 %s%s/%s%s 地支合，天干仅相同 / 克 / 无关，亲密层有基础但未达上吉。",
+			a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
+	case "eight_chars":
+		// 八字模块可能 0–3 柱命中，单条 evidence 无法表达命中数，故直接重新计算柱位命中。
+		return eightCharsSummary(a, b)
+	}
+	return ""
+}
+
+// eightCharsSummary 单独计算 八字 命中柱数并生成 summary。
+func eightCharsSummary(a, b *BaziResult) string {
+	type p struct{ name, label, ga, za, gb, zb string }
+	pillars := []p{
+		{"year", "年柱", a.YearGan, a.YearZhi, b.YearGan, b.YearZhi},
+		{"month", "月柱", a.MonthGan, a.MonthZhi, b.MonthGan, b.MonthZhi},
+		{"hour", "时柱", a.HourGan, a.HourZhi, b.HourGan, b.HourZhi},
+	}
+	hits := 0
+	var soloLabel string
+	for _, pp := range pillars {
+		if scoreDayPillar(pp.ga, pp.za, pp.gb, pp.zb) > 0 {
+			hits++
+			soloLabel = pp.label
+		}
+	}
+	switch hits {
+	case 0:
+		return "年 / 月 / 时三柱均无合，外围层无加成。"
+	case 1:
+		return fmt.Sprintf("三柱中仅 %s 合，外围层支撑薄弱。", soloLabel)
+	default:
+		return fmt.Sprintf("年 / 月 / 时三柱中有 %d 柱合，外围层有支撑。", hits)
+	}
+}
