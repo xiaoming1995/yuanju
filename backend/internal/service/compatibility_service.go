@@ -13,7 +13,7 @@ import (
 	"yuanju/pkg/prompt"
 )
 
-const compatibilityAnalysisVersion = "v3"
+const compatibilityAnalysisVersion = "v3.1"
 
 var compatibilityRelationshipStageLabels = map[string]string{
 	"ambiguous":              "暧昧中",
