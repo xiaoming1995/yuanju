@@ -59,3 +59,18 @@ test('result page exposes chart archive naming and compatibility import action',
   assert.match(page, /role=partner/)
   assert.match(css, /chart-archive-tools/)
 })
+
+test('compatibility page imports saved charts into either profile and submits display names', () => {
+  const page = read('src/pages/CompatibilityPage.tsx')
+  const css = read('src/pages/CompatibilityPage.css')
+  assert.match(page, /useSearchParams/)
+  assert.match(page, /importChartFromHistory/)
+  assert.match(page, /selfImportSource/)
+  assert.match(page, /partnerImportSource/)
+  assert.match(page, /导入最近命盘/)
+  assert.match(page, /从命盘档案选择/)
+  assert.match(page, /self_display_name/)
+  assert.match(page, /partner_display_name/)
+  assert.match(css, /compatibility-import-toolbar/)
+  assert.match(css, /compatibility-chart-picker/)
+})

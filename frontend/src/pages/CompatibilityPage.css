@@ -43,6 +43,24 @@
   padding: 20px;
 }
 
+.compatibility-import-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.compatibility-import-toolbar .btn {
+  min-height: 38px;
+}
+
+.compatibility-import-source {
+  margin: 0 0 14px;
+  color: var(--wu-jin);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .compatibility-context-card {
   padding: 20px;
   margin-bottom: 16px;
@@ -171,6 +189,84 @@
   margin-top: 20px;
 }
 
+.compatibility-chart-picker {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(5, 8, 14, 0.72);
+}
+
+.compatibility-chart-picker-panel {
+  width: min(520px, 100%);
+  max-height: min(620px, calc(100vh - 40px));
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.compatibility-chart-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.compatibility-chart-picker-head strong {
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.compatibility-chart-picker-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(520px, calc(100vh - 140px));
+  overflow: auto;
+  padding: 12px;
+}
+
+.compatibility-chart-picker-item {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.compatibility-chart-picker-item:hover {
+  border-color: rgba(201, 168, 76, 0.5);
+  background: rgba(201, 168, 76, 0.1);
+}
+
+.compatibility-chart-picker-item span {
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.compatibility-chart-picker-item small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.compatibility-chart-picker-empty {
+  padding: 28px 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 @media (max-width: 768px) {
   .compatibility-page.page {
     padding-bottom: calc(140px + env(safe-area-inset-bottom)) !important;
@@ -226,6 +322,15 @@
     display: block;
   }
 
+  .compatibility-import-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-import-toolbar .btn {
+    width: 100%;
+  }
+
   .compatibility-context-card {
     padding: 16px;
     margin-bottom: 12px;
@@ -275,5 +380,14 @@
 
   .compatibility-actions .btn {
     width: 100%;
+  }
+
+  .compatibility-chart-picker {
+    align-items: flex-end;
+    padding: 12px;
+  }
+
+  .compatibility-chart-picker-panel {
+    max-height: calc(100vh - 24px);
   }
 }
