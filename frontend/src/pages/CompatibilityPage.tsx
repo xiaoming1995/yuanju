@@ -188,6 +188,7 @@ export default function CompatibilityPage() {
   }
 
   const handleSubmit = async () => {
+    if (isLoading) return
     if (!user) {
       navigate('/login')
       return
@@ -334,7 +335,7 @@ export default function CompatibilityPage() {
         {error && <p className="compatibility-error">{error}</p>}
 
         <div className="compatibility-actions">
-          <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting || isLoading}>
             {submitting ? '正在起盘合盘...' : '开始合盘'}
           </button>
           <button className="btn btn-ghost" onClick={() => navigate('/compatibility/history')}>

@@ -88,3 +88,9 @@ test('compatibility page guards import idempotency, auth loading, and picker foc
   assert.match(page, /previous\?\.focus\(\)/)
   assert.match(page, /tabIndex=\{-1\}/)
 })
+
+test('compatibility page waits for auth before submit', () => {
+  const page = read('src/pages/CompatibilityPage.tsx')
+  assert.match(page, /const handleSubmit = async \(\) => \{\n\s+if \(isLoading\) return/)
+  assert.match(page, /disabled=\{submitting \|\| isLoading\}/)
+})
