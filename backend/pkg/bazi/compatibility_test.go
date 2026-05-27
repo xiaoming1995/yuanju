@@ -143,3 +143,49 @@ func containsString(slice []string, s string) bool {
 	}
 	return false
 }
+
+func TestClassifyRelationshipType_AllBranches(t *testing.T) {
+	cases := []struct {
+		total, zodiac, dayPillar, eightChars int
+		want                                  string
+	}{
+		{85, 50, 10, 20, "高契合型"},
+		{75, 50, 10, 0, "亲密层稳固型"},
+		{75, 50, 0, 0, "属相吸引型"},
+		{55, 0, 10, 0, "亲密外围支撑型"},
+		{55, 0, 0, 14, "亲密外围支撑型"},
+		{30, 0, 0, 0, "合盘无加成"},
+	}
+	for _, tc := range cases {
+		got := classifyRelationshipTypeV3(tc.total, CompatibilityDimensionScores{
+			Zodiac: tc.zodiac, DayPillar: tc.dayPillar, EightChars: tc.eightChars,
+		})
+		if got != tc.want {
+			t.Errorf("total=%d zodiac=%d day=%d 8chars=%d → got %q, want %q",
+				tc.total, tc.zodiac, tc.dayPillar, tc.eightChars, got, tc.want)
+		}
+	}
+}
+
+func TestBuildDecisionAdviceV3_AllBranches(t *testing.T) {
+	cases := []struct {
+		total, hitsCount int
+		recommendation   string
+		verdict          string
+		confidence       string
+	}{
+		{85, 4, "continue", "适合继续推进", "high"},
+		{70, 2, "observe", "建议谨慎观察", "medium"},
+		{50, 1, "caution", "不宜过早重投入", "medium"},
+		{40, 0, "caution", "不宜过早重投入", "low"},
+	}
+	for _, tc := range cases {
+		adv := buildDecisionAdviceV3(tc.total, tc.hitsCount)
+		if adv.Recommendation != tc.recommendation || adv.Verdict != tc.verdict || adv.Confidence != tc.confidence {
+			t.Errorf("total=%d hits=%d: got rec=%q verdict=%q conf=%q, want %q/%q/%q",
+				tc.total, tc.hitsCount,
+				adv.Recommendation, adv.Verdict, adv.Confidence,
+				tc.recommendation, tc.verdict, tc.confidence)
+		}
+	}
+}
