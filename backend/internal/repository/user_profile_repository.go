@@ -32,6 +32,7 @@ func CountCompatibilityReadingsByUserID(userID string) (int, error) {
 func ListRecentChartsForProfile(userID string, limit int) ([]model.UserProfileChartSummary, error) {
 	rows, err := database.DB.Query(`
 		SELECT id, birth_year, birth_month, birth_day, birth_hour, gender,
+		       COALESCE(display_name, '') AS display_name,
 		       year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
 		       COALESCE(yongshen, ''), COALESCE(jishen, ''), created_at
 		FROM bazi_charts
@@ -48,6 +49,7 @@ func ListRecentChartsForProfile(userID string, limit int) ([]model.UserProfileCh
 		var item model.UserProfileChartSummary
 		if err := rows.Scan(
 			&item.ID, &item.BirthYear, &item.BirthMonth, &item.BirthDay, &item.BirthHour, &item.Gender,
+			&item.DisplayName,
 			&item.YearGan, &item.YearZhi, &item.MonthGan, &item.MonthZhi, &item.DayGan, &item.DayZhi, &item.HourGan, &item.HourZhi,
 			&item.Yongshen, &item.Jishen, &item.CreatedAt,
 		); err != nil {

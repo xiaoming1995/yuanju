@@ -121,6 +121,7 @@ func GetChartByID(id string) (*model.BaziChart, error) {
 
 	err := database.DB.QueryRow(`
 		SELECT id, user_id, birth_year, birth_month, birth_day, birth_hour, gender,
+		       COALESCE(display_name, '') AS display_name,
 		       year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
 		       wuxing, dayun, yongshen, jishen, chart_hash,
 		       COALESCE(calendar_type, 'solar') AS calendar_type,
@@ -130,6 +131,7 @@ func GetChartByID(id string) (*model.BaziChart, error) {
 	).Scan(
 		&chart.ID, &userID,
 		&chart.BirthYear, &chart.BirthMonth, &chart.BirthDay, &chart.BirthHour, &chart.Gender,
+		&chart.DisplayName,
 		&chart.YearGan, &chart.YearZhi, &chart.MonthGan, &chart.MonthZhi,
 		&chart.DayGan, &chart.DayZhi, &chart.HourGan, &chart.HourZhi,
 		&wuxingJSON, &dayunJSON,
@@ -154,6 +156,7 @@ func GetChartByID(id string) (*model.BaziChart, error) {
 func GetChartsByUserID(userID string, limit, offset int) ([]*model.BaziChart, error) {
 	rows, err := database.DB.Query(`
 		SELECT id, birth_year, birth_month, birth_day, birth_hour, gender,
+		       COALESCE(display_name, '') AS display_name,
 		       year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
 		       yongshen, jishen, chart_hash,
 		       COALESCE(calendar_type, 'solar') AS calendar_type,
@@ -173,6 +176,7 @@ func GetChartsByUserID(userID string, limit, offset int) ([]*model.BaziChart, er
 		c := &model.BaziChart{}
 		if err := rows.Scan(
 			&c.ID, &c.BirthYear, &c.BirthMonth, &c.BirthDay, &c.BirthHour, &c.Gender,
+			&c.DisplayName,
 			&c.YearGan, &c.YearZhi, &c.MonthGan, &c.MonthZhi,
 			&c.DayGan, &c.DayZhi, &c.HourGan, &c.HourZhi,
 			&c.Yongshen, &c.Jishen, &c.ChartHash,
@@ -184,6 +188,14 @@ func GetChartsByUserID(userID string, limit, offset int) ([]*model.BaziChart, er
 		charts = append(charts, c)
 	}
 	return charts, nil
+}
+
+func UpdateChartDisplayName(chartID, displayName string) error {
+	_, err := database.DB.Exec(
+		`UPDATE bazi_charts SET display_name=$1 WHERE id=$2`,
+		displayName, chartID,
+	)
+	return err
 }
 
 func UpdateChartYongshenJishen(chartID, yongshen, jishen string) error {

@@ -22,6 +22,7 @@ type BaziChart struct {
 	BirthDay     int         `json:"birth_day"`
 	BirthHour    int         `json:"birth_hour"`
 	Gender       string      `json:"gender"`
+	DisplayName  string      `json:"display_name"`
 	YearGan      string      `json:"year_gan"`
 	YearZhi      string      `json:"year_zhi"`
 	MonthGan     string      `json:"month_gan"`
