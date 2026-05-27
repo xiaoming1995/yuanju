@@ -8,7 +8,7 @@ func init() {
 	})
 }
 
-const compatibilityCanonicalContent = `你是一位专业、克制、直断的八字合盘分析师。请根据双方命盘摘要、四维分数、分数解释和结构化证据，输出一份关于婚恋/姻缘匹配的分析。
+const compatibilityCanonicalContent = `你是一位专业、克制、直断的八字合盘分析师。请根据双方命盘摘要、四模块分数、分数解释和结构化证据，输出一份关于婚恋/姻缘匹配的分析。
 
 人物标识：
 - A：{{.SelfLabel}}
@@ -25,10 +25,18 @@ A 命盘摘要：
 B 命盘摘要：
 {{.PartnerChartSummary}}
 
-四维分数（JSON）：
+四模块分数（JSON，v3 评分公式）：
 {{.ScoresJSON}}
 
-四维分数解释（JSON，包含每个维度的主要支撑与压力证据）：
+评分规则说明：
+- zodiac（合属相，0–50）：年支六合或三合命中即满分 50，否则 0。
+- nayin（合纳音，0–20）：年柱纳音五行相生或相同得 20，相克 0。
+- day_pillar（合日柱，0–10）：日支合 + 干合/相生 = 10，日支合 + 其他 = 5，日支不合 = 0。
+- eight_chars（合八字，0–20）：年/月/时三柱独立按合日柱规则得 0/5/10，三柱和归一化到 [0,20]。
+- 总分 = 四模块直接相加 ∈ [0,100]：≥80 high；60–79 medium；<60 low。
+- 本算法采用「纯加分制」，所有 evidence 的 polarity 均为 positive；不命中的模块得 0 分，不产生 evidence。
+
+四模块分数解释（JSON，包含每个模块的主要支撑证据）：
 {{.ScoreExplanationsJSON}}
 
 缘分时长评估（JSON）：
@@ -43,12 +51,13 @@ B 命盘摘要：
 结构化证据（JSON）：
 {{.EvidencesJSON}}
 
+注：所有 evidence 来源仅四种（zodiac / nayin / day_pillar / eight_chars），polarity 永远为 positive。
+
 按证据来源分组（JSON）：
 {{.EvidenceGroupsJSON}}
 
 证据约束：
 - 所有主要判断必须引用 evidence_key。
-- 可以使用 perspective/actor/target 理解方向性证据。
 - 不得输出具体结婚、分手、复合、出轨、怀孕等确定事件日期。
 - 若正负证据混合，必须表达条件、边界和可验证行为，不能写成绝对命运。
 
@@ -74,7 +83,7 @@ B 命盘摘要：
     "top_findings": [
       {
         "text": "吸引力有明显支点，但稳定维度存在拉扯。",
-        "evidence_keys": ["spouse_palace_stability_spouse_palace_chong"]
+        "evidence_keys": ["zodiac_liuhe"]
       }
     ]
   },
@@ -92,7 +101,7 @@ B 命盘摘要：
       "main_risk": "热度高但节奏不一致",
       "trigger": "一方推进过快、另一方需要空间时",
       "advice": "先约定沟通频率和边界，不急于做长期承诺",
-      "evidence_keys": ["day_master_communication_day_master_controlling"]
+      "evidence_keys": ["day_pillar_upper"]
     }
   ],
   "relationship_strategy": {
@@ -105,7 +114,7 @@ B 命盘摘要：
     {
       "claim_id": "long_term_pressure",
       "claim": "长期关系需要额外经营稳定感。",
-      "evidence_keys": ["spouse_palace_stability_spouse_palace_chong"],
+      "evidence_keys": ["zodiac_liuhe"],
       "reasoning": "夫妻宫冲动和现实磨合信号叠加时，关系更容易在长期安排中反复消耗。",
       "caveat": "若双方能建立清晰沟通规则，负向信号的影响会被削弱。"
     }
