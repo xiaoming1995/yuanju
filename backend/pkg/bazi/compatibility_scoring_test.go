@@ -438,3 +438,62 @@ func TestRealCase_1996_1995_FourModules(t *testing.T) {
 		t.Errorf("total: got %d, want 5", total)
 	}
 }
+
+func TestZodiacEvidence_SameElement_Hit30(t *testing.T) {
+	a := &BaziResult{YearGan: "甲", YearZhi: "亥"}
+	b := &BaziResult{YearGan: "丙", YearZhi: "子"}
+	ev := zodiacEvidence(a, b)
+	if len(ev) != 1 {
+		t.Fatalf("got %d evidences, want 1", len(ev))
+	}
+	if ev[0].EvidenceKey != "zodiac_same_element" {
+		t.Errorf("got key %q, want zodiac_same_element", ev[0].EvidenceKey)
+	}
+	if ev[0].Weight != 30 {
+		t.Errorf("got weight %d, want 30", ev[0].Weight)
+	}
+}
+
+func TestZodiacEvidence_Sheng_Hit20(t *testing.T) {
+	a := &BaziResult{YearGan: "甲", YearZhi: "子"}
+	b := &BaziResult{YearGan: "丙", YearZhi: "寅"}
+	ev := zodiacEvidence(a, b)
+	if len(ev) != 1 || ev[0].EvidenceKey != "zodiac_sheng" || ev[0].Weight != 20 {
+		t.Errorf("zodiac sheng evidence wrong: %+v", ev)
+	}
+}
+
+func TestDayPillarEvidence_LowerTier3(t *testing.T) {
+	a := &BaziResult{DayGan: "乙", DayZhi: "亥"}
+	b := &BaziResult{DayGan: "甲", DayZhi: "子"}
+	ev := dayPillarEvidence(a, b)
+	if len(ev) != 1 {
+		t.Fatalf("got %d, want 1", len(ev))
+	}
+	if ev[0].EvidenceKey != "day_pillar_safe" || ev[0].Weight != 3 {
+		t.Errorf("day_pillar lower-3 evidence wrong: %+v", ev[0])
+	}
+}
+
+func TestEightCharsEvidence_SafeTier_3(t *testing.T) {
+	// 仅时柱 戌 vs 申（土生金）下档 3
+	a := &BaziResult{
+		YearGan: "丙", YearZhi: "子",
+		MonthGan: "庚", MonthZhi: "寅",
+		DayGan: "乙", DayZhi: "亥",
+		HourGan: "丙", HourZhi: "戌",
+	}
+	b := &BaziResult{
+		YearGan: "甲", YearZhi: "戌",
+		MonthGan: "丁", MonthZhi: "丑",
+		DayGan: "甲", DayZhi: "子",
+		HourGan: "壬", HourZhi: "申",
+	}
+	ev := eightCharsEvidence(a, b)
+	if len(ev) != 1 {
+		t.Fatalf("got %d, want 1 (仅时柱命中下档)", len(ev))
+	}
+	if ev[0].EvidenceKey != "eight_chars_hour_safe" || ev[0].Weight != 3 {
+		t.Errorf("hour safe evidence wrong: %+v", ev[0])
+	}
+}

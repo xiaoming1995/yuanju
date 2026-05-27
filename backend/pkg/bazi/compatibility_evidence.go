@@ -40,6 +40,33 @@ func zodiacEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Weight:      50,
 		}}
 	}
+	if branchSameElement(a.YearZhi, b.YearZhi) {
+		wx := wxPinyin2CN[zhiWuxing[a.YearZhi]]
+		return []CompatibilityEvidence{{
+			EvidenceKey: "zodiac_same_element",
+			Dimension:   "zodiac",
+			Type:        "年支同行",
+			Polarity:    "positive",
+			Source:      "zodiac",
+			Title:       "年支同行",
+			Detail:      fmt.Sprintf("双方年支 %s/%s 同属 %s 行（双生），属相层有亲近感。", a.YearZhi, b.YearZhi, wx),
+			Weight:      30,
+		}}
+	}
+	if branchShengElement(a.YearZhi, b.YearZhi) {
+		wxA := wxPinyin2CN[zhiWuxing[a.YearZhi]]
+		wxB := wxPinyin2CN[zhiWuxing[b.YearZhi]]
+		return []CompatibilityEvidence{{
+			EvidenceKey: "zodiac_sheng",
+			Dimension:   "zodiac",
+			Type:        "年支相生",
+			Polarity:    "positive",
+			Source:      "zodiac",
+			Title:       "年支相生",
+			Detail:      fmt.Sprintf("双方年支 %s/%s 构成 %s/%s 五行相生，属相层有顺承之意。", a.YearZhi, b.YearZhi, wxA, wxB),
+			Weight:      20,
+		}}
+	}
 	return nil
 }
 
@@ -76,37 +103,52 @@ func nayinEvidence(a, b *BaziResult) []CompatibilityEvidence {
 }
 
 func dayPillarEvidence(a, b *BaziResult) []CompatibilityEvidence {
-	if !branchCompatible(a.DayZhi, b.DayZhi) {
-		return nil
-	}
-	if ganUpperTier(a.DayGan, b.DayGan) {
+	if branchCompatible(a.DayZhi, b.DayZhi) {
+		if ganUpperTier(a.DayGan, b.DayGan) {
+			return []CompatibilityEvidence{{
+				EvidenceKey: "day_pillar_upper",
+				Dimension:   "day_pillar",
+				Type:        "日柱上档",
+				Polarity:    "positive",
+				Source:      "day_pillar",
+				Title:       "日柱上档",
+				Detail: fmt.Sprintf(
+					"日柱 %s%s/%s%s 地支合且天干强化（五合 / 相生），亲密层结构稳。",
+					a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
+				),
+				Weight: 10,
+			}}
+		}
 		return []CompatibilityEvidence{{
-			EvidenceKey: "day_pillar_upper",
+			EvidenceKey: "day_pillar_lower",
 			Dimension:   "day_pillar",
-			Type:        "日柱上档",
+			Type:        "日柱次吉",
 			Polarity:    "positive",
 			Source:      "day_pillar",
-			Title:       "日柱上档",
+			Title:       "日柱次吉",
 			Detail: fmt.Sprintf(
-				"日柱 %s%s/%s%s 地支合且天干强化（五合 / 相生），亲密层结构稳。",
+				"日柱 %s%s/%s%s 地支合，天干仅相同 / 克 / 无关，亲密层有基础但未达上吉。",
 				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
 			),
-			Weight: 10,
+			Weight: 5,
 		}}
 	}
-	return []CompatibilityEvidence{{
-		EvidenceKey: "day_pillar_lower",
-		Dimension:   "day_pillar",
-		Type:        "日柱下档",
-		Polarity:    "positive",
-		Source:      "day_pillar",
-		Title:       "日柱次吉",
-		Detail: fmt.Sprintf(
-			"日柱 %s%s/%s%s 地支合，天干仅相同 / 克 / 无关，亲密层有基础但未达上吉。",
-			a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
-		),
-		Weight: 5,
-	}}
+	if branchSameElement(a.DayZhi, b.DayZhi) || branchShengElement(a.DayZhi, b.DayZhi) {
+		return []CompatibilityEvidence{{
+			EvidenceKey: "day_pillar_safe",
+			Dimension:   "day_pillar",
+			Type:        "日柱安慰",
+			Polarity:    "positive",
+			Source:      "day_pillar",
+			Title:       "日柱安慰分",
+			Detail: fmt.Sprintf(
+				"日柱 %s%s/%s%s 地支虽不合，但五行相同或相生，亲密层有微弱亲近感。",
+				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
+			),
+			Weight: 3,
+		}}
+	}
+	return nil
 }
 
 func eightCharsEvidence(a, b *BaziResult) []CompatibilityEvidence {
@@ -124,27 +166,30 @@ func eightCharsEvidence(a, b *BaziResult) []CompatibilityEvidence {
 		{"month", "月柱", a.MonthGan, a.MonthZhi, b.MonthGan, b.MonthZhi},
 		{"hour", "时柱", a.HourGan, a.HourZhi, b.HourGan, b.HourZhi},
 	}
-	tierLabelMap := map[string]string{"upper": "上档", "lower": "下档"}
+	tierByScore := map[int]struct {
+		key   string
+		label string
+	}{
+		10: {"upper", "上档"},
+		5:  {"lower", "下档"},
+		3:  {"safe", "安慰分"},
+	}
 	for _, p := range pillars {
 		s := scoreDayPillar(p.ganA, p.zhiA, p.ganB, p.zhiB)
-		if s == 0 {
+		t, ok := tierByScore[s]
+		if !ok {
 			continue
 		}
-		tier := "lower"
-		if s == 10 {
-			tier = "upper"
-		}
-		tierLabel := tierLabelMap[tier]
 		out = append(out, CompatibilityEvidence{
-			EvidenceKey: "eight_chars_" + p.name + "_" + tier,
+			EvidenceKey: "eight_chars_" + p.name + "_" + t.key,
 			Dimension:   "eight_chars",
-			Type:        p.label + "对" + tierLabel,
+			Type:        p.label + "对" + t.label,
 			Polarity:    "positive",
 			Source:      "eight_chars",
-			Title:       p.label + "对" + tierLabel,
+			Title:       p.label + "对" + t.label,
 			Detail: fmt.Sprintf(
 				"%s %s%s/%s%s 命中%s（贡献 %d）。",
-				p.label, p.ganA, p.zhiA, p.ganB, p.zhiB, tierLabel, s,
+				p.label, p.ganA, p.zhiA, p.ganB, p.zhiB, t.label, s,
 			),
 			Weight: s,
 		})
@@ -183,13 +228,20 @@ func scoreExplanationSummaryV3(dim string, hit *CompatibilityEvidence, a, b *Baz
 	switch dim {
 	case "zodiac":
 		if hit == nil {
-			return fmt.Sprintf("双方年支 %s/%s 无六合 / 三合，属相层级无加成。", a.YearZhi, b.YearZhi)
+			return fmt.Sprintf("双方年支 %s/%s 无六合 / 三合 / 同行 / 相生，属相层无加成。", a.YearZhi, b.YearZhi)
 		}
-		if hit.EvidenceKey == "zodiac_liuhe" {
+		switch hit.EvidenceKey {
+		case "zodiac_liuhe":
 			return fmt.Sprintf("双方属相 %s/%s 构成六合，关系基础线吸引力强。", a.YearZhi, b.YearZhi)
+		case "zodiac_sanhe":
+			return fmt.Sprintf("双方属相 %s/%s 同属 %s 三合局，气场协同。",
+				a.YearZhi, b.YearZhi, sanheGroupName(a.YearZhi, b.YearZhi))
+		case "zodiac_same_element":
+			return fmt.Sprintf("双方年支 %s/%s 五行同行（双生），属相层有亲近感。", a.YearZhi, b.YearZhi)
+		case "zodiac_sheng":
+			return fmt.Sprintf("双方年支 %s/%s 五行相生，属相层有顺承之意。", a.YearZhi, b.YearZhi)
 		}
-		return fmt.Sprintf("双方属相 %s/%s 同属 %s 三合局，气场协同。",
-			a.YearZhi, b.YearZhi, sanheGroupName(a.YearZhi, b.YearZhi))
+		return ""
 	case "nayin":
 		wxA := nayinElement(a.YearGan + a.YearZhi)
 		wxB := nayinElement(b.YearGan + b.YearZhi)
@@ -202,15 +254,21 @@ func scoreExplanationSummaryV3(dim string, hit *CompatibilityEvidence, a, b *Baz
 		return fmt.Sprintf("双方纳音同为 %s，本质同气。", wxA)
 	case "day_pillar":
 		if hit == nil {
-			return fmt.Sprintf("日柱 %s%s/%s%s 地支不合，亲密层无加成。",
+			return fmt.Sprintf("日柱 %s%s/%s%s 地支不合且五行无亲，亲密层无加成。",
 				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
 		}
-		if hit.EvidenceKey == "day_pillar_upper" {
+		switch hit.EvidenceKey {
+		case "day_pillar_upper":
 			return fmt.Sprintf("日柱 %s%s/%s%s 地支合且天干五合 / 相生，亲密层结构稳。",
 				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
+		case "day_pillar_lower":
+			return fmt.Sprintf("日柱 %s%s/%s%s 地支合，天干仅相同 / 克 / 无关，亲密层有基础但未达上吉。",
+				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
+		case "day_pillar_safe":
+			return fmt.Sprintf("日柱 %s%s/%s%s 地支虽不合，但五行同行或相生，亲密层有微弱亲近感。",
+				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
 		}
-		return fmt.Sprintf("日柱 %s%s/%s%s 地支合，天干仅相同 / 克 / 无关，亲密层有基础但未达上吉。",
-			a.DayGan, a.DayZhi, b.DayGan, b.DayZhi)
+		return ""
 	case "eight_chars":
 		// 八字模块可能 0–3 柱命中，单条 evidence 无法表达命中数，故直接重新计算柱位命中。
 		return eightCharsSummary(a, b)
