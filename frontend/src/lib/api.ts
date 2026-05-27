@@ -57,6 +57,7 @@ export interface UserProfileStats {
 
 export interface UserProfileChartSummary {
   id: string
+  display_name?: string
   birth_year: number
   birth_month: number
   birth_day: number
@@ -219,6 +220,8 @@ export interface CompatibilityContextInput {
 export interface CreateCompatibilityReadingInput extends CompatibilityContextInput {
   self: CompatibilityProfileInput
   partner: CompatibilityProfileInput
+  self_display_name?: string
+  partner_display_name?: string
 }
 
 export interface CompatibilityDimensionScores {
@@ -434,6 +437,27 @@ export interface CalculateInput {
   is_leap_month?: boolean
 }
 
+export interface BaziHistoryChart {
+  id: string
+  birth_year: number
+  birth_month: number
+  birth_day: number
+  birth_hour: number
+  gender: 'male' | 'female' | string
+  display_name?: string
+  year_gan: string
+  year_zhi: string
+  month_gan: string
+  month_zhi: string
+  day_gan: string
+  day_zhi: string
+  hour_gan: string
+  hour_zhi: string
+  calendar_type?: 'solar' | 'lunar'
+  is_leap_month?: boolean
+  created_at: string
+}
+
 export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   generateReport: (chartId: string) =>
@@ -644,6 +668,11 @@ export const baziAPI = {
   },
   getHistory: (page = 1) => api.get(`/api/bazi/history?page=${page}`),
   getHistoryDetail: (id: string) => api.get(`/api/bazi/history/${id}`),
+  updateHistoryDisplayName: (id: string, displayName: string) =>
+    api.patch<{ data: { id: string; display_name: string } }>(
+      `/api/bazi/history/${id}/display-name`,
+      { display_name: displayName },
+    ),
   fetchLiuYue: (liuNianYear: number, dayGan: string) =>
     api.post('/api/bazi/liu-yue', { liu_nian_year: liuNianYear, day_gan: dayGan }),
 }
