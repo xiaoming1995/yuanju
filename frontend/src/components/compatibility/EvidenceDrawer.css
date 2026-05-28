@@ -1,5 +1,7 @@
 .compat-evidence-drawer {
   margin-top: var(--section-gap-mobile);
+  margin-left: var(--section-padding-mobile);
+  margin-right: var(--section-padding-mobile);
   padding: 16px;
   background: var(--bg-card);
   border-radius: var(--radius-md);
@@ -15,7 +17,12 @@
 .compat-evidence-drawer__body { margin-top: 12px; display: grid; gap: var(--subsection-gap); }
 .compat-evidence-drawer__group-title { font-size: var(--fs-subsection-title); color: var(--text-primary); margin: 0 0 8px; }
 @media (min-width: 1024px) {
-  .compat-evidence-drawer { margin-top: var(--section-gap-desktop); padding: 24px; }
+  .compat-evidence-drawer {
+    margin-top: var(--section-gap-desktop);
+    margin-left: var(--section-padding-desktop);
+    margin-right: var(--section-padding-desktop);
+    padding: 24px;
+  }
 }
 
 /* === Evidence grid & cards === */
