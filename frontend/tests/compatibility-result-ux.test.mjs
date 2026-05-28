@@ -91,3 +91,11 @@ test('compatibility result page renders question-aware report focus', () => {
   assert.match(page, /question_focus/)
   assert.match(page, /boundary_conditions/)
 })
+
+test('all <details> elements in compatibility result page are open by default', () => {
+  const page = read('src/pages/CompatibilityResultPage.tsx')
+  const opens = page.match(/<details\b[^>]*>/g) || []
+  for (const tag of opens) {
+    assert.match(tag, /\bopen\b/, `expected ${tag} to include the open attribute`)
+  }
+})
