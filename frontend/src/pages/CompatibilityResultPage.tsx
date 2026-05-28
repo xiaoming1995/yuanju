@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -13,7 +13,6 @@ import {
   type CompatibilityEvidence,
   type CompatibilityQuestionFocus,
   type CompatibilityRelationshipStrategy,
-  type CompatibilityStageRisk,
   type CompatibilityStructuredReport,
 } from '../lib/api'
 import {
@@ -26,7 +25,6 @@ import {
 import {
   buildPersonalityFitSummary,
   buildPersonalityValidationPlan,
-  type PersonalityValidationPlan,
 } from '../lib/compatibilityPersonality'
 import { toBlob, toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
@@ -41,6 +39,7 @@ import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis
 import ParticipantSummaryCard from '../components/compatibility/ParticipantSummaryCard'
 import { ScoreOverviewV3, ScoreOverview } from '../components/compatibility/ScoreOverview'
 import PersonalityFit from '../components/compatibility/deep-analysis/PersonalityFit'
+import ActionPlan7d30d from '../components/compatibility/deep-analysis/ActionPlan7d30d'
 import './CompatibilityResultPage.css'
 
 // Feature flag: 控制重构期间新结构 vs 旧 11 段结构。批次 4 完成时删除。
@@ -93,18 +92,6 @@ const perspectiveText: Record<string, string> = {
   self_to_partner: '我看对方',
   partner_to_self: '对方看我',
   mutual: '双方互见',
-}
-
-const durationLevelText: Record<string, string> = {
-  high: '偏高',
-  medium: '中等',
-  low: '偏低',
-}
-
-const stageWindowText: Record<string, string> = {
-  three_months: '3 个月',
-  one_year: '1 年',
-  two_years_plus: '2 年以上',
 }
 
 const relationshipStageText: Record<string, string> = {
@@ -363,90 +350,6 @@ function DecisionEvidenceSummary({
   )
 }
 
-
-function PersonalityValidationPlanPanel({
-  plan,
-  children,
-}: {
-  plan: PersonalityValidationPlan
-  children: ReactNode
-}) {
-  const groups: Array<{ title: string; items: string[]; anchor?: string }> = [
-    plan.shortTerm,
-    plan.mediumTerm,
-    plan.avoid,
-  ]
-
-  return (
-    <section id="compatibility-conflict-validation" className="compatibility-section compatibility-validation-plan" aria-label="7 天观察与30 天验证">
-      <div className="compatibility-section-header">
-        <div>
-          <h2 className="serif compatibility-section-title">性格验证计划</h2>
-          <p className="compatibility-section-desc">用短期观察确认性格判断，不把一时吸引直接当成结论。</p>
-        </div>
-      </div>
-      <div className="compatibility-validation-plan-grid">
-        {groups.map(group => (
-          <div key={group.title} className="card compatibility-validation-plan-card">
-            <div className="compatibility-validation-plan-title">{group.title}</div>
-            {group.items.map(item => <p key={item}>{item}</p>)}
-            {group.anchor && <a href={group.anchor}>查看阶段验证</a>}
-          </div>
-        ))}
-      </div>
-      <p className="compatibility-validation-plan-note">{plan.supportNote}</p>
-      <div className="compatibility-validation-detail">
-        <div className="compatibility-validation-detail-heading">阶段风险明细</div>
-        {children}
-      </div>
-    </section>
-  )
-}
-
-function StageRiskGrid({ risks }: { risks: CompatibilityStageRisk[] }) {
-  return (
-    <div className="compatibility-stage-validation-grid">
-      {risks.map(risk => (
-        <div key={risk.window} className="card compatibility-stage-validation-card">
-          <div className="compatibility-stage-window">{stageWindowText[risk.window] || risk.window}</div>
-          <div className="compatibility-stage-label">要验证什么</div>
-          <div className="serif compatibility-stage-risk">{risk.main_risk}</div>
-          <p><span>触发场景：</span>{risk.trigger}</p>
-          <div className="compatibility-stage-advice">{risk.advice}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function DurationTaskSummary({ assessment }: { assessment: CompatibilityDurationAssessment }) {
-  const windows = [
-    { key: 'three_months', label: '3 个月', level: assessment.windows.three_months.level },
-    { key: 'one_year', label: '1 年', level: assessment.windows.one_year.level },
-    { key: 'two_years_plus', label: '2 年以上', level: assessment.windows.two_years_plus.level },
-  ]
-
-  return (
-    <div className="compatibility-duration-task">
-      <div className="compatibility-duration-task-grid">
-        {windows.map(window => (
-          <div key={window.key} className="compatibility-duration-task-item">
-            <span>{window.label}</span>
-            <strong className="serif">{durationLevelText[window.level] || window.level}</strong>
-          </div>
-        ))}
-      </div>
-      {assessment.summary && <p>{assessment.summary}</p>}
-      {assessment.reasons.length > 0 && (
-        <div className="compatibility-duration-reasons">
-          {assessment.reasons.map(reason => (
-            <div key={reason} className="compatibility-duration-reason">{reason}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 function RelationshipStrategyPanel({ strategy }: { strategy: CompatibilityRelationshipStrategy }) {
   return (
@@ -876,21 +779,11 @@ export default function CompatibilityResultPage() {
 
         {personalitySummary && <PersonalityFit summary={personalitySummary} />}
 
-        {personalityValidationPlan ? (
-          <PersonalityValidationPlanPanel plan={personalityValidationPlan}>
-            <StageRiskGrid risks={decisionStageRisks} />
-            <DurationTaskSummary assessment={durationAssessment} />
-          </PersonalityValidationPlanPanel>
-        ) : (
-          <section id="compatibility-conflict-validation" className="compatibility-section">
-            <div className="compatibility-section-header">
-              <h2 className="serif compatibility-section-title">阶段风险与时段</h2>
-              <p className="compatibility-section-desc">分阶段查看主要风险点和时段强弱。</p>
-            </div>
-            <StageRiskGrid risks={decisionStageRisks} />
-            <DurationTaskSummary assessment={durationAssessment} />
-          </section>
-        )}
+        <ActionPlan7d30d
+          plan={personalityValidationPlan}
+          risks={decisionStageRisks}
+          assessment={durationAssessment}
+        />
 
         {consulting.relationship_strategy && (
           <RelationshipStrategyPanel strategy={consulting.relationship_strategy} />
