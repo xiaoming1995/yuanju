@@ -3,7 +3,6 @@ import type {
   CompatibilityEvidence,
   CompatibilityParticipant,
   CompatibilityReading,
-  CompatibilityStructuredReport,
   ExportBrand,
 } from '../lib/api'
 import { isV3DimensionScores } from '../lib/api'
@@ -129,7 +128,6 @@ export interface CompatibilityShareCardProps {
   reading: CompatibilityReading
   participants: CompatibilityParticipant[]
   evidences: CompatibilityEvidence[]
-  structured: CompatibilityStructuredReport | null
   decision: DecisionDashboardData
   brand?: ExportBrand | null
 }
