@@ -20,17 +20,13 @@ export default function PersonalityFit({ summary }: { summary: PersonalityFitSum
   return (
     <details open className="compat-da-personality" id="compatibility-personality-fit">
       <summary className="compat-da-subsection-summary">
-        <div className="compatibility-section-header compatibility-section-header--stacked">
-          <div className="compatibility-consulting-kicker">性格相处画像</div>
-          <h2 className="serif compatibility-section-title">{summary.headline}</h2>
-          <p className="compatibility-personality-type-desc">{summary.matchTypeDescription}</p>
-          <p className="compatibility-section-desc">
-            当前问题：{summary.questionLabel} · 关系阶段：{summary.stageLabel}
-          </p>
-        </div>
+        <span className="compat-da-subsection-title">性格相处画像</span>
+        <span className="compat-da-subsection-hint">{summary.matchTypeDescription}</span>
       </summary>
 
       <div className="compat-da-personality__body">
+        <h3 className="serif compat-da-personality__headline">{summary.headline}</h3>
+        <p className="compat-da-personality__meta">当前问题：{summary.questionLabel} · 关系阶段：{summary.stageLabel}</p>
         <p className="compatibility-personality-summary">{summary.summary}</p>
 
         <div className="compatibility-personality-pattern-grid">

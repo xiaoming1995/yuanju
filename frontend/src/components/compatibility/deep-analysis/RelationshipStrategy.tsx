@@ -19,7 +19,10 @@ function AdviceList({ title, items }: { title: string; items: string[] }) {
 export default function RelationshipStrategy({ strategy }: { strategy: CompatibilityRelationshipStrategy }) {
   return (
     <details open className="compat-da-strategy">
-      <summary className="compat-da-subsection-summary">关系经营策略</summary>
+      <summary className="compat-da-subsection-summary">
+        <span className="compat-da-subsection-title">关系经营策略</span>
+        <span className="compat-da-subsection-hint">沟通 · 冲突 · 现实 · 边界</span>
+      </summary>
       <div className="compat-da-strategy__body">
         <AdviceList title="沟通" items={[strategy.communication].filter(Boolean)} />
         <AdviceList title="冲突" items={[strategy.conflict].filter(Boolean)} />

@@ -4,6 +4,18 @@
 .compat-da-subsection-title { font-size: var(--fs-subsection-title); color: var(--text-primary); }
 .compat-da-subsection-hint { font-size: var(--fs-caption); color: var(--text-muted); }
 .compat-da-personality__body { margin-top: 12px; display: grid; gap: 14px; }
+.compat-da-personality__headline {
+  font-size: 18px;
+  color: var(--text-primary);
+  line-height: 1.45;
+  margin: 0 0 6px;
+}
+.compat-da-personality__meta {
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
 
 .compatibility-personality-type-desc {
   margin: 8px 0 0;

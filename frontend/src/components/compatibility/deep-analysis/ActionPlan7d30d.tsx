@@ -72,8 +72,8 @@ export default function ActionPlan7d30d({
     return (
       <details open className="compat-da-actionplan">
         <summary className="compat-da-subsection-summary">
-          <h2 className="serif compatibility-section-title">阶段风险与时段</h2>
-          <p className="compatibility-section-desc">分阶段查看主要风险点和时段强弱。</p>
+          <span className="compat-da-subsection-title">阶段风险与时段</span>
+          <span className="compat-da-subsection-hint">分阶段查看主要风险点和时段强弱</span>
         </summary>
         <div className="compat-da-actionplan__body">
           <StageRiskGrid risks={risks} />
@@ -92,8 +92,8 @@ export default function ActionPlan7d30d({
   return (
     <details open className="compat-da-actionplan">
       <summary className="compat-da-subsection-summary">
-        <h2 className="serif compatibility-section-title">性格验证计划</h2>
-        <p className="compatibility-section-desc">用短期观察确认性格判断，不把一时吸引直接当成结论。</p>
+        <span className="compat-da-subsection-title">性格验证计划</span>
+        <span className="compat-da-subsection-hint">7 天观察 / 30 天复盘</span>
       </summary>
       <div className="compat-da-actionplan__body">
         <div className="compatibility-validation-plan-grid">

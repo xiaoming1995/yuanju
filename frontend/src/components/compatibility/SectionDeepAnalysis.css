@@ -10,8 +10,5 @@
     scroll-margin-top: var(--sticky-h-desktop);
     padding: 0 var(--section-padding-desktop);
     margin-bottom: var(--section-gap-desktop);
-    max-width: 720px;
-    margin-left: auto;
-    margin-right: auto;
   }
 }

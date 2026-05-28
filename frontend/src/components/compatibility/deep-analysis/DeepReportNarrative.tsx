@@ -61,21 +61,15 @@ export default function DeepReportNarrative({
   return (
     <details open className="compat-da-report">
       <summary className="compat-da-subsection-summary">
-        <span className="compat-da-subsection-title">AI 长文叙事</span>
-        <span className="compat-da-subsection-hint">完整解读</span>
+        <span className="compat-da-subsection-title">AI 深度解读</span>
+        <span className="compat-da-subsection-hint">{hasReport ? '完整叙事 · 维度 · 风险 · 建议' : '可选扩展，点击下方按钮生成'}</span>
       </summary>
       <div className={`compat-da-report__body ${reportStateClass}`}>
-        <div className="compatibility-ai-header">
-          <div>
-            <div className="compatibility-consulting-kicker">可选扩展</div>
-            <h2 className="serif compatibility-section-title">深度解读</h2>
-          </div>
-          {!hasReport && (
-            <button className="btn btn-primary compatibility-report-action" onClick={onGenerateReport} disabled={reportLoading}>
-              {reportLoading ? '生成中' : '生成深度解读'}
-            </button>
-          )}
-        </div>
+        {!hasReport && (
+          <button className="btn btn-primary compatibility-report-action" onClick={onGenerateReport} disabled={reportLoading}>
+            {reportLoading ? '生成中…' : '生成深度解读'}
+          </button>
+        )}
 
         {error && (
           <div className="compatibility-report-state compatibility-report-state--error">
