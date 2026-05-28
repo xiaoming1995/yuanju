@@ -237,7 +237,6 @@
     padding: 3mm 4mm;
     margin-bottom: 3mm;
     font-size: 11pt;
-    break-inside: avoid;
   }
   .compat-print-stage-head {
     display: flex;
@@ -269,7 +268,6 @@
   }
   .compat-print-chapter {
     margin-bottom: 5mm;
-    break-inside: avoid-page;
   }
   .compat-print-chapter-title {
     font-family: "Noto Serif SC", serif;
@@ -283,6 +281,8 @@
     text-indent: 2em;
     font-size: 11pt;
     line-height: 1.8;
+    orphans: 2;
+    widows: 2;
   }
 
   /* §7 dual full charts */
