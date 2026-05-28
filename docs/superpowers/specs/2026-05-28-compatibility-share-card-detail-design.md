@@ -15,7 +15,7 @@
   1. §4 四维评分进度条下方新增「正：X · 负：Y」一行
   2. §6 新增「关系诊断 · 核心 3 发现」（紧贴决策面板下）
   3. §10 新增「关系策略 4 条」（沟通 / 冲突 / 现实 / 边界）
-  4. §11 新增「命理解读摆要」（六章节首句）
+  4. §11 新增「命理解读摘要」（六章节首句）
 - 在 ShareCard Props 重新加入 `structured: CompatibilityStructuredReport | null`（上次 T1 cleanup 删过，本次确实需要用）
 - 页面集成处把 `structured={structuredReport}` 传给 ShareCard
 
@@ -42,7 +42,7 @@
 8.  ◇ 阶段风险                             — 不变
 9.  ⚠ 避免事项 (top 2)                     — 不变
 10. ◇ 关系策略 (NEW)                       — 沟通 / 冲突 / 现实 / 边界 4 行
-11. ◇ 命理解读摆要 (NEW)                   — 六章节首句
+11. ◇ 命理解读摘要 (NEW)                   — 六章节首句
 12. brand footer                            — 不变
 ```
 

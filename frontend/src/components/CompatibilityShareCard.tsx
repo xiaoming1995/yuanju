@@ -327,7 +327,7 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
 
       {dimDigests.length > 0 && (
         <section className="compat-share-digests">
-          <h3 className="compat-share-section-h">◇ 命理解读摆要</h3>
+          <h3 className="compat-share-section-h">◇ 命理解读摘要</h3>
           {dimDigests.map(d => (
             <div key={d.key} className="compat-share-digest-item">
               <div className="compat-share-digest-title">• {d.title}</div>

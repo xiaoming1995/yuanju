@@ -207,14 +207,14 @@ const dimDigests = (structured?.dimensions || []).map(d => ({
 )}
 ```
 
-- [ ] **Step 8: §11 命理解读摆要（新增）**
+- [ ] **Step 8: §11 命理解读摘要（新增）**
 
 紧接 §10 关系策略 section 的结束 `</section>`，在 footer 之前新增：
 
 ```tsx
 {dimDigests.length > 0 && (
   <section className="compat-share-digests">
-    <h3 className="compat-share-section-h">◇ 命理解读摆要</h3>
+    <h3 className="compat-share-section-h">◇ 命理解读摘要</h3>
     {dimDigests.map(d => (
       <div key={d.key} className="compat-share-digest-item">
         <div className="compat-share-digest-title">• {d.title}</div>
@@ -261,7 +261,7 @@ Per spec §3.3, add four new content blocks via 就近合并 layout:
   reading.score_explanations (indexed by dimension)
 - §6 NEW 关系诊断·核心发现 from diagnosis.top_findings[].text
 - §10 NEW 关系策略 from relationship_strategy (沟通/冲突/现实/边界)
-- §11 NEW 命理解读摆要 from structured.dimensions[].content first
+- §11 NEW 命理解读摘要 from structured.dimensions[].content first
   sentence via firstSentence() — regex matches up to first 。/！/？
   punctuation, fallback to slice(0, 60)
 
@@ -346,7 +346,7 @@ EOF
   color: #4a3728;
 }
 
-/* §11 命理解读摆要 */
+/* §11 命理解读摘要 */
 .compat-share-digests {
   position: relative;
   z-index: 1;
@@ -429,7 +429,7 @@ Expected: 200. 如果不是 200，启动：`cd /Users/liujiming/web/yuanju/front
 2. v3 评分模式下 §4 ⤷ 行不出现（只有 v2 attraction/stability/communication/practicality 才有 explanations）
 3. §6 「核心发现」展示 `top_findings` 前 3 条，每条带 `·` 前缀
 4. §10 「关系策略」4 行：沟通 / 冲突 / 现实 / 边界，每行 chip 标签 + 内容
-5. §11 「命理解读摆要」展示 dimensions 章节标题 + 首句
+5. §11 「命理解读摘要」展示 dimensions 章节标题 + 首句
 6. §11 首句长度 ≤60 字，且断在 。/！/？ 之前
 7. 缺失字段时 section 不出现（修改 backend response 暴露 / 直接 DevTools 改 detail.latest_report.content_structured 测试）
 8. ShareCard 在最小数据下结构稳定
