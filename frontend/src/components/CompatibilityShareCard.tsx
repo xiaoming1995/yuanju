@@ -135,9 +135,20 @@ export interface CompatibilityShareCardProps {
 }
 
 const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCardProps>((props, ref) => {
-  const { reading, participants, evidences, structured, decision, brand } = props
+  const { reading, participants, evidences, decision, brand } = props
   const selfP = participants.find(p => p.role === 'self')
   const partnerP = participants.find(p => p.role === 'partner')
+
+  if (!selfP || !partnerP) {
+    return (
+      <div ref={ref} className="compat-share-card">
+        <header className="compat-share-header">
+          <h1>{brand?.title || '缘 聚 合 盘'}</h1>
+        </header>
+        <p className="compat-share-col-empty" style={{ marginTop: 24, fontSize: 13 }}>双盘数据缺失</p>
+      </div>
+    )
+  }
 
   const top3Evidences = [...evidences]
     .filter(e => Number.isFinite(e.weight))
@@ -151,62 +162,60 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
     .filter(([k]) => dimLabel[k])
     .map(([k, v]) => ({ key: k, label: dimLabel[k], value: typeof v === 'number' ? v : 0 }))
 
-  const verdict = structured?.summary?.trim() || decision.verdict
+  const verdict = decision.verdict
   const resolvedTitle = brand?.title || '缘 聚 合 盘'
   const resolvedFooter = resolveFooter(brand, 'yuanju.com')
   const showWatermark = showDiagonalWatermark(brand)
 
   return (
-    <>
-      <link rel="stylesheet" href={PILLAR_FONT_URL} />
-      <div ref={ref} className="compat-share-card">
-        {showWatermark && <DiagonalWatermark text={brand?.watermark_text || brand?.title || '缘聚命理'} />}
+    <div ref={ref} className="compat-share-card">
+      <style>{`@import url('${PILLAR_FONT_URL}');`}</style>
+      {showWatermark && <DiagonalWatermark text={brand?.watermark_text || brand?.title || '缘聚命理'} />}
 
-        <header className="compat-share-header">
-          <h1>{resolvedTitle}</h1>
-          <p className="compat-share-sub">YUANJU · 命理合参</p>
-        </header>
+      <header className="compat-share-header">
+        <h1>{resolvedTitle}</h1>
+        <p className="compat-share-sub">YUANJU · 命理合参</p>
+      </header>
 
-        <section className="compat-share-twocol">
-          <ChartColumn participant={selfP} label="我" />
-          <div className="compat-share-vdivider" />
-          <ChartColumn participant={partnerP} label="伴侣" />
-        </section>
+      <section className="compat-share-twocol">
+        <ChartColumn participant={selfP} label="我" />
+        <div className="compat-share-vdivider" />
+        <ChartColumn participant={partnerP} label="伴侣" />
+      </section>
 
-        <section className="compat-share-score">
-          <div className="compat-share-score-label">综 合 契 合 度</div>
-          <div className="compat-share-score-value" style={{ color: wxColor(selfP?.chart_snapshot?.day_gan) }}>
-            {reading.overall_score}
-          </div>
-        </section>
+      <section className="compat-share-score">
+        <div className="compat-share-score-label">综 合 契 合 度</div>
+        <div className="compat-share-score-value" style={{ color: wxColor(selfP?.chart_snapshot?.day_gan) }}>
+          {reading.overall_score}
+        </div>
+      </section>
 
-        {dimEntries.length > 0 && (
-          <section className="compat-share-dims">
-            <h3 className="compat-share-section-h">◇ 四维</h3>
-            {dimEntries.map(d => (
-              <div key={d.key} className="compat-share-dim-row">
-                <span className="compat-share-dim-lbl">{d.label}</span>
-                <div className="compat-share-dim-bar">
-                  <i style={{ width: `${Math.max(0, Math.min(100, d.value))}%` }} />
-                </div>
-                <span className="compat-share-dim-val">{d.value}</span>
+      {dimEntries.length > 0 && (
+        <section className="compat-share-dims">
+          <h3 className="compat-share-section-h">◇ 四维</h3>
+          {dimEntries.map(d => (
+            <div key={d.key} className="compat-share-dim-row">
+              <span className="compat-share-dim-lbl">{d.label}</span>
+              <div className="compat-share-dim-bar">
+                <i style={{ width: `${Math.max(0, Math.min(100, d.value))}%` }} />
               </div>
-            ))}
-          </section>
-        )}
+              <span className="compat-share-dim-val">{d.value}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
-        {top3Evidences.length > 0 && (
-          <section className="compat-share-evs">
-            <h3 className="compat-share-section-h">◇ 核心证据</h3>
-            {top3Evidences.map(e => <EvidenceItem key={e.id} evidence={e} />)}
-          </section>
-        )}
+      {top3Evidences.length > 0 && (
+        <section className="compat-share-evs">
+          <h3 className="compat-share-section-h">◇ 核心证据</h3>
+          {top3Evidences.map(e => <EvidenceItem key={e.id} evidence={e} />)}
+        </section>
+      )}
 
-        <section className="compat-share-verdict">{verdict}</section>
+      <section className="compat-share-verdict">{verdict}</section>
 
-        <footer className="compat-share-footer">{resolvedFooter}</footer>
-      </div>
-    </>
+      <footer className="compat-share-footer">{resolvedFooter}</footer>
+    </div>
   )
 })
 
