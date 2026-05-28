@@ -69,9 +69,6 @@
     line-height: 1.7;
   }
 
-  .compat-print-section {
-    break-inside: avoid;
-  }
   .compat-print-section-title {
     font-family: "Noto Serif SC", serif;
     font-size: 16pt;
