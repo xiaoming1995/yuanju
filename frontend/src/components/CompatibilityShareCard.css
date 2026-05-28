@@ -123,7 +123,7 @@
   grid-template-columns: 36px 1fr 28px;
   gap: 8px;
   align-items: center;
-  margin: 4px 0;
+  margin: 0;
   font-size: 11px;
 }
 .compat-share-dim-lbl {
@@ -329,6 +329,8 @@
   background: #efe0bc;
   border-radius: 3px;
   letter-spacing: 1px;
+  padding: 1px 4px;
+  align-self: center;
 }
 .compat-share-strategy-val {
   color: #4a3728;
