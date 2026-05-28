@@ -1424,6 +1424,7 @@
   overflow: auto;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
   padding: 8px 4px;
   background: #efe6cf;
   border-radius: 8px;
