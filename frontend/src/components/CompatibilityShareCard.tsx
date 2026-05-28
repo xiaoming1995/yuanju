@@ -3,6 +3,7 @@ import type {
   CompatibilityEvidence,
   CompatibilityParticipant,
   CompatibilityReading,
+  CompatibilityStageRisk,
   ExportBrand,
 } from '../lib/api'
 import { isV3DimensionScores } from '../lib/api'
@@ -124,16 +125,28 @@ function DiagonalWatermark({ text }: { text: string }) {
   )
 }
 
+const STAGE_WINDOW_LABEL: Record<string, string> = {
+  three_months: '3 个月',
+  one_year: '1 年',
+  two_years_plus: '2 年+',
+}
+const RISK_LEVEL_LABEL: Record<string, string> = {
+  high: '偏高',
+  medium: '中等',
+  low: '偏低',
+}
+
 export interface CompatibilityShareCardProps {
   reading: CompatibilityReading
   participants: CompatibilityParticipant[]
   evidences: CompatibilityEvidence[]
   decision: DecisionDashboardData
+  stageRisks: CompatibilityStageRisk[]
   brand?: ExportBrand | null
 }
 
 const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCardProps>((props, ref) => {
-  const { reading, participants, evidences, decision, brand } = props
+  const { reading, participants, evidences, decision, stageRisks, brand } = props
   const selfP = participants.find(p => p.role === 'self')
   const partnerP = participants.find(p => p.role === 'partner')
 
@@ -148,10 +161,10 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
     )
   }
 
-  const top3Evidences = [...evidences]
+  const topEvidences = [...evidences]
     .filter(e => Number.isFinite(e.weight))
     .sort((a, b) => b.weight - a.weight)
-    .slice(0, 3)
+    .slice(0, 6)
 
   const isV3 = (reading.analysis_version === 'v3' || reading.analysis_version === 'v3.1')
     && isV3DimensionScores(reading.dimension_scores)
@@ -160,7 +173,6 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
     .filter(([k]) => dimLabel[k])
     .map(([k, v]) => ({ key: k, label: dimLabel[k], value: typeof v === 'number' ? v : 0 }))
 
-  const verdict = decision.verdict
   const resolvedTitle = brand?.title || '缘 聚 合 盘'
   const resolvedFooter = resolveFooter(brand, 'yuanju.com')
   const showWatermark = showDiagonalWatermark(brand)
@@ -203,14 +215,46 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
         </section>
       )}
 
-      {top3Evidences.length > 0 && (
+      {/* §5 关系决策 */}
+      <section className="compat-share-decision">
+        <h3 className="compat-share-section-h">◇ 关系决策</h3>
+        <div className="compat-share-decision-verdict">{decision.verdict}</div>
+        <div className="compat-share-decision-row"><span className="lbl">关系定调</span>{decision.relationshipType}</div>
+        <div className="compat-share-decision-row"><span className="lbl">推进建议</span>{decision.recommendationLabel} · 信心{decision.confidenceLabel}</div>
+        <div className="compat-share-decision-row"><span className="lbl">最大风险</span>{decision.maxRisk}</div>
+        <div className="compat-share-decision-row"><span className="lbl">下一步</span>{decision.nextAction}</div>
+      </section>
+
+      {topEvidences.length > 0 && (
         <section className="compat-share-evs">
           <h3 className="compat-share-section-h">◇ 核心证据</h3>
-          {top3Evidences.map(e => <EvidenceItem key={e.id} evidence={e} />)}
+          {topEvidences.map(e => <EvidenceItem key={e.id} evidence={e} />)}
         </section>
       )}
 
-      <section className="compat-share-verdict">{verdict}</section>
+      {/* §7 阶段风险 */}
+      {stageRisks.length > 0 && (
+        <section className="compat-share-stages">
+          <h3 className="compat-share-section-h">◇ 阶段风险</h3>
+          {stageRisks.slice(0, 3).map((r, i) => (
+            <div key={i} className="compat-share-stage">
+              <span className="compat-share-stage-win">{STAGE_WINDOW_LABEL[r.window] || r.window}</span>
+              <span className={`compat-share-stage-lvl lvl-${r.risk_level}`}>{RISK_LEVEL_LABEL[r.risk_level] || r.risk_level}</span>
+              <span className="compat-share-stage-risk">{r.main_risk}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {/* §8 避免 */}
+      {decision.avoid.length > 0 && (
+        <section className="compat-share-avoid">
+          <h3 className="compat-share-section-h">⚠ 避免</h3>
+          {decision.avoid.slice(0, 2).map((a, i) => (
+            <div key={i} className="compat-share-avoid-item">· {a}</div>
+          ))}
+        </section>
+      )}
 
       <footer className="compat-share-footer">{resolvedFooter}</footer>
     </div>

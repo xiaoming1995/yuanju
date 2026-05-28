@@ -183,17 +183,89 @@
   color: #5c4a3a;
 }
 
-.compat-share-verdict {
-  background: #f5ebd6;
-  padding: 10px 12px;
-  border-radius: 6px;
-  text-align: center;
-  font-size: 12px;
-  line-height: 1.6;
-  margin-top: 14px;
-  color: #4a3728;
+/* §5 关系决策 */
+.compat-share-decision {
   position: relative;
   z-index: 1;
+  margin-top: 4px;
+}
+.compat-share-decision-verdict {
+  font-size: 13px;
+  font-weight: 700;
+  color: #5a3a1a;
+  background: #f5ebd6;
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-align: center;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+.compat-share-decision-row {
+  font-size: 11px;
+  line-height: 1.6;
+  color: #4a3728;
+  margin: 2px 0;
+}
+.compat-share-decision-row .lbl {
+  display: inline-block;
+  min-width: 60px;
+  color: #7a5c3a;
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+/* §7 阶段风险 */
+.compat-share-stages {
+  position: relative;
+  z-index: 1;
+}
+.compat-share-stage {
+  display: grid;
+  grid-template-columns: 38px 32px 1fr;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 3px 0;
+  color: #4a3728;
+}
+.compat-share-stage-win {
+  background: #efe0bc;
+  color: #5a3a1a;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 1px;
+}
+.compat-share-stage-lvl {
+  text-align: center;
+  font-weight: 700;
+  padding: 1px 0;
+  border-radius: 3px;
+  font-size: 9px;
+}
+.compat-share-stage-lvl.lvl-high { background: #fdf0f0; color: #8b1a1a; }
+.compat-share-stage-lvl.lvl-medium { background: #fbf3e0; color: #b8782a; }
+.compat-share-stage-lvl.lvl-low { background: #f0f7f2; color: #2d5a3d; }
+.compat-share-stage-risk {
+  color: #4a3728;
+}
+
+/* §8 避免 */
+.compat-share-avoid {
+  position: relative;
+  z-index: 1;
+}
+.compat-share-avoid-item {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #6b5638;
+  background: #fdf0f0;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin: 3px 0;
+  border-left: 2px solid #c44;
 }
 
 .compat-share-footer {

@@ -1248,6 +1248,7 @@ export default function CompatibilityResultPage() {
                 participants={detail.participants}
                 evidences={detail.evidences}
                 decision={decisionDashboard}
+                stageRisks={decisionStageRisks}
                 brand={brand}
               />
             </div>
