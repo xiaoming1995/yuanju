@@ -278,6 +278,83 @@
   z-index: 1;
 }
 
+/* §4 ⤷ 四维「为什么」一行 */
+.compat-share-dim-block {
+  margin: 4px 0;
+}
+.compat-share-dim-why {
+  font-size: 10px;
+  line-height: 1.5;
+  margin-top: 2px;
+  padding-left: 44px;   /* 对齐到 bar 左边，跨越 label 列 (36px) + gap (8px) */
+}
+.compat-share-dim-why-pos { color: #2d5a3d; }
+.compat-share-dim-why-neg { color: #8b1a1a; }
+.compat-share-dim-why-sep { color: #9b815c; }
+
+/* §6 关系诊断·核心发现 */
+.compat-share-findings {
+  position: relative;
+  z-index: 1;
+}
+.compat-share-finding-item {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 3px 0;
+  padding: 4px 8px;
+  background: #fbf3e0;
+  border-left: 2px solid #7a5c3a;
+  border-radius: 0 4px 4px 0;
+  color: #4a3728;
+}
+
+/* §10 关系策略 */
+.compat-share-strategy {
+  position: relative;
+  z-index: 1;
+}
+.compat-share-strategy-row {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 3px 0;
+  color: #4a3728;
+}
+.compat-share-strategy-lbl {
+  color: #7a5c3a;
+  font-weight: 700;
+  text-align: center;
+  background: #efe0bc;
+  border-radius: 3px;
+  letter-spacing: 1px;
+}
+.compat-share-strategy-val {
+  color: #4a3728;
+}
+
+/* §11 命理解读摘要 */
+.compat-share-digests {
+  position: relative;
+  z-index: 1;
+}
+.compat-share-digest-item {
+  margin: 3px 0 5px;
+}
+.compat-share-digest-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a5c3a;
+  font-family: "Noto Serif SC", serif;
+}
+.compat-share-digest-line {
+  font-size: 10px;
+  line-height: 1.6;
+  color: #4a3728;
+  padding-left: 10px;
+}
+
 .compat-share-watermark {
   position: absolute;
   inset: -30%;
