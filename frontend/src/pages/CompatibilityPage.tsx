@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -17,6 +17,7 @@ import {
   type BirthProfileFormValue,
   type BirthProfileImportSource,
 } from '../components/birthProfile'
+import { chartDisplayName, formatBirth, formatPillars, genderText } from '../lib/chartLabel'
 import { buildPersonalityConsultationPreview } from '../lib/compatibilityPersonality'
 import './CompatibilityPage.css'
 
@@ -65,6 +66,7 @@ export default function CompatibilityPage() {
   const { user, isLoading } = useAuth()
   const handledImportQueryRef = useRef('')
   const chartPickerRef = useRef<HTMLDivElement | null>(null)
+  const pickerSearchRef = useRef<HTMLInputElement | null>(null)
   const [selfProfile, setSelfProfile] = useState<BirthProfileFormValue>(initialBirthProfile('male'))
   const [partnerProfile, setPartnerProfile] = useState<BirthProfileFormValue>(initialBirthProfile('female'))
   const [relationshipStage, setRelationshipStage] = useState<CompatibilityRelationshipStage>('ambiguous')
@@ -77,6 +79,8 @@ export default function CompatibilityPage() {
   const [partnerImportSource, setPartnerImportSource] = useState<BirthProfileImportSource | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [pickerSearch, setPickerSearch] = useState('')
+  const [pickerGenderFilter, setPickerGenderFilter] = useState<'all' | 'male' | 'female'>('all')
   const consultationPreview = buildPersonalityConsultationPreview(relationshipStage, primaryQuestion)
   const questionProgressLabel = primaryQuestionOptions.find(option => option.value === primaryQuestion)?.label || '性格合不合'
   const stageProgressLabel = relationshipStageOptions.find(option => option.value === relationshipStage)?.label || '综合关系判断'
@@ -147,7 +151,7 @@ export default function CompatibilityPage() {
   useEffect(() => {
     if (!pickerRole) return
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    chartPickerRef.current?.focus()
+    pickerSearchRef.current?.focus()
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setPickerRole(null)
     }
@@ -183,9 +187,30 @@ export default function CompatibilityPage() {
 
   const openChartPicker = async (role: 'self' | 'partner') => {
     if (isLoading) return
+    setPickerSearch('')
+    if (role === 'partner') {
+      setPickerGenderFilter(selfProfile.gender === 'male' ? 'female' : 'male')
+    } else {
+      setPickerGenderFilter(selfProfile.gender === 'male' ? 'male' : 'female')
+    }
     setPickerRole(role)
     await loadHistoryCharts()
   }
+
+  const pickerCharts = useMemo(() => {
+    const sameSideId = pickerRole === 'self' ? selfImportSource?.chartId : partnerImportSource?.chartId
+    const otherSideId = pickerRole === 'self' ? partnerImportSource?.chartId : selfImportSource?.chartId
+    const q = pickerSearch.trim().toLowerCase()
+
+    return historyCharts
+      .filter(c => pickerGenderFilter === 'all' || c.gender === pickerGenderFilter)
+      .filter(c => !q || (c.display_name || '').toLowerCase().includes(q))
+      .map(c => ({
+        chart: c,
+        isSelectedHere: c.id === sameSideId,
+        isUsedByOtherSide: c.id === otherSideId,
+      }))
+  }, [historyCharts, pickerGenderFilter, pickerSearch, pickerRole, selfImportSource, partnerImportSource])
 
   const handleSubmit = async () => {
     if (isLoading) return
@@ -353,24 +378,86 @@ export default function CompatibilityPage() {
                 关闭
               </button>
             </div>
-            {historyCharts.length === 0 ? (
-              <div className="compatibility-chart-picker-empty">先新建命盘</div>
+            <div className="compatibility-chart-picker-toolbar">
+              <input
+                ref={pickerSearchRef}
+                type="search"
+                className="compatibility-chart-picker-search"
+                placeholder="搜索命盘称呼"
+                value={pickerSearch}
+                onChange={event => setPickerSearch(event.target.value)}
+                aria-label="搜索命盘称呼"
+              />
+              <div className="compatibility-chart-picker-filter" role="tablist" aria-label="性别筛选">
+                {(['all', 'male', 'female'] as const).map(g => (
+                  <button
+                    key={g}
+                    type="button"
+                    role="tab"
+                    aria-selected={pickerGenderFilter === g}
+                    onClick={() => setPickerGenderFilter(g)}
+                  >
+                    {g === 'all' ? '全部' : g === 'male' ? '男命' : '女命'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {pickerCharts.length === 0 ? (
+              historyCharts.length === 0 ? (
+                <div className="compatibility-chart-picker-empty">
+                  <p>还没有命盘档案</p>
+                  <Link to="/" className="btn btn-primary compatibility-chart-picker-empty-cta">
+                    立即新建命盘
+                  </Link>
+                </div>
+              ) : (
+                <div className="compatibility-chart-picker-empty">
+                  <p>没有匹配的命盘</p>
+                  <button
+                    type="button"
+                    className="btn btn-ghost compatibility-chart-picker-empty-cta"
+                    onClick={() => { setPickerSearch(''); setPickerGenderFilter('all') }}
+                  >
+                    清除筛选
+                  </button>
+                </div>
+              )
             ) : (
-              <div className="compatibility-chart-picker-list">
-                {historyCharts.map(chart => (
+              <div className="compatibility-chart-picker-list" role="listbox">
+                {pickerCharts.map(({ chart, isSelectedHere, isUsedByOtherSide }) => (
                   <button
                     key={chart.id}
                     type="button"
+                    role="option"
+                    aria-selected={isSelectedHere}
                     className="compatibility-chart-picker-item"
                     onClick={() => {
                       applyImportedChart(pickerRole, chart)
                       setPickerRole(null)
                     }}
                   >
-                    <span>{chart.display_name?.trim() || `${chart.year_gan}${chart.year_zhi} ${chart.day_gan}${chart.day_zhi}`}</span>
-                    <small>
-                      {chart.birth_year}-{chart.birth_month}-{chart.birth_day} {chart.birth_hour}:00
-                    </small>
+                    <div className="compatibility-chart-picker-item-head">
+                      <span className="compatibility-chart-picker-item-name">
+                        {chartDisplayName(chart)}
+                      </span>
+                      <span className="compatibility-chart-picker-item-badges">
+                        <span className="compatibility-chart-picker-badge compatibility-chart-picker-badge-gender">
+                          {genderText(chart.gender)}
+                        </span>
+                        {isSelectedHere && (
+                          <span className="compatibility-chart-picker-badge compatibility-chart-picker-badge-selected">
+                            已选中
+                          </span>
+                        )}
+                        {!isSelectedHere && isUsedByOtherSide && (
+                          <span className="compatibility-chart-picker-badge compatibility-chart-picker-badge-conflict">
+                            已作为{pickerRole === 'self' ? '对方' : '我'}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <div className="compatibility-chart-picker-item-birth">{formatBirth(chart)}</div>
+                    <div className="compatibility-chart-picker-item-pillars serif">{formatPillars(chart)}</div>
                   </button>
                 ))}
               </div>
