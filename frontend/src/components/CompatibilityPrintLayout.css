@@ -1,5 +1,6 @@
 .compat-print-layout {
   display: none; /* hidden by default; JS sets display:block during capture */
+  position: relative;
   font-family: "Noto Serif SC", "SimSun", serif;
   color: #2a1a0a;
   background: #fff;
@@ -343,7 +344,7 @@ h1, h2, h3, h4 {
 
 /* diagonal watermark */
 .compat-print-watermark {
-  position: fixed;
+  position: absolute;
   top: -30%;
   left: -30%;
   right: -30%;
