@@ -38,7 +38,7 @@ import CompatibilityShareCard from '../components/CompatibilityShareCard'
 import CompatibilityPrintLayout from '../components/CompatibilityPrintLayout'
 import CompatibilityStickyHeader from '../components/compatibility/CompatibilityStickyHeader'
 import SectionBasicCharts from '../components/compatibility/SectionBasicCharts'
-// import SectionVerdict from '../components/compatibility/SectionVerdict' // TODO Task 13: re-enable with props
+import SectionVerdict from '../components/compatibility/SectionVerdict'
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
 import ParticipantSummaryCard from '../components/compatibility/ParticipantSummaryCard'
 import { ScoreOverviewV3, ScoreOverview } from '../components/compatibility/ScoreOverview'
@@ -900,22 +900,34 @@ export default function CompatibilityResultPage() {
               verdict={decisionDashboard.verdict}
             />
             <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
-            {/* TODO Task 13: wire SectionVerdict props */}
+            <SectionVerdict
+              dashboard={decisionDashboard}
+              isV3={isV3}
+              v3Scores={v3Scores}
+              legacyScores={legacyScores}
+              overallScore={reading.overall_score}
+              overallLevel={reading.overall_level}
+              findings={decisionDashboard.findings}
+            />
             <SectionDeepAnalysis />
           </>
         )}
 
-        <DecisionDashboardPanel
-          reading={reading}
-          dashboard={decisionDashboard}
-          selfName={selfP?.display_name || '我'}
-          partnerName={partnerP?.display_name || '对方'}
-        />
+        {!ENABLE_NEW_LAYOUT && (
+          <DecisionDashboardPanel
+            reading={reading}
+            dashboard={decisionDashboard}
+            selfName={selfP?.display_name || '我'}
+            partnerName={partnerP?.display_name || '对方'}
+          />
+        )}
 
-        <DecisionEvidenceSummary
-          findings={decisionDashboard.findings}
-          links={consulting.claim_evidence_links}
-        />
+        {!ENABLE_NEW_LAYOUT && (
+          <DecisionEvidenceSummary
+            findings={decisionDashboard.findings}
+            links={consulting.claim_evidence_links}
+          />
+        )}
 
         {personalitySummary && <PersonalityFitPanel summary={personalitySummary} />}
 
@@ -939,27 +951,29 @@ export default function CompatibilityResultPage() {
           <RelationshipStrategyPanel strategy={consulting.relationship_strategy} />
         )}
 
-        <div id="compatibility-score-evidence" className="compatibility-section-anchor">
-          {v3Scores ? (
-            <ScoreOverviewV3
-              scores={v3Scores}
-              overallScore={reading.overall_score}
-              overallLevel={reading.overall_level}
-            />
-          ) : (
-            <ScoreOverview scores={legacyScores as CompatibilityDimensionScoresLegacy} />
-          )}
+        {!ENABLE_NEW_LAYOUT && (
+          <div id="compatibility-score-evidence" className="compatibility-section-anchor">
+            {v3Scores ? (
+              <ScoreOverviewV3
+                scores={v3Scores}
+                overallScore={reading.overall_score}
+                overallLevel={reading.overall_level}
+              />
+            ) : (
+              <ScoreOverview scores={legacyScores as CompatibilityDimensionScoresLegacy} />
+            )}
 
-          {consulting.claim_evidence_links.length > 0 && (
-            <div id="compatibility-claim-evidence" className="compatibility-section">
-              <div className="compatibility-section-header">
-                <h2 className="serif compatibility-section-title">关键判断依据</h2>
-                <p className="compatibility-section-desc">每条咨询判断都可以回看对应命理证据。</p>
+            {consulting.claim_evidence_links.length > 0 && (
+              <div id="compatibility-claim-evidence" className="compatibility-section">
+                <div className="compatibility-section-header">
+                  <h2 className="serif compatibility-section-title">关键判断依据</h2>
+                  <p className="compatibility-section-desc">每条咨询判断都可以回看对应命理证据。</p>
+                </div>
+                <EvidenceLinkedClaims links={consulting.claim_evidence_links} evidences={detail.evidences} />
               </div>
-              <EvidenceLinkedClaims links={consulting.claim_evidence_links} evidences={detail.evidences} />
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="card compatibility-ai-card">
           <DeepReportPanel
