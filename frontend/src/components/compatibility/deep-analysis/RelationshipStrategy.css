@@ -1,0 +1,2 @@
+.compat-da-strategy { padding: 16px; background: var(--bg-card); border-radius: var(--radius-md); border-left: 3px solid var(--wu-jin); }
+.compat-da-strategy__body { margin-top: 12px; display: grid; gap: 10px; }

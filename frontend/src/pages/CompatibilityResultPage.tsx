@@ -12,7 +12,6 @@ import {
   type CompatibilityDurationAssessment,
   type CompatibilityEvidence,
   type CompatibilityQuestionFocus,
-  type CompatibilityRelationshipStrategy,
   type CompatibilityStructuredReport,
 } from '../lib/api'
 import {
@@ -40,6 +39,7 @@ import ParticipantSummaryCard from '../components/compatibility/ParticipantSumma
 import { ScoreOverviewV3, ScoreOverview } from '../components/compatibility/ScoreOverview'
 import PersonalityFit from '../components/compatibility/deep-analysis/PersonalityFit'
 import ActionPlan7d30d from '../components/compatibility/deep-analysis/ActionPlan7d30d'
+import RelationshipStrategy from '../components/compatibility/deep-analysis/RelationshipStrategy'
 import './CompatibilityResultPage.css'
 
 // Feature flag: 控制重构期间新结构 vs 旧 11 段结构。批次 4 完成时删除。
@@ -351,19 +351,6 @@ function DecisionEvidenceSummary({
 }
 
 
-function RelationshipStrategyPanel({ strategy }: { strategy: CompatibilityRelationshipStrategy }) {
-  return (
-    <div className="card compatibility-strategy-card">
-      <div className="compatibility-consulting-kicker">关系经营策略</div>
-      <div className="compatibility-strategy-grid">
-        <AdviceList title="沟通" items={[strategy.communication].filter(Boolean)} />
-        <AdviceList title="冲突" items={[strategy.conflict].filter(Boolean)} />
-        <AdviceList title="现实" items={[strategy.reality].filter(Boolean)} />
-        <AdviceList title="边界" items={[strategy.boundary].filter(Boolean)} />
-      </div>
-    </div>
-  )
-}
 
 function EvidenceLinkedClaims({
   links,
@@ -786,7 +773,7 @@ export default function CompatibilityResultPage() {
         />
 
         {consulting.relationship_strategy && (
-          <RelationshipStrategyPanel strategy={consulting.relationship_strategy} />
+          <RelationshipStrategy strategy={consulting.relationship_strategy} />
         )}
 
         {!ENABLE_NEW_LAYOUT && (
