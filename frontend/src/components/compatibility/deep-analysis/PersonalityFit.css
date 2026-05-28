@@ -1,0 +1,6 @@
+.compat-da-personality { padding: 16px; background: var(--bg-card); border-radius: var(--radius-md); border-left: 3px solid var(--wu-jin); }
+.compat-da-subsection-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; cursor: pointer; list-style: none; }
+.compat-da-subsection-summary::-webkit-details-marker { display: none; }
+.compat-da-subsection-title { font-size: var(--fs-subsection-title); color: var(--text-primary); }
+.compat-da-subsection-hint { font-size: var(--fs-caption); color: var(--text-muted); }
+.compat-da-personality__body { margin-top: 12px; display: grid; gap: 14px; }
