@@ -8,19 +8,6 @@
   margin-bottom: 12px;
 }
 
-.compat-section-kicker {
-  font-size: var(--fs-section-kicker);
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--wu-jin);
-  margin-bottom: 4px;
-}
-
-.compat-section-title {
-  font-size: var(--fs-section-title);
-  margin: 0;
-  color: var(--text-primary);
-}
 
 .compat-section-basic-charts__grid {
   display: grid;
@@ -39,8 +26,5 @@
     scroll-margin-top: var(--sticky-h-desktop);
     padding: 0 var(--section-padding-desktop);
     margin-bottom: var(--section-gap-desktop);
-  }
-  .compat-section-title {
-    font-size: var(--fs-section-title-desktop);
   }
 }

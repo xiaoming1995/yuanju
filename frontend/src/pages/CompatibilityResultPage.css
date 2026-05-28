@@ -81,6 +81,33 @@
   }
 }
 
+/* === Shared section typography (consumed by SectionBasicCharts, SectionVerdict, SectionDeepAnalysis) === */
+.compat-section-kicker {
+  font-size: var(--fs-section-kicker);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--wu-jin);
+  margin-bottom: 4px;
+}
+
+.compat-section-title {
+  font-size: var(--fs-section-title);
+  margin: 0;
+  color: var(--text-primary);
+}
+
+@media (min-width: 1024px) {
+  .compat-section-title {
+    font-size: var(--fs-section-title-desktop);
+  }
+}
+
+.compatibility-consulting-kicker {
+  color: var(--text-muted);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
 /* === Share card Modal === */
 .compat-share-modal {
   position: fixed;

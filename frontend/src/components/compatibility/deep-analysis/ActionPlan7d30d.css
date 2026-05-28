@@ -42,10 +42,6 @@
 }
 
 /* === Validation plan === */
-.compatibility-validation-plan {
-  margin-bottom: 20px;
-}
-
 .compatibility-validation-plan-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

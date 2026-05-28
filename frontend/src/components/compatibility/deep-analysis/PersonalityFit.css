@@ -5,20 +5,6 @@
 .compat-da-subsection-hint { font-size: var(--fs-caption); color: var(--text-muted); }
 .compat-da-personality__body { margin-top: 12px; display: grid; gap: 14px; }
 
-/* === Personality fit content === */
-.compatibility-personality-fit {
-  padding: 24px;
-  margin-bottom: 20px;
-  border-color: rgba(201, 168, 76, 0.24);
-  background:
-    linear-gradient(180deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0.035) 46%),
-    rgba(18, 23, 36, 0.92);
-}
-
-.compatibility-personality-fit--polished {
-  scroll-margin-top: 20px;
-}
-
 .compatibility-personality-type-desc {
   margin: 8px 0 0;
   color: var(--text-primary);
@@ -111,11 +97,6 @@
 }
 
 @media (max-width: 768px) {
-  .compatibility-personality-fit {
-    padding: 18px;
-    margin-bottom: 16px;
-  }
-
   .compatibility-personality-pattern-grid,
   .compatibility-personality-grid {
     grid-template-columns: 1fr;

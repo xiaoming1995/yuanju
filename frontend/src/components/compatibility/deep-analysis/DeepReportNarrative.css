@@ -116,13 +116,6 @@
   letter-spacing: 0;
 }
 
-/* === Consulting kicker === */
-.compatibility-consulting-kicker {
-  color: var(--text-muted);
-  font-size: 13px;
-  letter-spacing: 0;
-}
-
 /* === Question focus panel === */
 .compatibility-question-focus {
   padding: 16px;
@@ -145,9 +138,3 @@
   margin-top: 14px;
 }
 
-@media (max-width: 768px) {
-  .compatibility-ai-card {
-    padding: 18px;
-    margin-top: 16px;
-  }
-}

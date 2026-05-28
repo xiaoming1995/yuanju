@@ -151,8 +151,8 @@ test('compatibility result shows personality fit before scores in extracted comp
   // Personality and validation styles live in component CSS files after CSS split (T22)
   const personalityFitCss = read('src/components/compatibility/deep-analysis/PersonalityFit.css')
   const actionPlanCss = read('src/components/compatibility/deep-analysis/ActionPlan7d30d.css')
-  assert.match(personalityFitCss, /compatibility-personality-fit/)
-  assert.match(actionPlanCss, /compatibility-validation-plan/)
+  assert.match(personalityFitCss, /compat-da-personality/)
+  assert.match(actionPlanCss, /compatibility-validation-plan-grid/)
 })
 
 test('compatibility history highlights personality match type and continuation action', () => {
