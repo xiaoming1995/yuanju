@@ -38,7 +38,7 @@ import CompatibilityShareCard from '../components/CompatibilityShareCard'
 import CompatibilityPrintLayout from '../components/CompatibilityPrintLayout'
 import CompatibilityStickyHeader from '../components/compatibility/CompatibilityStickyHeader'
 import SectionBasicCharts from '../components/compatibility/SectionBasicCharts'
-import SectionVerdict from '../components/compatibility/SectionVerdict'
+// import SectionVerdict from '../components/compatibility/SectionVerdict' // TODO Task 13: re-enable with props
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
 import ParticipantSummaryCard from '../components/compatibility/ParticipantSummaryCard'
 import './CompatibilityResultPage.css'
@@ -1030,7 +1030,7 @@ export default function CompatibilityResultPage() {
               verdict={decisionDashboard.verdict}
             />
             <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
-            <SectionVerdict />
+            {/* TODO Task 13: wire SectionVerdict props */}
             <SectionDeepAnalysis />
           </>
         )}
