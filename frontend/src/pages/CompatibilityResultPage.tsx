@@ -900,6 +900,7 @@ export default function CompatibilityResultPage() {
   const [savingImage, setSavingImage] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
+  const shareModalCloseBtnRef = useRef<HTMLButtonElement>(null)
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
@@ -929,6 +930,12 @@ export default function CompatibilityResultPage() {
       .catch(() => setBrand(null))
   }, [user])
 
+  useEffect(() => {
+    if (shareModalOpen) {
+      shareModalCloseBtnRef.current?.focus()
+    }
+  }, [shareModalOpen])
+
   const handleGenerateReport = async () => {
     if (!id) return
     setReportLoading(true)
@@ -943,13 +950,24 @@ export default function CompatibilityResultPage() {
     }
   }
 
+  if (loading || isLoading) {
+    return <div className="page"><div className="container" style={{ paddingTop: 40 }}>加载中...</div></div>
+  }
+  if (!detail) {
+    return <div className="page"><div className="container" style={{ paddingTop: 40 }}>未找到合盘记录</div></div>
+  }
+
+  const reading = detail.reading
+  const selfP = detail.participants.find(p => p.role === 'self')
+  const partnerP = detail.participants.find(p => p.role === 'partner')
+
   const handleSaveImage = async () => {
     if (!shareCardRef.current) return
     setSavingImage(true)
     try {
       await document.fonts.ready
-      const selfName = detail?.participants.find(p => p.role === 'self')?.display_name || '我'
-      const partnerName = detail?.participants.find(p => p.role === 'partner')?.display_name || '伴侣'
+      const selfName = selfP?.display_name || '我'
+      const partnerName = partnerP?.display_name || '伴侣'
       const fileName = `缘聚合盘-${selfName}-${partnerName}.png`
 
       if (isIOS) {
@@ -1017,8 +1035,8 @@ export default function CompatibilityResultPage() {
         pdf.addImage(imgData, 'JPEG', 0, offset, pageW, imgH)
         remaining -= pageH
       }
-      const selfName = detail?.participants.find(p => p.role === 'self')?.display_name || '我'
-      const partnerName = detail?.participants.find(p => p.role === 'partner')?.display_name || '伴侣'
+      const selfName = selfP?.display_name || '我'
+      const partnerName = partnerP?.display_name || '伴侣'
       pdf.save(`缘聚合盘-${selfName}-${partnerName}.pdf`)
     } catch {
       alert('生成 PDF 失败，请稍后重试')
@@ -1028,16 +1046,6 @@ export default function CompatibilityResultPage() {
     }
   }
 
-  if (loading || isLoading) {
-    return <div className="page"><div className="container" style={{ paddingTop: 40 }}>加载中...</div></div>
-  }
-  if (!detail) {
-    return <div className="page"><div className="container" style={{ paddingTop: 40 }}>未找到合盘记录</div></div>
-  }
-
-  const reading = detail.reading
-  const selfP = detail.participants.find(p => p.role === 'self')
-  const partnerP = detail.participants.find(p => p.role === 'partner')
   const structuredReport = detail.latest_report?.content_structured
   const durationAssessment = normalizeDurationAssessment(structuredReport?.duration_assessment, reading.duration_assessment)
   const reportDimensions = Array.isArray(structuredReport?.dimensions) ? structuredReport.dimensions : []
@@ -1218,7 +1226,6 @@ export default function CompatibilityResultPage() {
           aria-modal="true"
           aria-label="分享图片预览"
           tabIndex={-1}
-          ref={(el) => { if (el && shareModalOpen) el.focus() }}
           onClick={() => setShareModalOpen(false)}
           onKeyDown={(e) => { if (e.key === 'Escape') setShareModalOpen(false) }}
         >
@@ -1228,6 +1235,7 @@ export default function CompatibilityResultPage() {
               <button
                 type="button"
                 className="compat-share-modal-close"
+                ref={shareModalCloseBtnRef}
                 onClick={() => setShareModalOpen(false)}
                 aria-label="关闭"
               >×</button>
