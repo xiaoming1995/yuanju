@@ -13,6 +13,8 @@
     font-family: "Noto Serif SC", "SimSun", serif;
     color: #2a1a0a;
     background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .compat-print-table {
