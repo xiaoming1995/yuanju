@@ -1,4 +1,24 @@
 .compatibility-result-page {
+  /* 间距节奏 */
+  --section-gap-mobile: 24px;
+  --section-gap-desktop: 40px;
+  --section-padding-mobile: 16px;
+  --section-padding-desktop: 24px;
+  --subsection-gap: 16px;
+
+  /* 字号层级 */
+  --fs-section-kicker: 11px;
+  --fs-section-title: 22px;
+  --fs-section-title-desktop: 26px;
+  --fs-subsection-title: 15px;
+  --fs-body: 14px;
+  --fs-caption: 12px;
+
+  /* sticky 与栅格 */
+  --sticky-h: 48px;
+  --sticky-h-desktop: 56px;
+  --container-max: 900px;
+
   padding-bottom: calc(140px + env(safe-area-inset-bottom));
 }
 
