@@ -12,5 +12,5 @@
   - `handleSaveChartDisplayName`
   - `launchCompatibilityFromResult`（结果页唯一调用者已删除）
 - [x] T7 前端 `ResultPage.css` 删除 `.chart-archive-tools / .chart-archive-kicker / .chart-archive-editor / .chart-archive-actions / .chart-archive-error` 五条规则及对应媒体查询分支
-- [ ] T8 手动验证：登录态起盘填写称呼后，HistoryPage 列表显示该 display_name；不填称呼时 ResultPage 不再出现命名编辑器
+- [x] T8 手动验证：登录态起盘填写称呼后，HistoryPage 列表显示该 display_name；不填称呼时 ResultPage 不再出现命名编辑器
 - [x] T9 openspec change folder 完成（proposal / tasks / specs）
