@@ -1007,10 +1007,6 @@ export default function CompatibilityResultPage() {
 
   const handleExportPDF = async () => {
     if (!detail?.latest_report?.content_structured) return
-    if (!isMobileDevice) {
-      window.print()
-      return
-    }
     const el = document.querySelector('.compat-print-layout') as HTMLElement | null
     if (!el) return
     setExportingPDF(true)
