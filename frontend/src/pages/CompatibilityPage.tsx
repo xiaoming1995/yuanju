@@ -75,12 +75,12 @@ export default function CompatibilityPage() {
   const [historyCharts, setHistoryCharts] = useState<BaziHistoryChart[]>([])
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const [pickerRole, setPickerRole] = useState<'self' | 'partner' | null>(null)
+  const [pickerSearch, setPickerSearch] = useState('')
+  const [pickerGenderFilter, setPickerGenderFilter] = useState<'all' | 'male' | 'female'>('all')
   const [selfImportSource, setSelfImportSource] = useState<BirthProfileImportSource | null>(null)
   const [partnerImportSource, setPartnerImportSource] = useState<BirthProfileImportSource | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [pickerSearch, setPickerSearch] = useState('')
-  const [pickerGenderFilter, setPickerGenderFilter] = useState<'all' | 'male' | 'female'>('all')
   const consultationPreview = buildPersonalityConsultationPreview(relationshipStage, primaryQuestion)
   const questionProgressLabel = primaryQuestionOptions.find(option => option.value === primaryQuestion)?.label || '性格合不合'
   const stageProgressLabel = relationshipStageOptions.find(option => option.value === relationshipStage)?.label || '综合关系判断'
@@ -402,7 +402,11 @@ export default function CompatibilityPage() {
                 ))}
               </div>
             </div>
-            {pickerCharts.length === 0 ? (
+            {!historyLoaded ? (
+              <div className="compatibility-chart-picker-empty">
+                <p>加载中…</p>
+              </div>
+            ) : pickerCharts.length === 0 ? (
               historyCharts.length === 0 ? (
                 <div className="compatibility-chart-picker-empty">
                   <p>还没有命盘档案</p>
