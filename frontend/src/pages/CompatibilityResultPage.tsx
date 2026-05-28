@@ -626,7 +626,24 @@ export default function CompatibilityResultPage() {
               overallLevel={reading.overall_level}
               findings={decisionDashboard.findings}
             />
-            <SectionDeepAnalysis />
+            <SectionDeepAnalysis
+              personalitySummary={personalitySummary}
+              personalityValidationPlan={personalityValidationPlan}
+              decisionStageRisks={decisionStageRisks}
+              durationAssessment={durationAssessment}
+              relationshipStrategy={consulting.relationship_strategy}
+              dashboard={decisionDashboard}
+              deepReport={{
+                hasReport: Boolean(detail.latest_report),
+                structuredReport,
+                reportDimensions,
+                reportRisks,
+                rawContent: detail.latest_report?.content,
+                error,
+                reportLoading,
+                onGenerateReport: handleGenerateReport,
+              }}
+            />
           </>
         )}
 
@@ -646,15 +663,17 @@ export default function CompatibilityResultPage() {
           />
         )}
 
-        {personalitySummary && <PersonalityFit summary={personalitySummary} />}
+        {!ENABLE_NEW_LAYOUT && personalitySummary && <PersonalityFit summary={personalitySummary} />}
 
-        <ActionPlan7d30d
-          plan={personalityValidationPlan}
-          risks={decisionStageRisks}
-          assessment={durationAssessment}
-        />
+        {!ENABLE_NEW_LAYOUT && (
+          <ActionPlan7d30d
+            plan={personalityValidationPlan}
+            risks={decisionStageRisks}
+            assessment={durationAssessment}
+          />
+        )}
 
-        {consulting.relationship_strategy && (
+        {!ENABLE_NEW_LAYOUT && consulting.relationship_strategy && (
           <RelationshipStrategy strategy={consulting.relationship_strategy} />
         )}
 
@@ -682,16 +701,18 @@ export default function CompatibilityResultPage() {
           </div>
         )}
 
-        <DeepReportNarrative
-          hasReport={Boolean(detail.latest_report)}
-          structuredReport={structuredReport}
-          reportDimensions={reportDimensions}
-          reportRisks={reportRisks}
-          rawContent={detail.latest_report?.content}
-          error={error}
-          reportLoading={reportLoading}
-          onGenerateReport={handleGenerateReport}
-        />
+        {!ENABLE_NEW_LAYOUT && (
+          <DeepReportNarrative
+            hasReport={Boolean(detail.latest_report)}
+            structuredReport={structuredReport}
+            reportDimensions={reportDimensions}
+            reportRisks={reportRisks}
+            rawContent={detail.latest_report?.content}
+            error={error}
+            reportLoading={reportLoading}
+            onGenerateReport={handleGenerateReport}
+          />
+        )}
 
         <details className="compatibility-professional-details" id="compatibility-professional-details" open>
           <summary className="compatibility-professional-summary">
