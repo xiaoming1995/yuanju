@@ -1255,6 +1255,7 @@ export default function CompatibilityResultPage() {
                 evidences={detail.evidences}
                 decision={decisionDashboard}
                 stageRisks={decisionStageRisks}
+                structured={structuredReport ?? null}
                 brand={brand}
               />
             </div>

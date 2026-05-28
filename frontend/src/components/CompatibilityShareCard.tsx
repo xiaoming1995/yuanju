@@ -4,11 +4,13 @@ import type {
   CompatibilityParticipant,
   CompatibilityReading,
   CompatibilityStageRisk,
+  CompatibilityStructuredReport,
   ExportBrand,
 } from '../lib/api'
 import { isV3DimensionScores } from '../lib/api'
 import type { DecisionDashboardData } from '../lib/compatibilityDecision'
 import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
+import { cleanReportText } from '../lib/reportText'
 import './CompatibilityShareCard.css'
 
 const PILLAR_FONT_URL =
@@ -49,6 +51,19 @@ const DIM_LABEL_V3: Record<string, string> = {
   nayin: '纳音',
   day_pillar: '日柱',
   eight_chars: '八字',
+}
+
+const STRATEGY_LABEL: Record<string, string> = {
+  communication: '沟通',
+  conflict: '冲突',
+  reality: '现实',
+  boundary: '边界',
+}
+
+function firstSentence(content: string): string {
+  const cleaned = cleanReportText(content)
+  const match = cleaned.match(/^[^。！？]+[。！？]?/)
+  return (match?.[0] || cleaned).slice(0, 60).trim()
 }
 
 const EVIDENCE_SOURCE_LABEL: Record<string, string> = {
@@ -142,11 +157,12 @@ export interface CompatibilityShareCardProps {
   evidences: CompatibilityEvidence[]
   decision: DecisionDashboardData
   stageRisks: CompatibilityStageRisk[]
+  structured: CompatibilityStructuredReport | null
   brand?: ExportBrand | null
 }
 
 const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCardProps>((props, ref) => {
-  const { reading, participants, evidences, decision, stageRisks, brand } = props
+  const { reading, participants, evidences, decision, stageRisks, structured, brand } = props
   const selfP = participants.find(p => p.role === 'self')
   const partnerP = participants.find(p => p.role === 'partner')
 
@@ -172,6 +188,23 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
   const dimEntries = Object.entries(reading.dimension_scores)
     .filter(([k]) => dimLabel[k])
     .map(([k, v]) => ({ key: k, label: dimLabel[k], value: typeof v === 'number' ? v : 0 }))
+
+  const explByDim = Object.fromEntries(
+    (reading.score_explanations || []).map(e => [e.dimension, e])
+  )
+  const topFindings = (structured?.relationship_diagnosis?.top_findings || []).slice(0, 3)
+  const strategy = structured?.relationship_strategy
+  const strategyEntries = strategy ? [
+    { key: 'communication', label: STRATEGY_LABEL.communication, value: strategy.communication },
+    { key: 'conflict',      label: STRATEGY_LABEL.conflict,      value: strategy.conflict },
+    { key: 'reality',       label: STRATEGY_LABEL.reality,       value: strategy.reality },
+    { key: 'boundary',      label: STRATEGY_LABEL.boundary,      value: strategy.boundary },
+  ].filter(e => e.value?.trim()) : []
+  const dimDigests = (structured?.dimensions || []).map(d => ({
+    key: d.key,
+    title: d.title,
+    digest: firstSentence(d.content),
+  }))
 
   const resolvedTitle = brand?.title || '缘 聚 合 盘'
   const resolvedFooter = resolveFooter(brand, 'yuanju.com')
@@ -203,15 +236,30 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
       {dimEntries.length > 0 && (
         <section className="compat-share-dims">
           <h3 className="compat-share-section-h">◇ 四维</h3>
-          {dimEntries.map(d => (
-            <div key={d.key} className="compat-share-dim-row">
-              <span className="compat-share-dim-lbl">{d.label}</span>
-              <div className="compat-share-dim-bar">
-                <i style={{ width: `${Math.max(0, Math.min(100, d.value))}%` }} />
+          {dimEntries.map(d => {
+            const expl = explByDim[d.key]
+            const pos = expl?.positive_factor?.trim()
+            const neg = expl?.negative_factor?.trim()
+            const showWhy = Boolean(pos || neg)
+            return (
+              <div key={d.key} className="compat-share-dim-block">
+                <div className="compat-share-dim-row">
+                  <span className="compat-share-dim-lbl">{d.label}</span>
+                  <div className="compat-share-dim-bar">
+                    <i style={{ width: `${Math.max(0, Math.min(100, d.value))}%` }} />
+                  </div>
+                  <span className="compat-share-dim-val">{d.value}</span>
+                </div>
+                {showWhy && (
+                  <div className="compat-share-dim-why">
+                    {pos && <span className="compat-share-dim-why-pos">正：{pos}</span>}
+                    {pos && neg && <span className="compat-share-dim-why-sep"> · </span>}
+                    {neg && <span className="compat-share-dim-why-neg">负：{neg}</span>}
+                  </div>
+                )}
               </div>
-              <span className="compat-share-dim-val">{d.value}</span>
-            </div>
-          ))}
+            )
+          })}
         </section>
       )}
 
@@ -224,6 +272,15 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
         <div className="compat-share-decision-row"><span className="lbl">最大风险</span>{decision.maxRisk}</div>
         <div className="compat-share-decision-row"><span className="lbl">下一步</span>{decision.nextAction}</div>
       </section>
+
+      {topFindings.length > 0 && (
+        <section className="compat-share-findings">
+          <h3 className="compat-share-section-h">◇ 关系诊断 · 核心发现</h3>
+          {topFindings.map((f, i) => (
+            <div key={i} className="compat-share-finding-item">· {f.text}</div>
+          ))}
+        </section>
+      )}
 
       {topEvidences.length > 0 && (
         <section className="compat-share-evs">
@@ -252,6 +309,30 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
           <h3 className="compat-share-section-h">⚠ 避免</h3>
           {decision.avoid.slice(0, 2).map((a, i) => (
             <div key={i} className="compat-share-avoid-item">· {a}</div>
+          ))}
+        </section>
+      )}
+
+      {strategyEntries.length > 0 && (
+        <section className="compat-share-strategy">
+          <h3 className="compat-share-section-h">◇ 关系策略</h3>
+          {strategyEntries.map(e => (
+            <div key={e.key} className="compat-share-strategy-row">
+              <span className="compat-share-strategy-lbl">{e.label}</span>
+              <span className="compat-share-strategy-val">{e.value}</span>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {dimDigests.length > 0 && (
+        <section className="compat-share-digests">
+          <h3 className="compat-share-section-h">◇ 命理解读摆要</h3>
+          {dimDigests.map(d => (
+            <div key={d.key} className="compat-share-digest-item">
+              <div className="compat-share-digest-title">• {d.title}</div>
+              <div className="compat-share-digest-line">{d.digest}</div>
+            </div>
           ))}
         </section>
       )}
