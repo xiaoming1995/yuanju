@@ -349,30 +349,6 @@
   margin-bottom: 20px;
 }
 
-.compatibility-result-map {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin: -6px 0 20px;
-}
-
-.compatibility-result-map a {
-  min-width: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.035);
-  color: var(--text-secondary);
-  text-align: center;
-  text-decoration: none;
-  font-size: 13px;
-}
-
-.compatibility-result-map a:hover {
-  border-color: rgba(201, 168, 76, 0.36);
-  color: var(--wu-jin);
-}
-
 .compatibility-personality-fit {
   padding: 24px;
   margin-bottom: 20px;
@@ -1230,12 +1206,6 @@
 
   .compatibility-strategy-card {
     padding: 18px;
-    margin-bottom: 16px;
-  }
-
-  .compatibility-result-map {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
     margin-bottom: 16px;
   }
 

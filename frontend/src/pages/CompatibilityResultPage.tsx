@@ -494,22 +494,6 @@ function DecisionEvidenceSummary({
   )
 }
 
-function ResultReadingMap() {
-  const items = [
-    { href: '#compatibility-personality-fit', label: '性格合不合' },
-    { href: '#compatibility-conflict-validation', label: '冲突/验证' },
-    { href: '#compatibility-score-evidence', label: '分数依据' },
-    { href: '#compatibility-professional-details', label: '专业细节' },
-  ]
-
-  return (
-    <nav className="compatibility-result-map" aria-label="合盘结果阅读顺序">
-      {items.map(item => (
-        <a key={item.href} href={item.href}>{item.label}</a>
-      ))}
-    </nav>
-  )
-}
 
 function PersonalityPointList({ title, points }: { title: string; points: PersonalityPoint[] }) {
   return (
@@ -1057,8 +1041,6 @@ export default function CompatibilityResultPage() {
           selfName={selfP?.display_name || '我'}
           partnerName={partnerP?.display_name || '对方'}
         />
-
-        <ResultReadingMap />
 
         <DecisionEvidenceSummary
           findings={decisionDashboard.findings}
