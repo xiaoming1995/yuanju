@@ -320,7 +320,7 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
             </>
           )}
 
-          <section className="compat-print-section compat-print-section--page">
+          <section className="compat-print-section">
             <h2 className="compat-print-section-title">七、双盘原图</h2>
             <div className="compat-print-charts-grid">
               <ChartFull participant={selfP} label="我" />

@@ -77,15 +77,8 @@
     color: #5a3a1a;
     border-bottom: 1px solid #c9a96e;
     padding-bottom: 2mm;
-    margin: 0 0 6mm 0;
+    margin: 6mm 0 6mm 0;
     font-weight: 700;
-    break-after: avoid;
-  }
-  .compat-print-section + .compat-print-section {
-    margin-top: 10mm;
-  }
-  .compat-print-section--page {
-    break-before: page;
   }
   .compat-print-empty {
     color: #888;
@@ -344,6 +337,18 @@
     color: #999;
     padding: 3mm 16mm 12mm;
     border-top: 1px solid #e0cca0;
+  }
+
+  /* 防止表格行、段落在页中间被切断 */
+  tr, p, li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* 大标题前不孤立 */
+  h1, h2, h3, h4 {
+    break-after: avoid;
+    page-break-after: avoid;
   }
 
   /* diagonal watermark */
