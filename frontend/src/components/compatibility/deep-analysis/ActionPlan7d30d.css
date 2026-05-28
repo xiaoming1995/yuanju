@@ -1,2 +1,158 @@
 .compat-da-actionplan { padding: 16px; background: var(--bg-card); border-radius: var(--radius-md); border-left: 3px solid var(--wu-jin); }
 .compat-da-actionplan__body { margin-top: 12px; }
+
+/* === Stage validation grid === */
+.compatibility-stage-validation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-stage-validation-card {
+  padding: 18px;
+}
+
+.compatibility-stage-validation-card p {
+  margin: 8px 0;
+}
+
+.compatibility-stage-validation-card p span {
+  color: var(--wu-jin);
+}
+
+.compatibility-stage-window {
+  color: var(--text-muted);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.compatibility-stage-label {
+  color: var(--wu-jin);
+  font-size: 13px;
+}
+
+.compatibility-stage-risk {
+  font-size: 18px;
+  color: var(--text-primary);
+  margin-top: 8px;
+}
+
+.compatibility-stage-advice {
+  color: var(--text-muted);
+}
+
+/* === Validation plan === */
+.compatibility-validation-plan {
+  margin-bottom: 20px;
+}
+
+.compatibility-validation-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-validation-plan-card {
+  padding: 16px;
+}
+
+.compatibility-validation-plan-card p {
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.compatibility-validation-plan-card a {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--wu-jin);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.compatibility-validation-plan-title {
+  color: var(--wu-jin);
+  font-size: 13px;
+}
+
+.compatibility-validation-plan-note {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.compatibility-validation-detail {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.compatibility-validation-detail-heading {
+  margin-bottom: 12px;
+  color: var(--wu-jin);
+  font-size: 13px;
+}
+
+/* === Duration task summary === */
+.compatibility-duration-task {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.compatibility-duration-task-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compatibility-duration-task-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-secondary);
+}
+
+.compatibility-duration-task-item strong {
+  color: var(--wu-jin);
+  font-weight: 500;
+}
+
+.compatibility-duration-task p {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.75;
+}
+
+.compatibility-duration-reasons {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.compatibility-duration-reason {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .compatibility-stage-validation-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-validation-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compatibility-duration-task-grid {
+    grid-template-columns: 1fr;
+  }
+}

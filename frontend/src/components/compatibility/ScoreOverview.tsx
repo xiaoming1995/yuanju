@@ -1,3 +1,4 @@
+import './ScoreOverview.css'
 import type {
   CompatibilityDimensionScoresLegacy,
   CompatibilityDimensionScoresV3,

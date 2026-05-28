@@ -1,0 +1,106 @@
+/* === Participant summary card === */
+.compatibility-person-card {
+  padding: 20px;
+}
+
+.compatibility-person-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.compatibility-person-name {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.compatibility-person-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.compatibility-day-master {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 56px;
+}
+
+.compatibility-day-master-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.compatibility-day-master-value {
+  font-size: 28px;
+  color: var(--wu-jin);
+  line-height: 1;
+}
+
+.compatibility-pillar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.compatibility-pillar-cell {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+}
+
+.compatibility-pillar-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.compatibility-pillar-value {
+  font-size: 18px;
+}
+
+.compatibility-wuxing-title {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.compatibility-wuxing-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.compatibility-wuxing-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+}
+
+.compatibility-wuxing-value {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .compatibility-pillar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compatibility-wuxing-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

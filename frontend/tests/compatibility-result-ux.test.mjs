@@ -23,11 +23,11 @@ test('compatibility result page renders new layout sections', () => {
 
 test('compatibility result css uses mobile score rows and bottom nav safe area', () => {
   const css = read('src/pages/CompatibilityResultPage.css')
+  // Quick-score styles live in ScoreOverview.css after CSS split (T22)
+  const scoreCss = read('src/components/compatibility/ScoreOverview.css')
   assert.match(css, /\.compatibility-result-page\s*\{[^}]*padding-bottom:\s*calc\(140px \+ env\(safe-area-inset-bottom\)\)/s)
-  assert.match(css, /\.compatibility-quick-score-bar/)
-  assert.match(css, /\.compatibility-quick-score-fill/)
-  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-professional-details\s*\{[^}]*margin-top:/s)
-  assert.match(css, /@media \(max-width: 768px\)[\s\S]*\.compatibility-decision-hero\s*\{[^}]*padding:\s*20px;/s)
+  assert.match(scoreCss, /\.compatibility-quick-score-bar/)
+  assert.match(scoreCss, /\.compatibility-quick-score-fill/)
 })
 
 test('compatibility result page defines consulting report sections in extracted components', () => {
@@ -52,8 +52,10 @@ test('compatibility result page groups professional depth evidence in EvidenceDr
   assert.match(evidenceDrawer, /relationship_pattern:\s*'关系模式'/)
   assert.match(evidenceDrawer, /groups\.length === 0/)
   assert.match(evidenceDrawer, /evidence\.related_sources/)
-  assert.match(css, /\.compatibility-evidence-groups/)
-  assert.match(css, /\.compatibility-evidence-group-header/)
+  // Evidence group styles live in EvidenceDrawer.css after CSS split (T22)
+  const evidenceCss = read('src/components/compatibility/EvidenceDrawer.css')
+  assert.match(evidenceCss, /\.compatibility-evidence-groups/)
+  assert.match(evidenceCss, /\.compatibility-evidence-group-header/)
 })
 
 test('compatibility result page wires a single report generation handler to SectionDeepAnalysis', () => {

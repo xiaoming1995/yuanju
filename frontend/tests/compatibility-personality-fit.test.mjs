@@ -148,8 +148,11 @@ test('compatibility result shows personality fit before scores in extracted comp
   const personalityHelper = read('src/lib/compatibilityPersonality.ts')
   assert.match(personalityHelper, /7 天观察/)
   assert.match(personalityHelper, /30 天验证/)
-  assert.match(css, /compatibility-personality-fit/)
-  assert.match(css, /compatibility-validation-plan/)
+  // Personality and validation styles live in component CSS files after CSS split (T22)
+  const personalityFitCss = read('src/components/compatibility/deep-analysis/PersonalityFit.css')
+  const actionPlanCss = read('src/components/compatibility/deep-analysis/ActionPlan7d30d.css')
+  assert.match(personalityFitCss, /compatibility-personality-fit/)
+  assert.match(actionPlanCss, /compatibility-validation-plan/)
 })
 
 test('compatibility history highlights personality match type and continuation action', () => {

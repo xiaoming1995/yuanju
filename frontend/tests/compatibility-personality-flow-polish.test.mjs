@@ -70,7 +70,9 @@ test('compatibility result new layout renders deep analysis after verdict sectio
 
   // personality content lives in extracted components
   assert.match(personalityFit, /matchTypeDescription/)
-  assert.match(css, /compatibility-personality-fit--polished/)
+  // personality-fit styles live in PersonalityFit.css after CSS split (T22)
+  const personalityFitCss = read('src/components/compatibility/deep-analysis/PersonalityFit.css')
+  assert.match(personalityFitCss, /compatibility-personality-fit--polished/)
 })
 
 test('compatibility validation groups stage risks under the validation plan in ActionPlan7d30d', () => {

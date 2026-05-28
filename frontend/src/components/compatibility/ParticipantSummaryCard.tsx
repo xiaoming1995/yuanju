@@ -1,3 +1,4 @@
+import './ParticipantSummaryCard.css'
 import type { CompatibilityParticipant, CompatibilityChartSnapshot } from '../../lib/api'
 
 const wuxingLabel = [

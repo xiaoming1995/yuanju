@@ -4,3 +4,120 @@
 .compat-da-subsection-title { font-size: var(--fs-subsection-title); color: var(--text-primary); }
 .compat-da-subsection-hint { font-size: var(--fs-caption); color: var(--text-muted); }
 .compat-da-personality__body { margin-top: 12px; display: grid; gap: 14px; }
+
+/* === Personality fit content === */
+.compatibility-personality-fit {
+  padding: 24px;
+  margin-bottom: 20px;
+  border-color: rgba(201, 168, 76, 0.24);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0.035) 46%),
+    rgba(18, 23, 36, 0.92);
+}
+
+.compatibility-personality-fit--polished {
+  scroll-margin-top: 20px;
+}
+
+.compatibility-personality-type-desc {
+  margin: 8px 0 0;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.compatibility-personality-summary {
+  margin: 0 0 16px;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.compatibility-personality-pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.compatibility-personality-pattern {
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.compatibility-personality-pattern span,
+.compatibility-personality-list-title {
+  color: var(--wu-jin);
+  font-size: 13px;
+}
+
+.compatibility-personality-pattern p {
+  margin: 7px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.compatibility-personality-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-personality-list {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.compatibility-personality-point + .compatibility-personality-point {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.compatibility-personality-point strong {
+  display: block;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.compatibility-personality-point p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+.compatibility-personality-point a,
+.compatibility-personality-note a {
+  display: inline-flex;
+  margin-top: 8px;
+  color: var(--wu-jin);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.compatibility-personality-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+@media (max-width: 768px) {
+  .compatibility-personality-fit {
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .compatibility-personality-pattern-grid,
+  .compatibility-personality-grid {
+    grid-template-columns: 1fr;
+  }
+}

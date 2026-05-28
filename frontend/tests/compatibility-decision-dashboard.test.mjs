@@ -110,7 +110,8 @@ test('compatibility result page includes decision-dashboard CSS hooks in extract
 })
 
 test('compatibility result page styles stage validation card paragraphs', () => {
-  const source = read(cssPath)
+  // Styles live in ActionPlan7d30d.css after CSS split (T22)
+  const source = read(new URL('../src/components/compatibility/deep-analysis/ActionPlan7d30d.css', import.meta.url))
 
   assert.match(source, /\.compatibility-stage-validation-card p\s*\{/)
   assert.match(source, /\.compatibility-stage-validation-card p span\s*\{/)

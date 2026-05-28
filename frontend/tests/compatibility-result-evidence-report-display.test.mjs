@@ -9,7 +9,8 @@ const read = (path) => readFileSync(resolve(root, path), 'utf8')
 
 test('claim evidence exposes the first item and previews collapsed items in EvidenceDrawer', () => {
   const evidenceDrawer = read('src/components/compatibility/EvidenceDrawer.tsx')
-  const css = read('src/pages/CompatibilityResultPage.css')
+  // Claim card styles live in EvidenceDrawer.css after CSS split (T22)
+  const css = read('src/components/compatibility/EvidenceDrawer.css')
 
   assert.match(evidenceDrawer, /links\.map\(\(link,\s*index\)/)
   assert.match(evidenceDrawer, /open=\{index === 0\}/)
@@ -22,7 +23,8 @@ test('claim evidence exposes the first item and previews collapsed items in Evid
 
 test('deep report absent state is compact actionable and owns the single generation action', () => {
   const deepReport = read('src/components/compatibility/deep-analysis/DeepReportNarrative.tsx')
-  const css = read('src/pages/CompatibilityResultPage.css')
+  // AI card / report styles live in DeepReportNarrative.css after CSS split (T22)
+  const css = read('src/components/compatibility/deep-analysis/DeepReportNarrative.css')
 
   // DeepReportNarrative owns the single onClick for report generation
   const generateClicks = deepReport.match(/onClick=\{onGenerateReport\}/g) || []
@@ -38,7 +40,8 @@ test('deep report absent state is compact actionable and owns the single generat
 
 test('deep report generated states keep structured and raw reading hierarchy in DeepReportNarrative', () => {
   const deepReport = read('src/components/compatibility/deep-analysis/DeepReportNarrative.tsx')
-  const css = read('src/pages/CompatibilityResultPage.css')
+  // Report section/raw styles live in DeepReportNarrative.css after CSS split (T22)
+  const css = read('src/components/compatibility/deep-analysis/DeepReportNarrative.css')
 
   assert.match(deepReport, /structuredReport \?/)
   assert.match(deepReport, /compatibility-report-section/)
@@ -49,11 +52,12 @@ test('deep report generated states keep structured and raw reading hierarchy in 
 
 test('professional details summary communicates available data in EvidenceDrawer', () => {
   const evidenceDrawer = read('src/components/compatibility/EvidenceDrawer.tsx')
-  const css = read('src/pages/CompatibilityResultPage.css')
+  // Evidence drawer styles live in EvidenceDrawer.css after CSS split (T22)
+  const css = read('src/components/compatibility/EvidenceDrawer.css')
 
   // The evidence drawer uses a <details open> pattern for expandable sections
   assert.match(evidenceDrawer, /compat-evidence-drawer/)
   assert.match(evidenceDrawer, /结构化证据组/)
-  assert.match(css, /\.compatibility-professional-summary-grid/)
-  assert.match(css, /\.compatibility-professional-details\[open\]/)
+  assert.match(css, /\.compat-evidence-drawer/)
+  assert.match(css, /\.compat-evidence-drawer__body/)
 })
