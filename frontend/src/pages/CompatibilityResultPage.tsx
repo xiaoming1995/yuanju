@@ -1007,6 +1007,10 @@ export default function CompatibilityResultPage() {
 
   const handleExportPDF = async () => {
     if (!detail?.latest_report?.content_structured) return
+    if (!isMobileDevice) {
+      window.print()
+      return
+    }
     const el = document.querySelector('.compat-print-layout') as HTMLElement | null
     if (!el) return
     setExportingPDF(true)
@@ -1034,8 +1038,7 @@ export default function CompatibilityResultPage() {
       const selfName = selfP?.display_name || '我'
       const partnerName = partnerP?.display_name || '伴侣'
       pdf.save(`缘聚合盘-${selfName}-${partnerName}.pdf`)
-    } catch (err) {
-      console.error('[compat-export] PDF generation failed:', err)
+    } catch {
       alert('生成 PDF 失败，请稍后重试')
     } finally {
       el.style.display = prevDisplay
