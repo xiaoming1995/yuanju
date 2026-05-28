@@ -36,6 +36,7 @@ import html2canvas from 'html2canvas'
 import { brandAPI, type ExportBrand } from '../lib/api'
 import CompatibilityShareCard from '../components/CompatibilityShareCard'
 import CompatibilityPrintLayout from '../components/CompatibilityPrintLayout'
+import CompatibilityStickyHeader from '../components/compatibility/CompatibilityStickyHeader'
 import SectionBasicCharts from '../components/compatibility/SectionBasicCharts'
 import SectionVerdict from '../components/compatibility/SectionVerdict'
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
@@ -43,7 +44,7 @@ import ParticipantSummaryCard from '../components/compatibility/ParticipantSumma
 import './CompatibilityResultPage.css'
 
 // Feature flag: 控制重构期间新结构 vs 旧 11 段结构。批次 4 完成时删除。
-const ENABLE_NEW_LAYOUT = false
+const ENABLE_NEW_LAYOUT = true
 
 const dimensionText: Record<string, string> = {
   attraction: '会不会互相吸引？',
@@ -1038,7 +1039,13 @@ export default function CompatibilityResultPage() {
 
         {ENABLE_NEW_LAYOUT && (
           <>
-            <SectionBasicCharts />
+            <CompatibilityStickyHeader
+              selfName={selfP?.display_name || '我'}
+              partnerName={partnerP?.display_name || '对方'}
+              overallScore={reading.overall_score}
+              verdict={decisionDashboard.verdict}
+            />
+            <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
             <SectionVerdict />
             <SectionDeepAnalysis />
           </>
@@ -1126,16 +1133,18 @@ export default function CompatibilityResultPage() {
             <span>结构化依据</span>
           </div>
           <div className="compatibility-professional-body">
-            <div className="compatibility-section">
-              <div className="compatibility-section-header">
-                <h2 className="serif compatibility-section-title">双方命盘摘要</h2>
-                <p className="compatibility-section-desc">确认双方四柱与命盘核心信息。</p>
+            {!ENABLE_NEW_LAYOUT && (
+              <div className="compatibility-section">
+                <div className="compatibility-section-header">
+                  <h2 className="serif compatibility-section-title">双方命盘摘要</h2>
+                  <p className="compatibility-section-desc">确认双方四柱与命盘核心信息。</p>
+                </div>
+                <div className="compatibility-summary-grid">
+                  {selfP && <ParticipantSummaryCard participant={selfP} />}
+                  {partnerP && <ParticipantSummaryCard participant={partnerP} />}
+                </div>
               </div>
-              <div className="compatibility-summary-grid">
-                {selfP && <ParticipantSummaryCard participant={selfP} />}
-                {partnerP && <ParticipantSummaryCard participant={partnerP} />}
-              </div>
-            </div>
+            )}
 
             <div className="compatibility-section">
               <div className="compatibility-section-header">
