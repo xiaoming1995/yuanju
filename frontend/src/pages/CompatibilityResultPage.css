@@ -1386,9 +1386,9 @@
   background: #fff;
   border-radius: 14px;
   padding: 16px 16px 14px;
-  max-width: 480px;
+  max-width: 520px;
   width: 100%;
-  max-height: 92vh;
+  max-height: 96vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
@@ -1427,6 +1427,14 @@
   padding: 8px 4px;
   background: #efe6cf;
   border-radius: 8px;
+}
+
+.compat-share-modal-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  letter-spacing: 1px;
 }
 
 .compat-share-modal-footer {

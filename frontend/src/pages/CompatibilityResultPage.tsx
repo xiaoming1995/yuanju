@@ -1251,6 +1251,7 @@ export default function CompatibilityResultPage() {
                 brand={brand}
               />
             </div>
+            <p className="compat-share-modal-hint">导出的图片为完整版 · 预览可上下滚动</p>
             <footer className="compat-share-modal-footer">
               <button
                 type="button"
