@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { HeartHandshake } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   compatibilityAPI,
   isV3DimensionScores,
-  type CompatibilityClaimEvidenceLink,
   type CompatibilityDetail,
   type CompatibilityDimensionScoresLegacy,
   type CompatibilityDimensionScoresV3,
@@ -14,9 +12,6 @@ import {
 import {
   buildDecisionDashboardData,
   buildDecisionStageRisks,
-  hasLinkedEvidence,
-  type DecisionDashboardData,
-  type DecisionFinding,
 } from '../lib/compatibilityDecision'
 import {
   buildPersonalityFitSummary,
@@ -32,37 +27,9 @@ import CompatibilityStickyHeader from '../components/compatibility/Compatibility
 import SectionBasicCharts from '../components/compatibility/SectionBasicCharts'
 import SectionVerdict from '../components/compatibility/SectionVerdict'
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
-import ParticipantSummaryCard from '../components/compatibility/ParticipantSummaryCard'
-import { ScoreOverviewV3, ScoreOverview } from '../components/compatibility/ScoreOverview'
-import PersonalityFit from '../components/compatibility/deep-analysis/PersonalityFit'
-import ActionPlan7d30d from '../components/compatibility/deep-analysis/ActionPlan7d30d'
-import RelationshipStrategy from '../components/compatibility/deep-analysis/RelationshipStrategy'
-import DeepReportNarrative from '../components/compatibility/deep-analysis/DeepReportNarrative'
 import EvidenceDrawer from '../components/compatibility/EvidenceDrawer'
 import './CompatibilityResultPage.css'
 
-// Feature flag: 控制重构期间新结构 vs 旧 11 段结构。批次 4 完成时删除。
-const ENABLE_NEW_LAYOUT = true
-
-const relationshipStageText: Record<string, string> = {
-  ambiguous: '暧昧中',
-  dating: '恋爱中',
-  long_distance: '异地中',
-  reconciliation: '分手/复合中',
-  marriage_or_engagement: '谈婚论嫁',
-  crush: '单恋/暗恋',
-  general: '综合关系判断',
-}
-
-const primaryQuestionText: Record<string, string> = {
-  continue_investment: '值不值得继续投入',
-  marriage_suitability: '适不适合结婚',
-  recurring_conflict: '为什么反复拉扯',
-  reconciliation_potential: '复合有没有意义',
-  long_term_stability: '长期能不能稳定',
-  relationship_strategy: '怎么相处更顺',
-  general: '综合关系判断',
-}
 
 function isDurationLevel(value: unknown): value is 'high' | 'medium' | 'low' {
   return value === 'high' || value === 'medium' || value === 'low'
@@ -111,105 +78,6 @@ function normalizeConsultingAssessment(detail: CompatibilityDetail) {
     claim_evidence_links: report?.claim_evidence_links?.length ? report.claim_evidence_links : base?.claim_evidence_links || [],
   }
 }
-
-function DecisionDashboardPanel({
-  selfName,
-  partnerName,
-  reading,
-  dashboard,
-}: {
-  selfName: string
-  partnerName: string
-  reading: CompatibilityDetail['reading']
-  dashboard: DecisionDashboardData
-}) {
-  const stageLabel = relationshipStageText[reading.relationship_stage] || relationshipStageText.general
-  const questionLabel = primaryQuestionText[reading.primary_question] || primaryQuestionText.general
-
-  return (
-    <section className="card compatibility-decision-dashboard">
-      <div className="compatibility-decision-header">
-        <HeartHandshake size={24} />
-        <h1 className="serif compatibility-decision-title">{selfName} × {partnerName}</h1>
-      </div>
-
-      <div className="compatibility-decision-context">
-        <span>{stageLabel}</span>
-        <span>{questionLabel}</span>
-      </div>
-
-      <div className="compatibility-consulting-kicker">关系决策</div>
-      <h2 className="serif compatibility-decision-headline">{dashboard.verdict}</h2>
-      <div className="compatibility-decision-type">{dashboard.relationshipType}</div>
-
-      <div className="compatibility-decision-metric-grid">
-        <div className="compatibility-decision-metric">
-          <span>投入建议</span>
-          <strong>{dashboard.recommendationLabel}</strong>
-        </div>
-        <div className="compatibility-decision-metric">
-          <span>判断信心</span>
-          <strong>{dashboard.confidenceLabel}</strong>
-        </div>
-        <div className="compatibility-decision-metric compatibility-decision-metric--wide">
-          <span>最大风险</span>
-          <strong>{dashboard.maxRisk}</strong>
-        </div>
-      </div>
-
-      <div className="compatibility-next-action">
-        <span>下一步验证</span>
-        <p>{dashboard.nextAction}</p>
-      </div>
-
-      {dashboard.avoid.length > 0 && (
-        <div className="compatibility-avoid-list">
-          <span>短期避免</span>
-          <div>
-            {dashboard.avoid.map(item => <em key={item}>{item}</em>)}
-          </div>
-        </div>
-      )}
-
-      <div className="compatibility-core-contradiction">
-        <span>核心矛盾</span>
-        <p>{dashboard.summary}</p>
-      </div>
-    </section>
-  )
-}
-
-function DecisionEvidenceSummary({
-  findings,
-  links,
-}: {
-  findings: DecisionFinding[]
-  links: CompatibilityClaimEvidenceLink[]
-}) {
-  if (findings.length === 0) return null
-
-  return (
-    <section className="compatibility-section compatibility-decision-evidence-summary">
-      <div className="compatibility-section-header">
-        <h2 className="serif compatibility-section-title">为什么这么判断</h2>
-        <p className="compatibility-section-desc">先看白话依据，专业命理证据可继续下钻。</p>
-      </div>
-      <div className="compatibility-decision-evidence-grid">
-        {findings.map((finding, index) => (
-          <div key={`${finding.text}-${index}`} className="card compatibility-decision-evidence-card">
-            <span className="compatibility-decision-evidence-index">{index + 1}</span>
-            <p>{finding.text}</p>
-            {hasLinkedEvidence(links, finding.evidenceKeys) && (
-              <a href="#compatibility-claim-evidence" className="compatibility-evidence-link">查看依据</a>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-
 
 export default function CompatibilityResultPage() {
   const { id } = useParams()
@@ -446,132 +314,44 @@ export default function CompatibilityResultPage() {
           </button>
         </div>
 
-        {ENABLE_NEW_LAYOUT && (
-          <>
-            <CompatibilityStickyHeader
-              selfName={selfP?.display_name || '我'}
-              partnerName={partnerP?.display_name || '对方'}
-              overallScore={reading.overall_score}
-              verdict={decisionDashboard.verdict}
-            />
-            <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
-            <SectionVerdict
-              dashboard={decisionDashboard}
-              isV3={isV3}
-              v3Scores={v3Scores}
-              legacyScores={legacyScores}
-              overallScore={reading.overall_score}
-              overallLevel={reading.overall_level}
-              findings={decisionDashboard.findings}
-            />
-            <SectionDeepAnalysis
-              personalitySummary={personalitySummary}
-              personalityValidationPlan={personalityValidationPlan}
-              decisionStageRisks={decisionStageRisks}
-              durationAssessment={durationAssessment}
-              relationshipStrategy={consulting.relationship_strategy}
-              dashboard={decisionDashboard}
-              deepReport={{
-                hasReport: Boolean(detail.latest_report),
-                structuredReport,
-                reportDimensions,
-                reportRisks,
-                rawContent: detail.latest_report?.content,
-                error,
-                reportLoading,
-                onGenerateReport: handleGenerateReport,
-              }}
-            />
-            <EvidenceDrawer
-              evidences={detail.evidences}
-              claimEvidenceLinks={consulting.claim_evidence_links}
-            />
-          </>
-        )}
-
-        {!ENABLE_NEW_LAYOUT && (
-          <DecisionDashboardPanel
-            reading={reading}
-            dashboard={decisionDashboard}
-            selfName={selfP?.display_name || '我'}
-            partnerName={partnerP?.display_name || '对方'}
-          />
-        )}
-
-        {!ENABLE_NEW_LAYOUT && (
-          <DecisionEvidenceSummary
-            findings={decisionDashboard.findings}
-            links={consulting.claim_evidence_links}
-          />
-        )}
-
-        {!ENABLE_NEW_LAYOUT && personalitySummary && <PersonalityFit summary={personalitySummary} />}
-
-        {!ENABLE_NEW_LAYOUT && (
-          <ActionPlan7d30d
-            plan={personalityValidationPlan}
-            risks={decisionStageRisks}
-            assessment={durationAssessment}
-          />
-        )}
-
-        {!ENABLE_NEW_LAYOUT && consulting.relationship_strategy && (
-          <RelationshipStrategy strategy={consulting.relationship_strategy} />
-        )}
-
-        {!ENABLE_NEW_LAYOUT && (
-          <div id="compatibility-score-evidence" className="compatibility-section-anchor">
-            {v3Scores ? (
-              <ScoreOverviewV3
-                scores={v3Scores}
-                overallScore={reading.overall_score}
-                overallLevel={reading.overall_level}
-              />
-            ) : (
-              <ScoreOverview scores={legacyScores as CompatibilityDimensionScoresLegacy} />
-            )}
-
-          </div>
-        )}
-
-        {!ENABLE_NEW_LAYOUT && (
-          <DeepReportNarrative
-            hasReport={Boolean(detail.latest_report)}
-            structuredReport={structuredReport}
-            reportDimensions={reportDimensions}
-            reportRisks={reportRisks}
-            rawContent={detail.latest_report?.content}
-            error={error}
-            reportLoading={reportLoading}
-            onGenerateReport={handleGenerateReport}
-          />
-        )}
-
-        {!ENABLE_NEW_LAYOUT && (
-          <details className="compatibility-professional-details" id="compatibility-professional-details" open>
-            <summary className="compatibility-professional-summary">
-              <span className="serif">专业命盘细节</span>
-              <span>四柱、五行与结构化依据</span>
-            </summary>
-            <div className="compatibility-professional-summary-grid">
-              <span>双方四柱</span>
-              <span>五行摘要</span>
-              <span>结构化依据</span>
-            </div>
-            <div className="compatibility-professional-body">
-              <div className="compatibility-section">
-                <div className="compatibility-section-header">
-                  <h2 className="serif compatibility-section-title">双方命盘摘要</h2>
-                  <p className="compatibility-section-desc">确认双方四柱与命盘核心信息。</p>
-                </div>
-                <div className="compatibility-summary-grid">
-                  {selfP && <ParticipantSummaryCard participant={selfP} />}
-                  {partnerP && <ParticipantSummaryCard participant={partnerP} />}
-                </div>
-              </div>
-            </div>
-          </details>
-        )}
+        <CompatibilityStickyHeader
+          selfName={selfP?.display_name || '我'}
+          partnerName={partnerP?.display_name || '对方'}
+          overallScore={reading.overall_score}
+          verdict={decisionDashboard.verdict}
+        />
+        <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
+        <SectionVerdict
+          dashboard={decisionDashboard}
+          isV3={isV3}
+          v3Scores={v3Scores}
+          legacyScores={legacyScores}
+          overallScore={reading.overall_score}
+          overallLevel={reading.overall_level}
+          findings={decisionDashboard.findings}
+        />
+        <SectionDeepAnalysis
+          personalitySummary={personalitySummary}
+          personalityValidationPlan={personalityValidationPlan}
+          decisionStageRisks={decisionStageRisks}
+          durationAssessment={durationAssessment}
+          relationshipStrategy={consulting.relationship_strategy}
+          dashboard={decisionDashboard}
+          deepReport={{
+            hasReport: Boolean(detail.latest_report),
+            structuredReport,
+            reportDimensions,
+            reportRisks,
+            rawContent: detail.latest_report?.content,
+            error,
+            reportLoading,
+            onGenerateReport: handleGenerateReport,
+          }}
+        />
+        <EvidenceDrawer
+          evidences={detail.evidences}
+          claimEvidenceLinks={consulting.claim_evidence_links}
+        />
       </div>
 
       {shareModalOpen && structuredReport && (

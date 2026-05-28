@@ -77,36 +77,36 @@ test('compatibility decision dashboard chooses highest stage risk as max risk', 
   assert.equal(dashboard.maxRisk, '长期现实承压明显')
 })
 
-test('compatibility result page renders decision-dashboard sections before scores and AI report', () => {
+test('compatibility result page renders new layout sections in correct order', () => {
   const source = read(pagePath)
 
-  const dashboard = source.indexOf('<DecisionDashboardPanel')
-  const evidence = source.indexOf('<DecisionEvidenceSummary')
-  const stages = source.indexOf('<StageRiskGrid')
-  const strategy = source.indexOf('<RelationshipStrategyPanel')
-  const score = source.indexOf('<ScoreOverview')
-  const claimEvidence = source.indexOf('id="compatibility-claim-evidence"')
-  const ai = source.indexOf('className="card compatibility-ai-card"')
-  const professional = source.indexOf('<details className="compatibility-professional-details"')
+  const sticky = source.indexOf('<CompatibilityStickyHeader')
+  const basic = source.indexOf('<SectionBasicCharts')
+  const verdict = source.indexOf('<SectionVerdict')
+  const deep = source.indexOf('<SectionDeepAnalysis')
+  const drawer = source.indexOf('<EvidenceDrawer')
 
-  assert.ok(dashboard > -1, 'decision dashboard component is rendered')
-  assert.ok(evidence > dashboard, 'decision evidence summary follows dashboard')
-  assert.ok(stages > evidence, 'stage validation follows decision evidence')
-  assert.ok(strategy > stages, 'relationship strategy follows stage validation')
-  assert.ok(score > strategy, 'score overview follows decision sections')
-  assert.ok(claimEvidence > score, 'claim evidence follows score overview')
-  assert.ok(ai > claimEvidence, 'AI deep reading follows claim evidence')
-  assert.ok(professional > ai, 'professional details follow AI reading')
-  assert.match(source, /生成深度解读/)
+  assert.ok(sticky > -1, 'CompatibilityStickyHeader is rendered')
+  assert.ok(basic > sticky, 'SectionBasicCharts follows sticky header')
+  assert.ok(verdict > basic, 'SectionVerdict follows basic charts')
+  assert.ok(deep > verdict, 'SectionDeepAnalysis follows verdict')
+  assert.ok(drawer > deep, 'EvidenceDrawer follows deep analysis')
 })
 
-test('compatibility result page includes decision-dashboard CSS hooks', () => {
+test('compatibility result page no longer renders legacy decision dashboard inline', () => {
   const source = read(pagePath)
 
-  assert.match(source, /compatibility-decision-dashboard/)
-  assert.match(source, /compatibility-decision-metric-grid/)
-  assert.match(source, /compatibility-decision-evidence-summary/)
-  assert.match(source, /compatibility-stage-validation-grid/)
+  assert.doesNotMatch(source, /<DecisionDashboardPanel/)
+  assert.doesNotMatch(source, /<DecisionEvidenceSummary/)
+  assert.doesNotMatch(source, /<ResultReadingMap/)
+})
+
+test('compatibility result page includes decision-dashboard CSS hooks in extracted components', () => {
+  const actionPlan = read(new URL('../src/components/compatibility/deep-analysis/ActionPlan7d30d.tsx', import.meta.url))
+  const sectionVerdict = read(new URL('../src/components/compatibility/SectionVerdict.tsx', import.meta.url))
+
+  assert.match(actionPlan, /compatibility-stage-validation-grid/)
+  assert.match(sectionVerdict, /compat-section-verdict/)
 })
 
 test('compatibility result page styles stage validation card paragraphs', () => {

@@ -18,5 +18,7 @@ test('ParticipantSummaryCard lives in components/compatibility', () => {
 test('page no longer defines ParticipantSummaryCard inline', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
   assert.doesNotMatch(page, /^function ParticipantSummaryCard\(/m)
-  assert.match(page, /import ParticipantSummaryCard from '\.\.\/components\/compatibility\/ParticipantSummaryCard'/)
+  // ParticipantSummaryCard is now used inside SectionBasicCharts, not imported directly by the page
+  const basicCharts = read('src/components/compatibility/SectionBasicCharts.tsx')
+  assert.match(basicCharts, /import ParticipantSummaryCard from/)
 })

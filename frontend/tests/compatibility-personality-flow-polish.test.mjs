@@ -50,42 +50,41 @@ test('personality helper exposes descriptions for match types', () => {
   assert.match(getPersonalityMatchTypeDescription('稳定互补型'), /稳定|互补|承接/)
 })
 
-test('compatibility result has reading map and self-explanatory personality section', () => {
+test('compatibility result new layout renders deep analysis after verdict section', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
   const css = read('src/pages/CompatibilityResultPage.css')
+  const personalityFit = read('src/components/compatibility/deep-analysis/PersonalityFit.tsx')
+  const actionPlan = read('src/components/compatibility/deep-analysis/ActionPlan7d30d.tsx')
 
-  const dashboard = page.indexOf('<DecisionDashboardPanel')
-  const map = page.indexOf('<ResultReadingMap')
-  const personality = page.indexOf('<PersonalityFitPanel')
-  const validation = page.indexOf('<PersonalityValidationPlanPanel')
-  const score = page.indexOf('<ScoreOverview')
+  // new layout has no legacy inline panels
+  assert.doesNotMatch(page, /<DecisionDashboardPanel/)
+  assert.doesNotMatch(page, /<ResultReadingMap/)
+  assert.doesNotMatch(page, /<PersonalityFitPanel/)
+  assert.doesNotMatch(page, /<PersonalityValidationPlanPanel/)
 
-  assert.ok(map > dashboard, 'reading map follows decision dashboard')
-  assert.ok(personality > map, 'personality section follows reading map')
-  assert.ok(validation > personality, 'validation follows personality section')
-  assert.ok(score > validation, 'scores remain below validation')
-  assert.match(page, /id="compatibility-personality-fit"/)
-  assert.match(page, /id="compatibility-conflict-validation"/)
-  assert.match(page, /id="compatibility-score-evidence"/)
-  assert.match(page, /id="compatibility-professional-details"/)
-  assert.match(page, /compatibility-result-map/)
-  assert.match(page, /matchTypeDescription/)
-  assert.match(css, /compatibility-result-map/)
+  // section order: Verdict (with scores) → DeepAnalysis (with personality)
+  const verdict = page.indexOf('<SectionVerdict')
+  const deep = page.indexOf('<SectionDeepAnalysis')
+  assert.ok(verdict > -1, 'SectionVerdict is present')
+  assert.ok(deep > verdict, 'SectionDeepAnalysis follows SectionVerdict')
+
+  // personality content lives in extracted components
+  assert.match(personalityFit, /matchTypeDescription/)
   assert.match(css, /compatibility-personality-fit--polished/)
 })
 
-test('compatibility validation groups stage risks under the validation plan', () => {
-  const page = read('src/pages/CompatibilityResultPage.tsx')
+test('compatibility validation groups stage risks under the validation plan in ActionPlan7d30d', () => {
+  const actionPlan = read('src/components/compatibility/deep-analysis/ActionPlan7d30d.tsx')
 
-  const validationComponent = page.indexOf('function PersonalityValidationPlanPanel')
-  const stageGrid = page.indexOf('<StageRiskGrid')
-  const durationSummary = page.indexOf('<DurationTaskSummary')
-  const standaloneHeading = page.indexOf('接下来要验证什么')
+  const validationComponent = actionPlan.indexOf('function ActionPlan7d30d')
+  const stageGrid = actionPlan.indexOf('<StageRiskGrid')
+  const durationSummary = actionPlan.indexOf('<DurationTaskSummary')
+  const standaloneHeading = actionPlan.indexOf('接下来要验证什么')
 
-  assert.ok(stageGrid > validationComponent, 'stage risks are rendered by/after validation panel definition')
-  assert.ok(durationSummary > validationComponent, 'duration summary is grouped with validation panel')
+  assert.ok(stageGrid > validationComponent, 'stage risks are rendered inside ActionPlan7d30d')
+  assert.ok(durationSummary > validationComponent, 'duration summary is inside ActionPlan7d30d')
   assert.equal(standaloneHeading, -1, 'old duplicate validation heading is removed')
-  assert.match(page, /阶段风险明细/)
+  assert.match(actionPlan, /阶段风险明细/)
 })
 
 test('compatibility history prioritizes personality and de-emphasizes scores', () => {

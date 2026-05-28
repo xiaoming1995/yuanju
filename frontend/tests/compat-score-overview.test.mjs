@@ -19,7 +19,9 @@ test('page no longer defines ScoreOverviewV3 nor ScoreOverview inline', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
   assert.doesNotMatch(page, /^function ScoreOverviewV3\(/m)
   assert.doesNotMatch(page, /^function ScoreOverview\(/m)
-  assert.match(page, /import \{ ScoreOverviewV3, ScoreOverview \} from '\.\.\/components\/compatibility\/ScoreOverview'/)
+  // ScoreOverview pair is now used inside SectionVerdict, not imported directly by the page
+  const sectionVerdict = read('src/components/compatibility/SectionVerdict.tsx')
+  assert.match(sectionVerdict, /import \{ ScoreOverviewV3, ScoreOverview \} from/)
 })
 
 test('SectionVerdict imports the extracted ScoreOverview pair', () => {
