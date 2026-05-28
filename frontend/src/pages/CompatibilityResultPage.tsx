@@ -1092,6 +1092,7 @@ export default function CompatibilityResultPage() {
     : null
 
   return (
+    <>
     <div className="page compatibility-result-page">
       <div className="container compatibility-result-container">
         <DecisionDashboardPanel
@@ -1264,15 +1265,16 @@ export default function CompatibilityResultPage() {
         </div>
       )}
 
-      <CompatibilityPrintLayout
-        reading={reading}
-        participants={detail.participants}
-        evidences={detail.evidences}
-        decision={decisionDashboard}
-        stageRisks={decisionStageRisks}
-        structured={structuredReport ?? null}
-        brand={brand}
-      />
     </div>
+    <CompatibilityPrintLayout
+      reading={reading}
+      participants={detail.participants}
+      evidences={detail.evidences}
+      decision={decisionDashboard}
+      stageRisks={decisionStageRisks}
+      structured={structuredReport ?? null}
+      brand={brand}
+    />
+    </>
   )
 }
