@@ -29,7 +29,7 @@
 
 ## 3. 设计
 
-### 3.1 新布局（13 段）
+### 3.1 新布局（12 段）
 
 ```
 1.  Header                                 — 不变
@@ -183,7 +183,7 @@ export interface CompatibilityShareCardProps {
 12. 卡片宽度仍精确 400px
 
 ### 导出完整性 (3 条)
-13. PNG 包含所有 13 段
+13. PNG 包含所有 12 段
 14. PNG 高度 ≥ 1700px
 15. iOS Web Share / Android download / 桌面 toPng 三端都能完整捕获
 
