@@ -1095,13 +1095,6 @@ export default function CompatibilityResultPage() {
     <>
     <div className="page compatibility-result-page">
       <div className="container compatibility-result-container">
-        <DecisionDashboardPanel
-          reading={reading}
-          dashboard={decisionDashboard}
-          selfName={selfP?.display_name || '我'}
-          partnerName={partnerP?.display_name || '对方'}
-        />
-
         <div className="compat-export-actions">
           <button
             type="button"
@@ -1122,6 +1115,13 @@ export default function CompatibilityResultPage() {
             {exportingPDF ? '生成中…' : '导出 PDF'}
           </button>
         </div>
+
+        <DecisionDashboardPanel
+          reading={reading}
+          dashboard={decisionDashboard}
+          selfName={selfP?.display_name || '我'}
+          partnerName={partnerP?.display_name || '对方'}
+        />
 
         <ResultReadingMap />
 

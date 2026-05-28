@@ -1348,8 +1348,9 @@
 .compat-export-actions {
   display: flex;
   gap: 12px;
-  margin: 12px 0 0;
+  margin: 0 0 16px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 .compat-export-actions .btn {
   min-width: 100px;
