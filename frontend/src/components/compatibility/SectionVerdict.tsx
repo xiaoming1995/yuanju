@@ -4,6 +4,7 @@ import type {
   CompatibilityDimensionScoresV3,
 } from '../../lib/api'
 import type { DecisionFinding, DecisionDashboardData } from '../../lib/compatibilityDecision'
+import { ScoreOverviewV3, ScoreOverview } from './ScoreOverview'
 
 type Props = {
   dashboard: DecisionDashboardData
@@ -11,7 +12,7 @@ type Props = {
   v3Scores: CompatibilityDimensionScoresV3 | null
   legacyScores: CompatibilityDimensionScoresLegacy | null
   overallScore: number
-  overallLevel: string
+  overallLevel: 'high' | 'medium' | 'low'
   findings: DecisionFinding[]
 }
 
@@ -31,10 +32,10 @@ export default function SectionVerdict({
           <div className="compat-section-verdict__type">{dashboard.relationshipType}</div>
 
           {isV3 && v3Scores && (
-            <InlineScoreOverviewV3 scores={v3Scores} overallScore={overallScore} overallLevel={overallLevel} />
+            <ScoreOverviewV3 scores={v3Scores} overallScore={overallScore} overallLevel={overallLevel} />
           )}
           {!isV3 && legacyScores && (
-            <InlineScoreOverviewLegacy scores={legacyScores} overallScore={overallScore} />
+            <ScoreOverview scores={legacyScores} />
           )}
         </div>
 
@@ -56,14 +57,4 @@ export default function SectionVerdict({
       </div>
     </section>
   )
-}
-
-// 临时占位组件：依赖 Task 12 把 ScoreOverview 抽出到独立文件。在 Task 12 完成之前，
-// SectionVerdict 不会被任何调用方实际渲染（Task 13 才会接到主页面），所以下面的 throw
-// 不会在生产代码路径里触发。Task 12 会用真实的 import 替换这两个占位。
-function InlineScoreOverviewV3(_props: { scores: CompatibilityDimensionScoresV3; overallScore: number; overallLevel: string }): never {
-  throw new Error('SectionVerdict requires Task 12 (extract ScoreOverview module) to be completed first')
-}
-function InlineScoreOverviewLegacy(_props: { scores: CompatibilityDimensionScoresLegacy; overallScore: number }): never {
-  throw new Error('SectionVerdict requires Task 12 (extract ScoreOverview module) to be completed first')
 }

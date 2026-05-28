@@ -9,8 +9,9 @@ const read = (path) => readFileSync(resolve(root, path), 'utf8')
 
 test('compatibility result page exposes conclusion-first mobile sections', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
+  const scoreModule = read('src/components/compatibility/ScoreOverview.tsx')
   assert.match(page, /compatibility-result-page/)
-  assert.match(page, /compatibility-quick-score/)
+  assert.match(scoreModule, /compatibility-quick-score/)
   assert.match(page, /compatibility-decision-metric-grid/)
   assert.match(page, /compatibility-professional-details/)
   assert.match(page, /最大风险/)
