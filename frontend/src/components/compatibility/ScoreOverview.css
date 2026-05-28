@@ -24,9 +24,9 @@
 }
 .compat-score-v3__badge--high { background: var(--primary); color: white; }
 .compat-score-v3__badge--medium { background: rgba(224, 92, 75, 0.15); color: var(--wu-huo); }
-.compat-score-v3__badge--low { background: var(--bg-elevated); color: var(--text-secondary); }
+.compat-score-v3__badge--low { background: var(--bg-card); color: var(--text-secondary); }
 .compat-score-v3__modules { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
-.compat-score-v3__module { padding: 12px; border-radius: 8px; background: var(--bg-elevated); }
+.compat-score-v3__module { padding: 12px; border-radius: 8px; background: var(--bg-card); }
 .compat-score-v3__module-row { display: flex; justify-content: space-between; }
 .compat-score-v3__module-label { font-weight: 600; }
 .compat-score-v3__module-value { font-size: 18px; font-weight: 700; }
