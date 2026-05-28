@@ -40,6 +40,10 @@ import CompatibilityShareCard from '../components/CompatibilityShareCard'
 import CompatibilityPrintLayout from '../components/CompatibilityPrintLayout'
 import './CompatibilityResultPage.css'
 
+// Feature flag: 控制重构期间新结构 vs 旧 11 段结构。批次 4 完成时删除。
+// @ts-expect-error: unused until refactor batches use it
+const ENABLE_NEW_LAYOUT = false
+
 const dimensionText: Record<string, string> = {
   attraction: '会不会互相吸引？',
   stability: '能不能长期稳定？',
