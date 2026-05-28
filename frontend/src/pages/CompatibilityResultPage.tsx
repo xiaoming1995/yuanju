@@ -38,10 +38,12 @@ import html2canvas from 'html2canvas'
 import { brandAPI, type ExportBrand } from '../lib/api'
 import CompatibilityShareCard from '../components/CompatibilityShareCard'
 import CompatibilityPrintLayout from '../components/CompatibilityPrintLayout'
+import SectionBasicCharts from '../components/compatibility/SectionBasicCharts'
+import SectionVerdict from '../components/compatibility/SectionVerdict'
+import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
 import './CompatibilityResultPage.css'
 
 // Feature flag: 控制重构期间新结构 vs 旧 11 段结构。批次 4 完成时删除。
-// @ts-expect-error: unused until refactor batches use it
 const ENABLE_NEW_LAYOUT = false
 
 const dimensionText: Record<string, string> = {
@@ -1125,6 +1127,14 @@ export default function CompatibilityResultPage() {
             {exportingPDF ? '生成中…' : '导出 PDF'}
           </button>
         </div>
+
+        {ENABLE_NEW_LAYOUT && (
+          <>
+            <SectionBasicCharts />
+            <SectionVerdict />
+            <SectionDeepAnalysis />
+          </>
+        )}
 
         <DecisionDashboardPanel
           reading={reading}
