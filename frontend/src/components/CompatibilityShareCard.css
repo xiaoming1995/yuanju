@@ -1,0 +1,224 @@
+.compat-share-card {
+  position: relative;
+  width: 400px;
+  background: #fdf9f2;
+  padding: 24px 20px 18px;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #4a3728;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: 1px solid #d4b896;
+  border-radius: 8px;
+}
+
+.compat-share-header {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+.compat-share-header h1 {
+  margin: 0;
+  font-family: "Noto Serif SC", serif;
+  font-size: 20px;
+  letter-spacing: 6px;
+  color: #7a5c3a;
+  font-weight: 700;
+}
+.compat-share-sub {
+  margin: 4px 0 0;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: #9b815c;
+}
+
+.compat-share-twocol {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 10px;
+  margin: 18px 0;
+  position: relative;
+  z-index: 1;
+}
+.compat-share-vdivider {
+  background: linear-gradient(to bottom, transparent, #d4b896, transparent);
+}
+.compat-share-col-head {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5c4a3a;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+.compat-share-col-empty {
+  text-align: center;
+  font-size: 11px;
+  color: #9b815c;
+}
+.compat-share-pillars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.compat-share-pillar {
+  background: #f5ebd6;
+  border-radius: 4px;
+  padding: 6px 2px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: "Noto Serif SC", serif;
+}
+.compat-share-pillar-lbl {
+  font-size: 9px;
+  color: #9b815c;
+  letter-spacing: 1px;
+}
+.compat-share-pillar-gan,
+.compat-share-pillar-zhi {
+  font-size: 16px;
+  font-weight: 700;
+  color: #4a3728;
+  line-height: 1.1;
+}
+
+.compat-share-score {
+  text-align: center;
+  margin: 8px 0 6px;
+  position: relative;
+  z-index: 1;
+}
+.compat-share-score-label {
+  font-size: 11px;
+  letter-spacing: 4px;
+  color: #7a5c3a;
+}
+.compat-share-score-value {
+  font-family: "Noto Serif SC", serif;
+  font-size: 44px;
+  font-weight: 800;
+  color: #c9a96e;
+  letter-spacing: 2px;
+  margin-top: 4px;
+  line-height: 1;
+}
+
+.compat-share-section-h {
+  font-size: 12px;
+  font-weight: 700;
+  color: #7a5c3a;
+  margin: 14px 0 6px;
+  letter-spacing: 3px;
+  font-family: "Noto Serif SC", serif;
+}
+
+.compat-share-dims {
+  position: relative;
+  z-index: 1;
+}
+.compat-share-dim-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 28px;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0;
+  font-size: 11px;
+}
+.compat-share-dim-lbl {
+  color: #5c4a3a;
+}
+.compat-share-dim-val {
+  text-align: right;
+  color: #7a5c3a;
+  font-weight: 700;
+}
+.compat-share-dim-bar {
+  background: #efe0bc;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.compat-share-dim-bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #c9a96e, #9b815c);
+}
+
+.compat-share-evs {
+  position: relative;
+  z-index: 1;
+}
+.compat-share-ev {
+  padding: 6px 8px;
+  margin-top: 4px;
+  border-left: 3px solid #c9a96e;
+  background: #fbf3e0;
+  border-radius: 0 4px 4px 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.compat-share-ev-head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+.compat-share-ev-src {
+  display: inline-block;
+  background: #c9a96e;
+  color: #fff;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+.compat-share-ev-title {
+  font-weight: 700;
+  color: #4a3728;
+}
+.compat-share-ev-detail {
+  color: #5c4a3a;
+}
+
+.compat-share-verdict {
+  background: #f5ebd6;
+  padding: 10px 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-top: 14px;
+  color: #4a3728;
+  position: relative;
+  z-index: 1;
+}
+
+.compat-share-footer {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 10px;
+  color: #9b815c;
+  letter-spacing: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.compat-share-watermark {
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+  transform: rotate(-28deg);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 130px);
+  gap: 50px 30px;
+  opacity: 0.06;
+  color: #000;
+  font-size: 14px;
+  font-family: "Noto Sans SC", sans-serif;
+  white-space: nowrap;
+}
