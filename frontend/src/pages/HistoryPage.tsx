@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { CalendarDays, Compass, HeartHandshake, Sparkles } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, type BaziHistoryChart } from '../lib/api'
+import { chartDisplayName, chartFallbackName, formatPillars, genderText } from '../lib/chartLabel'
 import './HistoryPage.css'
 
 type Chart = BaziHistoryChart
@@ -10,22 +11,6 @@ type Chart = BaziHistoryChart
 function formatDate(value: string) {
   if (!value) return '-'
   return new Date(value).toLocaleDateString('zh-CN')
-}
-
-function genderText(gender: string) {
-  return gender === 'female' ? '女命' : '男命'
-}
-
-function formatPillars(chart: Chart) {
-  return `${chart.year_gan}${chart.year_zhi} · ${chart.month_gan}${chart.month_zhi} · ${chart.day_gan}${chart.day_zhi} · ${chart.hour_gan}${chart.hour_zhi}`
-}
-
-function chartFallbackName(chart: Chart) {
-  return `${genderText(chart.gender)} · ${chart.birth_year}年${chart.birth_month}月${chart.birth_day}日`
-}
-
-function chartDisplayName(chart: Chart) {
-  return chart.display_name?.trim() || chartFallbackName(chart)
 }
 
 function isInteractiveTarget(target: EventTarget | null) {
