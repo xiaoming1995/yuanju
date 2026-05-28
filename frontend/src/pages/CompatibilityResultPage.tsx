@@ -901,6 +901,8 @@ export default function CompatibilityResultPage() {
   const [exportingPDF, setExportingPDF] = useState(false)
   const shareCardRef = useRef<HTMLDivElement>(null)
   const shareModalCloseBtnRef = useRef<HTMLButtonElement>(null)
+  const shareTriggerBtnRef = useRef<HTMLButtonElement>(null)
+  const prevShareModalOpenRef = useRef(false)
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
@@ -933,7 +935,10 @@ export default function CompatibilityResultPage() {
   useEffect(() => {
     if (shareModalOpen) {
       shareModalCloseBtnRef.current?.focus()
+    } else if (prevShareModalOpenRef.current) {
+      shareTriggerBtnRef.current?.focus()
     }
+    prevShareModalOpenRef.current = shareModalOpen
   }, [shareModalOpen])
 
   const handleGenerateReport = async () => {
@@ -1098,6 +1103,7 @@ export default function CompatibilityResultPage() {
         <div className="compat-export-actions">
           <button
             type="button"
+            ref={shareTriggerBtnRef}
             className="btn btn-secondary"
             disabled={!structuredReport}
             onClick={() => setShareModalOpen(true)}

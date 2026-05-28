@@ -119,7 +119,7 @@ function EvidenceItem({ evidence }: { evidence: CompatibilityEvidence }) {
 function DiagonalWatermark({ text }: { text: string }) {
   const items = Array.from({ length: 16 }, (_, i) => i)
   return (
-    <div className="compat-share-watermark" aria-hidden>
+    <div className="compat-share-watermark" aria-hidden="true">
       {items.map(i => <span key={i}>{text}</span>)}
     </div>
   )
