@@ -281,31 +281,26 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
             <h2 className="compat-print-section-title">一、合参概要</h2>
             <ParticipantsHero participants={participants} reading={reading} />
           </section>
-          <div className="compat-print-page-break" />
 
           <section className="compat-print-section">
             <h2 className="compat-print-section-title">二、决策仪表盘</h2>
             <DecisionBlock decision={decision} />
           </section>
-          <div className="compat-print-page-break" />
 
           <section className="compat-print-section">
             <h2 className="compat-print-section-title">三、评分明细</h2>
             <ScorePrint reading={reading} />
           </section>
-          <div className="compat-print-page-break" />
 
           <section className="compat-print-section">
             <h2 className="compat-print-section-title">四、命理证据</h2>
             <EvidenceTable evidences={evidences} />
           </section>
-          <div className="compat-print-page-break" />
 
           <section className="compat-print-section">
             <h2 className="compat-print-section-title">五、阶段风险与验证</h2>
             <StageRisksBlock risks={stageRisks} />
           </section>
-          <div className="compat-print-page-break" />
 
           {structured && (
             <>
@@ -322,11 +317,10 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
                   </div>
                 )}
               </section>
-              <div className="compat-print-page-break" />
             </>
           )}
 
-          <section className="compat-print-section">
+          <section className="compat-print-section compat-print-section--page">
             <h2 className="compat-print-section-title">七、双盘原图</h2>
             <div className="compat-print-charts-grid">
               <ChartFull participant={selfP} label="我" />

@@ -77,10 +77,13 @@
     padding-bottom: 2mm;
     margin: 0 0 6mm 0;
     font-weight: 700;
+    break-after: avoid;
   }
-  .compat-print-page-break {
-    page-break-after: always;
-    height: 0;
+  .compat-print-section + .compat-print-section {
+    margin-top: 10mm;
+  }
+  .compat-print-section--page {
+    break-before: page;
   }
   .compat-print-empty {
     color: #888;
