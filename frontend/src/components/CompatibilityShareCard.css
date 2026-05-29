@@ -357,6 +357,44 @@
   padding-left: 10px;
 }
 
+.compat-share-personality-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.compat-share-personality-col {
+  background: #fbf3e0;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.compat-share-personality-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #5c4a3a;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.compat-share-personality-headline {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #4a3728;
+  margin-bottom: 6px;
+  text-align: center;
+}
+.compat-share-personality-dim {
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 3px 0;
+}
+.compat-share-personality-dim-lbl {
+  font-weight: 700;
+  color: #7a5c3a;
+  margin-right: 4px;
+}
+.compat-share-personality-dim-val {
+  color: #4a3728;
+}
+
 .compat-share-watermark {
   position: absolute;
   inset: -30%;

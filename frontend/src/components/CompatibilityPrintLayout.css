@@ -278,6 +278,66 @@
     widows: 2;
   }
 
+  /* §6 personality portraits */
+  .compat-print-personality {
+    margin: 0 0 4mm;
+  }
+  .compat-print-personality-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6mm;
+    margin-bottom: 4mm;
+  }
+  .compat-print-portrait {
+    border: 1px solid #e0cca0;
+    border-radius: 4pt;
+    padding: 3mm 4mm;
+  }
+  .compat-print-portrait-name {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #5a3a1a;
+  }
+  .compat-print-portrait-headline {
+    font-size: 10.5pt;
+    color: #6b5638;
+    margin: 1mm 0 2mm;
+    line-height: 1.6;
+  }
+  .compat-print-portrait-dims { margin: 0; }
+  .compat-print-portrait-dim { margin-bottom: 1.5mm; }
+  .compat-print-portrait-dim dt {
+    font-size: 9.5pt;
+    color: #7a5c3a;
+    font-weight: 700;
+  }
+  .compat-print-portrait-dim dd {
+    margin: 0;
+    font-size: 10.5pt;
+    color: #3a2a1a;
+    line-height: 1.7;
+  }
+  .compat-print-personality-points {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6mm;
+  }
+  .compat-print-personality-ptitle {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #5a3a1a;
+    margin-bottom: 1.5mm;
+  }
+  .compat-print-personality-point {
+    margin: 0 0 1.5mm;
+    font-size: 10.5pt;
+    line-height: 1.7;
+  }
+  .compat-print-personality-point strong {
+    color: #7a5c3a;
+    margin-right: 1mm;
+  }
+
   /* §7 dual full charts */
   .compat-print-charts-grid {
     display: grid;

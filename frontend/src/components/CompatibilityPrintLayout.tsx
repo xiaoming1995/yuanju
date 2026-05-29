@@ -1,6 +1,8 @@
 import type {
   CompatibilityEvidence,
   CompatibilityParticipant,
+  CompatibilityPersonalityComparison,
+  CompatibilityPersonalityPortrait,
   CompatibilityReading,
   CompatibilityStageRisk,
   CompatibilityStructuredReport,
@@ -39,6 +41,13 @@ const RISK_LEVEL_LABEL: Record<string, string> = {
   high: '偏高',
   medium: '中等',
   low: '偏低',
+}
+const PERSONALITY_DIM_LABEL: Record<string, string> = {
+  expression: '表达 / 沟通',
+  decision: '决策与节奏',
+  intimacy: '亲密里的核心需求',
+  emotion: '情绪反应',
+  pressure: '压力下的样子',
 }
 const EVIDENCE_SOURCE_LABEL: Record<string, string> = {
   day_master: '日主关系',
@@ -207,6 +216,67 @@ function ChapterBlock({ title, content }: { title: string; content: string }) {
   )
 }
 
+function PersonalityPrint({ comparison, selfName, partnerName }: {
+  comparison: CompatibilityPersonalityComparison
+  selfName: string
+  partnerName: string
+}) {
+  const cols: Array<{ name: string; portrait?: CompatibilityPersonalityPortrait }> = [
+    { name: selfName, portrait: comparison.self },
+    { name: partnerName, portrait: comparison.partner },
+  ]
+  const fit = (comparison.fit_points || []).filter(p => p && (p.title || p.detail))
+  const clash = (comparison.clash_points || []).filter(p => p && (p.title || p.detail))
+  return (
+    <div className="compat-print-personality">
+      <div className="compat-print-personality-grid">
+        {cols.map((col, i) => (
+          <div key={i} className="compat-print-portrait">
+            <div className="compat-print-portrait-name">{col.name}</div>
+            {col.portrait?.headline && (
+              <div className="compat-print-portrait-headline">{col.portrait.headline}</div>
+            )}
+            <dl className="compat-print-portrait-dims">
+              {(col.portrait?.dimensions || []).map(d => (
+                <div key={d.key} className="compat-print-portrait-dim">
+                  <dt>{PERSONALITY_DIM_LABEL[d.key] || d.key}</dt>
+                  <dd>{d.detail}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+      {(fit.length > 0 || clash.length > 0) && (
+        <div className="compat-print-personality-points">
+          {fit.length > 0 && (
+            <div className="compat-print-personality-pcol">
+              <div className="compat-print-personality-ptitle">自然合的地方</div>
+              {fit.map((p, i) => (
+                <div key={i} className="compat-print-personality-point">
+                  <strong>{p.title}</strong>
+                  <span>{p.detail}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {clash.length > 0 && (
+            <div className="compat-print-personality-pcol">
+              <div className="compat-print-personality-ptitle">容易冲突的地方</div>
+              {clash.map((p, i) => (
+                <div key={i} className="compat-print-personality-point">
+                  <strong>{p.title}</strong>
+                  <span>{p.detail}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ChartFull({ participant, label }: { participant?: CompatibilityParticipant; label: string }) {
   if (!participant?.chart_snapshot) return <div className="compat-print-chartfull">数据缺失</div>
   const c = participant.chart_snapshot
@@ -307,6 +377,17 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
               <section className="compat-print-section">
                 <h2 className="compat-print-section-title">六、命理解读</h2>
                 {structured.summary && <p className="compat-print-summary">{structured.summary}</p>}
+                {structured.personality_comparison &&
+                  (structured.personality_comparison.self || structured.personality_comparison.partner) && (
+                  <div className="compat-print-chapter">
+                    <h4 className="compat-print-chapter-title">双方性格画像与差异</h4>
+                    <PersonalityPrint
+                      comparison={structured.personality_comparison}
+                      selfName={selfP?.display_name || '我'}
+                      partnerName={partnerP?.display_name || '伴侣'}
+                    />
+                  </div>
+                )}
                 {structured.dimensions.map(chap => (
                   <ChapterBlock key={chap.key} title={chap.title} content={chap.content} />
                 ))}

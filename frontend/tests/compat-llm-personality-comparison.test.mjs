@@ -40,6 +40,30 @@ test('DeepReportNarrative renders personality comparison inside the structured r
   assert.match(src, /双方性格画像与差异/)
 })
 
+test('PDF print layout renders the dual personality comparison from the structured report', () => {
+  const src = read('src/components/CompatibilityPrintLayout.tsx')
+  assert.match(src, /personality_comparison/)
+  assert.match(src, /双方性格画像与差异/)
+  assert.match(src, /PersonalityPrint/)
+  // 5 维 label 前端固定映射（与屏幕端一致）
+  assert.match(src, /expression: '表达 \/ 沟通'/)
+  // PDF 放完整：含自然合 / 容易冲突对照
+  assert.match(src, /自然合的地方/)
+  assert.match(src, /容易冲突的地方/)
+})
+
+test('share card renders dual personality portraits (headline + 5 dims, no fit/clash)', () => {
+  const src = read('src/components/CompatibilityShareCard.tsx')
+  assert.match(src, /personality_comparison/)
+  assert.match(src, /双方性格/)
+  assert.match(src, /expression: '表达 \/ 沟通'/)
+  assert.match(src, /portrait\?\.headline/)
+  assert.match(src, /compat-share-personality-dim/)
+  // 图片为中等密度：不放 fit/clash 对照
+  assert.doesNotMatch(src, /自然合的地方/)
+  assert.doesNotMatch(src, /容易冲突的地方/)
+})
+
 test('result page no longer mounts a deterministic personality SECTION', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
   assert.doesNotMatch(page, /PersonalityFit/)

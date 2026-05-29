@@ -60,6 +60,14 @@ const STRATEGY_LABEL: Record<string, string> = {
   boundary: '边界',
 }
 
+const PERSONALITY_DIM_LABEL: Record<string, string> = {
+  expression: '表达 / 沟通',
+  decision: '决策与节奏',
+  intimacy: '亲密里的核心需求',
+  emotion: '情绪反应',
+  pressure: '压力下的样子',
+}
+
 function firstSentence(content: string): string {
   const cleaned = cleanReportText(content)
   const match = cleaned.match(/^[^。！？]+[。！？]?/)
@@ -205,6 +213,13 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
     title: d.title,
     digest: firstSentence(d.content),
   }))
+  const personality = structured?.personality_comparison
+  const personalityCols = personality && (personality.self || personality.partner)
+    ? [
+        { name: selfP.display_name || '我', portrait: personality.self },
+        { name: partnerP.display_name || '伴侣', portrait: personality.partner },
+      ]
+    : []
 
   const resolvedTitle = brand?.title || '缘 聚 合 盘'
   const resolvedFooter = resolveFooter(brand, 'yuanju.com')
@@ -279,6 +294,28 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
           {topFindings.map((f, i) => (
             <div key={i} className="compat-share-finding-item">· {f.text}</div>
           ))}
+        </section>
+      )}
+
+      {personalityCols.length > 0 && (
+        <section className="compat-share-personality">
+          <h3 className="compat-share-section-h">◇ 双方性格</h3>
+          <div className="compat-share-personality-grid">
+            {personalityCols.map((col, i) => (
+              <div key={i} className="compat-share-personality-col">
+                <div className="compat-share-personality-name">{col.name}</div>
+                {col.portrait?.headline && (
+                  <div className="compat-share-personality-headline">{col.portrait.headline}</div>
+                )}
+                {(col.portrait?.dimensions || []).map(d => (
+                  <div key={d.key} className="compat-share-personality-dim">
+                    <span className="compat-share-personality-dim-lbl">{PERSONALITY_DIM_LABEL[d.key] || d.key}</span>
+                    <span className="compat-share-personality-dim-val">{d.detail}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
