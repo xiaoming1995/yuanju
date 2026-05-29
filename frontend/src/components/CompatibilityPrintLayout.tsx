@@ -277,37 +277,6 @@ function PersonalityPrint({ comparison, selfName, partnerName }: {
   )
 }
 
-function ChartFull({ participant, label }: { participant?: CompatibilityParticipant; label: string }) {
-  if (!participant?.chart_snapshot) return <div className="compat-print-chartfull">数据缺失</div>
-  const c = participant.chart_snapshot
-  const gen = c.gender === 'female' ? '女命' : '男命'
-  const cells = [
-    { lbl: '年柱', gan: c.year_gan, zhi: c.year_zhi },
-    { lbl: '月柱', gan: c.month_gan, zhi: c.month_zhi },
-    { lbl: '日柱', gan: c.day_gan, zhi: c.day_zhi },
-    { lbl: '时柱', gan: c.hour_gan, zhi: c.hour_zhi },
-  ]
-  const wuxing = c.wuxing
-  return (
-    <div className="compat-print-chartfull">
-      <div className="compat-print-chartfull-head">{participant.display_name || label} · {gen}</div>
-      <div className="compat-print-chartfull-birth">{c.birth_year}年{c.birth_month}月{c.birth_day}日 {c.birth_hour}时</div>
-      <table className="compat-print-chartfull-table">
-        <tbody>
-          <tr>
-            {cells.map(p => <td key={p.lbl}><div className="lbl">{p.lbl}</div><div className="gz">{p.gan}<br />{p.zhi}</div></td>)}
-          </tr>
-        </tbody>
-      </table>
-      {wuxing && (
-        <div className="compat-print-chartfull-wuxing">
-          木 {wuxing.mu} · 火 {wuxing.huo} · 土 {wuxing.tu} · 金 {wuxing.jin} · 水 {wuxing.shui}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function PrintFooter({ text }: { text: string }) {
   return <div className="compat-print-footer">{text}</div>
 }
@@ -400,14 +369,6 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
               </section>
             </>
           )}
-
-          <section className="compat-print-section">
-            <h2 className="compat-print-section-title">七、双盘原图</h2>
-            <div className="compat-print-charts-grid">
-              <ChartFull participant={selfP} label="我" />
-              <ChartFull participant={partnerP} label="伴侣" />
-            </div>
-          </section>
 
         </td></tr></tbody>
         <tfoot><tr><td><PrintFooter text={footerText} /></td></tr></tfoot>

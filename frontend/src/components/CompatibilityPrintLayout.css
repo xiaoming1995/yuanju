@@ -22,7 +22,8 @@
     border-collapse: collapse;
   }
   .compat-print-table thead { display: table-header-group; }
-  .compat-print-table tfoot { display: table-footer-group; }
+  /* 页脚只在正文末尾出现一次：footer-group 会每页预留空间，导致内容压到页底时多出一张只有页眉/页脚的空白尾页 */
+  .compat-print-table tfoot { display: table-row-group; }
   .compat-print-table td { padding: 0; }
 
   .compat-print-header {
@@ -336,58 +337,6 @@
   .compat-print-personality-point strong {
     color: #7a5c3a;
     margin-right: 1mm;
-  }
-
-  /* §7 dual full charts */
-  .compat-print-charts-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8mm;
-  }
-  .compat-print-chartfull {
-    border: 1px solid #e0cca0;
-    border-radius: 4pt;
-    padding: 3mm;
-  }
-  .compat-print-chartfull-head {
-    font-size: 12pt;
-    font-weight: 700;
-    color: #5a3a1a;
-    text-align: center;
-  }
-  .compat-print-chartfull-birth {
-    font-size: 10pt;
-    color: #6b5638;
-    text-align: center;
-    margin: 1mm 0 2mm;
-  }
-  .compat-print-chartfull-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 2mm 0;
-  }
-  .compat-print-chartfull-table td {
-    border: 1px solid #e0cca0;
-    text-align: center;
-    padding: 2mm 0;
-    vertical-align: middle;
-  }
-  .compat-print-chartfull-table .lbl {
-    font-size: 9pt;
-    color: #7a5c3a;
-    margin-bottom: 1mm;
-  }
-  .compat-print-chartfull-table .gz {
-    font-family: "Noto Serif SC", serif;
-    font-size: 14pt;
-    font-weight: 700;
-    line-height: 1.2;
-  }
-  .compat-print-chartfull-wuxing {
-    font-size: 9pt;
-    color: #6b5638;
-    text-align: center;
-    margin-top: 2mm;
   }
 
   /* footer */
