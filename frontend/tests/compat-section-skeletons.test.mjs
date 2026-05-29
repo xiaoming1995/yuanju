@@ -38,11 +38,11 @@ test('SectionBasicCharts CSS uses 2-col grid on desktop', () => {
   assert.match(css, /@media \(min-width: 641px\)[\s\S]*compat-section-basic-charts__grid[\s\S]*grid-template-columns:\s*repeat\(2/)
 })
 
-test('SectionDeepAnalysis composes 5 subsection components', () => {
+test('SectionDeepAnalysis composes 3 subsection components (性格升 SECTION、AI 解读移至页面末尾)', () => {
   const src = read('src/components/compatibility/SectionDeepAnalysis.tsx')
-  assert.match(src, /import PersonalityFit from '\.\/deep-analysis\/PersonalityFit'/)
+  assert.doesNotMatch(src, /import PersonalityFit/)
+  assert.doesNotMatch(src, /import DeepReportNarrative/)
   assert.match(src, /import ActionPlan7d30d from '\.\/deep-analysis\/ActionPlan7d30d'/)
   assert.match(src, /import RelationshipStrategy from '\.\/deep-analysis\/RelationshipStrategy'/)
   assert.match(src, /import NextStepsAndAvoid from '\.\/deep-analysis\/NextStepsAndAvoid'/)
-  assert.match(src, /import DeepReportNarrative from '\.\/deep-analysis\/DeepReportNarrative'/)
 })

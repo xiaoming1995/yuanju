@@ -6,10 +6,10 @@ import test from 'node:test'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(resolve(root, p), 'utf8')
 
-test('PersonalityFit deep-analysis subsection exists', () => {
+test('PersonalityFit renders as a top-level SECTION', () => {
   const src = read('src/components/compatibility/deep-analysis/PersonalityFit.tsx')
   assert.match(src, /export default function PersonalityFit/)
-  assert.match(src, /<details open/)
+  assert.match(src, /<section/)
   assert.match(src, /compat-da-personality/)
 })
 

@@ -30,39 +30,20 @@
   padding-bottom: 32px;
 }
 
-/* === Shared section typography (used across multiple components) === */
-.compatibility-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 16px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.compatibility-section-header--stacked {
-  display: block;
-}
-
-.compatibility-section-title {
-  font-size: 24px;
-  margin: 0;
-}
-
-.compatibility-section-desc {
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-size: 13px;
-  line-height: 1.7;
-}
-
 /* === Export button group === */
 .compat-export-actions {
   display: flex;
   gap: 12px;
   margin: 0 0 16px;
+  padding: 0 var(--section-padding-mobile);
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+@media (min-width: 1024px) {
+  .compat-export-actions {
+    padding: 0 var(--section-padding-desktop);
+  }
 }
 .compat-export-actions .btn {
   min-width: 100px;
@@ -194,10 +175,6 @@
 
   .compatibility-result-container {
     padding-bottom: 20px;
-  }
-
-  .compatibility-section-title {
-    font-size: 21px;
   }
 }
 

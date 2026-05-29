@@ -122,9 +122,9 @@ export function ScoreOverviewV3({
 export function ScoreOverview({ scores }: { scores: CompatibilityDimensionScoresLegacy }) {
   return (
     <div className="card compatibility-quick-score">
-      <div className="compatibility-section-header compatibility-section-header--stacked">
-        <h2 className="serif compatibility-section-title">关系速览</h2>
-        <p className="compatibility-section-desc">先看四个关键维度的强弱，再展开专业依据。</p>
+      <div className="compatibility-quick-score-head">
+        <h2 className="serif compatibility-quick-score-title">关系速览</h2>
+        <p className="compatibility-quick-score-desc">先看四个关键维度的强弱，再展开专业依据。</p>
       </div>
       <div className="compatibility-quick-score-list">
         {getDimensionItems(scores).map(item => (

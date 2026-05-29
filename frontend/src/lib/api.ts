@@ -366,6 +366,20 @@ export interface CompatibilityChartSnapshot {
     jin: number
     shui: number
   }
+  // 性格画像引擎所需字段（命盘快照已包含完整 BaziResult；旧数据可能缺失，故均可选）
+  day_gan_wuxing?: string
+  year_gan_shishen?: string
+  month_gan_shishen?: string
+  day_gan_shishen?: string
+  hour_gan_shishen?: string
+  year_zhi_shishen?: string[]
+  month_zhi_shishen?: string[]
+  day_zhi_shishen?: string[]
+  hour_zhi_shishen?: string[]
+  yongshen?: string
+  jishen?: string
+  ming_ge?: string
+  ming_ge_desc?: string
 }
 
 export interface CompatibilityParticipant {

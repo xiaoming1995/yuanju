@@ -7,12 +7,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 16px;
+  padding: 0;
+  margin: 0 var(--section-padding-mobile) var(--section-gap-mobile);
   background: var(--bg-surface);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: var(--section-gap-mobile);
 }
 
 .compat-sticky-header__left {
@@ -61,8 +61,8 @@
 @media (min-width: 1024px) {
   .compat-sticky-header {
     height: var(--sticky-h-desktop);
-    padding: 0 24px;
-    margin-bottom: var(--section-gap-desktop);
+    padding: 0;
+    margin: 0 var(--section-padding-desktop) var(--section-gap-desktop);
   }
   .compat-sticky-header__verdict {
     pointer-events: auto;

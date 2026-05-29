@@ -46,6 +46,23 @@
   margin-bottom: 20px;
 }
 
+.compatibility-quick-score-head {
+  margin-bottom: 12px;
+}
+
+.compatibility-quick-score-title {
+  font-size: var(--fs-subsection-title);
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.compatibility-quick-score-desc {
+  margin: 4px 0 0;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
 .compatibility-quick-score-list {
   display: grid;
   gap: 12px;

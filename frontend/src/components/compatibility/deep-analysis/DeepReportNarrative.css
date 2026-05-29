@@ -1,5 +1,22 @@
-.compat-da-report { padding: 16px; background: var(--bg-card); border-radius: var(--radius-md); border-left: 3px solid var(--wu-jin); }
+.compat-da-report {
+  margin-top: var(--section-gap-mobile);
+  margin-left: var(--section-padding-mobile);
+  margin-right: var(--section-padding-mobile);
+  padding: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--wu-jin);
+}
 .compat-da-report__body { margin-top: 12px; }
+
+@media (min-width: 1024px) {
+  .compat-da-report {
+    margin-top: var(--section-gap-desktop);
+    margin-left: var(--section-padding-desktop);
+    margin-right: var(--section-padding-desktop);
+    padding: 24px;
+  }
+}
 
 /* === AI report header & state === */
 .compatibility-ai-header {

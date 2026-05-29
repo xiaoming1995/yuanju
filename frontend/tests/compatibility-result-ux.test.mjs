@@ -58,12 +58,12 @@ test('compatibility result page groups professional depth evidence in EvidenceDr
   assert.match(evidenceCss, /\.compatibility-evidence-group-header/)
 })
 
-test('compatibility result page wires a single report generation handler to SectionDeepAnalysis', () => {
+test('compatibility result page wires a single report generation handler to DeepReportNarrative', () => {
   const page = read('src/pages/CompatibilityResultPage.tsx')
   const deepReport = read('src/components/compatibility/deep-analysis/DeepReportNarrative.tsx')
 
-  // page passes the handler once, deep component owns the onClick
-  const handlerWires = page.match(/onGenerateReport:\s*handleGenerateReport/g) || []
+  // page passes the handler once (now a JSX prop on the standalone DeepReportNarrative)
+  const handlerWires = page.match(/onGenerateReport=\{handleGenerateReport\}/g) || []
   assert.equal(handlerWires.length, 1)
   const generateClicks = deepReport.match(/onClick=\{onGenerateReport\}/g) || []
   assert.equal(generateClicks.length, 1)
@@ -80,20 +80,22 @@ test('compatibility result page uses decision-first consulting hierarchy', () =>
   assert.match(page, /<SectionVerdict/)
   assert.match(page, /<SectionDeepAnalysis/)
 
-  // section order: StickyHeader → BasicCharts → Verdict → DeepAnalysis → EvidenceDrawer
+  // section order: StickyHeader → BasicCharts → Verdict → DeepAnalysis → EvidenceDrawer → DeepReportNarrative
   const sticky = page.indexOf('<CompatibilityStickyHeader')
   const verdict = page.indexOf('<SectionVerdict')
   const deep = page.indexOf('<SectionDeepAnalysis')
   const drawer = page.indexOf('<EvidenceDrawer')
+  const report = page.indexOf('<DeepReportNarrative')
 
   assert.ok(sticky > -1, 'sticky header should render')
   assert.ok(verdict > sticky, 'verdict should render after sticky header')
   assert.ok(deep > verdict, 'deep analysis should render after verdict')
   assert.ok(drawer > deep, 'evidence drawer should render after deep analysis')
+  assert.ok(report > drawer, 'AI 深度解读 renders last, after evidence drawer')
 
-  // passed as object properties to SectionDeepAnalysis's deepReport prop
-  assert.match(page, /onGenerateReport:\s*handleGenerateReport/)
-  assert.match(page, /hasReport:\s*Boolean\(detail\.latest_report\)/)
+  // report props now passed as JSX attributes on the standalone DeepReportNarrative
+  assert.match(page, /onGenerateReport=\{handleGenerateReport\}/)
+  assert.match(page, /hasReport=\{Boolean\(detail\.latest_report\)\}/)
 })
 
 test('compatibility result page explains scores and stages as user questions in extracted components', () => {
