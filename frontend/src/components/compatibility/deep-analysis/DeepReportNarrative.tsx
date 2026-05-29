@@ -1,4 +1,5 @@
 import './DeepReportNarrative.css'
+import PersonalityComparison from './PersonalityComparison'
 import type {
   CompatibilityStructuredReport,
   CompatibilityQuestionFocus,
@@ -62,7 +63,7 @@ export default function DeepReportNarrative({
     <details open className="compat-da-report">
       <summary className="compat-da-subsection-summary">
         <span className="compat-da-subsection-title">AI 深度解读</span>
-        <span className="compat-da-subsection-hint">{hasReport ? '完整叙事 · 维度 · 风险 · 建议' : '可选扩展，点击下方按钮生成'}</span>
+        <span className="compat-da-subsection-hint">{hasReport ? '性格画像 · 叙事 · 维度 · 风险 · 建议' : '可选扩展，点击下方按钮生成'}</span>
       </summary>
       <div className={`compat-da-report__body ${reportStateClass}`}>
         {!hasReport && (
@@ -87,6 +88,7 @@ export default function DeepReportNarrative({
           <div className="compatibility-report-content">
             <QuestionFocusPanel focus={structuredReport.question_focus} />
             <p className="compatibility-report-summary">{structuredReport.summary}</p>
+            <PersonalityComparison comparison={structuredReport.personality_comparison} />
             {reportDimensions.map(item => (
               <div key={item.key} className="compatibility-report-section">
                 <div className="serif compatibility-report-title">{item.title}</div>
@@ -110,10 +112,10 @@ export default function DeepReportNarrative({
           <div className="compatibility-report-raw">{rawContent}</div>
         ) : (
           <div className="compatibility-report-empty">
-            <p>当前合盘结果已包含性格画像、冲突验证和关键依据。AI 深度解读会补充更完整的关系叙事、风险解释和相处建议。</p>
+            <p>AI 深度解读会基于双方命盘生成「双方性格画像与差异」，以及完整的关系叙事、风险解释和相处建议。</p>
             <div className="compatibility-report-empty-grid">
+              <span>双方性格画像与差异</span>
               <span>关系叙事</span>
-              <span>冲突解释</span>
               <span>相处建议</span>
             </div>
           </div>

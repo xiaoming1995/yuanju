@@ -14,8 +14,9 @@ import {
   buildDecisionStageRisks,
 } from '../lib/compatibilityDecision'
 import {
-  buildPersonalityFitSummary,
   buildPersonalityValidationPlan,
+  getCompatibilityQuestionLabel,
+  getPersonalityMatchType,
 } from '../lib/compatibilityPersonality'
 import { toBlob, toPng } from 'html-to-image'
 import jsPDF from 'jspdf'
@@ -27,7 +28,6 @@ import CompatibilityStickyHeader from '../components/compatibility/Compatibility
 import SectionBasicCharts from '../components/compatibility/SectionBasicCharts'
 import SectionVerdict from '../components/compatibility/SectionVerdict'
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
-import PersonalityFit from '../components/compatibility/deep-analysis/PersonalityFit'
 import DeepReportNarrative from '../components/compatibility/deep-analysis/DeepReportNarrative'
 import EvidenceDrawer from '../components/compatibility/EvidenceDrawer'
 import './CompatibilityResultPage.css'
@@ -262,29 +262,12 @@ export default function CompatibilityResultPage() {
   const isV3 = (reading.analysis_version === 'v3' || reading.analysis_version === 'v3.1') && isV3DimensionScores(reading.dimension_scores)
   const legacyScores = isV3 ? null : (reading.dimension_scores as CompatibilityDimensionScoresLegacy)
   const v3Scores = isV3 ? (reading.dimension_scores as CompatibilityDimensionScoresV3) : null
-  // 双方画像与差异对照来自各自命盘快照，与合盘分数版本无关，V3/legacy 下都构建
-  const personalitySummary = buildPersonalityFitSummary({
-    scores: legacyScores ?? undefined,
-    evidences: detail.evidences,
-    relationshipDiagnosis: consulting.relationship_diagnosis,
-    relationshipStage: reading.relationship_stage,
-    primaryQuestion: reading.primary_question,
-    self: {
-      name: selfP?.display_name,
-      dayGan: selfP?.chart_snapshot?.day_gan,
-      chart: selfP?.chart_snapshot ?? null,
-    },
-    partner: {
-      name: partnerP?.display_name,
-      dayGan: partnerP?.chart_snapshot?.day_gan,
-      chart: partnerP?.chart_snapshot ?? null,
-    },
-    hasReport: Boolean(detail.latest_report),
-  })
+  // 双方性格画像与差异已改由 AI 深度解读（LLM）生成，渲染在 DeepReportNarrative 内。
   // 行动计划/验证计划维持 legacy 门控，避免改动其在 V3 下的可见性
   const personalityValidationPlan = legacyScores
     ? buildPersonalityValidationPlan({
-        personality: personalitySummary,
+        questionLabel: getCompatibilityQuestionLabel(reading.primary_question),
+        matchType: getPersonalityMatchType(legacyScores, reading.primary_question, reading.relationship_stage),
         advice: consulting.decision_advice,
         stageRisks: consulting.stage_risks,
         duration: durationAssessment,
@@ -325,7 +308,6 @@ export default function CompatibilityResultPage() {
           verdict={decisionDashboard.verdict}
         />
         <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
-        <PersonalityFit summary={personalitySummary} />
         <SectionVerdict
           dashboard={decisionDashboard}
           isV3={isV3}

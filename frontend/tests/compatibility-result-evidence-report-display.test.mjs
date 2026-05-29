@@ -30,7 +30,7 @@ test('deep report absent state is compact actionable and owns the single generat
   const generateClicks = deepReport.match(/onClick=\{onGenerateReport\}/g) || []
   assert.equal(generateClicks.length, 1)
   assert.match(deepReport, /compatibility-ai-card--empty/)
-  assert.match(deepReport, /AI 深度解读会补充/)
+  assert.match(deepReport, /AI 深度解读会基于双方命盘生成/)
   assert.match(deepReport, /reportLoading \? '生成中' : '生成深度解读'/)
   assert.doesNotMatch(deepReport, /<p className="compatibility-report-empty">尚未生成深度解读。<\/p>/)
   assert.match(css, /\.compatibility-ai-card--empty/)

@@ -1,0 +1,86 @@
+.compatibility-personality-comparison .compatibility-portrait-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.compatibility-portrait-card {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.compatibility-portrait-headline {
+  color: var(--wu-jin);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
+.compatibility-portrait-dim + .compatibility-portrait-dim {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.compatibility-portrait-dim dt {
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.compatibility-portrait-dim dd {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.compatibility-personality-comparison .compatibility-personality-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.compatibility-personality-list {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.compatibility-personality-list-title {
+  color: var(--wu-jin);
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.compatibility-personality-point + .compatibility-personality-point {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.compatibility-personality-point strong {
+  display: block;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.compatibility-personality-point p {
+  margin: 5px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .compatibility-personality-comparison .compatibility-portrait-grid,
+  .compatibility-personality-comparison .compatibility-personality-grid {
+    grid-template-columns: 1fr;
+  }
+}

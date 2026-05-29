@@ -7,25 +7,6 @@ import test from 'node:test'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(resolve(root, p), 'utf8')
 
-test('PersonalityFit is a naked SECTION using section-level spacing tokens (not a card)', () => {
-  const tsx = read('src/components/compatibility/deep-analysis/PersonalityFit.tsx')
-  const css = read('src/components/compatibility/deep-analysis/PersonalityFit.css')
-
-  // section element no longer carries the old card class alongside the section class
-  assert.match(tsx, /className="compat-section-personality"/)
-  assert.doesNotMatch(tsx, /compat-section-personality compat-da-personality/)
-
-  // the section container adopts the same outer rules as the baseline sections
-  const block = css.match(/\.compat-section-personality\s*\{[^}]*\}/s)
-  assert.ok(block, '.compat-section-personality rule exists')
-  assert.match(block[0], /scroll-margin-top:\s*var\(--sticky-h\)/)
-  assert.match(block[0], /padding:\s*0 var\(--section-padding-mobile\)/)
-  assert.match(block[0], /margin-bottom:\s*var\(--section-gap-mobile\)/)
-
-  // no card skin (border-left was the card marker) anywhere in the personality styles
-  assert.doesNotMatch(css, /border-left/)
-})
-
 test('DeepReportNarrative keeps its card but adopts section spacing tokens', () => {
   const css = read('src/components/compatibility/deep-analysis/DeepReportNarrative.css')
   const block = css.match(/\.compat-da-report\s*\{[^}]*\}/s)

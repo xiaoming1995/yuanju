@@ -465,3 +465,62 @@ func TestCompatibilityCanonical_DefinesQuestionSpecificBranches(t *testing.T) {
 		}
 	}
 }
+
+func TestCompatibilityParticipantSummary_IncludesPersonalitySignals(t *testing.T) {
+	snapshot, _ := json.Marshal(bazi.BaziResult{
+		YearGan: "甲", YearZhi: "子",
+		MonthGan: "丙", MonthZhi: "寅",
+		DayGan: "甲", DayZhi: "子",
+		HourGan: "丁", HourZhi: "卯",
+		YearGanShiShen:  "比肩",
+		MonthGanShiShen: "食神",
+		DayGanShiShen:   "日主",
+		HourGanShiShen:  "伤官",
+		YearZhiShiShen:  []string{"正印"},
+		MingGe:          "食神格",
+		Wuxing:          bazi.WuxingStats{Mu: 3, Huo: 2, Tu: 1, Jin: 1, Shui: 1},
+		Yongshen:        "金",
+		Jishen:          "木",
+	})
+	raw := json.RawMessage(snapshot)
+	p := &model.CompatibilityParticipant{DisplayName: "我", ChartSnapshot: &raw}
+
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatalf("compatibilityParticipantSummary error: %v", err)
+	}
+	for _, want := range []string{"十神=", "命格=食神格", "旺衰=", "比肩", "食神"} {
+		if !strings.Contains(summary, want) {
+			t.Errorf("summary missing %q; got: %s", want, summary)
+		}
+	}
+}
+
+func TestCompatibilityStructuredReport_PersonalityComparisonParsing(t *testing.T) {
+	withField := `{"summary":"s","personality_comparison":{` +
+		`"self":{"headline":"A定性","dimensions":[{"key":"expression","detail":"直率"}]},` +
+		`"partner":{"headline":"B定性","dimensions":[]},` +
+		`"fit_points":[{"title":"合","detail":"互补"}],"clash_points":[]}}`
+	var r1 model.CompatibilityStructuredReport
+	if err := json.Unmarshal([]byte(withField), &r1); err != nil {
+		t.Fatalf("unmarshal with field: %v", err)
+	}
+	if r1.PersonalityComparison == nil {
+		t.Fatal("expected non-nil PersonalityComparison")
+	}
+	if r1.PersonalityComparison.Self.Headline != "A定性" {
+		t.Errorf("self headline = %q", r1.PersonalityComparison.Self.Headline)
+	}
+	if len(r1.PersonalityComparison.FitPoints) != 1 {
+		t.Errorf("fit_points len = %d", len(r1.PersonalityComparison.FitPoints))
+	}
+
+	// 旧报告无该字段 → nil，不报错
+	var r2 model.CompatibilityStructuredReport
+	if err := json.Unmarshal([]byte(`{"summary":"s"}`), &r2); err != nil {
+		t.Fatalf("unmarshal without field: %v", err)
+	}
+	if r2.PersonalityComparison != nil {
+		t.Error("expected nil PersonalityComparison for legacy report")
+	}
+}

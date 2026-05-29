@@ -569,8 +569,19 @@ func compatibilityParticipantSummary(p *model.CompatibilityParticipant) (string,
 	if err := json.Unmarshal(*p.ChartSnapshot, &result); err != nil {
 		return "", err
 	}
+	shishen := fmt.Sprintf("年%s/%s·月%s/%s·日%s/%s·时%s/%s",
+		zeroDash(result.YearGanShiShen), zeroDash(strings.Join(result.YearZhiShiShen, ",")),
+		zeroDash(result.MonthGanShiShen), zeroDash(strings.Join(result.MonthZhiShiShen, ",")),
+		zeroDash(result.DayGanShiShen), zeroDash(strings.Join(result.DayZhiShiShen, ",")),
+		zeroDash(result.HourGanShiShen), zeroDash(strings.Join(result.HourZhiShiShen, ",")),
+	)
+	level, _, _ := bazi.GetStrengthDetail(&result)
+	strength := compatibilityStrengthLabels[level]
+	if strength == "" {
+		strength = "中和"
+	}
 	return fmt.Sprintf(
-		"%s：%s%s·%s%s·%s%s·%s%s；日主=%s；五行=%d木/%d火/%d土/%d金/%d水；用神=%s；忌神=%s。",
+		"%s：%s%s·%s%s·%s%s·%s%s；日主=%s；五行=%d木/%d火/%d土/%d金/%d水；十神=%s；命格=%s；旺衰=%s；用神=%s；忌神=%s。",
 		p.DisplayName,
 		result.YearGan, result.YearZhi,
 		result.MonthGan, result.MonthZhi,
@@ -578,8 +589,25 @@ func compatibilityParticipantSummary(p *model.CompatibilityParticipant) (string,
 		result.HourGan, result.HourZhi,
 		result.DayGan,
 		result.Wuxing.Mu, result.Wuxing.Huo, result.Wuxing.Tu, result.Wuxing.Jin, result.Wuxing.Shui,
+		shishen, zeroDash(result.MingGe), strength,
 		result.Yongshen, result.Jishen,
 	), nil
+}
+
+// compatibilityStrengthLabels 把日主旺衰等级（GetStrengthDetail）映射为中文标签。
+var compatibilityStrengthLabels = map[string]string{
+	"vstrong": "身旺",
+	"strong":  "偏强",
+	"neutral": "中和",
+	"weak":    "偏弱",
+	"vweak":   "身弱",
+}
+
+func zeroDash(s string) string {
+	if s == "" {
+		return "—"
+	}
+	return s
 }
 
 func normalizeCompatibilityProfile(p model.CompatibilityBirthProfile) model.CompatibilityBirthProfile {

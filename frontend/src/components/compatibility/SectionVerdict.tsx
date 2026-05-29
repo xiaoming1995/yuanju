@@ -22,7 +22,7 @@ export default function SectionVerdict({
   return (
     <section id="compat-section-verdict" className="compat-section-verdict">
       <div className="compat-section-verdict__head">
-        <div className="compat-section-kicker">SECTION 03</div>
+        <div className="compat-section-kicker">SECTION 02</div>
         <h2 className="serif compat-section-title">是否合</h2>
       </div>
 

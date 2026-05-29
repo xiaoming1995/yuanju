@@ -417,9 +417,27 @@ export interface CompatibilityQuestionFocus {
   boundary_conditions: string[]
 }
 
+export interface CompatibilityPersonalityPortrait {
+  headline: string
+  dimensions: Array<{ key: string; detail: string }>
+}
+
+export interface CompatibilityPersonalityPoint {
+  title: string
+  detail: string
+}
+
+export interface CompatibilityPersonalityComparison {
+  self: CompatibilityPersonalityPortrait
+  partner: CompatibilityPersonalityPortrait
+  fit_points: CompatibilityPersonalityPoint[]
+  clash_points: CompatibilityPersonalityPoint[]
+}
+
 export interface CompatibilityStructuredReport {
   summary: string
   question_focus?: CompatibilityQuestionFocus
+  personality_comparison?: CompatibilityPersonalityComparison | null
   dimensions: Array<{ key: string; title: string; content: string }>
   duration_assessment: CompatibilityDurationAssessment
   relationship_diagnosis?: CompatibilityRelationshipDiagnosis

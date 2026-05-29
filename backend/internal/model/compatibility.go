@@ -178,18 +178,41 @@ type CompatibilityQuestionFocus struct {
 	BoundaryConditions []string `json:"boundary_conditions"`
 }
 
+type CompatibilityPersonalityDimension struct {
+	Key    string `json:"key"`
+	Detail string `json:"detail"`
+}
+
+type CompatibilityPersonalityPortrait struct {
+	Headline   string                              `json:"headline"`
+	Dimensions []CompatibilityPersonalityDimension `json:"dimensions"`
+}
+
+type CompatibilityPersonalityPoint struct {
+	Title  string `json:"title"`
+	Detail string `json:"detail"`
+}
+
+type CompatibilityPersonalityComparison struct {
+	Self        CompatibilityPersonalityPortrait `json:"self"`
+	Partner     CompatibilityPersonalityPortrait `json:"partner"`
+	FitPoints   []CompatibilityPersonalityPoint  `json:"fit_points"`
+	ClashPoints []CompatibilityPersonalityPoint  `json:"clash_points"`
+}
+
 type CompatibilityStructuredReport struct {
-	Summary               string                             `json:"summary"`
-	QuestionFocus         CompatibilityQuestionFocus         `json:"question_focus"`
-	Dimensions            []CompatibilityDimensionNarrative  `json:"dimensions"`
-	DurationAssessment    CompatibilityDurationAssessment    `json:"duration_assessment"`
-	RelationshipDiagnosis CompatibilityRelationshipDiagnosis `json:"relationship_diagnosis"`
-	DecisionAdvice        CompatibilityDecisionAdvice        `json:"decision_advice"`
-	StageRisks            []CompatibilityStageRisk           `json:"stage_risks"`
-	RelationshipStrategy  CompatibilityRelationshipStrategy  `json:"relationship_strategy"`
-	ClaimEvidenceLinks    []CompatibilityClaimEvidenceLink   `json:"claim_evidence_links"`
-	Risks                 []string                           `json:"risks"`
-	Advice                string                             `json:"advice"`
+	Summary               string                              `json:"summary"`
+	QuestionFocus         CompatibilityQuestionFocus          `json:"question_focus"`
+	PersonalityComparison *CompatibilityPersonalityComparison `json:"personality_comparison,omitempty"`
+	Dimensions            []CompatibilityDimensionNarrative   `json:"dimensions"`
+	DurationAssessment    CompatibilityDurationAssessment     `json:"duration_assessment"`
+	RelationshipDiagnosis CompatibilityRelationshipDiagnosis  `json:"relationship_diagnosis"`
+	DecisionAdvice        CompatibilityDecisionAdvice         `json:"decision_advice"`
+	StageRisks            []CompatibilityStageRisk            `json:"stage_risks"`
+	RelationshipStrategy  CompatibilityRelationshipStrategy   `json:"relationship_strategy"`
+	ClaimEvidenceLinks    []CompatibilityClaimEvidenceLink    `json:"claim_evidence_links"`
+	Risks                 []string                            `json:"risks"`
+	Advice                string                              `json:"advice"`
 }
 
 type CompatibilityPromptData struct {
