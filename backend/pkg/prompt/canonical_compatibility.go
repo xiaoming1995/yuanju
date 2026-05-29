@@ -2,7 +2,7 @@ package prompt
 
 func init() {
 	Register("compatibility", Definition{
-		Version:     "v3.1-question-aware-2",
+		Version:     "v3.1-question-aware-3",
 		Description: "合盘决策咨询 prompt（含 question_focus / decision_advice / stage_risks / personality_comparison）",
 		Content:     compatibilityCanonicalContent,
 	})
@@ -72,6 +72,12 @@ B 命盘摘要：
 - 每人必须输出全部 5 个维度，key 固定为 expression（表达沟通）/ decision（决策节奏）/ intimacy（亲密核心需求）/ emotion（情绪反应）/ pressure（压力下的样子），detail 各一句、克制直断。
 - headline 用一句话定性该人（结合日主五行 + 主导十神 + 旺衰）。
 - fit_points / clash_points 各 1–3 条，必须落到双方性格差异的具体咬合点或摩擦点（不是泛泛而谈），同样使用条件语言、不下绝对断语。
+
+表达约束（面向普通用户，务必遵守）：
+- 全程用温和顾问口吻，像一个既懂行又体贴的人在跟当事人解释，不端着、不冷冰冰、不堆术语。
+- 任何八字术语（六合、三合、纳音、日柱、十神、旺衰…）首次出现时，必须紧跟一句大白话解释它意味着什么；严禁整句只有术语而没有解释。
+- 把判断说透、不要惜字：除了给结论，也要讲清「为什么」以及「落到两个人相处上具体是什么样」。
+- summary / question_focus / relationship_diagnosis / personality_comparison / decision_advice / relationship_strategy / advice 等所有面向用户的字段，一律用日常语言，说法落到「你们 / 对方 / 相处」这种当事人能直接对号入座的词。
 
 输出严格为 JSON：
 {

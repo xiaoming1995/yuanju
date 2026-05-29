@@ -10,14 +10,14 @@ func TestMustGet_CompatibilityReturnsRegisteredDefinition(t *testing.T) {
 	if def.Content == "" {
 		t.Fatal("compatibility canonical content must not be empty")
 	}
-	if def.Version != "v3.1-question-aware-2" {
-		t.Errorf("expected Version v3.1-question-aware-2, got %q", def.Version)
+	if def.Version != "v3.1-question-aware-3" {
+		t.Errorf("expected Version v3.1-question-aware-3, got %q", def.Version)
 	}
 	if len(def.Hash) != 64 {
 		t.Errorf("Hash must be 64-char sha256 hex, got len %d: %q", len(def.Hash), def.Hash)
 	}
 	// Sanity: prompt body should reference the new structured schema
-	for _, want := range []string{"question_focus", "decision_advice", "personality_comparison", "{{.PrimaryQuestionLabel}}"} {
+	for _, want := range []string{"question_focus", "decision_advice", "personality_comparison", "表达约束", "{{.PrimaryQuestionLabel}}"} {
 		if !strings.Contains(def.Content, want) {
 			t.Errorf("compatibility canonical content missing %q", want)
 		}

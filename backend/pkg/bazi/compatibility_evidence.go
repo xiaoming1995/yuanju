@@ -24,7 +24,7 @@ func zodiacEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Polarity:    "positive",
 			Source:      "zodiac",
 			Title:       "年支六合",
-			Detail:      fmt.Sprintf("双方年支 %s/%s 构成六合，属相基础线吸引力强。", a.YearZhi, b.YearZhi),
+			Detail:      fmt.Sprintf("你俩的属相（年支 %s / %s）构成了「六合」——这是属相搭配里最讨喜、最顺的一种。落到相处上，就是你们见面容易互相来电、自来熟，很多事不用刻意经营就能对上眼。这种天生的亲近感，会让你们在磨合期少很多无谓的摩擦。不过它管的是「合不合得来」，关系能走多远，长久还得看两个人愿不愿意一起用心经营。", a.YearZhi, b.YearZhi),
 			Weight:      50,
 		}}
 	case "sanhe":
@@ -36,7 +36,7 @@ func zodiacEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Polarity:    "positive",
 			Source:      "zodiac",
 			Title:       "年支三合",
-			Detail:      fmt.Sprintf("双方年支 %s/%s 同属 %s 三合局，气场协同。", a.YearZhi, b.YearZhi, group),
+			Detail:      fmt.Sprintf("你俩的属相（年支 %s / %s）同属「%s 三合」——这是一种气场很合拍的属相组合。相处时你们更容易步调一致、想到一块去，遇事也常本能地站在同一边。比起针锋相对，你俩更像天然的同盟，这对关系的稳定是实打实的加分。当然，合得来不等于不用沟通，重要的事还是要摊开说清楚。", a.YearZhi, b.YearZhi, group),
 			Weight:      50,
 		}}
 	}
@@ -49,7 +49,7 @@ func zodiacEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Polarity:    "positive",
 			Source:      "zodiac",
 			Title:       "年支同行",
-			Detail:      fmt.Sprintf("双方年支 %s/%s 同属 %s 行（双生），属相层有亲近感。", a.YearZhi, b.YearZhi, wx),
+			Detail:      fmt.Sprintf("你俩的属相（年支 %s / %s）五行都属%s，命理里叫「双生」——本质上是同一类能量。这意味着你们性子和节奏比较像，容易理解彼此，有种「同类」的天然亲切感。相处起来不太需要费力解释自己，对方往往一点就通。要留意的是，太像有时也会少了点互补，碰到同一类短板时容易一起卡住。", a.YearZhi, b.YearZhi, wx),
 			Weight:      30,
 		}}
 	}
@@ -63,7 +63,7 @@ func zodiacEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Polarity:    "positive",
 			Source:      "zodiac",
 			Title:       "年支相生",
-			Detail:      fmt.Sprintf("双方年支 %s/%s 构成 %s/%s 五行相生，属相层有顺承之意。", a.YearZhi, b.YearZhi, wxA, wxB),
+			Detail:      fmt.Sprintf("你俩的属相（年支 %s / %s）构成「%s 生 %s」的五行相生——一方天然能滋养、托举另一方。相处里常表现为一个愿意付出、一个被照顾，关系有种顺其自然的承接感。这种「你帮我、我托你」的流动，是长期相处很舒服的底子。只要别让付出长期单方向倾斜，这份相生就能一直顺下去。", a.YearZhi, b.YearZhi, wxA, wxB),
 			Weight:      20,
 		}}
 	}
@@ -84,7 +84,7 @@ func nayinEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Polarity:    "positive",
 			Source:      "nayin",
 			Title:       "纳音相生",
-			Detail:      fmt.Sprintf("%s 与 %s 纳音五行相生，资源 / 情绪流动顺。", wxA, wxB),
+			Detail:      fmt.Sprintf("你俩的「纳音」五行是 %s 与 %s 相生——纳音说的是两个人骨子里的底色气质。相生意味着这两种底色能互相滋养，相处时情绪和资源都流动得比较顺，不太会互相消耗。日子久了你们会发现，跟对方在一起更像「回血」而不是「耗电」。这是一段关系里很难得、也很值钱的底层契合。", wxA, wxB),
 			Weight:      20,
 		}}
 	case "same":
@@ -95,7 +95,7 @@ func nayinEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Polarity:    "positive",
 			Source:      "nayin",
 			Title:       "纳音同气",
-			Detail:      fmt.Sprintf("双方纳音同为 %s，本质同气。", wxA),
+			Detail:      fmt.Sprintf("你俩的「纳音」五行同为 %s——纳音是两个人骨子里的底色气质，同气说明你们本质上是一类人。这种同频会让你们天然懂彼此的在意和顾虑，很多感受不用说出口对方也能体会，默契感比一般人强不少。唯一要提醒的是，太同步时也容易一起钻牛角尖，偶尔需要有一个人先跳出来踩刹车。", wxA),
 			Weight:      20,
 		}}
 	}
@@ -113,7 +113,7 @@ func dayPillarEvidence(a, b *BaziResult) []CompatibilityEvidence {
 				Source:      "day_pillar",
 				Title:       "日柱上档",
 				Detail: fmt.Sprintf(
-					"日柱 %s%s/%s%s 地支合且天干强化（五合 / 相生），亲密层结构稳。",
+					"日柱（%s%s / %s%s）是命盘里最贴近婚恋、最代表「枕边人」的一根柱子，你俩在这里咬合得很到位——地支相合、天干也彼此呼应。这说明在亲密关系的核心地带，你们有天然的契合和稳定结构。相处中容易有那种「找对了人」的踏实感，亲密和信任都建立得比较顺。这是合盘里分量很重的一个好信号，值得珍惜。",
 					a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
 				),
 				Weight: 10,
@@ -127,7 +127,7 @@ func dayPillarEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Source:      "day_pillar",
 			Title:       "日柱次吉",
 			Detail: fmt.Sprintf(
-				"日柱 %s%s/%s%s 地支合，天干仅相同 / 克 / 无关，亲密层有基础但未达上吉。",
+				"日柱（%s%s / %s%s）代表两个人最贴近婚恋的核心，你俩的地支在这里是相合的——亲密关系有不错的底子。只是天干层面没能再进一步互相加成（只是相同、相克或不相干），所以这份契合算「够好」但还没到顶配。日常相处大方向是合的，偶尔在细节和默契上需要多一点磨合。把沟通做扎实，这段亲密就能稳稳地往上走。",
 				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
 			),
 			Weight: 5,
@@ -142,7 +142,7 @@ func dayPillarEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Source:      "day_pillar",
 			Title:       "日柱安慰分",
 			Detail: fmt.Sprintf(
-				"日柱 %s%s/%s%s 地支虽不合，但五行相同或相生，亲密层有微弱亲近感。",
+				"日柱（%s%s / %s%s）是两个人最贴近婚恋的核心。你俩的日支虽然没有直接相合，但五行上是相同或相生的，所以亲密层还是留了一丝天然的亲近感。这说明你们不是格格不入，底子里有可以亲近的余地，只是要比「天生一对」那种多花点心思去经营。把相处的节奏和沟通磨顺，这点微弱的亲近感是能养大的，别因为起步平淡就轻易否定它。",
 				a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
 			),
 			Weight: 3,
@@ -188,8 +188,8 @@ func eightCharsEvidence(a, b *BaziResult) []CompatibilityEvidence {
 			Source:      "eight_chars",
 			Title:       p.label + "对" + t.label,
 			Detail: fmt.Sprintf(
-				"%s %s%s/%s%s 命中%s（贡献 %d）。",
-				p.label, p.ganA, p.zhiA, p.ganB, p.zhiB, t.label, s,
+				"%s（%s%s / %s%s）也合上了——这是你们在生活外围（家世背景、日常相处、未来安排这些围绕婚恋的方面）的一处天然契合。它不像日柱那样直接管亲密核心，但能在周边给关系搭把手，让你们在现实层面更容易对得上。这类外围的合拍越多，往后一起过日子越省心。",
+				p.label, p.ganA, p.zhiA, p.ganB, p.zhiB,
 			),
 			Weight: s,
 		})
