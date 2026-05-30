@@ -9,6 +9,7 @@ import type {
   ExportBrand,
 } from '../lib/api'
 import { isV3DimensionScores } from '../lib/api'
+import { getDayPillarPortrait } from '../lib/dayPillarPortraits'
 import type { DecisionDashboardData } from '../lib/compatibilityDecision'
 import { cleanReportText, splitParagraphs } from '../lib/reportText'
 import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
@@ -216,6 +217,40 @@ function ChapterBlock({ title, content }: { title: string; content: string }) {
   )
 }
 
+function DayPillarPrint({ selfP, partnerP }: {
+  selfP?: CompatibilityParticipant
+  partnerP?: CompatibilityParticipant
+}) {
+  const cards = [
+    { label: '我', p: selfP },
+    { label: '伴侣', p: partnerP },
+  ]
+    .map(({ label, p }) => {
+      const snap = p?.chart_snapshot
+      const portrait = snap ? getDayPillarPortrait(snap.day_gan, snap.day_zhi) : undefined
+      return snap && portrait ? { name: p?.display_name || label, snap, portrait } : null
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+  if (cards.length === 0) return null
+  return (
+    <div className="compat-print-chapter">
+      <h4 className="compat-print-chapter-title">本命日柱速写</h4>
+      <div className="compat-print-daypillar-grid">
+        {cards.map((c) => (
+          <div key={c.name} className="compat-print-daypillar">
+            <div className="compat-print-daypillar-head">
+              <span className="compat-print-daypillar-name">{c.name}</span>
+              <span className="compat-print-daypillar-gz">{c.snap.day_gan}{c.snap.day_zhi}日</span>
+            </div>
+            <div className="compat-print-daypillar-tag">{c.portrait.tag}</div>
+            <p className="compat-print-daypillar-text">{c.portrait.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function PersonalityPrint({ comparison, selfName, partnerName }: {
   comparison: CompatibilityPersonalityComparison
   selfName: string
@@ -319,6 +354,7 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
           <section className="compat-print-section">
             <h2 className="compat-print-section-title">一、合参概要</h2>
             <ParticipantsHero participants={participants} reading={reading} />
+            <DayPillarPrint selfP={selfP} partnerP={partnerP} />
           </section>
 
           <section className="compat-print-section">
