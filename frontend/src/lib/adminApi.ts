@@ -75,6 +75,13 @@ export const adminChartsAPI = {
     adminApi.delete(`/api/admin/liunian/${id}`),
 }
 
+export const adminCompatAPI = {
+  list: (page: number = 1, pageSize: number = 20) =>
+    adminApi.get(`/api/admin/compatibility/readings?page=${page}&pageSize=${pageSize}`),
+  detail: (id: string) =>
+    adminApi.get(`/api/admin/compatibility/readings/${id}`),
+}
+
 export const adminReportAPI = {
   clearAll: () => adminApi.delete('/api/admin/reports/cache'),
   clearByChart: (chartId: string) => adminApi.delete(`/api/admin/reports/cache/${chartId}`),
