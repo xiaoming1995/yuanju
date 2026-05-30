@@ -10,8 +10,8 @@ func TestMustGet_CompatibilityReturnsRegisteredDefinition(t *testing.T) {
 	if def.Content == "" {
 		t.Fatal("compatibility canonical content must not be empty")
 	}
-	if def.Version != "v3.1-question-aware-3" {
-		t.Errorf("expected Version v3.1-question-aware-3, got %q", def.Version)
+	if def.Version != "v3.1-question-aware-4" {
+		t.Errorf("expected Version v3.1-question-aware-4, got %q", def.Version)
 	}
 	if len(def.Hash) != 64 {
 		t.Errorf("Hash must be 64-char sha256 hex, got len %d: %q", len(def.Hash), def.Hash)

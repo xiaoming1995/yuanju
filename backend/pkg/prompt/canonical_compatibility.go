@@ -2,7 +2,7 @@ package prompt
 
 func init() {
 	Register("compatibility", Definition{
-		Version:     "v3.1-question-aware-3",
+		Version:     "v3.1-question-aware-4",
 		Description: "合盘决策咨询 prompt（含 question_focus / decision_advice / stage_risks / personality_comparison）",
 		Content:     compatibilityCanonicalContent,
 	})
@@ -79,6 +79,11 @@ B 命盘摘要：
 - 把判断说透、不要惜字：除了给结论，也要讲清「为什么」以及「落到两个人相处上具体是什么样」。
 - summary / question_focus / relationship_diagnosis / personality_comparison / decision_advice / relationship_strategy / advice 等所有面向用户的字段，一律用日常语言，说法落到「你们 / 对方 / 相处」这种当事人能直接对号入座的词。
 
+关系经营策略·沟通（relationship_strategy.communication，务必遵守）：
+- 必须基于双方 personality_comparison 的「表达维度（expression）」差异来写：针对这两个人各自怎么开口、怎么接收信息的不同，给贴合他们的沟通建议，而不是套用通用沟通原则。
+- 严禁照搬或续写输入「咨询型结构化诊断 JSON」里 relationship_strategy.communication 的措辞——那只是算法生成的基线，仅供你理解关系倾向，绝不是可复用的句子；你的输出在用词和句式上都不得与它雷同。
+- 至少给一句可以直接照着说的具体话术，落到这两个人会真实遇到的场景（谁容易急、谁需要铺垫、卡在什么话题上），让当事人照着就能用。
+
 输出严格为 JSON：
 {
   "summary": "总体判断，必须基于输入证据，不使用绝对断语",
@@ -145,7 +150,7 @@ B 命盘摘要：
     }
   ],
   "relationship_strategy": {
-    "communication": "重要议题用明确约定替代情绪试探。",
+    "communication": "你偏直接、对方需要先有铺垫，所以重要的事别突然抛过去——先说一句『我想跟你聊件事，不是指责你』再讲具体的，对方更接得住。",
     "conflict": "争执时先暂停升级，再回到具体事件和责任分工。",
     "reality": "长期计划需要拆成可验证的小步骤。",
     "boundary": "初期保留个人节奏，避免过快形成单方依赖。"
