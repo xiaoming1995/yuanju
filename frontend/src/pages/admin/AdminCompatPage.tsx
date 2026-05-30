@@ -45,6 +45,11 @@ const stageLabel: Record<string, string> = {
   ambiguous: '暧昧', dating: '热恋', long_distance: '异地', reconciliation: '复合',
   marriage_or_engagement: '婚姻/订婚', crush: '单恋',
 }
+const questionLabel: Record<string, string> = {
+  continue_investment: '是否继续投入', marriage_suitability: '是否适合结婚',
+  recurring_conflict: '反复冲突', reconciliation_potential: '复合可能',
+  long_term_stability: '长期稳定性', relationship_strategy: '相处策略',
+}
 
 export default function AdminCompatPage() {
   const [items, setItems] = useState<CompatListItem[]>([])
@@ -152,6 +157,12 @@ export default function AdminCompatPage() {
                           const d = details[it.id]
                           return (
                             <div>
+                              {/* 主问题与分析版本 */}
+                              <div style={{ display: 'flex', gap: 16, marginBottom: 16, fontSize: 12, color: '#aaa' }}>
+                                <span>主问题：{questionLabel[d.reading.primary_question] || d.reading.primary_question || '—'}</span>
+                                <span style={{ color: '#666' }}>分析版本：{d.reading.analysis_version || '—'}</span>
+                              </div>
+
                               {/* 双方四柱 */}
                               <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap', marginBottom: 20 }}>
                                 {d.participants.map((p, pi) => (
