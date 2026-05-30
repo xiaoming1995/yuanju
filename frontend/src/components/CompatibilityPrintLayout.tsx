@@ -6,6 +6,7 @@ import type {
   CompatibilityReading,
   CompatibilityStageRisk,
   CompatibilityStructuredReport,
+  CompatibilityRelationshipStrategy,
   ExportBrand,
 } from '../lib/api'
 import { isV3DimensionScores } from '../lib/api'
@@ -332,11 +333,12 @@ export interface CompatibilityPrintLayoutProps {
   decision: DecisionDashboardData
   stageRisks: CompatibilityStageRisk[]
   structured: CompatibilityStructuredReport | null
+  relationshipStrategy?: CompatibilityRelationshipStrategy
   brand?: ExportBrand | null
 }
 
 export default function CompatibilityPrintLayout(props: CompatibilityPrintLayoutProps) {
-  const { reading, participants, evidences, decision, stageRisks, structured, brand } = props
+  const { reading, participants, evidences, decision, stageRisks, structured, relationshipStrategy, brand } = props
   const selfP = participants.find(p => p.role === 'self')
   const partnerP = participants.find(p => p.role === 'partner')
   const title = brand?.title || '缘 聚 合 盘'
@@ -402,14 +404,14 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
                     {splitParagraphs(structured.advice).map((p, i) => <p key={i}>{p}</p>)}
                   </div>
                 )}
-                {structured.relationship_strategy && (
+                {relationshipStrategy && (
                   <div className="compat-print-chapter">
                     <h4 className="compat-print-chapter-title">关系经营策略</h4>
                     {[
-                      { label: '沟通', value: structured.relationship_strategy.communication },
-                      { label: '冲突', value: structured.relationship_strategy.conflict },
-                      { label: '现实', value: structured.relationship_strategy.reality },
-                      { label: '边界', value: structured.relationship_strategy.boundary },
+                      { label: '沟通', value: relationshipStrategy.communication },
+                      { label: '冲突', value: relationshipStrategy.conflict },
+                      { label: '现实', value: relationshipStrategy.reality },
+                      { label: '边界', value: relationshipStrategy.boundary },
                     ].filter(x => x.value?.trim()).map(x => (
                       <p key={x.label}><strong>{x.label}：</strong>{x.value}</p>
                     ))}

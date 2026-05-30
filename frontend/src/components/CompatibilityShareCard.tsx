@@ -5,6 +5,7 @@ import type {
   CompatibilityReading,
   CompatibilityStageRisk,
   CompatibilityStructuredReport,
+  CompatibilityRelationshipStrategy,
   ExportBrand,
 } from '../lib/api'
 import { isV3DimensionScores } from '../lib/api'
@@ -167,11 +168,12 @@ export interface CompatibilityShareCardProps {
   decision: DecisionDashboardData
   stageRisks: CompatibilityStageRisk[]
   structured: CompatibilityStructuredReport | null
+  relationshipStrategy?: CompatibilityRelationshipStrategy
   brand?: ExportBrand | null
 }
 
 const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCardProps>((props, ref) => {
-  const { reading, participants, evidences, decision, stageRisks, structured, brand } = props
+  const { reading, participants, evidences, decision, stageRisks, structured, relationshipStrategy, brand } = props
   const selfP = participants.find(p => p.role === 'self')
   const partnerP = participants.find(p => p.role === 'partner')
 
@@ -202,7 +204,7 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
     (reading.score_explanations || []).map(e => [e.dimension, e])
   )
   const topFindings = (structured?.relationship_diagnosis?.top_findings || []).slice(0, 3)
-  const strategy = structured?.relationship_strategy
+  const strategy = relationshipStrategy
   const strategyEntries = strategy ? [
     { key: 'communication', label: STRATEGY_LABEL.communication, value: strategy.communication },
     { key: 'conflict',      label: STRATEGY_LABEL.conflict,      value: strategy.conflict },

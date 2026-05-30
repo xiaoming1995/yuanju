@@ -4,11 +4,13 @@ import RelationshipStrategy from './RelationshipStrategy'
 import type {
   CompatibilityStructuredReport,
   CompatibilityQuestionFocus,
+  CompatibilityRelationshipStrategy,
 } from '../../../lib/api'
 
 type Props = {
   hasReport: boolean
   structuredReport?: CompatibilityStructuredReport | null
+  relationshipStrategy?: CompatibilityRelationshipStrategy
   reportDimensions: CompatibilityStructuredReport['dimensions']
   reportRisks: string[]
   rawContent?: string
@@ -52,6 +54,7 @@ function QuestionFocusPanel({ focus }: { focus?: CompatibilityQuestionFocus }) {
 export default function DeepReportNarrative({
   hasReport,
   structuredReport,
+  relationshipStrategy,
   reportDimensions,
   reportRisks,
   rawContent,
@@ -111,8 +114,8 @@ export default function DeepReportNarrative({
               <div className="serif compatibility-report-title">建议</div>
               <div className="compatibility-report-text">{structuredReport.advice}</div>
             </div>
-            {structuredReport.relationship_strategy && (
-              <RelationshipStrategy strategy={structuredReport.relationship_strategy} />
+            {relationshipStrategy && (
+              <RelationshipStrategy strategy={relationshipStrategy} />
             )}
           </div>
         ) : rawContent ? (

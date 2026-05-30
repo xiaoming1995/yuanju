@@ -8,6 +8,7 @@ import {
   type CompatibilityDimensionScoresLegacy,
   type CompatibilityDimensionScoresV3,
   type CompatibilityDurationAssessment,
+  type CompatibilityRelationshipStrategy,
 } from '../lib/api'
 import {
   buildDecisionDashboardData,
@@ -70,6 +71,22 @@ function normalizeDurationAssessment(
   }
 }
 
+// LLM 报告里的 relationship_strategy 可能整体缺失或字段为空串（多见于历史 v1 报告），
+// 逐字段回退到 reading.consulting_assessment 里始终满的规则基线，避免显示「暂无明确建议」。
+function resolveRelationshipStrategy(
+  llm: CompatibilityRelationshipStrategy | undefined,
+  base: CompatibilityRelationshipStrategy | undefined,
+): CompatibilityRelationshipStrategy | undefined {
+  if (!llm && !base) return undefined
+  const pick = (a?: string, b?: string) => (a && a.trim() ? a : (b || ''))
+  return {
+    communication: pick(llm?.communication, base?.communication),
+    conflict: pick(llm?.conflict, base?.conflict),
+    reality: pick(llm?.reality, base?.reality),
+    boundary: pick(llm?.boundary, base?.boundary),
+  }
+}
+
 function normalizeConsultingAssessment(detail: CompatibilityDetail) {
   const report = detail.latest_report?.content_structured
   const base = detail.reading.consulting_assessment
@@ -77,6 +94,7 @@ function normalizeConsultingAssessment(detail: CompatibilityDetail) {
     relationship_diagnosis: report?.relationship_diagnosis || base?.relationship_diagnosis,
     decision_advice: report?.decision_advice || base?.decision_advice,
     stage_risks: report?.stage_risks?.length ? report.stage_risks : base?.stage_risks || [],
+    relationship_strategy: resolveRelationshipStrategy(report?.relationship_strategy, base?.relationship_strategy),
     claim_evidence_links: report?.claim_evidence_links?.length ? report.claim_evidence_links : base?.claim_evidence_links || [],
   }
 }
@@ -331,6 +349,7 @@ export default function CompatibilityResultPage() {
         <DeepReportNarrative
           hasReport={Boolean(detail.latest_report)}
           structuredReport={structuredReport}
+          relationshipStrategy={consulting.relationship_strategy}
           reportDimensions={reportDimensions}
           reportRisks={reportRisks}
           rawContent={detail.latest_report?.content}
@@ -370,6 +389,7 @@ export default function CompatibilityResultPage() {
                 decision={decisionDashboard}
                 stageRisks={decisionStageRisks}
                 structured={structuredReport ?? null}
+                relationshipStrategy={consulting.relationship_strategy}
                 brand={brand}
               />
             </div>
@@ -396,6 +416,7 @@ export default function CompatibilityResultPage() {
       decision={decisionDashboard}
       stageRisks={decisionStageRisks}
       structured={structuredReport ?? null}
+      relationshipStrategy={consulting.relationship_strategy}
       brand={brand}
     />
     </>
