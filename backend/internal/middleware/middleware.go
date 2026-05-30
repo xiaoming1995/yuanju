@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 	"yuanju/configs"
+	"yuanju/internal/repository"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -44,6 +45,20 @@ func Auth() gin.HandlerFunc {
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "无效的认证信息"})
+			c.Abort()
+			return
+		}
+
+		// 即时校验账号状态：被禁用或已删除的用户，其已签发令牌立即失效（不等到期）。
+		userID, _ := claims["user_id"].(string)
+		user, err := repository.GetUserByID(userID)
+		if err != nil || user == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "账号不可用，请重新登录"})
+			c.Abort()
+			return
+		}
+		if user.DisabledAt != nil {
+			c.JSON(http.StatusForbidden, gin.H{"error": "该账号已被禁用"})
 			c.Abort()
 			return
 		}
