@@ -1,55 +1,81 @@
 .day-pillar-portrait {
-  margin: 16px 0;
+  scroll-margin-top: var(--sticky-h);
+  padding: 0 var(--section-padding-mobile);
+  margin-bottom: var(--section-gap-mobile);
 }
+
 .day-pillar-portrait-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #5a3a1a;
-  margin-bottom: 10px;
+  font-size: var(--fs-subsection-title);
+  color: var(--text-primary);
+  border-left: 3px solid var(--wu-jin);
+  padding-left: 10px;
+  line-height: 1.2;
+  margin-bottom: 12px;
 }
+
 .day-pillar-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: var(--subsection-gap);
 }
+
 .day-pillar-card {
-  border: 1px solid #e0cca0;
-  border-radius: 8px;
-  padding: 12px 14px;
-  background: #fdf9f2;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--wu-jin);
+  border-radius: var(--radius-md);
+  padding: 16px;
 }
+
 .day-pillar-card-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
+
 .day-pillar-name {
-  font-weight: 700;
-  color: #4a3728;
+  font-weight: 600;
+  font-size: var(--fs-subsection-title);
+  color: var(--text-primary);
 }
+
 .day-pillar-ganzhi {
   font-family: "Noto Serif SC", serif;
-  font-size: 13px;
-  color: #9b815c;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
 }
+
 .day-pillar-tag {
   display: inline-block;
-  font-size: 13px;
-  font-weight: 700;
-  color: #7a5c3a;
-  background: #f5ebd6;
-  border-radius: 4px;
-  padding: 2px 8px;
-  margin-bottom: 6px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  color: var(--wu-jin);
+  background: rgba(201, 168, 76, 0.12);
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 6px;
+  padding: 2px 10px;
+  margin-bottom: 10px;
 }
+
 .day-pillar-text {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #4a3728;
+  font-size: var(--fs-body);
+  line-height: 1.8;
+  color: var(--text-secondary);
 }
-@media (max-width: 560px) {
-  .day-pillar-grid { grid-template-columns: 1fr; }
+
+@media (min-width: 641px) {
+  .day-pillar-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .day-pillar-portrait {
+    scroll-margin-top: var(--sticky-h-desktop);
+    padding: 0 var(--section-padding-desktop);
+    margin-bottom: var(--section-gap-desktop);
+  }
 }
