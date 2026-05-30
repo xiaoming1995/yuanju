@@ -61,6 +61,11 @@ func SetUserDisabled(userID string, disabled bool) error {
 	return err
 }
 
+func DeleteUser(userID string) error {
+	_, err := database.DB.Exec(`DELETE FROM users WHERE id=$1`, userID)
+	return err
+}
+
 // ---- 八字命盘 ----
 
 func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {

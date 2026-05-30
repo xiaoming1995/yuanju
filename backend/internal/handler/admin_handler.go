@@ -569,6 +569,16 @@ func AdminResetUserPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "已重置"})
 }
 
+// AdminDeleteUser 硬删除用户（合盘记录级联删除，八字命盘转游客保留）
+func AdminDeleteUser(c *gin.Context) {
+	id := c.Param("id")
+	if err := repository.DeleteUser(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除用户失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
+}
+
 // AdminGetCompatReadingDetail 后台合盘详情（只读）
 func AdminGetCompatReadingDetail(c *gin.Context) {
 	id := c.Param("id")
