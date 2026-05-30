@@ -274,38 +274,46 @@ func GetAILogsSummary() ([]AILogDayStat, error) {
 
 // ====== Bazi Charts (Admin view) ======
 
-// ListBaziCharts 分页查询所有用户的排盘记录
-func ListBaziCharts(page, pageSize int) ([]model.AdminChartRecord, int, error) {
+// ListBaziCharts 分页查询所有用户的排盘记录，支持按邮箱（q）和创建时间范围（from/to）过滤
+func ListBaziCharts(page, pageSize int, q, from, to string) ([]model.AdminChartRecord, int, error) {
 	offset := (page - 1) * pageSize
 
-	// 统计总数
+	// 动态过滤条件（$1=q, $2=from, $3=to）
+	where := `WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%')
+		AND ($2 = '' OR c.created_at >= $2::timestamptz)
+		AND ($3 = '' OR c.created_at < ($3::timestamptz + interval '1 day'))`
+	if q != "" {
+		// 按邮箱搜索时排除无归属用户的游客记录
+		where += ` AND c.user_id IS NOT NULL`
+	}
+
 	var total int
-	err := database.DB.QueryRow(`SELECT COUNT(*) FROM bazi_charts`).Scan(&total)
+	err := database.DB.QueryRow(`SELECT COUNT(*) FROM bazi_charts c LEFT JOIN users u ON c.user_id = u.id `+where, q, from, to).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
-
 	if total == 0 {
 		return []model.AdminChartRecord{}, 0, nil
 	}
 
 	// 使用相关子查询替代 LEFT JOIN ai_reports，避免多条报告时产生重复行
 	rows, err := database.DB.Query(`
-		SELECT 
-			c.id, c.user_id, u.email as user_email, 
-			c.birth_year, c.birth_month, c.birth_day, c.birth_hour, 
-			c.gender, c.year_gan, c.year_zhi, 
+		SELECT
+			c.id, c.user_id, u.email as user_email,
+			c.birth_year, c.birth_month, c.birth_day, c.birth_hour,
+			c.gender, c.year_gan, c.year_zhi,
 			c.month_gan, c.month_zhi, c.day_gan, c.day_zhi, c.hour_gan, c.hour_zhi,
-			COALESCE(c.yongshen, '') as yongshen, 
-			COALESCE(c.jishen, '') as jishen, 
+			COALESCE(c.yongshen, '') as yongshen,
+			COALESCE(c.jishen, '') as jishen,
 			(SELECT content FROM ai_reports WHERE chart_id=c.id ORDER BY created_at DESC LIMIT 1) as ai_result,
 			(SELECT content_structured FROM ai_reports WHERE chart_id=c.id ORDER BY created_at DESC LIMIT 1) as ai_result_structured,
 			c.created_at
 		FROM bazi_charts c
 		LEFT JOIN users u ON c.user_id = u.id
+		`+where+`
 		ORDER BY c.created_at DESC
-		LIMIT $1 OFFSET $2
-	`, pageSize, offset)
+		LIMIT $4 OFFSET $5
+	`, q, from, to, pageSize, offset)
 	if err != nil {
 		return nil, 0, err
 	}

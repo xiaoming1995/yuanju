@@ -455,7 +455,10 @@ func AdminListCharts(c *gin.Context) {
 		pageSize = 20
 	}
 
-	charts, total, err := repository.ListBaziCharts(page, pageSize)
+	q := c.Query("q")
+	from := c.Query("from")
+	to := c.Query("to")
+	charts, total, err := repository.ListBaziCharts(page, pageSize, q, from, to)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取排盘历史失败"})
 		return
