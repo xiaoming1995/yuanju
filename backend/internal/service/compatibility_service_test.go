@@ -524,3 +524,24 @@ func TestCompatibilityStructuredReport_PersonalityComparisonParsing(t *testing.T
 		t.Error("expected nil PersonalityComparison for legacy report")
 	}
 }
+
+// 回归：千问等会用 ```json 围栏包裹输出的模型，其合盘返回必须能解析为结构化报告，
+// 而不是原样落库导致前端显示一坨 JSON 文本（见截图复现的 bug）。
+func TestExtractJSON_FencedCompatibilityReportParses(t *testing.T) {
+	fenced := "```json\n{\n  \"summary\": \"双方生肖同气，天然亲和。\",\n" +
+		"  \"dimensions\": [\n" +
+		"    {\"key\": \"attraction\", \"title\": \"吸引力\", \"content\": \"年支同为亥子水构成双生格局。\"},\n" +
+		"    {\"key\": \"stability\", \"title\": \"稳定度\", \"content\": \"日柱己巳与乙亥地支对冲。\"}\n" +
+		"  ]\n}\n```"
+
+	var got model.CompatibilityStructuredReport
+	if err := json.Unmarshal([]byte(extractJSON(fenced)), &got); err != nil {
+		t.Fatalf("围栏包裹的合盘返回应可解析，却失败: %v", err)
+	}
+	if got.Summary != "双方生肖同气，天然亲和。" {
+		t.Errorf("summary 未解析: %q", got.Summary)
+	}
+	if len(got.Dimensions) != 2 || got.Dimensions[0].Title != "吸引力" {
+		t.Errorf("dimensions 未解析: %+v", got.Dimensions)
+	}
+}

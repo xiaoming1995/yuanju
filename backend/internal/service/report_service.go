@@ -474,22 +474,7 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (
 
 	// ===== 解析 AI 返回内容 =====
 
-	// 清理 Markdown 代码块标记
-	cleanJSON := strings.TrimSpace(rawContent)
-	if strings.HasPrefix(cleanJSON, "```json") {
-		cleanJSON = strings.TrimPrefix(cleanJSON, "```json")
-		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
-	} else if strings.HasPrefix(cleanJSON, "```") {
-		cleanJSON = strings.TrimPrefix(cleanJSON, "```")
-		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
-	}
-
-	// 提取 {} 之间的内容
-	firstBrace := strings.Index(cleanJSON, "{")
-	lastBrace := strings.LastIndex(cleanJSON, "}")
-	if firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace {
-		cleanJSON = cleanJSON[firstBrace : lastBrace+1]
-	}
+	cleanJSON := extractJSON(rawContent)
 
 	parsed, briefContent, contentStructured := parseAIReportContent(rawContent, cleanJSON)
 	if briefContent == "" {
@@ -677,6 +662,27 @@ func parseAIReportContent(rawContent, cleanJSON string) (*structuredReport, stri
 	return &parsed, briefContent, nil
 }
 
+// extractJSON 从大模型返回中提取裸 JSON：剥离 Markdown 代码块围栏，
+// 再截取首个 '{' 与末个 '}' 之间的内容。兼容会包 ```json 围栏或带前后散文的模型（如千问）。
+// 若内容中不含花括号，则原样返回（清理围栏后的结果）。
+func extractJSON(rawContent string) string {
+	cleanJSON := strings.TrimSpace(rawContent)
+	if strings.HasPrefix(cleanJSON, "```json") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```json")
+		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
+	} else if strings.HasPrefix(cleanJSON, "```") {
+		cleanJSON = strings.TrimPrefix(cleanJSON, "```")
+		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
+	}
+
+	firstBrace := strings.Index(cleanJSON, "{")
+	lastBrace := strings.LastIndex(cleanJSON, "}")
+	if firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace {
+		cleanJSON = cleanJSON[firstBrace : lastBrace+1]
+	}
+	return strings.TrimSpace(cleanJSON)
+}
+
 // fixJSONStrings 用状态机扫描 JSON，将字符串字段内的真实控制字符（\n \r \t）
 // 转义为合法的 JSON 转义序列，修复 AI 输出中未转义换行导致的解析失败。
 func fixJSONStrings(s string) string {
@@ -813,19 +819,7 @@ func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*mod
 	}()
 
 	// 解析 JSON
-	cleanJSON := strings.TrimSpace(rawContent)
-	if strings.HasPrefix(cleanJSON, "```json") {
-		cleanJSON = strings.TrimPrefix(cleanJSON, "```json")
-		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
-	} else if strings.HasPrefix(cleanJSON, "```") {
-		cleanJSON = strings.TrimPrefix(cleanJSON, "```")
-		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
-	}
-	firstBrace := strings.Index(cleanJSON, "{")
-	lastBrace := strings.LastIndex(cleanJSON, "}")
-	if firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace {
-		cleanJSON = cleanJSON[firstBrace : lastBrace+1]
-	}
+	cleanJSON := extractJSON(rawContent)
 
 	// 由于是简单的 map结构，直接检查是否可用
 	var reportData map[string]interface{}
