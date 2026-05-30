@@ -122,7 +122,7 @@ export default function AdminUsersPage() {
 
   const toggleDisabled = async (u: User) => {
     const next = !u.disabled_at
-    if (!window.confirm(next ? `确认禁用用户 ${u.email}？该用户将无法登录。` : `确认解禁用户 ${u.email}？`)) return
+    if (!window.confirm(next ? `确认禁用用户 ${u.email}？禁用后该用户将无法再次登录（已签发的登录令牌在到期前仍有效）。` : `确认解禁用户 ${u.email}？`)) return
     try {
       await adminUsersAPI.setDisabled(u.id, next)
       load(query, page)
