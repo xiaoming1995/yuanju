@@ -73,8 +73,8 @@ export const adminRegistrationSettingsAPI = {
 }
 
 export const adminChartsAPI = {
-  list: (page: number = 1, pageSize: number = 20) =>
-    adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}`),
+  list: (page: number = 1, pageSize: number = 20, q = '', from = '', to = '') =>
+    adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(q)}&from=${from}&to=${to}`),
   getLiunianReports: (chartId: string) =>
     adminApi.get(`/api/admin/charts/${chartId}/liunian`),
   deleteLiunianReport: (id: string) =>
