@@ -26,3 +26,19 @@ func TestAdminResetUserPasswordRequiresAdminAuth(t *testing.T) {
 		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestAdminSetUserDisabledRequiresAdminAuth(t *testing.T) {
+	configs.AppConfig.AdminJWTSecret = "test-admin-secret"
+	r := gin.New()
+	admin := r.Group("/api/admin", middleware.AdminAuth())
+	admin.PUT("/users/:id/disable", AdminSetUserDisabled)
+
+	req := httptest.NewRequest(http.MethodPut, "/api/admin/users/abc/disable", strings.NewReader(`{"disabled":true}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+	}
+}

@@ -11,7 +11,8 @@ type User struct {
 	PasswordHash string    `json:"-"`
 	Nickname     string    `json:"nickname"`
 	Source       string    `json:"source"`
-	CreatedAt    time.Time `json:"created_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	DisabledAt   *time.Time `json:"disabled_at,omitempty"`
 }
 
 type BaziChart struct {

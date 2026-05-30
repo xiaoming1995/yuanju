@@ -104,6 +104,10 @@ func Login(input LoginInput) (*model.User, string, error) {
 		return nil, "", errors.New("邮箱或密码错误")
 	}
 
+	if user.DisabledAt != nil {
+		return nil, "", errors.New("该账号已被禁用")
+	}
+
 	token, err := generateJWT(user)
 	if err != nil {
 		return nil, "", err

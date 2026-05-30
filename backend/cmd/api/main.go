@@ -202,6 +202,7 @@ func main() {
 				adminAuth.GET("/users", handler.AdminGetUsers)
 				adminAuth.POST("/users", handler.AdminCreateUser)
 				adminAuth.POST("/users/:id/reset-password", handler.AdminResetUserPassword)
+				adminAuth.PUT("/users/:id/disable", handler.AdminSetUserDisabled)
 				adminAuth.GET("/settings/registration", handler.AdminGetRegistrationSetting)
 				adminAuth.PUT("/settings/registration", handler.AdminUpdateRegistrationSetting)
 				adminAuth.GET("/charts", handler.AdminListCharts)

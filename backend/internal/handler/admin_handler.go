@@ -303,12 +303,13 @@ func AdminGetUsers(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	query := `
-		SELECT u.id, u.email, u.nickname, COALESCE(u.source, 'self_registered'), u.created_at,
-		       COUNT(b.id) as chart_count
+		SELECT u.id, u.email, u.nickname, COALESCE(u.source, 'self_registered'), u.created_at, u.disabled_at,
+		       COUNT(b.id) as chart_count,
+		       (SELECT COUNT(*) FROM compatibility_readings cr WHERE cr.user_id = u.id) as compat_count
 		FROM users u
 		LEFT JOIN bazi_charts b ON b.user_id = u.id
 		WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%')
-		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at
+		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at, u.disabled_at
 		ORDER BY u.created_at DESC
 		LIMIT $2 OFFSET $3`
 
@@ -320,17 +321,19 @@ func AdminGetUsers(c *gin.Context) {
 	defer rows.Close()
 
 	type UserRow struct {
-		ID         string `json:"id"`
-		Email      string `json:"email"`
-		Nickname   string `json:"nickname"`
-		Source     string `json:"source"`
-		CreatedAt  string `json:"created_at"`
-		ChartCount int    `json:"chart_count"`
+		ID          string     `json:"id"`
+		Email       string     `json:"email"`
+		Nickname    string     `json:"nickname"`
+		Source      string     `json:"source"`
+		CreatedAt   string     `json:"created_at"`
+		DisabledAt  *time.Time `json:"disabled_at"`
+		ChartCount  int        `json:"chart_count"`
+		CompatCount int        `json:"compat_count"`
 	}
 	var users []UserRow
 	for rows.Next() {
 		var u UserRow
-		rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.ChartCount)
+		rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.DisabledAt, &u.ChartCount, &u.CompatCount)
 		users = append(users, u)
 	}
 
@@ -356,6 +359,23 @@ func AdminCreateUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"user": user})
+}
+
+// AdminSetUserDisabled 禁用/解禁用户
+func AdminSetUserDisabled(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Disabled *bool `json:"disabled" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Disabled == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "disabled 必填"})
+		return
+	}
+	if err := repository.SetUserDisabled(id, *req.Disabled); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "操作失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"disabled": *req.Disabled})
 }
 
 func AdminGetRegistrationSetting(c *gin.Context) {
