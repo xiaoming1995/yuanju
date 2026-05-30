@@ -402,6 +402,19 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
                     {splitParagraphs(structured.advice).map((p, i) => <p key={i}>{p}</p>)}
                   </div>
                 )}
+                {structured.relationship_strategy && (
+                  <div className="compat-print-chapter">
+                    <h4 className="compat-print-chapter-title">关系经营策略</h4>
+                    {[
+                      { label: '沟通', value: structured.relationship_strategy.communication },
+                      { label: '冲突', value: structured.relationship_strategy.conflict },
+                      { label: '现实', value: structured.relationship_strategy.reality },
+                      { label: '边界', value: structured.relationship_strategy.boundary },
+                    ].filter(x => x.value?.trim()).map(x => (
+                      <p key={x.label}><strong>{x.label}：</strong>{x.value}</p>
+                    ))}
+                  </div>
+                )}
               </section>
             </>
           )}
