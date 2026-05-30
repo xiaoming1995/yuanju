@@ -39,8 +39,8 @@ func GetUserByEmail(email string) (*model.User, error) {
 func GetUserByID(id string) (*model.User, error) {
 	user := &model.User{}
 	err := database.DB.QueryRow(
-		`SELECT id, email, nickname, COALESCE(source, 'self_registered'), created_at FROM users WHERE id=$1`, id,
-	).Scan(&user.ID, &user.Email, &user.Nickname, &user.Source, &user.CreatedAt)
+		`SELECT id, email, nickname, COALESCE(source, 'self_registered'), created_at, disabled_at FROM users WHERE id=$1`, id,
+	).Scan(&user.ID, &user.Email, &user.Nickname, &user.Source, &user.CreatedAt, &user.DisabledAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
