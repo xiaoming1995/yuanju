@@ -204,6 +204,8 @@ func main() {
 				adminAuth.GET("/settings/registration", handler.AdminGetRegistrationSetting)
 				adminAuth.PUT("/settings/registration", handler.AdminUpdateRegistrationSetting)
 				adminAuth.GET("/charts", handler.AdminListCharts)
+				adminAuth.GET("/compatibility/readings", handler.AdminListCompatReadings)
+				adminAuth.GET("/compatibility/readings/:id", handler.AdminGetCompatReadingDetail)
 				adminAuth.GET("/charts/:chart_id/liunian", handler.AdminListLiunianReports)
 
 				// AI 调用日志

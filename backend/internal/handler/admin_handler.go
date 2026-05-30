@@ -512,3 +512,38 @@ func AdminDeleteLiunianReport(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "已清除该流年记录缓存"})
 }
+
+// AdminListCompatReadings 后台全量合盘明细（分页，只读）
+func AdminListCompatReadings(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	items, total, err := repository.AdminListCompatibilityReadings(page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取合盘明细失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": items, "total": total, "page": page})
+}
+
+// AdminGetCompatReadingDetail 后台合盘详情（只读）
+func AdminGetCompatReadingDetail(c *gin.Context) {
+	id := c.Param("id")
+	detail, err := repository.GetCompatibilityDetail(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取合盘详情失败"})
+		return
+	}
+	if detail == nil || detail.Reading == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "合盘记录不存在"})
+		return
+	}
+	email, _ := repository.GetCompatibilityReadingUserEmail(id)
+	c.JSON(http.StatusOK, gin.H{"data": detail, "user_email": email})
+}
