@@ -67,12 +67,15 @@ export default function AdminChartsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [liunianReports, setLiunianReports] = useState<Record<string, AdminLiunianReport[]>>({})
   const [liunianLoading, setLiunianLoading] = useState<Record<string, boolean>>({})
+  const [q, setQ] = useState('')
+  const [from, setFrom] = useState('')
+  const [to, setTo] = useState('')
   const pageSize = 20
 
   const fetchCharts = async (pageNum: number) => {
     try {
       setLoading(true)
-      const res = await adminChartsAPI.list(pageNum, pageSize)
+      const res = await adminChartsAPI.list(pageNum, pageSize, q, from, to)
       setCharts(res.data?.data || [])
       setTotal(res.data?.total || 0)
     } catch (err: unknown) {
@@ -134,6 +137,17 @@ export default function AdminChartsPage() {
         <div style={{ marginBottom: 16, fontSize: 13, color: '#888' }}>
           记录平台上每一次八字排盘动作（包含注册用户与游客），共 {total} 条记录。
         </div>
+
+        <form className="admin-search-bar" onSubmit={e => { e.preventDefault(); setPage(1); fetchCharts(1) }}>
+          <input className="admin-search-input" value={q} onChange={e => setQ(e.target.value)} placeholder="按邮箱搜索..." />
+          <input type="date" className="admin-search-input" value={from} onChange={e => setFrom(e.target.value)} title="排盘起始日期" />
+          <input type="date" className="admin-search-input" value={to} onChange={e => setTo(e.target.value)} title="排盘截止日期" />
+          <button type="submit" className="admin-btn admin-btn-primary">搜索</button>
+          {(q || from || to) && (
+            <button type="button" className="admin-btn admin-btn-ghost"
+              onClick={() => { setQ(''); setFrom(''); setTo(''); setPage(1); adminChartsAPI.list(1, pageSize).then(res => { setCharts(res.data?.data || []); setTotal(res.data?.total || 0) }) }}>清除</button>
+          )}
+        </form>
 
         {loading ? (
           <div className="admin-loading">加载中...</div>

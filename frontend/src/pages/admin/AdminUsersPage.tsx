@@ -8,6 +8,8 @@ interface User {
   source: 'self_registered' | 'admin_created' | string
   created_at: string
   chart_count: number
+  disabled_at?: string | null
+  compat_count?: number
 }
 
 const initialForm = { email: '', nickname: '', password: '' }
@@ -25,9 +27,11 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const load = useCallback((q: string) => {
+  const [page, setPage] = useState(1)
+
+  const load = useCallback((q: string, pageNum: number) => {
     setLoading(true)
-    adminStatsAPI.users(1, q)
+    adminStatsAPI.users(pageNum, q)
       .then(r => { setUsers(r.data.users || []); setTotal(r.data.total || 0) })
       .finally(() => setLoading(false))
   }, [])
@@ -39,13 +43,16 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
-    load('')
     loadSettings()
-  }, [load])
+  }, [])
+
+  useEffect(() => {
+    load(query, page)
+  }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    load(query)
+    setPage(1); load(query, 1)
   }
 
   const toggleRegistration = async () => {
@@ -84,11 +91,58 @@ export default function AdminUsersPage() {
       await adminUsersAPI.create(form)
       setShowModal(false)
       setForm(initialForm)
-      load(query)
+      load(query, page)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '创建失败')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [resetPwd, setResetPwd] = useState('')
+  const [resetErr, setResetErr] = useState('')
+  const [resetSaving, setResetSaving] = useState(false)
+
+  const openReset = (u: User) => { setResetTarget(u); setResetPwd(''); setResetErr('') }
+
+  const submitReset = async () => {
+    if (resetPwd.length < 8) { setResetErr('新密码至少需要8位'); return }
+    setResetSaving(true)
+    try {
+      await adminUsersAPI.resetPassword(resetTarget!.id, resetPwd)
+      setResetTarget(null)
+      alert('已重置，请通过安全渠道告知用户新密码。')
+    } catch (e: unknown) {
+      setResetErr(e instanceof Error ? e.message : '重置失败')
+    } finally {
+      setResetSaving(false)
+    }
+  }
+
+  const toggleDisabled = async (u: User) => {
+    const next = !u.disabled_at
+    if (!window.confirm(next ? `确认禁用用户 ${u.email}？禁用后该用户将无法再次登录（已签发的登录令牌在到期前仍有效）。` : `确认解禁用户 ${u.email}？`)) return
+    try {
+      await adminUsersAPI.setDisabled(u.id, next)
+      load(query, page)
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : '操作失败')
+    }
+  }
+
+  const removeUser = async (u: User) => {
+    const n = u.compat_count || 0
+    const warning = `确认删除用户 ${u.email}？\n\n` +
+      `· 将连带删除其 ${n} 条合盘记录（不可恢复）\n` +
+      `· 其八字命盘将转为游客记录保留\n\n此操作不可撤销。`
+    if (!window.confirm(warning)) return
+    if (!window.confirm(`再次确认：删除 ${u.email} 及其 ${n} 条合盘记录？`)) return
+    try {
+      await adminUsersAPI.remove(u.id)
+      load(query, page)
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : '删除失败')
     }
   }
 
@@ -130,7 +184,7 @@ export default function AdminUsersPage() {
         <button type="submit" className="admin-btn admin-btn-primary">搜索</button>
         {query && (
           <button type="button" className="admin-btn admin-btn-ghost"
-            onClick={() => { setQuery(''); load('') }}>清除</button>
+            onClick={() => { setQuery(''); setPage(1); load('', 1) }}>清除</button>
         )}
       </form>
 
@@ -138,11 +192,11 @@ export default function AdminUsersPage() {
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
           <table className="admin-table">
             <thead>
-              <tr><th>邮箱</th><th>昵称</th><th>来源</th><th>命盘数</th><th>注册时间</th></tr>
+              <tr><th>邮箱</th><th>昵称</th><th>来源</th><th>命盘数</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
             </thead>
             <tbody>
               {!users?.length && (
-                <tr><td colSpan={5} style={{ textAlign: 'center', color: '#666', padding: 40 }}>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: '#666', padding: 40 }}>
                   暂无用户数据
                 </td></tr>
               )}
@@ -160,8 +214,21 @@ export default function AdminUsersPage() {
                       padding: '2px 8px', borderRadius: 12, fontSize: 13
                     }}>{u.chart_count}</span>
                   </td>
+                  <td>
+                    {u.disabled_at
+                      ? <span style={{ color: '#ff6b6b', fontSize: 12 }}>已禁用</span>
+                      : <span style={{ color: '#22c55e', fontSize: 12 }}>正常</span>}
+                  </td>
                   <td style={{ color: '#666', fontSize: 13 }}>
                     {new Date(u.created_at).toLocaleDateString('zh-CN')}
+                  </td>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
+                      onClick={() => openReset(u)}>重置密码</button>
+                    <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
+                      onClick={() => toggleDisabled(u)}>{u.disabled_at ? '解禁' : '禁用'}</button>
+                    <button className="admin-btn admin-btn-ghost" style={{ color: '#ff6b6b' }}
+                      onClick={() => removeUser(u)}>删除</button>
                   </td>
                 </tr>
               ))}
@@ -169,6 +236,18 @@ export default function AdminUsersPage() {
           </table>
         </div>
       )}
+
+      {(() => {
+        const totalPages = Math.ceil((total || 0) / 20) || 1
+        if (totalPages <= 1) return null
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
+            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page === 1 ? '#1a1a2e' : '#2a2a3a', color: page === 1 ? '#555' : '#ccc', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>上一页</button>
+            <span style={{ lineHeight: '32px', fontSize: 13, color: '#666', margin: '0 8px' }}>第 {page} / {totalPages} 页</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page >= totalPages ? '#1a1a2e' : '#2a2a3a', color: page >= totalPages ? '#555' : '#ccc', cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}>下一页</button>
+          </div>
+        )
+      })()}
 
       {showModal && (
         <div className="admin-modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
@@ -197,6 +276,26 @@ export default function AdminUsersPage() {
               <button className="admin-btn admin-btn-ghost" onClick={() => setShowModal(false)}>取消</button>
               <button className="admin-btn admin-btn-primary" onClick={handleCreate} disabled={saving}>
                 {saving ? '创建中...' : '创建'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resetTarget && (
+        <div className="admin-modal-overlay" onClick={e => e.target === e.currentTarget && setResetTarget(null)}>
+          <div className="admin-modal">
+            <div className="admin-modal-title">重置密码 — {resetTarget.email}</div>
+            {resetErr && <div className="admin-error">{resetErr}</div>}
+            <div className="admin-form-group">
+              <label className="admin-form-label">新密码（至少8位）</label>
+              <input className="admin-form-input" type="password" value={resetPwd}
+                onChange={e => setResetPwd(e.target.value)} />
+            </div>
+            <div className="admin-modal-actions">
+              <button className="admin-btn admin-btn-ghost" onClick={() => setResetTarget(null)}>取消</button>
+              <button className="admin-btn admin-btn-primary" onClick={submitReset} disabled={resetSaving}>
+                {resetSaving ? '重置中...' : '确认重置'}
               </button>
             </div>
           </div>

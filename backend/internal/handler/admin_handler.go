@@ -303,12 +303,13 @@ func AdminGetUsers(c *gin.Context) {
 	offset := (page - 1) * pageSize
 
 	query := `
-		SELECT u.id, u.email, u.nickname, COALESCE(u.source, 'self_registered'), u.created_at,
-		       COUNT(b.id) as chart_count
+		SELECT u.id, u.email, u.nickname, COALESCE(u.source, 'self_registered'), u.created_at, u.disabled_at,
+		       COUNT(b.id) as chart_count,
+		       (SELECT COUNT(*) FROM compatibility_readings cr WHERE cr.user_id = u.id) as compat_count
 		FROM users u
 		LEFT JOIN bazi_charts b ON b.user_id = u.id
 		WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%')
-		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at
+		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at, u.disabled_at
 		ORDER BY u.created_at DESC
 		LIMIT $2 OFFSET $3`
 
@@ -320,17 +321,19 @@ func AdminGetUsers(c *gin.Context) {
 	defer rows.Close()
 
 	type UserRow struct {
-		ID         string `json:"id"`
-		Email      string `json:"email"`
-		Nickname   string `json:"nickname"`
-		Source     string `json:"source"`
-		CreatedAt  string `json:"created_at"`
-		ChartCount int    `json:"chart_count"`
+		ID          string     `json:"id"`
+		Email       string     `json:"email"`
+		Nickname    string     `json:"nickname"`
+		Source      string     `json:"source"`
+		CreatedAt   string     `json:"created_at"`
+		DisabledAt  *time.Time `json:"disabled_at"`
+		ChartCount  int        `json:"chart_count"`
+		CompatCount int        `json:"compat_count"`
 	}
 	var users []UserRow
 	for rows.Next() {
 		var u UserRow
-		rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.ChartCount)
+		rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.DisabledAt, &u.ChartCount, &u.CompatCount)
 		users = append(users, u)
 	}
 
@@ -356,6 +359,23 @@ func AdminCreateUser(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"user": user})
+}
+
+// AdminSetUserDisabled 禁用/解禁用户
+func AdminSetUserDisabled(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Disabled *bool `json:"disabled" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Disabled == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "disabled 必填"})
+		return
+	}
+	if err := repository.SetUserDisabled(id, *req.Disabled); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "操作失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"disabled": *req.Disabled})
 }
 
 func AdminGetRegistrationSetting(c *gin.Context) {
@@ -435,7 +455,10 @@ func AdminListCharts(c *gin.Context) {
 		pageSize = 20
 	}
 
-	charts, total, err := repository.ListBaziCharts(page, pageSize)
+	q := c.Query("q")
+	from := c.Query("from")
+	to := c.Query("to")
+	charts, total, err := repository.ListBaziCharts(page, pageSize, q, from, to)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取排盘历史失败"})
 		return
@@ -511,4 +534,66 @@ func AdminDeleteLiunianReport(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "已清除该流年记录缓存"})
+}
+
+// AdminListCompatReadings 后台全量合盘明细（分页，只读）
+func AdminListCompatReadings(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+
+	items, total, err := repository.AdminListCompatibilityReadings(page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取合盘明细失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": items, "total": total, "page": page})
+}
+
+// AdminResetUserPassword 后台重置指定用户密码
+func AdminResetUserPassword(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Password string `json:"password" binding:"required,min=8"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "新密码至少需要8位"})
+		return
+	}
+	if err := service.ResetUserPassword(id, req.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "重置密码失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "已重置"})
+}
+
+// AdminDeleteUser 硬删除用户（合盘记录级联删除，八字命盘转游客保留）
+func AdminDeleteUser(c *gin.Context) {
+	id := c.Param("id")
+	if err := repository.DeleteUser(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除用户失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
+}
+
+// AdminGetCompatReadingDetail 后台合盘详情（只读）
+func AdminGetCompatReadingDetail(c *gin.Context) {
+	id := c.Param("id")
+	detail, err := repository.GetCompatibilityDetail(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取合盘详情失败"})
+		return
+	}
+	if detail == nil || detail.Reading == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "合盘记录不存在"})
+		return
+	}
+	email, _ := repository.GetCompatibilityReadingUserEmail(id)
+	c.JSON(http.StatusOK, gin.H{"data": detail, "user_email": email})
 }

@@ -82,6 +82,20 @@ type CelebrityRecord struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
+// AdminCompatListItem 后台合盘明细列表行
+type AdminCompatListItem struct {
+	ID                string    `json:"id"`
+	UserEmail         *string   `json:"user_email"`
+	SelfName          string    `json:"self_name"`
+	PartnerName       string    `json:"partner_name"`
+	OverallScore      int       `json:"overall_score"`
+	OverallLevel      string    `json:"overall_level"`
+	RelationshipStage string    `json:"relationship_stage"`
+	PrimaryQuestion   string    `json:"primary_question"`
+	AnalysisVersion   string    `json:"analysis_version"`
+	CreatedAt         time.Time `json:"created_at"`
+}
+
 // PredefinedProviders 预设的 Provider 类型（用于前端下拉）
 var PredefinedProviders = []map[string]string{
 	{"type": "deepseek", "name": "DeepSeek V4 Flash", "base_url": "https://api.deepseek.com", "model": "deepseek-v4-flash"},

@@ -17,6 +17,7 @@ import AdminLLMPage from './pages/admin/AdminLLMPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import AdminAILogsPage from './pages/admin/AdminAILogsPage'
 import AdminChartsPage from './pages/admin/AdminChartsPage'
+import AdminCompatPage from './pages/admin/AdminCompatPage'
 import AdminCelebritiesPage from './pages/admin/AdminCelebritiesPage'
 import PromptSettings from './pages/admin/PromptSettings'
 import AlgoConfigPage from './pages/admin/AlgoConfigPage'
@@ -71,6 +72,7 @@ export default function App() {
               <Route path="users" element={<AdminUsersPage />} />
               <Route path="celebrities" element={<AdminCelebritiesPage />} />
               <Route path="charts" element={<AdminChartsPage />} />
+              <Route path="compatibility" element={<AdminCompatPage />} />
               <Route path="ai-logs" element={<AdminAILogsPage />} />
               <Route path="prompts" element={<PromptSettings />} />
               <Route path="algo-config" element={<AlgoConfigPage />} />

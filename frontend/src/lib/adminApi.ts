@@ -58,6 +58,12 @@ export const adminStatsAPI = {
 export const adminUsersAPI = {
   create: (data: { email: string; password: string; nickname?: string }) =>
     adminApi.post('/api/admin/users', data),
+  resetPassword: (id: string, password: string) =>
+    adminApi.post(`/api/admin/users/${id}/reset-password`, { password }),
+  setDisabled: (id: string, disabled: boolean) =>
+    adminApi.put(`/api/admin/users/${id}/disable`, { disabled }),
+  remove: (id: string) =>
+    adminApi.delete(`/api/admin/users/${id}`),
 }
 
 export const adminRegistrationSettingsAPI = {
@@ -67,12 +73,19 @@ export const adminRegistrationSettingsAPI = {
 }
 
 export const adminChartsAPI = {
-  list: (page: number = 1, pageSize: number = 20) =>
-    adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}`),
+  list: (page: number = 1, pageSize: number = 20, q = '', from = '', to = '') =>
+    adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(q)}&from=${from}&to=${to}`),
   getLiunianReports: (chartId: string) =>
     adminApi.get(`/api/admin/charts/${chartId}/liunian`),
   deleteLiunianReport: (id: string) =>
     adminApi.delete(`/api/admin/liunian/${id}`),
+}
+
+export const adminCompatAPI = {
+  list: (page: number = 1, pageSize: number = 20) =>
+    adminApi.get(`/api/admin/compatibility/readings?page=${page}&pageSize=${pageSize}`),
+  detail: (id: string) =>
+    adminApi.get(`/api/admin/compatibility/readings/${id}`),
 }
 
 export const adminReportAPI = {

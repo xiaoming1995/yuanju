@@ -312,3 +312,55 @@ func DeleteAICompatibilityReportsOlderThan(cutoff time.Time) (int64, error) {
 	}
 	return res.RowsAffected()
 }
+
+// AdminListCompatibilityReadings 后台全量合盘列表（分页，含创建者邮箱）
+func AdminListCompatibilityReadings(page, pageSize int) ([]model.AdminCompatListItem, int, error) {
+	offset := (page - 1) * pageSize
+
+	var total int
+	if err := database.DB.QueryRow(`SELECT COUNT(*) FROM compatibility_readings`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []model.AdminCompatListItem{}, 0, nil
+	}
+
+	rows, err := database.DB.Query(`
+		SELECT r.id, u.email, r.overall_score, r.overall_level,
+		       r.relationship_stage, r.primary_question, r.analysis_version, r.created_at,
+		       COALESCE((SELECT display_name FROM compatibility_participants WHERE reading_id=r.id AND role='self'  LIMIT 1), '') AS self_name,
+		       COALESCE((SELECT display_name FROM compatibility_participants WHERE reading_id=r.id AND role='partner' LIMIT 1), '') AS partner_name
+		FROM compatibility_readings r
+		LEFT JOIN users u ON r.user_id = u.id
+		ORDER BY r.created_at DESC
+		LIMIT $1 OFFSET $2`, pageSize, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	out := []model.AdminCompatListItem{}
+	for rows.Next() {
+		var it model.AdminCompatListItem
+		if err := rows.Scan(&it.ID, &it.UserEmail, &it.OverallScore, &it.OverallLevel,
+			&it.RelationshipStage, &it.PrimaryQuestion, &it.AnalysisVersion, &it.CreatedAt,
+			&it.SelfName, &it.PartnerName); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, it)
+	}
+	return out, total, rows.Err()
+}
+
+// GetCompatibilityReadingUserEmail 取某条合盘创建者邮箱（游客或已删用户返回空串）
+func GetCompatibilityReadingUserEmail(readingID string) (string, error) {
+	var email sql.NullString
+	err := database.DB.QueryRow(
+		`SELECT u.email FROM compatibility_readings r LEFT JOIN users u ON r.user_id=u.id WHERE r.id=$1`,
+		readingID,
+	).Scan(&email)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return email.String, err
+}

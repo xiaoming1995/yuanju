@@ -27,9 +27,9 @@ func CreateUserWithSource(email, passwordHash, nickname, source string) (*model.
 func GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
 	err := database.DB.QueryRow(
-		`SELECT id, email, password_hash, nickname, COALESCE(source, 'self_registered'), created_at FROM users WHERE email=$1`,
+		`SELECT id, email, password_hash, nickname, COALESCE(source, 'self_registered'), created_at, disabled_at FROM users WHERE email=$1`,
 		email,
-	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Nickname, &user.Source, &user.CreatedAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Nickname, &user.Source, &user.CreatedAt, &user.DisabledAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -45,6 +45,25 @@ func GetUserByID(id string) (*model.User, error) {
 		return nil, nil
 	}
 	return user, err
+}
+
+func UpdateUserPassword(userID, passwordHash string) error {
+	_, err := database.DB.Exec(`UPDATE users SET password_hash=$1 WHERE id=$2`, passwordHash, userID)
+	return err
+}
+
+func SetUserDisabled(userID string, disabled bool) error {
+	if disabled {
+		_, err := database.DB.Exec(`UPDATE users SET disabled_at=NOW() WHERE id=$1`, userID)
+		return err
+	}
+	_, err := database.DB.Exec(`UPDATE users SET disabled_at=NULL WHERE id=$1`, userID)
+	return err
+}
+
+func DeleteUser(userID string) error {
+	_, err := database.DB.Exec(`DELETE FROM users WHERE id=$1`, userID)
+	return err
 }
 
 // ---- 八字命盘 ----
