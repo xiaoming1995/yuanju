@@ -77,7 +77,6 @@ function normalizeConsultingAssessment(detail: CompatibilityDetail) {
     relationship_diagnosis: report?.relationship_diagnosis || base?.relationship_diagnosis,
     decision_advice: report?.decision_advice || base?.decision_advice,
     stage_risks: report?.stage_risks?.length ? report.stage_risks : base?.stage_risks || [],
-    relationship_strategy: report?.relationship_strategy || base?.relationship_strategy,
     claim_evidence_links: report?.claim_evidence_links?.length ? report.claim_evidence_links : base?.claim_evidence_links || [],
   }
 }
@@ -323,7 +322,6 @@ export default function CompatibilityResultPage() {
           personalityValidationPlan={personalityValidationPlan}
           decisionStageRisks={decisionStageRisks}
           durationAssessment={durationAssessment}
-          relationshipStrategy={consulting.relationship_strategy}
           dashboard={decisionDashboard}
         />
         <EvidenceDrawer

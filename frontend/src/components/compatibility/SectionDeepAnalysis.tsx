@@ -1,11 +1,9 @@
 import './SectionDeepAnalysis.css'
 import ActionPlan7d30d from './deep-analysis/ActionPlan7d30d'
-import RelationshipStrategy from './deep-analysis/RelationshipStrategy'
 import NextStepsAndAvoid from './deep-analysis/NextStepsAndAvoid'
 import type {
   CompatibilityDurationAssessment,
   CompatibilityStageRisk,
-  CompatibilityRelationshipStrategy,
 } from '../../lib/api'
 import type {
   DecisionDashboardData,
@@ -18,13 +16,12 @@ type Props = {
   personalityValidationPlan: PersonalityValidationPlan | null
   decisionStageRisks: CompatibilityStageRisk[]
   durationAssessment: CompatibilityDurationAssessment
-  relationshipStrategy?: CompatibilityRelationshipStrategy
   dashboard: DecisionDashboardData
 }
 
 export default function SectionDeepAnalysis({
   personalityValidationPlan, decisionStageRisks, durationAssessment,
-  relationshipStrategy, dashboard,
+  dashboard,
 }: Props) {
   return (
     <section id="compat-section-deep-analysis" className="compat-section-deep-analysis">
@@ -33,7 +30,6 @@ export default function SectionDeepAnalysis({
         <h2 className="serif compat-section-title">深度分析</h2>
       </div>
       <div className="compat-section-deep-analysis__stack">
-        {relationshipStrategy && <RelationshipStrategy strategy={relationshipStrategy} />}
         <ActionPlan7d30d plan={personalityValidationPlan} risks={decisionStageRisks} assessment={durationAssessment} />
         <NextStepsAndAvoid dashboard={dashboard} />
       </div>

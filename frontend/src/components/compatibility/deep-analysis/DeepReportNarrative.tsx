@@ -1,5 +1,6 @@
 import './DeepReportNarrative.css'
 import PersonalityComparison from './PersonalityComparison'
+import RelationshipStrategy from './RelationshipStrategy'
 import type {
   CompatibilityStructuredReport,
   CompatibilityQuestionFocus,
@@ -87,7 +88,10 @@ export default function DeepReportNarrative({
         {structuredReport ? (
           <div className="compatibility-report-content">
             <QuestionFocusPanel focus={structuredReport.question_focus} />
-            <p className="compatibility-report-summary">{structuredReport.summary}</p>
+            <div className="compatibility-report-section">
+              <div className="serif compatibility-report-title">总体判断</div>
+              <p className="compatibility-report-summary">{structuredReport.summary}</p>
+            </div>
             <PersonalityComparison comparison={structuredReport.personality_comparison} />
             {reportDimensions.map(item => (
               <div key={item.key} className="compatibility-report-section">
@@ -107,6 +111,9 @@ export default function DeepReportNarrative({
               <div className="serif compatibility-report-title">建议</div>
               <div className="compatibility-report-text">{structuredReport.advice}</div>
             </div>
+            {structuredReport.relationship_strategy && (
+              <RelationshipStrategy strategy={structuredReport.relationship_strategy} />
+            )}
           </div>
         ) : rawContent ? (
           <div className="compatibility-report-raw">{rawContent}</div>
