@@ -532,6 +532,23 @@ func AdminListCompatReadings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": items, "total": total, "page": page})
 }
 
+// AdminResetUserPassword 后台重置指定用户密码
+func AdminResetUserPassword(c *gin.Context) {
+	id := c.Param("id")
+	var req struct {
+		Password string `json:"password" binding:"required,min=8"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "新密码至少需要8位"})
+		return
+	}
+	if err := service.ResetUserPassword(id, req.Password); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "重置密码失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "已重置"})
+}
+
 // AdminGetCompatReadingDetail 后台合盘详情（只读）
 func AdminGetCompatReadingDetail(c *gin.Context) {
 	id := c.Param("id")

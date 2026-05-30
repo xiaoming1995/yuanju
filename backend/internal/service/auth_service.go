@@ -112,6 +112,14 @@ func Login(input LoginInput) (*model.User, string, error) {
 	return user, token, nil
 }
 
+func ResetUserPassword(userID, newPassword string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return repository.UpdateUserPassword(userID, string(hash))
+}
+
 func generateJWT(user *model.User) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": user.ID,

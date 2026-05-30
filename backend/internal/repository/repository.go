@@ -47,6 +47,11 @@ func GetUserByID(id string) (*model.User, error) {
 	return user, err
 }
 
+func UpdateUserPassword(userID, passwordHash string) error {
+	_, err := database.DB.Exec(`UPDATE users SET password_hash=$1 WHERE id=$2`, passwordHash, userID)
+	return err
+}
+
 // ---- 八字命盘 ----
 
 func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
