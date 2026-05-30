@@ -102,19 +102,56 @@
 .compatibility-duration-task-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .compatibility-duration-task-item {
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 10px;
+  text-align: center;
   color: var(--text-secondary);
 }
 
+.compatibility-duration-task-item + .compatibility-duration-task-item {
+  border-left: 1px solid var(--border-subtle);
+}
+
+.compatibility-duration-task-item span {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 .compatibility-duration-task-item strong {
-  color: var(--wu-jin);
   font-weight: 500;
+}
+
+.compatibility-duration-task-item--high {
+  background: rgba(76, 175, 125, 0.12);
+}
+
+.compatibility-duration-task-item--high strong {
+  color: var(--wu-mu);
+}
+
+.compatibility-duration-task-item--medium {
+  background: rgba(201, 168, 76, 0.12);
+}
+
+.compatibility-duration-task-item--medium strong {
+  color: var(--wu-jin);
+}
+
+.compatibility-duration-task-item--low {
+  background: rgba(224, 92, 75, 0.12);
+}
+
+.compatibility-duration-task-item--low strong {
+  color: var(--wu-huo);
 }
 
 .compatibility-duration-task p {
@@ -150,5 +187,10 @@
 
   .compatibility-duration-task-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compatibility-duration-task-item + .compatibility-duration-task-item {
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
   }
 }

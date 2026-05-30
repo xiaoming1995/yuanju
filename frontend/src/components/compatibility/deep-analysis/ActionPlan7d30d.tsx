@@ -8,6 +8,12 @@ const durationLevelText: Record<string, string> = {
   low: '偏低',
 }
 
+const durationLevelClass: Record<string, string> = {
+  high: 'compatibility-duration-task-item--high',
+  medium: 'compatibility-duration-task-item--medium',
+  low: 'compatibility-duration-task-item--low',
+}
+
 const stageWindowText: Record<string, string> = {
   three_months: '3 个月',
   one_year: '1 年',
@@ -41,7 +47,10 @@ function DurationTaskSummary({ assessment }: { assessment: CompatibilityDuration
     <div className="compatibility-duration-task">
       <div className="compatibility-duration-task-grid">
         {windows.map(window => (
-          <div key={window.key} className="compatibility-duration-task-item">
+          <div
+            key={window.key}
+            className={`compatibility-duration-task-item ${durationLevelClass[window.level] || ''}`.trim()}
+          >
             <span>{window.label}</span>
             <strong className="serif">{durationLevelText[window.level] || window.level}</strong>
           </div>
