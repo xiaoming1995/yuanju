@@ -1,0 +1,55 @@
+.day-pillar-portrait {
+  margin: 16px 0;
+}
+.day-pillar-portrait-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #5a3a1a;
+  margin-bottom: 10px;
+}
+.day-pillar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.day-pillar-card {
+  border: 1px solid #e0cca0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fdf9f2;
+}
+.day-pillar-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.day-pillar-name {
+  font-weight: 700;
+  color: #4a3728;
+}
+.day-pillar-ganzhi {
+  font-family: "Noto Serif SC", serif;
+  font-size: 13px;
+  color: #9b815c;
+}
+.day-pillar-tag {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a5c3a;
+  background: #f5ebd6;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+}
+.day-pillar-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4a3728;
+}
+@media (max-width: 560px) {
+  .day-pillar-grid { grid-template-columns: 1fr; }
+}

@@ -26,6 +26,7 @@ import CompatibilityShareCard from '../components/CompatibilityShareCard'
 import CompatibilityPrintLayout from '../components/CompatibilityPrintLayout'
 import CompatibilityStickyHeader from '../components/compatibility/CompatibilityStickyHeader'
 import SectionBasicCharts from '../components/compatibility/SectionBasicCharts'
+import DayPillarPortrait from '../components/compatibility/DayPillarPortrait'
 import SectionVerdict from '../components/compatibility/SectionVerdict'
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
 import DeepReportNarrative from '../components/compatibility/deep-analysis/DeepReportNarrative'
@@ -308,6 +309,7 @@ export default function CompatibilityResultPage() {
           verdict={decisionDashboard.verdict}
         />
         <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
+        <DayPillarPortrait self={selfP || null} partner={partnerP || null} />
         <SectionVerdict
           dashboard={decisionDashboard}
           isV3={isV3}

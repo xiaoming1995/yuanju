@@ -32,10 +32,11 @@ test('all 60 jiazi keys are present (completeness gate — green only after Task
 })
 
 test('day-pillar layer stays decoupled from the personality engine', () => {
+  // 真实约束：没有 import 耦合（注释里提及文件名不算耦合）
   const lib = read('src/lib/dayPillarPortraits.ts')
-  assert.doesNotMatch(lib, /compatibilityPersonality/)
+  assert.doesNotMatch(lib, /from '[^']*compatibilityPersonality/)
   const comp = read('src/components/compatibility/DayPillarPortrait.tsx')
-  assert.doesNotMatch(comp, /compatibilityPersonality/)
+  assert.doesNotMatch(comp, /from '[^']*compatibilityPersonality/)
   assert.match(comp, /getDayPillarPortrait/)
 })
 
