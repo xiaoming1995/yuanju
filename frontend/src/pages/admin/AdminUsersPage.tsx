@@ -25,9 +25,11 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const load = useCallback((q: string) => {
+  const [page, setPage] = useState(1)
+
+  const load = useCallback((q: string, pageNum: number) => {
     setLoading(true)
-    adminStatsAPI.users(1, q)
+    adminStatsAPI.users(pageNum, q)
       .then(r => { setUsers(r.data.users || []); setTotal(r.data.total || 0) })
       .finally(() => setLoading(false))
   }, [])
@@ -39,13 +41,16 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
-    load('')
     loadSettings()
-  }, [load])
+  }, [])
+
+  useEffect(() => {
+    load(query, page)
+  }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    load(query)
+    setPage(1); load(query, 1)
   }
 
   const toggleRegistration = async () => {
@@ -84,7 +89,7 @@ export default function AdminUsersPage() {
       await adminUsersAPI.create(form)
       setShowModal(false)
       setForm(initialForm)
-      load(query)
+      load(query, page)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '创建失败')
     } finally {
@@ -130,7 +135,7 @@ export default function AdminUsersPage() {
         <button type="submit" className="admin-btn admin-btn-primary">搜索</button>
         {query && (
           <button type="button" className="admin-btn admin-btn-ghost"
-            onClick={() => { setQuery(''); load('') }}>清除</button>
+            onClick={() => { setQuery(''); setPage(1); load('', 1) }}>清除</button>
         )}
       </form>
 
@@ -169,6 +174,18 @@ export default function AdminUsersPage() {
           </table>
         </div>
       )}
+
+      {(() => {
+        const totalPages = Math.ceil((total || 0) / 20) || 1
+        if (totalPages <= 1) return null
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
+            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page === 1 ? '#1a1a2e' : '#2a2a3a', color: page === 1 ? '#555' : '#ccc', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>上一页</button>
+            <span style={{ lineHeight: '32px', fontSize: 13, color: '#666', margin: '0 8px' }}>第 {page} / {totalPages} 页</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page >= totalPages ? '#1a1a2e' : '#2a2a3a', color: page >= totalPages ? '#555' : '#ccc', cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}>下一页</button>
+          </div>
+        )
+      })()}
 
       {showModal && (
         <div className="admin-modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
