@@ -685,3 +685,45 @@ func TestExtractJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestStripTrailingCommas(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"对象尾逗号", `{"a":1,}`, `{"a":1}`},
+		{"数组尾逗号", `[1,2,]`, `[1,2]`},
+		{"数组后对象闭合前尾逗号", `{"k":[{"x":1}],}`, `{"k":[{"x":1}]}`},
+		{"带空白换行的尾逗号", "{\"a\":1,\n  }", "{\"a\":1\n  }"},
+		{"合法逗号不动", `{"a":1,"b":2}`, `{"a":1,"b":2}`},
+		{"字符串内逗号不动", `{"a":"x, }","b":1}`, `{"a":"x, }","b":1}`},
+		{"字符串内伪尾逗号不动", `{"a":"foo,]"}`, `{"a":"foo,]"}`},
+		{"转义引号不误判", `{"a":"he said \"hi,\" ok","b":2}`, `{"a":"he said \"hi,\" ok","b":2}`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := stripTrailingCommas(c.in); got != c.want {
+				t.Errorf("stripTrailingCommas(%q) = %q, want %q", c.in, got, c.want)
+			}
+		})
+	}
+}
+
+// 复现合盘报告解析失败的真实片段（personality_comparison 末尾尾逗号），
+// 验证 stripTrailingCommas 修复后可被 encoding/json 正常解析。
+func TestStripTrailingCommas_RealReportSnippet(t *testing.T) {
+	bad := `{
+  "personality_comparison": {
+    "clash_points": [
+      { "title": "节奏", "detail": "你追问，他后退。" }
+    ],
+  },
+  "decision_advice": { "recommendation": "observe" }
+}`
+	repaired := stripTrailingCommas(bad)
+	var out map[string]any
+	if err := json.Unmarshal([]byte(repaired), &out); err != nil {
+		t.Fatalf("修复后仍解析失败: %v\n修复结果:\n%s", err, repaired)
+	}
+}

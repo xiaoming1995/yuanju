@@ -725,6 +725,47 @@ func fixJSONStrings(s string) string {
 	return buf.String()
 }
 
+// stripTrailingCommas 用状态机扫描 JSON，删除对象/数组中紧贴 } 或 ] 之前的尾随逗号
+// （AI 输出常见的非法 JSON，如 "clash_points":[...],}）。字符串内部的逗号由引号状态
+// 保护，不会被误删。
+func stripTrailingCommas(s string) string {
+	runes := []rune(s)
+	var buf strings.Builder
+	buf.Grow(len(s))
+	inString := false
+	escaped := false
+	for i := 0; i < len(runes); i++ {
+		c := runes[i]
+		if escaped {
+			buf.WriteRune(c)
+			escaped = false
+			continue
+		}
+		if c == '\\' {
+			escaped = true
+			buf.WriteRune(c)
+			continue
+		}
+		if c == '"' {
+			inString = !inString
+			buf.WriteRune(c)
+			continue
+		}
+		if c == ',' && !inString {
+			// 向后跳过空白，若下一个非空白字符是 } 或 ]，则该逗号是尾随逗号，丢弃
+			j := i + 1
+			for j < len(runes) && (runes[j] == ' ' || runes[j] == '\t' || runes[j] == '\n' || runes[j] == '\r') {
+				j++
+			}
+			if j < len(runes) && (runes[j] == '}' || runes[j] == ']') {
+				continue
+			}
+		}
+		buf.WriteRune(c)
+	}
+	return buf.String()
+}
+
 // GenerateLiunianReport 生成流年运势分析（始终调 LLM，生成后 upsert 存库）
 func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*model.AILiunianReport, error) {
 	// 1. 读取排盘

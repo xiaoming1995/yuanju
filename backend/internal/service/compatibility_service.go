@@ -342,8 +342,9 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 	var structured model.CompatibilityStructuredReport
 	parseErr := json.Unmarshal([]byte(cleanJSON), &structured)
 	if parseErr != nil {
-		// 重试：修复字符串内的裸控制字符（长叙事 JSON 常见）
-		parseErr = json.Unmarshal([]byte(fixJSONStrings(cleanJSON)), &structured)
+		// 重试：修复字符串内裸控制字符 + 剥离对象/数组尾随逗号（长叙事 JSON 常见）
+		repaired := stripTrailingCommas(fixJSONStrings(cleanJSON))
+		parseErr = json.Unmarshal([]byte(repaired), &structured)
 	}
 
 	var structuredRaw *json.RawMessage
