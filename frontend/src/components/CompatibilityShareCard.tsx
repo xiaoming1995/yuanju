@@ -8,6 +8,7 @@ import type {
   ExportBrand,
 } from '../lib/api'
 import { isV3DimensionScores } from '../lib/api'
+import { getDayPillarPortrait } from '../lib/dayPillarPortraits'
 import type { DecisionDashboardData } from '../lib/compatibilityDecision'
 import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 import { cleanReportText } from '../lib/reportText'
@@ -220,6 +221,16 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
         { name: partnerP.display_name || '伴侣', portrait: personality.partner },
       ]
     : []
+  const dayPillarCols = [
+    { label: '我', p: selfP },
+    { label: '伴侣', p: partnerP },
+  ]
+    .map(({ label, p }) => {
+      const snap = p?.chart_snapshot
+      const portrait = snap ? getDayPillarPortrait(snap.day_gan, snap.day_zhi) : undefined
+      return snap && portrait ? { name: p.display_name || label, gz: `${snap.day_gan}${snap.day_zhi}`, portrait } : null
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
 
   const resolvedTitle = brand?.title || '缘 聚 合 盘'
   const resolvedFooter = resolveFooter(brand, 'yuanju.com')
@@ -313,6 +324,24 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
                     <span className="compat-share-personality-dim-val">{d.detail}</span>
                   </div>
                 ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {dayPillarCols.length > 0 && (
+        <section className="compat-share-daypillar">
+          <h3 className="compat-share-section-h">◇ 日柱速写</h3>
+          <div className="compat-share-daypillar-grid">
+            {dayPillarCols.map((c) => (
+              <div key={c.name} className="compat-share-daypillar-card">
+                <div className="compat-share-daypillar-head">
+                  <span className="compat-share-daypillar-name">{c.name}</span>
+                  <span className="compat-share-daypillar-gz">{c.gz}日</span>
+                </div>
+                <div className="compat-share-daypillar-tag">{c.portrait.tag}</div>
+                <p className="compat-share-daypillar-text">{c.portrait.text}</p>
               </div>
             ))}
           </div>
