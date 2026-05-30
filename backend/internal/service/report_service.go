@@ -954,20 +954,7 @@ func GeneratePastEventsStream(chartID string, userID *string, onData func(string
 	}
 
 	// 7. 解析并存库
-	cleanJSON := strings.TrimSpace(rawContent)
-	if strings.HasPrefix(cleanJSON, "```json") {
-		cleanJSON = strings.TrimPrefix(cleanJSON, "```json")
-		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
-	} else if strings.HasPrefix(cleanJSON, "```") {
-		cleanJSON = strings.TrimPrefix(cleanJSON, "```")
-		cleanJSON = strings.TrimSuffix(strings.TrimSpace(cleanJSON), "```")
-	}
-	if i := strings.Index(cleanJSON, "{"); i > 0 {
-		cleanJSON = cleanJSON[i:]
-	}
-	if i := strings.LastIndex(cleanJSON, "}"); i >= 0 && i < len(cleanJSON)-1 {
-		cleanJSON = cleanJSON[:i+1]
-	}
+	cleanJSON := extractJSON(rawContent)
 
 	rawMsg := json.RawMessage(cleanJSON)
 	_, _ = repository.CreatePastEvents(chartID, &rawMsg, modelName)
@@ -1412,17 +1399,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 		}
 
 		// 5. 解析 JSON
-		raw := strings.TrimSpace(collect.String())
-		raw = strings.TrimPrefix(raw, "```json")
-		raw = strings.TrimPrefix(raw, "```")
-		raw = strings.TrimSuffix(raw, "```")
-		raw = strings.TrimSpace(raw)
-		if i := strings.Index(raw, "{"); i > 0 {
-			raw = raw[i:]
-		}
-		if i := strings.LastIndex(raw, "}"); i >= 0 && i < len(raw)-1 {
-			raw = raw[:i+1]
-		}
+		raw := extractJSON(collect.String())
 		var parsed struct {
 			Themes  []string       `json:"themes"`
 			Summary string         `json:"summary"`
