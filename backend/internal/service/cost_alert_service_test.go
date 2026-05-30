@@ -3,10 +3,12 @@ package service
 import (
 	"testing"
 	"time"
+
+	"yuanju/pkg/database"
 )
 
 func TestBuildBudgetStatus_SmokeCheck(t *testing.T) {
-	if testing.Short() {
+	if testing.Short() || database.DB == nil {
 		t.Skip("requires DB")
 	}
 	status, err := BuildBudgetStatus()
