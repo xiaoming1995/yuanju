@@ -58,6 +58,12 @@ export const adminStatsAPI = {
 export const adminUsersAPI = {
   create: (data: { email: string; password: string; nickname?: string }) =>
     adminApi.post('/api/admin/users', data),
+  resetPassword: (id: string, password: string) =>
+    adminApi.post(`/api/admin/users/${id}/reset-password`, { password }),
+  setDisabled: (id: string, disabled: boolean) =>
+    adminApi.put(`/api/admin/users/${id}/disable`, { disabled }),
+  remove: (id: string) =>
+    adminApi.delete(`/api/admin/users/${id}`),
 }
 
 export const adminRegistrationSettingsAPI = {
