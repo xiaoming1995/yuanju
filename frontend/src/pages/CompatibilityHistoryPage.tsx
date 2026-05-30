@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Compass, HeartHandshake } from 'lucide-react'
+import { Compass, HeartHandshake, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import {
   compatibilityAPI,
@@ -46,6 +46,9 @@ export default function CompatibilityHistoryPage() {
   const navigate = useNavigate()
   const [items, setItems] = useState<CompatibilityHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [deletingItem, setDeletingItem] = useState<CompatibilityHistoryItem | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
     if (isLoading) {
@@ -59,6 +62,21 @@ export default function CompatibilityHistoryPage() {
       .then(res => setItems(res.data.data || []))
       .finally(() => setLoading(false))
   }, [user, isLoading, navigate])
+
+  const handleConfirmDelete = async () => {
+    if (!deletingItem) return
+    setDeleteLoading(true)
+    setDeleteError('')
+    try {
+      await compatibilityAPI.deleteReading(deletingItem.id)
+      setItems(prev => prev.filter(item => item.id !== deletingItem.id))
+      setDeletingItem(null)
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : '删除失败，请重试')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
 
   if (loading || isLoading) {
     return (
@@ -114,7 +132,23 @@ export default function CompatibilityHistoryPage() {
                       <div className="serif compatibility-history-names">{item.self_name} × {item.partner_name}</div>
                       <div className="compatibility-history-level">{levelText[item.overall_level] || item.overall_level}</div>
                     </div>
-                    <span className="compatibility-history-action">查看合盘</span>
+                    <div className="compatibility-history-head-actions">
+                      <button
+                        type="button"
+                        className="compatibility-history-delete-button"
+                        aria-label="删除合盘记录"
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setDeleteError('')
+                          setDeletingItem(item)
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        删除
+                      </button>
+                      <span className="compatibility-history-action">查看合盘</span>
+                    </div>
                   </div>
                   {isV3 ? (
                     <div className="compat-history__score-v3">
@@ -156,6 +190,34 @@ export default function CompatibilityHistoryPage() {
             })}
           </div>
         )}
+
+        {deletingItem ? (
+          <div
+            className="compatibility-history-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="删除合盘确认"
+            onClick={() => { if (!deleteLoading) setDeletingItem(null) }}
+          >
+            <div
+              className="compatibility-history-dialog-panel"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <p className="compatibility-history-kicker">删除合盘</p>
+              <h2 className="serif">{deletingItem.self_name} × {deletingItem.partner_name}</h2>
+              <p>删除后该合盘记录及其完整解读将永久消失，无法恢复。</p>
+              {deleteError ? <p className="compatibility-history-dialog-error">{deleteError}</p> : null}
+              <div className="compatibility-history-dialog-actions">
+                <button type="button" className="btn history-danger-button" disabled={deleteLoading} onClick={handleConfirmDelete}>
+                  {deleteLoading ? '删除中...' : '删除'}
+                </button>
+                <button type="button" className="btn btn-secondary" disabled={deleteLoading} onClick={() => setDeletingItem(null)}>
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )

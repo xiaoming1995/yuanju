@@ -126,6 +126,22 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 	return repository.GetCompatibilityDetail(reading.ID)
 }
 
+// DeleteCompatibilityReadingForUser 校验归属后删除合盘记录，子表由数据库级联清除。
+func DeleteCompatibilityReadingForUser(readingID, userID string) error {
+	ownerID, err := repository.GetCompatibilityReadingOwner(readingID)
+	if err != nil {
+		return err
+	}
+	if ownerID == "" {
+		return fmt.Errorf("未找到合盘记录")
+	}
+	if ownerID != userID {
+		return fmt.Errorf("forbidden")
+	}
+	_, err = repository.DeleteCompatibilityReading(readingID)
+	return err
+}
+
 func GetCompatibilityDetailForUser(readingID, userID string) (*model.CompatibilityDetail, error) {
 	ownerID, err := repository.GetCompatibilityReadingOwner(readingID)
 	if err != nil {

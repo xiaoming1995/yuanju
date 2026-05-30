@@ -90,6 +90,25 @@ func GetCompatibilityDetail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": detail})
 }
 
+func DeleteCompatibilityReading(c *gin.Context) {
+	readingID := c.Param("id")
+	userID, _ := c.Get("user_id")
+	err := service.DeleteCompatibilityReadingForUser(readingID, userID.(string))
+	if err != nil {
+		if err.Error() == "forbidden" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此合盘记录"})
+			return
+		}
+		if err.Error() == "未找到合盘记录" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除合盘记录失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"id": readingID}})
+}
+
 func GenerateCompatibilityReport(c *gin.Context) {
 	readingID := c.Param("id")
 	userID, _ := c.Get("user_id")

@@ -280,6 +280,26 @@
   background: rgba(201, 168, 76, 0.16);
 }
 
+.history-record-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(200, 60, 60, 0.32);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #e07a7a;
+  background: rgba(200, 60, 60, 0.1);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.history-record-delete-button:hover {
+  border-color: rgba(200, 60, 60, 0.55);
+  background: rgba(200, 60, 60, 0.18);
+}
+
 .history-record-footer {
   display: flex;
   justify-content: space-between;

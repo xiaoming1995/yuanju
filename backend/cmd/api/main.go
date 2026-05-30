@@ -153,6 +153,7 @@ func main() {
 			bazi.GET("/history", middleware.Auth(), handler.GetHistory)
 			bazi.GET("/history/:id", middleware.Auth(), handler.GetHistoryDetail)
 			bazi.PATCH("/history/:id/display-name", middleware.Auth(), handler.UpdateHistoryDisplayName)
+			bazi.DELETE("/history/:id", middleware.Auth(), handler.DeleteHistory)
 			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
 		}
 
@@ -161,6 +162,7 @@ func main() {
 			compatibility.POST("/readings", handler.CreateCompatibilityReading)
 			compatibility.GET("/readings", handler.GetCompatibilityHistory)
 			compatibility.GET("/readings/:id", handler.GetCompatibilityDetail)
+			compatibility.DELETE("/readings/:id", handler.DeleteCompatibilityReading)
 			compatibility.POST("/readings/:id/report", handler.GenerateCompatibilityReport)
 		}
 

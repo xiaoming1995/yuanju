@@ -406,6 +406,34 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"id": chartID, "display_name": displayName}})
 }
 
+// DeleteHistory 删除命盘记录及其全部衍生数据（AI 报告/大运/流年等由数据库级联清除）
+func DeleteHistory(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	chartID := c.Param("id")
+	if _, err := uuid.Parse(chartID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的命盘ID"})
+		return
+	}
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取命盘失败"})
+		return
+	}
+	if chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "记录不存在"})
+		return
+	}
+	if chart.UserID == nil || *chart.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+	if _, err := repository.DeleteChart(chartID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除命盘失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"id": chartID}})
+}
+
 // HandlePastEventsYears 即时返回算法+模板生成的所有年份叙述（无 AI，毫秒级）
 func HandlePastEventsYears(c *gin.Context) {
 	chartID := c.Param("chart_id")

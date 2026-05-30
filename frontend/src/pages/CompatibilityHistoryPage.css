@@ -109,6 +109,77 @@
   flex: 0 0 auto;
 }
 
+.compatibility-history-head-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.compatibility-history-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(200, 60, 60, 0.32);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #e07a7a;
+  background: rgba(200, 60, 60, 0.1);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.compatibility-history-delete-button:hover {
+  border-color: rgba(200, 60, 60, 0.55);
+  background: rgba(200, 60, 60, 0.18);
+}
+
+.compatibility-history-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 10, 16, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.compatibility-history-dialog-panel {
+  width: min(420px, 100%);
+  border: 1px solid rgba(201, 168, 76, 0.24);
+  border-radius: 12px;
+  padding: 22px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
+}
+
+.compatibility-history-dialog-panel h2 {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 22px;
+}
+
+.compatibility-history-dialog-panel p {
+  margin: 0 0 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.compatibility-history-dialog-error {
+  color: #e07a7a;
+}
+
+.compatibility-history-dialog-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .compatibility-history-context-title {
   color: var(--wu-jin);
   font-size: 12px;

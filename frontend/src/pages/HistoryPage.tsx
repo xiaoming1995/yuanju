@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { CalendarDays, Compass, HeartHandshake, Sparkles } from 'lucide-react'
+import { CalendarDays, Compass, HeartHandshake, Sparkles, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, type BaziHistoryChart } from '../lib/api'
 import { chartDisplayName, chartFallbackName, formatPillars, genderText } from '../lib/chartLabel'
@@ -27,6 +27,9 @@ export default function HistoryPage() {
   const [displayNameDraft, setDisplayNameDraft] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
   const [compatibilityRoleChart, setCompatibilityRoleChart] = useState<Chart | null>(null)
+  const [deletingChart, setDeletingChart] = useState<Chart | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
     if (isLoading) return
@@ -87,6 +90,21 @@ export default function HistoryPage() {
   const launchCompatibility = (role: 'self' | 'partner') => {
     if (!compatibilityRoleChart) return
     navigate(`/compatibility?importChart=${compatibilityRoleChart.id}&role=${role}`)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deletingChart) return
+    setDeleteLoading(true)
+    setDeleteError('')
+    try {
+      await baziAPI.deleteHistory(deletingChart.id)
+      setCharts(prev => prev.filter(item => item.id !== deletingChart.id))
+      setDeletingChart(null)
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : '删除失败，请重试')
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   if (loading || isLoading) return (
@@ -239,6 +257,18 @@ export default function HistoryPage() {
                     >
                       用此命盘合盘
                     </button>
+                    <button
+                      type="button"
+                      className="history-record-delete-button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setDeleteError('')
+                        setDeletingChart(c)
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      删除
+                    </button>
                     <span className="history-record-action">查看命盘</span>
                   </div>
                 </div>
@@ -279,6 +309,35 @@ export default function HistoryPage() {
               <button type="button" className="history-inline-action" onClick={() => setCompatibilityRoleChart(null)}>
                 取消
               </button>
+            </div>
+          </div>
+        ) : null}
+
+        {deletingChart ? (
+          <div
+            className="history-role-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="删除命盘确认"
+            onClick={() => { if (!deleteLoading) setDeletingChart(null) }}
+          >
+            <div
+              className="history-role-dialog-panel"
+              tabIndex={-1}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <p className="history-kicker">删除命盘</p>
+              <h2 className="serif">{chartDisplayName(deletingChart)}</h2>
+              <p>删除后该命盘及其 AI 报告将永久消失，无法恢复。</p>
+              {deleteError ? <p className="history-name-error">{deleteError}</p> : null}
+              <div className="history-role-actions">
+                <button type="button" className="btn history-danger-button" disabled={deleteLoading} onClick={handleConfirmDelete}>
+                  {deleteLoading ? '删除中...' : '删除'}
+                </button>
+                <button type="button" className="btn btn-secondary" disabled={deleteLoading} onClick={() => setDeletingChart(null)}>
+                  取消
+                </button>
+              </div>
             </div>
           </div>
         ) : null}

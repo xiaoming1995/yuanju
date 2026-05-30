@@ -116,6 +116,16 @@ func GetCompatibilityReadingByID(readingID string) (*model.CompatibilityReading,
 	return r, nil
 }
 
+// DeleteCompatibilityReading 删除合盘记录；参与者/证据/报告子表由外键
+// ON DELETE CASCADE 自动清除，计费日志保留。返回删除条数。
+func DeleteCompatibilityReading(readingID string) (int64, error) {
+	result, err := database.DB.Exec(`DELETE FROM compatibility_readings WHERE id=$1`, readingID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 func GetCompatibilityParticipants(readingID string) ([]model.CompatibilityParticipant, error) {
 	rows, err := database.DB.Query(
 		`SELECT id, reading_id, role, display_name, birth_profile, chart_hash, chart_snapshot, created_at

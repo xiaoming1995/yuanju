@@ -75,6 +75,24 @@ func TestUpdateChartDisplayNameRequest_RejectsMalformedChartID(t *testing.T) {
 	}
 }
 
+func TestDeleteHistory_RejectsMalformedChartID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set("user_id", "user-1") })
+	router.DELETE("/history/:id", DeleteHistory)
+
+	req := httptest.NewRequest(http.MethodDelete, "/history/not-a-uuid", nil)
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected status 400, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), "无效的命盘ID") {
+		t.Fatalf("expected invalid chart id error, got %s", recorder.Body.String())
+	}
+}
+
 func performUpdateHistoryDisplayNameRequest(t *testing.T, body string) *httptest.ResponseRecorder {
 	return performUpdateHistoryDisplayNameRequestAtPath(t, "/history/chart-1/display-name", body)
 }

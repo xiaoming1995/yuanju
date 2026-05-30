@@ -729,6 +729,8 @@ export const baziAPI = {
       `/api/bazi/history/${id}/display-name`,
       { display_name: displayName },
     ),
+  deleteHistory: (id: string) =>
+    api.delete<{ data: { id: string } }>(`/api/bazi/history/${id}`),
   fetchLiuYue: (liuNianYear: number, dayGan: string) =>
     api.post('/api/bazi/liu-yue', { liu_nian_year: liuNianYear, day_gan: dayGan }),
 }
@@ -742,6 +744,8 @@ export const compatibilityAPI = {
     api.get(`/api/compatibility/readings/${id}`),
   generateReport: (id: string) =>
     api.post(`/api/compatibility/readings/${id}/report`, {}, { timeout: 300000 }),
+  deleteReading: (id: string) =>
+    api.delete<{ data: { id: string } }>(`/api/compatibility/readings/${id}`),
 }
 
 // ======= 流月类型 =======

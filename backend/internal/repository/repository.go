@@ -254,6 +254,16 @@ func SaveChartResultJSON(chartID string, resultJSON []byte) error {
 	return err
 }
 
+// DeleteChart 删除命盘记录；衍生数据（AI 报告/大运/流年/润色/往年事件）由外键
+// ON DELETE CASCADE 自动清除，计费日志 ON DELETE SET NULL 保留。返回删除条数。
+func DeleteChart(chartID string) (int64, error) {
+	result, err := database.DB.Exec(`DELETE FROM bazi_charts WHERE id=$1`, chartID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 // ---- AI 报告 ----
 
 func CreateReport(chartID, content, modelName string, contentStructured *json.RawMessage) (*model.AIReport, error) {
