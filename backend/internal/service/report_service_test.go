@@ -662,3 +662,26 @@ func TestFillBlankYearNarratives_ValidatorWipedGetsFallback(t *testing.T) {
 	}
 }
 
+
+func TestExtractJSON(t *testing.T) {
+	cases := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"裸JSON", `{"a":1}`, `{"a":1}`},
+		{"带空白裸JSON", "  \n{\"a\":1}\n ", `{"a":1}`},
+		{"json围栏", "```json\n{\"a\":1}\n```", `{"a":1}`},
+		{"裸围栏", "```\n{\"a\":1}\n```", `{"a":1}`},
+		{"前置散文加围栏", "好的，以下是分析：\n```json\n{\"summary\":\"x\"}\n```", `{"summary":"x"}`},
+		{"散文包裹裸JSON", "分析如下：{\"k\":\"v\"} 完毕", `{"k":"v"}`},
+		{"无花括号", "no json here", "no json here"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := extractJSON(c.in); got != c.want {
+				t.Errorf("extractJSON(%q) = %q, want %q", c.in, got, c.want)
+			}
+		})
+	}
+}

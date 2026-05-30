@@ -337,14 +337,24 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 		}
 	}(userID)
 	rawContent = strings.TrimSpace(rawContent)
+	cleanJSON := extractJSON(rawContent)
 
 	var structured model.CompatibilityStructuredReport
+	parseErr := json.Unmarshal([]byte(cleanJSON), &structured)
+	if parseErr != nil {
+		// 重试：修复字符串内的裸控制字符（长叙事 JSON 常见）
+		parseErr = json.Unmarshal([]byte(fixJSONStrings(cleanJSON)), &structured)
+	}
+
 	var structuredRaw *json.RawMessage
-	if err := json.Unmarshal([]byte(rawContent), &structured); err == nil {
+	if parseErr == nil {
 		if marshalled, mErr := json.Marshal(structured); mErr == nil {
 			raw := json.RawMessage(marshalled)
 			structuredRaw = &raw
 		}
+	} else {
+		log.Printf("[Compatibility] 结构化解析失败，回退展示原始内容: %v；原始返回(前200字): %s",
+			parseErr, rawContent[:min(200, len(rawContent))])
 	}
 
 	return repository.CreateCompatibilityReport(readingID, rawContent, modelName, structuredRaw)
