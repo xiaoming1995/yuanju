@@ -37,10 +37,8 @@ func (realStore) UpdateCanonicalContent(m, v, c, h string) error {
 //
 // Decision per module:
 //
-//	DB 无该模块             → InsertCanonical
-//	DB is_customized=true  → skip（admin 主导，不覆盖）
-//	DB version == def.Ver  → noop（已对齐）
-//	其余（version 不匹配）  → UpdateCanonicalContent
+//	DB 无该模块 → InsertCanonical（补种初始值）
+//	DB 已存在   → noop（维护版神圣，永不覆盖；升级靠后台手动「采用」）
 //
 // Errors are logged per-module; a failing module never blocks startup.
 func SyncCanonical(db *sql.DB) error {
@@ -64,18 +62,10 @@ func syncCanonicalWith(store syncStore) error {
 			}
 			log.Printf("[prompt-sync] module=%s action=insert version=%s hash=%s", module, def.Version, shortHash(def.Hash))
 
-		case row.IsCustomized:
-			log.Printf("[prompt-sync] module=%s action=skip reason=is_customized version=%s", module, row.Version)
-
-		case row.Version == def.Version:
-			log.Printf("[prompt-sync] module=%s action=noop version=%s", module, def.Version)
-
 		default:
-			if err := store.UpdateCanonicalContent(module, def.Version, def.Content, def.Hash); err != nil {
-				log.Printf("[prompt-sync] module=%s action=skip reason=update_error err=%v", module, err)
-				continue
-			}
-			log.Printf("[prompt-sync] module=%s action=upgrade from=%s to=%s", module, row.Version, def.Version)
+			// 维护版神圣：已存在的行永不被出厂版自动覆盖。
+			// 升级靠后台手动「采用出厂新版」；漂移由 DriftStatus 在读取时暴露。
+			log.Printf("[prompt-sync] module=%s action=noop reason=row_exists version=%s", module, row.Version)
 		}
 	}
 	return nil
