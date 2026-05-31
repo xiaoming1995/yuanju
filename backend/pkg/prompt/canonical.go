@@ -15,7 +15,8 @@ import (
 // Definition 描述一个 AI prompt 模板及其代码侧权威版本。
 type Definition struct {
 	// Version 是描述性版本标识符（free-form string），比较时仅做相等判定。
-	// 改 prompt 时升级此字段触发 SyncCanonical 覆盖 DB 中未自定义的行。
+	// 改 prompt 时应同步升级此字段：它会作为「出厂版本号」展示在后台漂移徽标
+	// （outdated 时显示「出厂已更新到 vX」）。SyncCanonical 不再据此覆盖任何已存在行。
 	Version string
 
 	// Description 简述本 prompt 用途，用于 ai_prompts.description 列。
