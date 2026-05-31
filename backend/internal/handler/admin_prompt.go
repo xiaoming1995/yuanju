@@ -85,3 +85,14 @@ func ResetPromptToCanonical(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, updated)
 }
+
+// GetPromptCanonical 返回指定模块的出厂版（代码 canonical）内容，供后台「采用出厂新版」载入编辑器。
+func GetPromptCanonical(c *gin.Context) {
+	module := c.Param("module")
+	def, ok := prompt.Lookup(module)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "unknown module: " + module})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"version": def.Version, "content": def.Content})
+}
