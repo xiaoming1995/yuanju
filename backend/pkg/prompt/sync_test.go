@@ -113,9 +113,10 @@ func TestSyncCanonical_SkipsCustomizedRow(t *testing.T) {
 	}
 }
 
-// TestSyncCanonical_UpgradesStaleAlignedRow verifies that a non-customized
-// row with an outdated version is upgraded to the canonical version.
-func TestSyncCanonical_UpgradesStaleAlignedRow(t *testing.T) {
+// TestSyncCanonical_DoesNotOverwriteExistingRow verifies the new model:
+// any existing row (even a non-customized, version-mismatched one) is left
+// untouched by startup sync. Upgrades happen only via admin "adopt factory".
+func TestSyncCanonical_DoesNotOverwriteExistingRow(t *testing.T) {
 	store := newFakeStore()
 	store.rows["compatibility"] = &model.AIPrompt{
 		Module:       "compatibility",
@@ -126,15 +127,17 @@ func TestSyncCanonical_UpgradesStaleAlignedRow(t *testing.T) {
 	if err := syncCanonicalWith(store); err != nil {
 		t.Fatal(err)
 	}
-	if len(store.updates) != 1 || store.updates[0] != "compatibility" {
-		t.Fatalf("expected 1 update for compatibility, got %v", store.updates)
+	if len(store.updates) != 0 {
+		t.Errorf("existing row must never be overwritten, got updates=%v", store.updates)
 	}
 	if len(store.inserts) != 0 {
-		t.Errorf("expected no inserts, got %v", store.inserts)
+		t.Errorf("existing row must not be re-inserted, got inserts=%v", store.inserts)
 	}
-	canonical := MustGet("compatibility")
-	if store.rows["compatibility"].Version != canonical.Version {
-		t.Errorf("expected version upgraded to %s, got %s", canonical.Version, store.rows["compatibility"].Version)
+	if store.rows["compatibility"].Version != "v2-old" {
+		t.Errorf("existing row version must stay v2-old, got %s", store.rows["compatibility"].Version)
+	}
+	if store.rows["compatibility"].Content != "old content" {
+		t.Errorf("existing row content must stay unchanged, got %s", store.rows["compatibility"].Content)
 	}
 }
 

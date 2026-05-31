@@ -14,6 +14,8 @@ interface PromptRecord {
   is_customized: boolean
   canonical_hash: string
   updated_at: string
+  canonical_version: string
+  drift_status: 'aligned' | 'customized' | 'outdated' | 'unregistered'
 }
 
 function VersionBadge({ record }: { record: PromptRecord }) {
@@ -21,18 +23,26 @@ function VersionBadge({ record }: { record: PromptRecord }) {
   let bg: string
   let text: string
 
-  if (record.version === 'unversioned') {
-    color = '#888'
-    bg = 'rgba(136,136,136,0.15)'
-    text = '历史遗留'
-  } else if (record.is_customized) {
-    color = '#f59e0b'
-    bg = 'rgba(245,158,11,0.12)'
-    text = `已自定义（基准 ${record.version}）`
-  } else {
-    color = '#10b981'
-    bg = 'rgba(16,185,129,0.12)'
-    text = `已对齐 ${record.version}`
+  switch (record.drift_status) {
+    case 'outdated':
+      color = '#f97316'
+      bg = 'rgba(249,115,22,0.14)'
+      text = `出厂已更新到 ${record.canonical_version}（你基于 ${record.version}）`
+      break
+    case 'customized':
+      color = '#f59e0b'
+      bg = 'rgba(245,158,11,0.12)'
+      text = `已自定义（基于出厂 ${record.canonical_version}）`
+      break
+    case 'aligned':
+      color = '#10b981'
+      bg = 'rgba(16,185,129,0.12)'
+      text = `已是出厂版 ${record.canonical_version}`
+      break
+    default:
+      color = '#888'
+      bg = 'rgba(136,136,136,0.15)'
+      text = '历史遗留'
   }
 
   return (
@@ -69,6 +79,7 @@ const PromptSettings: React.FC = () => {
   const [saving, setSaving] = useState(false)
   const [resettingModule, setResettingModule] = useState<string | null>(null)
   const [resetLoading, setResetLoading] = useState(false)
+  const [editBanner, setEditBanner] = useState<string | null>(null)
 
   const fetchPrompts = async () => {
     setLoading(true)
@@ -87,6 +98,18 @@ const PromptSettings: React.FC = () => {
   const handleEdit = (p: PromptRecord) => {
     setEditingModule(p.module)
     setEditContent(p.content)
+    setEditBanner(null)
+  }
+
+  const handleAdoptFactory = async (module: string) => {
+    try {
+      const { data } = await adminPromptsAPI.getCanonical(module)
+      setEditingModule(module)
+      setEditContent(data.content)
+      setEditBanner(`这是出厂最新版 ${data.version}，可直接保存采用，或在此基础上改完再保存。`)
+    } catch (e: unknown) {
+      alert(errorMessage(e, '载入出厂版失败'))
+    }
   }
 
   const handleSave = async () => {
@@ -96,6 +119,7 @@ const PromptSettings: React.FC = () => {
       await adminPromptsAPI.update(editingModule, { content: editContent })
       alert('保存成功')
       setEditingModule(null)
+      setEditBanner(null)
       fetchPrompts()
     } catch (e: unknown) {
       alert(errorMessage(e, '保存失败'))
@@ -174,7 +198,20 @@ const PromptSettings: React.FC = () => {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-            {p && !isEditing && p.is_customized && (
+            {p && !isEditing && p.drift_status === 'outdated' && (
+              <button
+                onClick={() => handleAdoptFactory(p.module)}
+                style={{
+                  marginLeft: 8, flexShrink: 0,
+                  padding: '6px 14px', borderRadius: 6, fontSize: 13,
+                  background: '#f97316', border: 'none',
+                  color: '#000', fontWeight: 500, cursor: 'pointer',
+                }}
+              >
+                采用出厂新版
+              </button>
+            )}
+            {p && !isEditing && p.drift_status === 'customized' && (
               <button
                 onClick={() => handleReset(p.module)}
                 style={{
@@ -186,7 +223,7 @@ const PromptSettings: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                重置为系统默认
+                重置为出厂
               </button>
             )}
             {p && !isEditing && (
@@ -216,6 +253,16 @@ const PromptSettings: React.FC = () => {
             <div style={{ color: '#666', fontSize: 13 }}>暂无数据</div>
           ) : isEditing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {editBanner && (
+                <div style={{
+                  fontSize: 12, color: '#f97316',
+                  background: 'rgba(249,115,22,0.08)',
+                  padding: '10px 14px', borderRadius: 8,
+                  border: '1px solid rgba(249,115,22,0.25)',
+                }}>
+                  📦 {editBanner}
+                </div>
+              )}
               {/* Variables hint for liunian */}
               {def.module === 'liunian' && (
                 <div style={{
@@ -256,7 +303,7 @@ const PromptSettings: React.FC = () => {
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button
                   className="secondary"
-                  onClick={() => setEditingModule(null)}
+                  onClick={() => { setEditingModule(null); setEditBanner(null) }}
                   style={{ padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}
                 >
                   取消

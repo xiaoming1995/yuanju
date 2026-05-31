@@ -53,6 +53,24 @@ func UpdatePrompt(module string, content string) error {
 	return err
 }
 
+// UpdateMaintained 保存后台维护版：写 content，并把「分支点」(version/canonical_hash)
+// 对齐到当前出厂版，据内容是否偏离出厂版设置 is_customized。
+// 行通常已存在；ON CONFLICT 兜底首次场景。
+func UpdateMaintained(module, content, version, hash string, isCustomized bool) error {
+	_, err := database.DB.Exec(
+		`INSERT INTO ai_prompts (module, content, description, version, is_customized, canonical_hash)
+		 VALUES ($1, $2, '', $3, $4, $5)
+		 ON CONFLICT (module) DO UPDATE
+		   SET content = EXCLUDED.content,
+		       version = EXCLUDED.version,
+		       is_customized = EXCLUDED.is_customized,
+		       canonical_hash = EXCLUDED.canonical_hash,
+		       updated_at = NOW()`,
+		module, content, version, isCustomized, hash,
+	)
+	return err
+}
+
 // InsertCanonical 插入新的 canonical prompt 行（is_customized = false）。
 func InsertCanonical(module, version, content, hash, description string) error {
 	_, err := database.DB.Exec(

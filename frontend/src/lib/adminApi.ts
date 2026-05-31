@@ -116,7 +116,9 @@ export const adminPromptsAPI = {
   update: (module: string, data: { content: string }) =>
     adminApi.put(`/api/admin/prompts/${module}`, data),
   resetToCanonical: (module: string) =>
-    adminApi.post(`/api/admin/prompts/${module}/reset`)
+    adminApi.post(`/api/admin/prompts/${module}/reset`),
+  getCanonical: (module: string) =>
+    adminApi.get(`/api/admin/prompts/${module}/canonical`),
 }
 
 export const adminAlgoConfigAPI = {

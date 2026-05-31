@@ -239,6 +239,7 @@ func main() {
 				adminAuth.GET("/prompts", handler.GetPrompts)
 				adminAuth.PUT("/prompts/:module", handler.UpdatePrompt)
 				adminAuth.POST("/prompts/:module/reset", handler.ResetPromptToCanonical)
+				adminAuth.GET("/prompts/:module/canonical", handler.GetPromptCanonical)
 
 				// 算法参数管理
 				adminAuth.GET("/algo-config", handler.AdminGetAlgoConfig)
