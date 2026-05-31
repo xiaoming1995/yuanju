@@ -3,20 +3,37 @@ package handler
 import (
 	"log"
 	"net/http"
+	"yuanju/internal/model"
 	"yuanju/internal/repository"
 	"yuanju/pkg/prompt"
 
 	"github.com/gin-gonic/gin"
 )
 
-// GetPrompts 获取所有配置的 Prompts
+// promptWithDrift 在 model.AIPrompt 之上附加读取时计算的漂移信息。
+type promptWithDrift struct {
+	model.AIPrompt
+	CanonicalVersion string `json:"canonical_version"`
+	DriftStatus      string `json:"drift_status"`
+}
+
+// GetPrompts 获取所有配置的 Prompts（含相对出厂版的漂移状态）
 func GetPrompts(c *gin.Context) {
 	prompts, err := repository.GetAllPrompts()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取 Prompt 失败"})
 		return
 	}
-	c.JSON(http.StatusOK, prompts)
+	out := make([]promptWithDrift, 0, len(prompts))
+	for _, p := range prompts {
+		item := promptWithDrift{AIPrompt: p}
+		if def, ok := prompt.Lookup(p.Module); ok {
+			item.CanonicalVersion = def.Version
+		}
+		item.DriftStatus = prompt.DriftStatus(p.Module, p.Content, p.CanonicalHash)
+		out = append(out, item)
+	}
+	c.JSON(http.StatusOK, out)
 }
 
 // UpdatePrompt 更新特定的 Prompt 模板
