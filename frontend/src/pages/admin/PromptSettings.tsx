@@ -303,7 +303,7 @@ const PromptSettings: React.FC = () => {
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button
                   className="secondary"
-                  onClick={() => setEditingModule(null)}
+                  onClick={() => { setEditingModule(null); setEditBanner(null) }}
                   style={{ padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}
                 >
                   取消
