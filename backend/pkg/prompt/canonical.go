@@ -46,9 +46,14 @@ func Register(module string, def Definition) {
 	if _, exists := canonical[module]; exists {
 		panic(fmt.Sprintf("prompt: module %q already registered", module))
 	}
-	sum := sha256.Sum256([]byte(def.Content))
-	def.Hash = hex.EncodeToString(sum[:])
+	def.Hash = HashContent(def.Content)
 	canonical[module] = def
+}
+
+// HashContent 返回 content 的 sha256 hex 字符串，与 canonical Hash 同一算法。
+func HashContent(content string) string {
+	sum := sha256.Sum256([]byte(content))
+	return hex.EncodeToString(sum[:])
 }
 
 // MustGet 返回指定 module 的 canonical Definition；
