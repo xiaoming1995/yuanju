@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"yuanju/internal/model"
 	"yuanju/internal/repository"
@@ -36,7 +35,8 @@ func GetPrompts(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
-// UpdatePrompt 更新特定的 Prompt 模板
+// UpdatePrompt 更新特定的 Prompt 模板（保存维护版）。
+// 分支点对齐当前出厂版；据内容是否偏离出厂版决定 is_customized。
 func UpdatePrompt(c *gin.Context) {
 	module := c.Param("module")
 	var req struct {
@@ -47,19 +47,16 @@ func UpdatePrompt(c *gin.Context) {
 		return
 	}
 
-	if !prompt.Has(module) {
+	def, ok := prompt.Lookup(module)
+	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "未知模块: " + module})
 		return
 	}
 
-	err := repository.UpdatePrompt(module, req.Content)
-	if err != nil {
+	isCustomized := prompt.HashContent(req.Content) != def.Hash
+	if err := repository.UpdateMaintained(module, req.Content, def.Version, def.Hash, isCustomized); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新 Prompt 失败: " + err.Error()})
 		return
-	}
-
-	if err := repository.SetCustomized(module, true); err != nil {
-		log.Printf("[admin-prompt] module=%s set_customized failed: %v", module, err)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "更新成功"})
