@@ -6,17 +6,27 @@ import assert from 'node:assert/strict'
 const root = new URL('..', import.meta.url).pathname
 const read = (p) => readFileSync(join(root, p), 'utf8')
 
+const streamDayunSummariesSource = () => {
+  const api = read('src/lib/api.ts')
+  const start = api.indexOf('streamDayunSummaries: async (')
+  const end = api.indexOf('streamPastEvents:', start)
+  assert.notEqual(start, -1, 'streamDayunSummaries implementation not found')
+  assert.notEqual(end, -1, 'streamPastEvents boundary not found')
+  return api.slice(start, end)
+}
+
 test('streamDayunSummaries has terminal timeout and abort protection', () => {
   const api = read('src/lib/api.ts')
+  const stream = streamDayunSummariesSource()
   assert.match(api, /DAYUN_STREAM_INACTIVITY_TIMEOUT_MS\s*=\s*45_000/)
   assert.match(api, /interface\s+StreamDayunSummariesOptions/)
-  assert.match(api, /AbortController/)
-  assert.match(api, /resetInactivityTimer/)
-  assert.match(api, /safeOnError/)
-  assert.match(api, /safeOnDone/)
-  assert.match(api, /let\s+settled\s*=\s*false/)
-  assert.match(api, /controller\.abort\(\)/)
-  assert.match(api, /clearTimeout\(inactivityTimer\)/)
+  assert.match(stream, /AbortController/)
+  assert.match(stream, /resetInactivityTimer/)
+  assert.match(stream, /let\s+settled\s*=\s*false/)
+  assert.match(stream, /const\s+safeOnDone\s*=\s*\(\)\s*=>\s*\{[\s\S]*?if\s*\(settled\)\s*return[\s\S]*?settled\s*=\s*true[\s\S]*?onDone\(\)/)
+  assert.match(stream, /const\s+safeOnError\s*=\s*\(err:\s*string\)\s*=>\s*\{[\s\S]*?if\s*\(settled\)\s*return[\s\S]*?settled\s*=\s*true[\s\S]*?onError\(err\)/)
+  assert.match(stream, /controller\.abort\(\)/)
+  assert.match(stream, /clearTimeout\(inactivityTimer\)/)
 })
 
 test('PastEventsPage tracks generation metadata for loading dayun summaries', () => {
