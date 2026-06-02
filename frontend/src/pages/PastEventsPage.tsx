@@ -297,6 +297,12 @@ export default function PastEventsPage() {
         }
       },
       (err) => {
+        const initialStreamStillCurrent = Object.entries(initialGenerationRequestIds)
+          .some(([index, requestId]) => {
+            const current = summariesRef.current[Number(index)]
+            return current?.generation?.source === 'initial' && current.generation.requestId === requestId
+          })
+        if (!initialStreamStillCurrent) return
         setStreamError(err)
         inflightRef.current = false
         markLoadingDayunsInterrupted(err || DAYUN_GENERATION_INTERRUPTED_COPY, 'initial')
