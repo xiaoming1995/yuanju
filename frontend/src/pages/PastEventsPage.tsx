@@ -280,6 +280,7 @@ export default function PastEventsPage() {
             error: item.error,
             loading: false,
             status: 'interrupted',
+            generation: undefined,
             folded: false,
           })
         } else {
@@ -342,6 +343,7 @@ export default function PastEventsPage() {
             error: item.error,
             loading: false,
             status: 'interrupted',
+            generation: undefined,
             folded: false,
           })
         } else {

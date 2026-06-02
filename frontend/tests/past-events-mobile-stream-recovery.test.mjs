@@ -86,6 +86,16 @@ test('PastEventsPage clears generation metadata when marking interrupted', () =>
   assert.match(interruptedLoading[0], /generation:\s*undefined/)
 })
 
+test('PastEventsPage clears generation metadata on direct item error writes', () => {
+  const page = read('src/pages/PastEventsPage.tsx')
+  const directErrorWrites = [...page.matchAll(/if \(item\.error\) \{[\s\S]*?writeDayunSummary\(item\.dayun_index, \{([\s\S]*?)\}\)/g)]
+  assert.equal(directErrorWrites.length, 2, 'expected initial and manual item.error writes')
+  for (const [, body] of directErrorWrites) {
+    assert.match(body, /status:\s*'interrupted'/)
+    assert.match(body, /generation:\s*undefined/)
+  }
+})
+
 test('PastEventsPage derives header stream status from summary state', () => {
   const page = read('src/pages/PastEventsPage.tsx')
   assert.match(page, /const hasLoadingSummary\s*=/)
