@@ -36,6 +36,8 @@ test('PastEventsPage tracks generation metadata for loading dayun summaries', ()
   assert.match(page, /type\s+DayunGenerationSource\s*=\s*'initial'\s*\|\s*'manual'\s*\|\s*'recovery'/)
   assert.match(page, /generation\?:\s*DayunGenerationMeta/)
   assert.match(page, /status\?:\s*'loading'\s*\|\s*'interrupted'/)
+  assert.match(page, /requestId:\s*number/)
+  assert.match(page, /generationRequestSeqRef\s*=\s*useRef\(0\)/)
 })
 
 test('PastEventsPage listens for mobile return signals and recovers stale loading summaries', () => {
@@ -55,4 +57,28 @@ test('interrupted dayun generation renders retry copy instead of endless loading
   assert.match(page, /生成失败，请重试/)
   assert.match(page, /dySum\.status\s*===\s*'interrupted'/)
   assert.match(page, /handleGenerateSegment\(meta\.index,\s*'manual'\)/)
+})
+
+test('PastEventsPage fences stale stream callbacks by generation request id', () => {
+  const page = read('src/pages/PastEventsPage.tsx')
+  assert.match(page, /const requestId\s*=\s*\+\+generationRequestSeqRef\.current/)
+  assert.match(page, /const requestId\s*=\s*beginDayunGeneration\(dayunIndex,\s*source\)/)
+  assert.match(page, /current\?\.generation\?\.requestId\s*!==\s*requestId/)
+  assert.match(page, /initialGenerationRequestIds\[item\.dayun_index\]/)
+  assert.match(page, /current\?\.generation\?\.requestId\s*!==\s*expectedRequestId/)
+  assert.match(page, /markLoadingDayunsInterrupted\(err \|\| DAYUN_GENERATION_INTERRUPTED_COPY,\s*'initial'\)/)
+})
+
+test('PastEventsPage synchronously updates summary ref during generation and interruption', () => {
+  const page = read('src/pages/PastEventsPage.tsx')
+  assert.match(page, /summariesRef\.current\s*=\s*\{[\s\S]*?\.\.\.summariesRef\.current[\s\S]*?\[dayunIndex\]:\s*nextSummary[\s\S]*?\}/)
+  assert.match(page, /summariesRef\.current\s*=\s*next/)
+})
+
+test('PastEventsPage derives header stream status from summary state', () => {
+  const page = read('src/pages/PastEventsPage.tsx')
+  assert.match(page, /const hasLoadingSummary\s*=/)
+  assert.match(page, /const hasInterruptedSummary\s*=/)
+  assert.match(page, /hasLoadingSummary\s*\?\s*'年份已就绪 · 大运总结正在后台生成'/)
+  assert.match(page, /hasInterruptedSummary\s*\?\s*'部分大运总结生成中断，可点击重试'/)
 })

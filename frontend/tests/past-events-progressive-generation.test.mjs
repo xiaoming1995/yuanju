@@ -52,7 +52,7 @@ test('handleExpand only flips folded state — no network call', () => {
 
 test('handleGenerateSegment passes single dayunIndex to streamDayunSummaries', () => {
   const page = read('src/pages/PastEventsPage.tsx')
-  const m = page.match(/const handleGenerateSegment[\s\S]*?\}, \[beginDayunGeneration,\s*chartId,\s*markDayunInterrupted\]\)/)
+  const m = page.match(/const handleGenerateSegment[\s\S]*?\}, \[beginDayunGeneration,\s*chartId,\s*markDayunInterrupted,\s*writeDayunSummary\]\)/)
   assert.ok(m, 'handleGenerateSegment not found')
   const body = m[0]
   // 必须把单段 [dayunIndex] 传给 stream

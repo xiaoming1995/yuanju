@@ -65,6 +65,7 @@ interface DayunGenerationMeta {
   startedAt: number
   attempt: number
   source: DayunGenerationSource
+  requestId: number
 }
 
 const DAYUN_GENERATION_STALE_MS = 10_000
@@ -118,67 +119,95 @@ export default function PastEventsPage() {
   const [streamError, setStreamError] = useState('')
   const inflightRef = useRef(false)
   const summariesRef = useRef<Record<number, DayunSummary>>({})
+  const generationRequestSeqRef = useRef(0)
 
   useEffect(() => {
     summariesRef.current = summaries
   }, [summaries])
 
   const beginDayunGeneration = useCallback((dayunIndex: number, source: DayunGenerationSource) => {
-    setSummaries((prev) => {
-      const existing = prev[dayunIndex]
-      const previousAttempt = existing?.generation?.attempt ?? 0
-      const attempt = source === 'recovery' ? previousAttempt + 1 : previousAttempt
-      return {
-        ...prev,
-        [dayunIndex]: {
-          ...existing,
-          themes: existing?.themes || [],
-          summary: existing?.summary || '',
-          loading: true,
-          status: 'loading',
-          error: undefined,
-          folded: false,
-          generation: {
-            startedAt: Date.now(),
-            attempt,
-            source,
-          },
-        },
-      }
-    })
+    const existing = summariesRef.current[dayunIndex]
+    const previousAttempt = existing?.generation?.attempt ?? 0
+    const attempt = source === 'recovery' ? previousAttempt + 1 : 0
+    const requestId = ++generationRequestSeqRef.current
+    const nextSummary: DayunSummary = {
+      ...existing,
+      themes: existing?.themes || [],
+      summary: existing?.summary || '',
+      loading: true,
+      status: 'loading',
+      error: undefined,
+      folded: false,
+      generation: {
+        startedAt: Date.now(),
+        attempt,
+        source,
+        requestId,
+      },
+    }
+
+    summariesRef.current = {
+      ...summariesRef.current,
+      [dayunIndex]: nextSummary,
+    }
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: nextSummary,
+    }))
+    if (source !== 'initial') {
+      setStreamError('')
+      setStreamDone(false)
+    }
+    return requestId
   }, [])
 
   const markDayunInterrupted = useCallback((dayunIndex: number, message = DAYUN_GENERATION_INTERRUPTED_COPY) => {
+    const existing = summariesRef.current[dayunIndex]
+    const nextSummary: DayunSummary = {
+      ...existing,
+      themes: existing?.themes || [],
+      summary: existing?.summary || '',
+      loading: false,
+      status: 'interrupted',
+      error: message,
+      folded: false,
+    }
+    summariesRef.current = {
+      ...summariesRef.current,
+      [dayunIndex]: nextSummary,
+    }
     setSummaries((prev) => ({
       ...prev,
-      [dayunIndex]: {
-        ...prev[dayunIndex],
-        themes: prev[dayunIndex]?.themes || [],
-        summary: prev[dayunIndex]?.summary || '',
-        loading: false,
-        status: 'interrupted',
-        error: message,
-        folded: false,
-      },
+      [dayunIndex]: nextSummary,
     }))
   }, [])
 
-  const markLoadingDayunsInterrupted = useCallback((message = DAYUN_GENERATION_INTERRUPTED_COPY) => {
-    setSummaries((prev) => {
-      const next = { ...prev }
-      for (const [key, summary] of Object.entries(prev)) {
-        if (summary.loading) {
-          next[Number(key)] = {
-            ...summary,
-            loading: false,
-            status: 'interrupted',
-            error: message,
-            folded: false,
-          }
+  const markLoadingDayunsInterrupted = useCallback((message = DAYUN_GENERATION_INTERRUPTED_COPY, source?: DayunGenerationSource) => {
+    const next = { ...summariesRef.current }
+    for (const [key, summary] of Object.entries(summariesRef.current)) {
+      if (summary.loading && (!source || summary.generation?.source === source)) {
+        next[Number(key)] = {
+          ...summary,
+          loading: false,
+          status: 'interrupted',
+          error: message,
+          folded: false,
         }
       }
-      return next
-    })
+    }
+    summariesRef.current = next
+    setSummaries(next)
+  }, [])
+
+  const writeDayunSummary = useCallback((dayunIndex: number, nextSummary: DayunSummary) => {
+    summariesRef.current = {
+      ...summariesRef.current,
+      [dayunIndex]: nextSummary,
+    }
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: nextSummary,
+    }))
   }, [])
 
   const loadAll = useCallback(async () => {
@@ -190,6 +219,7 @@ export default function PastEventsPage() {
     setStreamDone(false)
     setStreamError('')
     setExpandedEvidence({})
+    const initialGenerationRequestIds: Record<number, number> = {}
 
     // Stage 1: 即时拿所有年份（毫秒级）
     try {
@@ -204,16 +234,21 @@ export default function PastEventsPage() {
       const init: Record<number, DayunSummary> = {}
       for (const dm of data.dayun_meta || []) {
         const isFuture = dm.start_year > currentYear
-        init[dm.index] = isFuture
-          ? { themes: [], summary: '', folded: true }
-          : {
-              themes: [],
-              summary: '',
-              loading: true,
-              status: 'loading',
-              generation: { startedAt: Date.now(), attempt: 0, source: 'initial' },
-            }
+        if (isFuture) {
+          init[dm.index] = { themes: [], summary: '', folded: true }
+        } else {
+          const requestId = ++generationRequestSeqRef.current
+          initialGenerationRequestIds[dm.index] = requestId
+          init[dm.index] = {
+            themes: [],
+            summary: '',
+            loading: true,
+            status: 'loading',
+            generation: { startedAt: Date.now(), attempt: 0, source: 'initial', requestId },
+          }
+        }
       }
+      summariesRef.current = init
       setSummaries(init)
       setYearsLoaded(true)
     } catch (e: unknown) {
@@ -226,43 +261,49 @@ export default function PastEventsPage() {
     baziAPI.streamDayunSummaries(
       chartId,
       (item) => {
-        setSummaries((prev) => {
-          const next = { ...prev }
-          if (item.error) {
-            next[item.dayun_index] = {
-              themes: [],
-              summary: '',
-              error: item.error,
-              loading: false,
-              status: 'interrupted',
-              folded: false,
-            }
-          } else {
-            // 收到 SSE 即意味着该段已成功生成（或缓存命中）→ 一律展开
-            next[item.dayun_index] = {
-              themes: item.themes || [],
-              summary: item.summary || '',
-              years: item.years || undefined,
-              loading: false,
-              status: undefined,
-              generation: undefined,
-              folded: false,
-            }
+        const expectedRequestId = initialGenerationRequestIds[item.dayun_index]
+        const current = summariesRef.current[item.dayun_index]
+        if (expectedRequestId !== undefined) {
+          if (current?.generation?.requestId !== expectedRequestId) {
+            return
           }
-          return next
-        })
+        } else if (current?.generation || current?.summary || current?.years || current?.themes.length) {
+          return
+        }
+
+        if (item.error) {
+          writeDayunSummary(item.dayun_index, {
+            themes: [],
+            summary: '',
+            error: item.error,
+            loading: false,
+            status: 'interrupted',
+            folded: false,
+          })
+        } else {
+          // 收到 SSE 即意味着该段已成功生成（或缓存命中）→ 一律展开
+          writeDayunSummary(item.dayun_index, {
+            themes: item.themes || [],
+            summary: item.summary || '',
+            years: item.years || undefined,
+            loading: false,
+            status: undefined,
+            generation: undefined,
+            folded: false,
+          })
+        }
       },
       (err) => {
         setStreamError(err)
         inflightRef.current = false
-        markLoadingDayunsInterrupted(err || DAYUN_GENERATION_INTERRUPTED_COPY)
+        markLoadingDayunsInterrupted(err || DAYUN_GENERATION_INTERRUPTED_COPY, 'initial')
       },
       () => {
         setStreamDone(true)
         inflightRef.current = false
       },
     )
-  }, [chartId, markLoadingDayunsInterrupted])
+  }, [chartId, markLoadingDayunsInterrupted, writeDayunSummary])
 
   // 用户点击 [展开 ▼] —— 折叠段进入"已展开但未生成 AI"状态
   // 还不调任何 API，只切换 folded 状态显示 chips
@@ -284,41 +325,44 @@ export default function PastEventsPage() {
   // 用户点击 [生成本段 AI 批语] —— 触发单段 SSE 生成
   const handleGenerateSegment = useCallback((dayunIndex: number, source: DayunGenerationSource = 'manual') => {
     if (!chartId) return
-    beginDayunGeneration(dayunIndex, source)
+    const requestId = beginDayunGeneration(dayunIndex, source)
     baziAPI.streamDayunSummaries(
       chartId,
       (item) => {
-        setSummaries((prev) => {
-          const next = { ...prev }
-          if (item.error) {
-            next[item.dayun_index] = {
-              ...next[item.dayun_index],
-              error: item.error,
-              loading: false,
-              status: 'interrupted',
-              folded: false,
-            }
-          } else {
-            next[item.dayun_index] = {
-              themes: item.themes || [],
-              summary: item.summary || '',
-              years: item.years || undefined,
-              loading: false,
-              status: undefined,
-              generation: undefined,
-              folded: false,
-            }
-          }
-          return next
-        })
+        if (item.dayun_index !== dayunIndex) return
+        const current = summariesRef.current[dayunIndex]
+        if (current?.generation?.requestId !== requestId) return
+        if (item.error) {
+          writeDayunSummary(item.dayun_index, {
+            ...current,
+            themes: current?.themes || [],
+            summary: current?.summary || '',
+            error: item.error,
+            loading: false,
+            status: 'interrupted',
+            folded: false,
+          })
+        } else {
+          writeDayunSummary(item.dayun_index, {
+            themes: item.themes || [],
+            summary: item.summary || '',
+            years: item.years || undefined,
+            loading: false,
+            status: undefined,
+            generation: undefined,
+            folded: false,
+          })
+        }
       },
       (err) => {
+        const current = summariesRef.current[dayunIndex]
+        if (current?.generation?.requestId !== requestId) return
         markDayunInterrupted(dayunIndex, err || DAYUN_GENERATION_FAILED_COPY)
       },
       () => {},
       [dayunIndex],
     )
-  }, [beginDayunGeneration, chartId, markDayunInterrupted])
+  }, [beginDayunGeneration, chartId, markDayunInterrupted, writeDayunSummary])
 
   const recoverStaleDayunSummaries = useCallback(() => {
     const now = Date.now()
@@ -380,6 +424,14 @@ export default function PastEventsPage() {
     meta: dm,
     years: events.filter((y) => y.dayun_index === dm.index),
   })).filter((g) => g.years.length > 0)
+  const summaryList = Object.values(summaries)
+  const hasLoadingSummary = summaryList.some((summary) => summary.loading)
+  const hasInterruptedSummary = summaryList.some((summary) => summary.status === 'interrupted')
+  const headerStreamStatus = !yearsLoaded ? '正在加载年份时间轴……' :
+    hasLoadingSummary ? '年份已就绪 · 大运总结正在后台生成' :
+    hasInterruptedSummary ? '部分大运总结生成中断，可点击重试' :
+    streamDone ? '已完成，所有大运总结已生成' :
+    '年份已就绪 · 大运总结正在后台生成'
 
   const yearNarrative = (y: YearEvent): { text: string; status: 'loading' | 'ready' | 'empty' } => {
     // Stage 1 already returned a narrative (template mode) → use it
@@ -424,9 +476,7 @@ export default function PastEventsPage() {
             过往事件推算
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
-            {!yearsLoaded ? '正在加载年份时间轴……' :
-             streamDone ? '已完成，所有大运总结已生成' :
-             '年份已就绪 · 大运总结正在后台生成'}
+            {headerStreamStatus}
           </div>
         </div>
       </div>
