@@ -32,7 +32,7 @@ test('expanded uncached future dayun shows the "生成本段 AI 批语" button',
   assert.match(page, /dySum\?\.folded === false/)
   assert.match(page, /生成本段 AI 批语/)
   // 按钮要 wire 到 handleGenerateSegment
-  assert.match(page, /onClick=\{\(\)\s*=>\s*handleGenerateSegment\(meta\.index\)\}/)
+  assert.match(page, /onClick=\{\(\)\s*=>\s*handleGenerateSegment\(meta\.index,\s*'manual'\)\}/)
 })
 
 test('handleExpand only flips folded state — no network call', () => {
@@ -52,7 +52,7 @@ test('handleExpand only flips folded state — no network call', () => {
 
 test('handleGenerateSegment passes single dayunIndex to streamDayunSummaries', () => {
   const page = read('src/pages/PastEventsPage.tsx')
-  const m = page.match(/const handleGenerateSegment[\s\S]*?\}, \[chartId\]\)/)
+  const m = page.match(/const handleGenerateSegment[\s\S]*?\}, \[beginDayunGeneration,\s*chartId,\s*markDayunInterrupted,\s*writeDayunSummary\]\)/)
   assert.ok(m, 'handleGenerateSegment not found')
   const body = m[0]
   // 必须把单段 [dayunIndex] 传给 stream

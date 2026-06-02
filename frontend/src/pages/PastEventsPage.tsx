@@ -51,11 +51,27 @@ interface DayunSummary {
   summary: string
   years?: YearNarrativeEntry[]
   loading?: boolean
+  status?: 'loading' | 'interrupted'
   error?: string
+  generation?: DayunGenerationMeta
   // 未来段折叠态：true 表示该段在页面打开时不自动生成 AI 批语
   // 用户点击 [展开 ▼] 后变 false（仍未生成 AI），再点"生成本段"才触发
   folded?: boolean
 }
+
+type DayunGenerationSource = 'initial' | 'manual' | 'recovery'
+
+interface DayunGenerationMeta {
+  startedAt: number
+  attempt: number
+  source: DayunGenerationSource
+  requestId: number
+}
+
+const DAYUN_GENERATION_STALE_MS = 10_000
+const DAYUN_GENERATION_MAX_AUTO_RETRIES = 1
+const DAYUN_GENERATION_INTERRUPTED_COPY = '生成中断，点击重试'
+const DAYUN_GENERATION_FAILED_COPY = '生成失败，请重试'
 
 const SIGNAL_LABEL: Record<string, { label: string; color: string }> = {
   '婚恋_合': { label: '婚恋↑', color: 'var(--wu-huo)' },
@@ -102,6 +118,99 @@ export default function PastEventsPage() {
   const [streamDone, setStreamDone] = useState(false)
   const [streamError, setStreamError] = useState('')
   const inflightRef = useRef(false)
+  const summariesRef = useRef<Record<number, DayunSummary>>({})
+  const generationRequestSeqRef = useRef(0)
+
+  useEffect(() => {
+    summariesRef.current = summaries
+  }, [summaries])
+
+  const beginDayunGeneration = useCallback((dayunIndex: number, source: DayunGenerationSource) => {
+    const existing = summariesRef.current[dayunIndex]
+    const previousAttempt = existing?.generation?.attempt ?? 0
+    const attempt = source === 'recovery' ? previousAttempt + 1 : 0
+    const requestId = ++generationRequestSeqRef.current
+    const nextSummary: DayunSummary = {
+      ...existing,
+      themes: existing?.themes || [],
+      summary: existing?.summary || '',
+      loading: true,
+      status: 'loading',
+      error: undefined,
+      folded: false,
+      generation: {
+        startedAt: Date.now(),
+        attempt,
+        source,
+        requestId,
+      },
+    }
+
+    summariesRef.current = {
+      ...summariesRef.current,
+      [dayunIndex]: nextSummary,
+    }
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: nextSummary,
+    }))
+    if (source !== 'initial') {
+      setStreamError('')
+      setStreamDone(false)
+    }
+    return requestId
+  }, [])
+
+  const markDayunInterrupted = useCallback((dayunIndex: number, message = DAYUN_GENERATION_INTERRUPTED_COPY) => {
+    const existing = summariesRef.current[dayunIndex]
+    const nextSummary: DayunSummary = {
+      ...existing,
+      themes: existing?.themes || [],
+      summary: existing?.summary || '',
+      loading: false,
+      status: 'interrupted',
+      error: message,
+      folded: false,
+      generation: undefined,
+    }
+    summariesRef.current = {
+      ...summariesRef.current,
+      [dayunIndex]: nextSummary,
+    }
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: nextSummary,
+    }))
+  }, [])
+
+  const markLoadingDayunsInterrupted = useCallback((message = DAYUN_GENERATION_INTERRUPTED_COPY, source?: DayunGenerationSource) => {
+    const next = { ...summariesRef.current }
+    for (const [key, summary] of Object.entries(summariesRef.current)) {
+      if (summary.loading && (!source || summary.generation?.source === source)) {
+        next[Number(key)] = {
+          ...summary,
+          loading: false,
+          status: 'interrupted',
+          error: message,
+          folded: false,
+          generation: undefined,
+        }
+      }
+    }
+    summariesRef.current = next
+    setSummaries(next)
+  }, [])
+
+  const writeDayunSummary = useCallback((dayunIndex: number, nextSummary: DayunSummary) => {
+    summariesRef.current = {
+      ...summariesRef.current,
+      [dayunIndex]: nextSummary,
+    }
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: nextSummary,
+    }))
+  }, [])
 
   const loadAll = useCallback(async () => {
     if (!chartId || inflightRef.current) return
@@ -112,6 +221,7 @@ export default function PastEventsPage() {
     setStreamDone(false)
     setStreamError('')
     setExpandedEvidence({})
+    const initialGenerationRequestIds: Record<number, number> = {}
 
     // Stage 1: 即时拿所有年份（毫秒级）
     try {
@@ -126,10 +236,21 @@ export default function PastEventsPage() {
       const init: Record<number, DayunSummary> = {}
       for (const dm of data.dayun_meta || []) {
         const isFuture = dm.start_year > currentYear
-        init[dm.index] = isFuture
-          ? { themes: [], summary: '', folded: true }
-          : { themes: [], summary: '', loading: true }
+        if (isFuture) {
+          init[dm.index] = { themes: [], summary: '', folded: true }
+        } else {
+          const requestId = ++generationRequestSeqRef.current
+          initialGenerationRequestIds[dm.index] = requestId
+          init[dm.index] = {
+            themes: [],
+            summary: '',
+            loading: true,
+            status: 'loading',
+            generation: { startedAt: Date.now(), attempt: 0, source: 'initial', requestId },
+          }
+        }
       }
+      summariesRef.current = init
       setSummaries(init)
       setYearsLoaded(true)
     } catch (e: unknown) {
@@ -142,33 +263,56 @@ export default function PastEventsPage() {
     baziAPI.streamDayunSummaries(
       chartId,
       (item) => {
-        setSummaries((prev) => {
-          const next = { ...prev }
-          if (item.error) {
-            next[item.dayun_index] = { themes: [], summary: '', error: item.error, loading: false, folded: false }
-          } else {
-            // 收到 SSE 即意味着该段已成功生成（或缓存命中）→ 一律展开
-            next[item.dayun_index] = {
-              themes: item.themes || [],
-              summary: item.summary || '',
-              years: item.years || undefined,
-              loading: false,
-              folded: false,
-            }
+        const expectedRequestId = initialGenerationRequestIds[item.dayun_index]
+        const current = summariesRef.current[item.dayun_index]
+        if (expectedRequestId !== undefined) {
+          if (current?.generation?.requestId !== expectedRequestId) {
+            return
           }
-          return next
-        })
+        } else if (current?.generation || current?.summary || current?.years || current?.themes.length) {
+          return
+        }
+
+        if (item.error) {
+          writeDayunSummary(item.dayun_index, {
+            themes: [],
+            summary: '',
+            error: item.error,
+            loading: false,
+            status: 'interrupted',
+            generation: undefined,
+            folded: false,
+          })
+        } else {
+          // 收到 SSE 即意味着该段已成功生成（或缓存命中）→ 一律展开
+          writeDayunSummary(item.dayun_index, {
+            themes: item.themes || [],
+            summary: item.summary || '',
+            years: item.years || undefined,
+            loading: false,
+            status: undefined,
+            generation: undefined,
+            folded: false,
+          })
+        }
       },
       (err) => {
+        const initialStreamStillCurrent = Object.entries(initialGenerationRequestIds)
+          .some(([index, requestId]) => {
+            const current = summariesRef.current[Number(index)]
+            return current?.generation?.source === 'initial' && current.generation.requestId === requestId
+          })
+        if (!initialStreamStillCurrent) return
         setStreamError(err)
         inflightRef.current = false
+        markLoadingDayunsInterrupted(err || DAYUN_GENERATION_INTERRUPTED_COPY, 'initial')
       },
       () => {
         setStreamDone(true)
         inflightRef.current = false
       },
     )
-  }, [chartId])
+  }, [chartId, markLoadingDayunsInterrupted, writeDayunSummary])
 
   // 用户点击 [展开 ▼] —— 折叠段进入"已展开但未生成 AI"状态
   // 还不调任何 API，只切换 folded 状态显示 chips
@@ -188,41 +332,89 @@ export default function PastEventsPage() {
   }, [])
 
   // 用户点击 [生成本段 AI 批语] —— 触发单段 SSE 生成
-  const handleGenerateSegment = useCallback((dayunIndex: number) => {
+  const handleGenerateSegment = useCallback((dayunIndex: number, source: DayunGenerationSource = 'manual') => {
     if (!chartId) return
-    setSummaries((prev) => ({
-      ...prev,
-      [dayunIndex]: { ...prev[dayunIndex], loading: true, error: undefined },
-    }))
+    const requestId = beginDayunGeneration(dayunIndex, source)
     baziAPI.streamDayunSummaries(
       chartId,
       (item) => {
-        setSummaries((prev) => {
-          const next = { ...prev }
-          if (item.error) {
-            next[item.dayun_index] = { ...next[item.dayun_index], error: item.error, loading: false }
-          } else {
-            next[item.dayun_index] = {
-              themes: item.themes || [],
-              summary: item.summary || '',
-              years: item.years || undefined,
-              loading: false,
-              folded: false,
-            }
-          }
-          return next
-        })
+        if (item.dayun_index !== dayunIndex) return
+        const current = summariesRef.current[dayunIndex]
+        if (current?.generation?.requestId !== requestId) return
+        if (item.error) {
+          writeDayunSummary(item.dayun_index, {
+            ...current,
+            themes: current?.themes || [],
+            summary: current?.summary || '',
+            error: item.error,
+            loading: false,
+            status: 'interrupted',
+            generation: undefined,
+            folded: false,
+          })
+        } else {
+          writeDayunSummary(item.dayun_index, {
+            themes: item.themes || [],
+            summary: item.summary || '',
+            years: item.years || undefined,
+            loading: false,
+            status: undefined,
+            generation: undefined,
+            folded: false,
+          })
+        }
       },
       (err) => {
-        setSummaries((prev) => ({
-          ...prev,
-          [dayunIndex]: { ...prev[dayunIndex], error: err, loading: false },
-        }))
+        const current = summariesRef.current[dayunIndex]
+        if (current?.generation?.requestId !== requestId) return
+        markDayunInterrupted(dayunIndex, err || DAYUN_GENERATION_FAILED_COPY)
       },
       () => {},
       [dayunIndex],
     )
-  }, [chartId])
+  }, [beginDayunGeneration, chartId, markDayunInterrupted, writeDayunSummary])
+
+  const recoverStaleDayunSummaries = useCallback(() => {
+    const now = Date.now()
+    const staleIndexes = Object.entries(summariesRef.current)
+      .filter(([, summary]) => {
+        if (!summary.loading || !summary.generation) return false
+        return now - summary.generation.startedAt >= DAYUN_GENERATION_STALE_MS
+      })
+      .map(([index]) => Number(index))
+
+    if (staleIndexes.length === 0) return
+    inflightRef.current = false
+
+    for (const index of staleIndexes) {
+      const summary = summariesRef.current[index]
+      const attempt = summary?.generation?.attempt ?? 0
+      if (attempt < DAYUN_GENERATION_MAX_AUTO_RETRIES) {
+        handleGenerateSegment(index, 'recovery')
+      } else {
+        markDayunInterrupted(index)
+      }
+    }
+  }, [handleGenerateSegment, markDayunInterrupted])
+
+  useEffect(() => {
+    const recoverIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        recoverStaleDayunSummaries()
+      }
+    }
+
+    document.addEventListener('visibilitychange', recoverIfVisible)
+    window.addEventListener('pageshow', recoverStaleDayunSummaries)
+    window.addEventListener('focus', recoverStaleDayunSummaries)
+    window.addEventListener('online', recoverStaleDayunSummaries)
+    return () => {
+      document.removeEventListener('visibilitychange', recoverIfVisible)
+      window.removeEventListener('pageshow', recoverStaleDayunSummaries)
+      window.removeEventListener('focus', recoverStaleDayunSummaries)
+      window.removeEventListener('online', recoverStaleDayunSummaries)
+    }
+  }, [recoverStaleDayunSummaries])
 
   useEffect(() => {
     if (isLoading) return
@@ -242,6 +434,14 @@ export default function PastEventsPage() {
     meta: dm,
     years: events.filter((y) => y.dayun_index === dm.index),
   })).filter((g) => g.years.length > 0)
+  const summaryList = Object.values(summaries)
+  const hasLoadingSummary = summaryList.some((summary) => summary.loading)
+  const hasInterruptedSummary = summaryList.some((summary) => summary.status === 'interrupted')
+  const headerStreamStatus = !yearsLoaded ? '正在加载年份时间轴……' :
+    hasLoadingSummary ? '年份已就绪 · 大运总结正在后台生成' :
+    hasInterruptedSummary ? '部分大运总结生成中断，可点击重试' :
+    streamDone ? '已完成，所有大运总结已生成' :
+    '年份已就绪 · 大运总结正在后台生成'
 
   const yearNarrative = (y: YearEvent): { text: string; status: 'loading' | 'ready' | 'empty' } => {
     // Stage 1 already returned a narrative (template mode) → use it
@@ -286,9 +486,7 @@ export default function PastEventsPage() {
             过往事件推算
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: 2 }}>
-            {!yearsLoaded ? '正在加载年份时间轴……' :
-             streamDone ? '已完成，所有大运总结已生成' :
-             '年份已就绪 · 大运总结正在后台生成'}
+            {headerStreamStatus}
           </div>
         </div>
       </div>
@@ -427,12 +625,32 @@ export default function PastEventsPage() {
                           正在生成本段大运总结……
                         </div>
                       )}
-                      {dySum.error && (
+                      {dySum.status === 'interrupted' && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, color: '#e7c766', fontSize: '0.78rem' }}>
+                          <span>{dySum.error || DAYUN_GENERATION_INTERRUPTED_COPY}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateSegment(meta.index, 'manual')}
+                            style={{
+                              border: '1px solid color-mix(in srgb, var(--wu-jin) 45%, transparent)',
+                              background: 'transparent',
+                              color: 'var(--wu-jin)',
+                              borderRadius: 6,
+                              padding: '4px 8px',
+                              cursor: 'pointer',
+                              fontSize: '0.72rem',
+                            }}
+                          >
+                            重试
+                          </button>
+                        </div>
+                      )}
+                      {dySum.error && dySum.status !== 'interrupted' && (
                         <div style={{ color: '#e77', fontSize: '0.78rem' }}>
                           本段总结生成失败：{dySum.error}
                         </div>
                       )}
-                      {!dySum.loading && !dySum.error && dySum.themes.length > 0 && (
+                      {!dySum.loading && dySum.status !== 'interrupted' && !dySum.error && dySum.themes.length > 0 && (
                         <>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                             {dySum.themes.map((theme) => {
@@ -623,7 +841,7 @@ export default function PastEventsPage() {
                   {dySum?.folded === false && !dySum?.loading && !dySum?.years && !dySum?.error && dySum?.summary === '' && (
                     <div style={{ marginTop: 16, textAlign: 'center' }}>
                       <button
-                        onClick={() => handleGenerateSegment(meta.index)}
+                        onClick={() => handleGenerateSegment(meta.index, 'manual')}
                         style={{
                           background: `color-mix(in srgb, var(--wu-${dyWx}) 16%, transparent)`,
                           border: `1px solid color-mix(in srgb, var(--wu-${dyWx}) 50%, transparent)`,
