@@ -9,6 +9,14 @@ export function errorMessage(err: unknown, fallback = 'unknown error') {
   return err instanceof Error ? err.message : fallback
 }
 
+const DAYUN_STREAM_INACTIVITY_TIMEOUT_MS = 45_000
+const DAYUN_STREAM_INTERRUPTED_MESSAGE = '生成中断，点击重试'
+
+interface StreamDayunSummariesOptions {
+  inactivityTimeoutMs?: number
+  signal?: AbortSignal
+}
+
 // 请求拦截器：自动注入 JWT
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('yj_token')
@@ -620,18 +628,65 @@ export const baziAPI = {
     onError: (err: string) => void,
     onDone: () => void,
     dayunIndexes?: number[],
+    options: StreamDayunSummariesOptions = {},
   ) => {
     const token = localStorage.getItem('yj_token')
     const baseURL = import.meta.env.VITE_API_URL || ''
-    let isDone = false
-    const safeOnDone = () => { if (!isDone) { isDone = true; onDone() } }
+    const controller = new AbortController()
+    const timeoutMs = options.inactivityTimeoutMs ?? DAYUN_STREAM_INACTIVITY_TIMEOUT_MS
+    let inactivityTimer: ReturnType<typeof setTimeout> | undefined
+    let settled = false
+    let timedOut = false
+
+    const cleanup = () => {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer)
+        inactivityTimer = undefined
+      }
+      options.signal?.removeEventListener('abort', abortFromParent)
+    }
+
+    const safeOnDone = () => {
+      if (settled) return
+      settled = true
+      cleanup()
+      onDone()
+    }
+
+    const safeOnError = (err: string) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      onError(err)
+    }
+
+    const abortFromParent = () => {
+      controller.abort()
+    }
+
+    const resetInactivityTimer = () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer)
+      inactivityTimer = setTimeout(() => {
+        timedOut = true
+        controller.abort()
+      }, timeoutMs)
+    }
+
     try {
+      if (options.signal?.aborted) {
+        safeOnError(DAYUN_STREAM_INTERRUPTED_MESSAGE)
+        return
+      }
+      options.signal?.addEventListener('abort', abortFromParent, { once: true })
+      resetInactivityTimer()
+
       const response = await fetch(`${baseURL}/api/bazi/past-events/dayun-summary-stream/${chartId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
         body: dayunIndexes && dayunIndexes.length > 0
           ? JSON.stringify({ dayun_indexes: dayunIndexes })
           : undefined,
+        signal: controller.signal,
       })
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
       const reader = response.body?.getReader()
@@ -642,6 +697,7 @@ export const baziAPI = {
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
+        resetInactivityTimer()
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
@@ -655,22 +711,23 @@ export const baziAPI = {
             const data = line.slice(6)
             if (data === '[DONE]') { safeOnDone(); return }
             if (pendingError) {
-              onError(data)
+              safeOnError(data)
               pendingError = false
-              continue
+              return
             }
             try {
               const parsed = JSON.parse(data)
               onItem(parsed)
             } catch {
-              // ignore unparseable
+              // Ignore malformed SSE data and continue reading the stream.
             }
           }
         }
       }
       safeOnDone()
     } catch (err: unknown) {
-      onError(errorMessage(err))
+      const interrupted = timedOut || (err instanceof DOMException && err.name === 'AbortError')
+      safeOnError(interrupted ? DAYUN_STREAM_INTERRUPTED_MESSAGE : errorMessage(err))
     }
   },
 
