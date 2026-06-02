@@ -171,6 +171,7 @@ export default function PastEventsPage() {
       status: 'interrupted',
       error: message,
       folded: false,
+      generation: undefined,
     }
     summariesRef.current = {
       ...summariesRef.current,
@@ -192,6 +193,7 @@ export default function PastEventsPage() {
           status: 'interrupted',
           error: message,
           folded: false,
+          generation: undefined,
         }
       }
     }

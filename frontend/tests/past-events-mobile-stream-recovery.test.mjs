@@ -75,6 +75,17 @@ test('PastEventsPage synchronously updates summary ref during generation and int
   assert.match(page, /summariesRef\.current\s*=\s*next/)
 })
 
+test('PastEventsPage clears generation metadata when marking interrupted', () => {
+  const page = read('src/pages/PastEventsPage.tsx')
+  const interrupted = page.match(/const markDayunInterrupted[\s\S]*?\}, \[\]\)/)
+  assert.ok(interrupted, 'markDayunInterrupted not found')
+  assert.match(interrupted[0], /generation:\s*undefined/)
+
+  const interruptedLoading = page.match(/const markLoadingDayunsInterrupted[\s\S]*?\}, \[\]\)/)
+  assert.ok(interruptedLoading, 'markLoadingDayunsInterrupted not found')
+  assert.match(interruptedLoading[0], /generation:\s*undefined/)
+})
+
 test('PastEventsPage derives header stream status from summary state', () => {
   const page = read('src/pages/PastEventsPage.tsx')
   assert.match(page, /const hasLoadingSummary\s*=/)
