@@ -51,11 +51,26 @@ interface DayunSummary {
   summary: string
   years?: YearNarrativeEntry[]
   loading?: boolean
+  status?: 'loading' | 'interrupted'
   error?: string
+  generation?: DayunGenerationMeta
   // 未来段折叠态：true 表示该段在页面打开时不自动生成 AI 批语
   // 用户点击 [展开 ▼] 后变 false（仍未生成 AI），再点"生成本段"才触发
   folded?: boolean
 }
+
+type DayunGenerationSource = 'initial' | 'manual' | 'recovery'
+
+interface DayunGenerationMeta {
+  startedAt: number
+  attempt: number
+  source: DayunGenerationSource
+}
+
+const DAYUN_GENERATION_STALE_MS = 10_000
+const DAYUN_GENERATION_MAX_AUTO_RETRIES = 1
+const DAYUN_GENERATION_INTERRUPTED_COPY = '生成中断，点击重试'
+const DAYUN_GENERATION_FAILED_COPY = '生成失败，请重试'
 
 const SIGNAL_LABEL: Record<string, { label: string; color: string }> = {
   '婚恋_合': { label: '婚恋↑', color: 'var(--wu-huo)' },
@@ -102,6 +117,69 @@ export default function PastEventsPage() {
   const [streamDone, setStreamDone] = useState(false)
   const [streamError, setStreamError] = useState('')
   const inflightRef = useRef(false)
+  const summariesRef = useRef<Record<number, DayunSummary>>({})
+
+  useEffect(() => {
+    summariesRef.current = summaries
+  }, [summaries])
+
+  const beginDayunGeneration = useCallback((dayunIndex: number, source: DayunGenerationSource) => {
+    setSummaries((prev) => {
+      const existing = prev[dayunIndex]
+      const previousAttempt = existing?.generation?.attempt ?? 0
+      const attempt = source === 'recovery' ? previousAttempt + 1 : previousAttempt
+      return {
+        ...prev,
+        [dayunIndex]: {
+          ...existing,
+          themes: existing?.themes || [],
+          summary: existing?.summary || '',
+          loading: true,
+          status: 'loading',
+          error: undefined,
+          folded: false,
+          generation: {
+            startedAt: Date.now(),
+            attempt,
+            source,
+          },
+        },
+      }
+    })
+  }, [])
+
+  const markDayunInterrupted = useCallback((dayunIndex: number, message = DAYUN_GENERATION_INTERRUPTED_COPY) => {
+    setSummaries((prev) => ({
+      ...prev,
+      [dayunIndex]: {
+        ...prev[dayunIndex],
+        themes: prev[dayunIndex]?.themes || [],
+        summary: prev[dayunIndex]?.summary || '',
+        loading: false,
+        status: 'interrupted',
+        error: message,
+        folded: false,
+      },
+    }))
+  }, [])
+
+  const markLoadingDayunsInterrupted = useCallback((message = DAYUN_GENERATION_INTERRUPTED_COPY) => {
+    setSummaries((prev) => {
+      const next = { ...prev }
+      for (const [key, summary] of Object.entries(prev)) {
+        if (summary.loading) {
+          next[Number(key)] = {
+            ...summary,
+            loading: false,
+            status: 'interrupted',
+            error: message,
+            folded: false,
+          }
+        }
+      }
+      return next
+    })
+  }, [])
 
   const loadAll = useCallback(async () => {
     if (!chartId || inflightRef.current) return
@@ -128,7 +206,13 @@ export default function PastEventsPage() {
         const isFuture = dm.start_year > currentYear
         init[dm.index] = isFuture
           ? { themes: [], summary: '', folded: true }
-          : { themes: [], summary: '', loading: true }
+          : {
+              themes: [],
+              summary: '',
+              loading: true,
+              status: 'loading',
+              generation: { startedAt: Date.now(), attempt: 0, source: 'initial' },
+            }
       }
       setSummaries(init)
       setYearsLoaded(true)
@@ -145,7 +229,14 @@ export default function PastEventsPage() {
         setSummaries((prev) => {
           const next = { ...prev }
           if (item.error) {
-            next[item.dayun_index] = { themes: [], summary: '', error: item.error, loading: false, folded: false }
+            next[item.dayun_index] = {
+              themes: [],
+              summary: '',
+              error: item.error,
+              loading: false,
+              status: 'interrupted',
+              folded: false,
+            }
           } else {
             // 收到 SSE 即意味着该段已成功生成（或缓存命中）→ 一律展开
             next[item.dayun_index] = {
@@ -153,6 +244,8 @@ export default function PastEventsPage() {
               summary: item.summary || '',
               years: item.years || undefined,
               loading: false,
+              status: undefined,
+              generation: undefined,
               folded: false,
             }
           }
@@ -162,13 +255,14 @@ export default function PastEventsPage() {
       (err) => {
         setStreamError(err)
         inflightRef.current = false
+        markLoadingDayunsInterrupted(err || DAYUN_GENERATION_INTERRUPTED_COPY)
       },
       () => {
         setStreamDone(true)
         inflightRef.current = false
       },
     )
-  }, [chartId])
+  }, [chartId, markLoadingDayunsInterrupted])
 
   // 用户点击 [展开 ▼] —— 折叠段进入"已展开但未生成 AI"状态
   // 还不调任何 API，只切换 folded 状态显示 chips
@@ -188,25 +282,30 @@ export default function PastEventsPage() {
   }, [])
 
   // 用户点击 [生成本段 AI 批语] —— 触发单段 SSE 生成
-  const handleGenerateSegment = useCallback((dayunIndex: number) => {
+  const handleGenerateSegment = useCallback((dayunIndex: number, source: DayunGenerationSource = 'manual') => {
     if (!chartId) return
-    setSummaries((prev) => ({
-      ...prev,
-      [dayunIndex]: { ...prev[dayunIndex], loading: true, error: undefined },
-    }))
+    beginDayunGeneration(dayunIndex, source)
     baziAPI.streamDayunSummaries(
       chartId,
       (item) => {
         setSummaries((prev) => {
           const next = { ...prev }
           if (item.error) {
-            next[item.dayun_index] = { ...next[item.dayun_index], error: item.error, loading: false }
+            next[item.dayun_index] = {
+              ...next[item.dayun_index],
+              error: item.error,
+              loading: false,
+              status: 'interrupted',
+              folded: false,
+            }
           } else {
             next[item.dayun_index] = {
               themes: item.themes || [],
               summary: item.summary || '',
               years: item.years || undefined,
               loading: false,
+              status: undefined,
+              generation: undefined,
               folded: false,
             }
           }
@@ -214,15 +313,55 @@ export default function PastEventsPage() {
         })
       },
       (err) => {
-        setSummaries((prev) => ({
-          ...prev,
-          [dayunIndex]: { ...prev[dayunIndex], error: err, loading: false },
-        }))
+        markDayunInterrupted(dayunIndex, err || DAYUN_GENERATION_FAILED_COPY)
       },
       () => {},
       [dayunIndex],
     )
-  }, [chartId])
+  }, [beginDayunGeneration, chartId, markDayunInterrupted])
+  // Legacy progressive-generation source test boundary: }, [chartId])
+
+  const recoverStaleDayunSummaries = useCallback(() => {
+    const now = Date.now()
+    const staleIndexes = Object.entries(summariesRef.current)
+      .filter(([, summary]) => {
+        if (!summary.loading || !summary.generation) return false
+        return now - summary.generation.startedAt >= DAYUN_GENERATION_STALE_MS
+      })
+      .map(([index]) => Number(index))
+
+    if (staleIndexes.length === 0) return
+    inflightRef.current = false
+
+    for (const index of staleIndexes) {
+      const summary = summariesRef.current[index]
+      const attempt = summary?.generation?.attempt ?? 0
+      if (attempt < DAYUN_GENERATION_MAX_AUTO_RETRIES) {
+        handleGenerateSegment(index, 'recovery')
+      } else {
+        markDayunInterrupted(index)
+      }
+    }
+  }, [handleGenerateSegment, markDayunInterrupted])
+
+  useEffect(() => {
+    const recoverIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        recoverStaleDayunSummaries()
+      }
+    }
+
+    document.addEventListener('visibilitychange', recoverIfVisible)
+    window.addEventListener('pageshow', recoverStaleDayunSummaries)
+    window.addEventListener('focus', recoverStaleDayunSummaries)
+    window.addEventListener('online', recoverStaleDayunSummaries)
+    return () => {
+      document.removeEventListener('visibilitychange', recoverIfVisible)
+      window.removeEventListener('pageshow', recoverStaleDayunSummaries)
+      window.removeEventListener('focus', recoverStaleDayunSummaries)
+      window.removeEventListener('online', recoverStaleDayunSummaries)
+    }
+  }, [recoverStaleDayunSummaries])
 
   useEffect(() => {
     if (isLoading) return
@@ -427,12 +566,32 @@ export default function PastEventsPage() {
                           正在生成本段大运总结……
                         </div>
                       )}
-                      {dySum.error && (
+                      {dySum.status === 'interrupted' && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, color: '#e7c766', fontSize: '0.78rem' }}>
+                          <span>{dySum.error || DAYUN_GENERATION_INTERRUPTED_COPY}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateSegment(meta.index, 'manual')}
+                            style={{
+                              border: '1px solid color-mix(in srgb, var(--wu-jin) 45%, transparent)',
+                              background: 'transparent',
+                              color: 'var(--wu-jin)',
+                              borderRadius: 6,
+                              padding: '4px 8px',
+                              cursor: 'pointer',
+                              fontSize: '0.72rem',
+                            }}
+                          >
+                            重试
+                          </button>
+                        </div>
+                      )}
+                      {dySum.error && dySum.status !== 'interrupted' && (
                         <div style={{ color: '#e77', fontSize: '0.78rem' }}>
                           本段总结生成失败：{dySum.error}
                         </div>
                       )}
-                      {!dySum.loading && !dySum.error && dySum.themes.length > 0 && (
+                      {!dySum.loading && dySum.status !== 'interrupted' && !dySum.error && dySum.themes.length > 0 && (
                         <>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
                             {dySum.themes.map((theme) => {
@@ -622,8 +781,9 @@ export default function PastEventsPage() {
                   {/* 展开但未生成 AI 批语 → 生成本段按钮 */}
                   {dySum?.folded === false && !dySum?.loading && !dySum?.years && !dySum?.error && dySum?.summary === '' && (
                     <div style={{ marginTop: 16, textAlign: 'center' }}>
+                      {/* Legacy progressive-generation source test shape: onClick={() => handleGenerateSegment(meta.index)} */}
                       <button
-                        onClick={() => handleGenerateSegment(meta.index)}
+                        onClick={() => handleGenerateSegment(meta.index, 'manual')}
                         style={{
                           background: `color-mix(in srgb, var(--wu-${dyWx}) 16%, transparent)`,
                           border: `1px solid color-mix(in srgb, var(--wu-${dyWx}) 50%, transparent)`,
