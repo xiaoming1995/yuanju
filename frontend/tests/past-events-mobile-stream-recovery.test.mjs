@@ -13,6 +13,8 @@ test('streamDayunSummaries has terminal timeout and abort protection', () => {
   assert.match(api, /AbortController/)
   assert.match(api, /resetInactivityTimer/)
   assert.match(api, /safeOnError/)
+  assert.match(api, /safeOnDone/)
+  assert.match(api, /let\s+settled\s*=\s*false/)
   assert.match(api, /controller\.abort\(\)/)
   assert.match(api, /clearTimeout\(inactivityTimer\)/)
 })
