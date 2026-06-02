@@ -319,7 +319,6 @@ export default function PastEventsPage() {
       [dayunIndex],
     )
   }, [beginDayunGeneration, chartId, markDayunInterrupted])
-  // Legacy progressive-generation source test boundary: }, [chartId])
 
   const recoverStaleDayunSummaries = useCallback(() => {
     const now = Date.now()
@@ -781,7 +780,6 @@ export default function PastEventsPage() {
                   {/* 展开但未生成 AI 批语 → 生成本段按钮 */}
                   {dySum?.folded === false && !dySum?.loading && !dySum?.years && !dySum?.error && dySum?.summary === '' && (
                     <div style={{ marginTop: 16, textAlign: 'center' }}>
-                      {/* Legacy progressive-generation source test shape: onClick={() => handleGenerateSegment(meta.index)} */}
                       <button
                         onClick={() => handleGenerateSegment(meta.index, 'manual')}
                         style={{
