@@ -13,7 +13,7 @@ test('chart history page renders as an archive with switcher stats and card acti
   assert.match(page, /archive-switcher/)
   assert.match(page, /history-stat-grid/)
   assert.match(page, /history-record-card/)
-  assert.match(page, /查看命盘/)
+  assert.match(page, /查看结果/)
   assert.match(page, /合盘档案/)
 })
 

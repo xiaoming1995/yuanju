@@ -18,12 +18,16 @@ test('logged-in navigation points 我的 to profile page', () => {
   assert.match(read('src/components/Navbar.tsx'), /to="\/profile"[\s\S]*我的/)
 })
 
-test('profile page reserves inactive recharge and PDF template entrypoints', () => {
+test('profile page reserves a data-driven coming-soon section with a wallet entry', () => {
   const page = read('src/pages/ProfilePage.tsx')
-  assert.match(page, /充值|点数/)
-  assert.match(page, /PDF.*模板|模板.*PDF/)
+  // 即将开放入口改为后端 features 数据驱动渲染
   assert.match(page, /即将开放/)
+  assert.match(page, /profile\.features\.map/)
   assert.match(page, /profile-feature-status/)
+  // 预留钱包/充值入口（wallet → CreditCard 图标）
+  assert.match(page, /feature\.key === 'wallet'/)
+  assert.match(page, /CreditCard/)
+  // 不含真实支付逻辑
   assert.doesNotMatch(page, /\/pay|\/payment|createOrder|支付成功/)
 })
 

@@ -11,7 +11,7 @@ function read(path) {
 
 test('past-events entry is mounted inside dayun-section after DayunTimeline', () => {
   const page = read('src/pages/ResultPage.tsx')
-  const dayunBlockMatch = page.match(/<section className="dayun-section">[\s\S]*?<\/section>/)
+  const dayunBlockMatch = page.match(/<section[^>]*className="dayun-section">[\s\S]*?<\/section>/)
   assert.ok(dayunBlockMatch, 'dayun-section block not found')
   const block = dayunBlockMatch[0]
   assert.match(block, /<DayunTimeline[\s\S]*?\/>[\s\S]*?past-events-entry/)

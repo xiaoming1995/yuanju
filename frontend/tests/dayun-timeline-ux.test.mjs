@@ -25,7 +25,7 @@ test('dayun timeline uses a responsive grid instead of a horizontal scroll strip
 test('result page lets the dayun component own the replicated mockup shell', () => {
   const page = read('src/pages/ResultPage.tsx')
 
-  assert.match(page, /<section className="dayun-section">/)
+  assert.match(page, /<section[^>]*className="dayun-section">/)
   assert.doesNotMatch(page, /<div className="dayun-section card">/)
   assert.doesNotMatch(page, /<h2 className="section-title serif">大运时间轴<\/h2>\s*<DayunTimeline/)
   assert.match(page, /gender=\{result\.gender\}/)

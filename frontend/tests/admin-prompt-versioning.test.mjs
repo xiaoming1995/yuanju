@@ -10,8 +10,8 @@ test('PromptSettings shows version badges in three states', () => {
   const page = read('src/pages/admin/PromptSettings.tsx')
   // 三态徽标文案存在
   assert.match(page, /历史遗留/)
-  assert.match(page, /已自定义（基准/)
-  assert.match(page, /已对齐/)
+  assert.match(page, /已自定义（基于出厂/)
+  assert.match(page, /已是出厂版/)
   // PromptRecord 接口暴露 version/is_customized
   assert.match(page, /version:\s*string/)
   assert.match(page, /is_customized:\s*boolean/)
