@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Compass, HeartHandshake, User } from 'lucide-react'
+import { Compass, HeartHandshake, History, User } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { buildAuthPath } from '../lib/authRedirect'
 import './BottomNav.css'
 
 export default function BottomNav() {
@@ -23,6 +24,14 @@ export default function BottomNav() {
       >
         <HeartHandshake size={20} className="bottom-nav-icon" />
         <span>合盘</span>
+      </Link>
+
+      <Link
+        to={user ? '/history' : buildAuthPath('/login', '/history')}
+        className={`bottom-nav-item ${location.pathname.startsWith('/history') || location.pathname.startsWith('/bazi/') ? 'active' : ''}`}
+      >
+        <History size={20} className="bottom-nav-icon" />
+        <span>记录</span>
       </Link>
       
       {user ? (

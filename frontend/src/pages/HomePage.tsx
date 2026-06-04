@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { Compass, HeartHandshake, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI } from '../lib/api'
 import type { CalculateInput } from '../lib/api'
+import { buildAuthPath } from '../lib/authRedirect'
 import BirthProfileForm from '../components/BirthProfileForm'
 import { initialBirthProfile, type BirthProfileFormValue, type ZiHourMode } from '../components/birthProfile'
 import './HomePage.css'
@@ -34,7 +36,7 @@ export default function HomePage() {
   const [chartDisplayName, setChartDisplayName] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
 
-  const calibrationSummary = province ? `${province}真太阳时校准` : '按北京时间排盘'
+  const calibrationSummary = province ? `${province}省级经度近似校准` : '按北京时间排盘'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,6 +94,20 @@ export default function HomePage() {
             <p className="hero-desc">
               融合传统八字命理与现代算法，为你解读命盘中的天赋与机遇
             </p>
+            <div className="home-intent-grid" aria-label="常用分析入口">
+              <a className="home-intent-card" href="#bazi-form">
+                <Compass size={18} />
+                <span>立即起盘</span>
+              </a>
+              <Link className="home-intent-card" to={user ? '/history' : buildAuthPath('/login', '/history')}>
+                <History size={18} />
+                <span>继续记录</span>
+              </Link>
+              <Link className="home-intent-card" to="/compatibility">
+                <HeartHandshake size={18} />
+                <span>合盘分析</span>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -151,7 +167,7 @@ export default function HomePage() {
                     <div className="form-group">
                       <label className="form-label" htmlFor="birth-province">
                         出生地校准
-                        <span className="field-note">用于真太阳时修正，不选择则按北京时间</span>
+                        <span className="field-note">按省级中心经度近似修正，不选择则按北京时间</span>
                       </label>
                       <select
                         id="birth-province"
@@ -202,9 +218,9 @@ export default function HomePage() {
         <div className="container">
           <div className="features-grid">
             {[
-              { icon: '', title: '精准排盘', desc: '严格遵循古法节气历法，支持真太阳时地区修正' },
-              { icon: '', title: '命理解读', desc: '结合命理知识，生成通俗易懂的个性报告' },
-              { icon: '', title: '五行分析', desc: '可视化五行分布，直观了解命局特点' },
+              { icon: '盘', title: '精准排盘', desc: '严格遵循节气历法，支持省级经度近似修正' },
+              { icon: '解', title: '命理解读', desc: '结合命理知识，生成通俗易懂的个性报告' },
+              { icon: '行', title: '五行分析', desc: '可视化五行分布，直观了解命局特点' },
             ].map((f, i) => (
               <div key={i} className="feature-card card">
                 <div className="feature-icon">{f.icon}</div>

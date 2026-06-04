@@ -1,0 +1,23 @@
+.ui-empty-state {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  padding: 22px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ui-empty-state__title {
+  color: var(--text-heading);
+  font-size: 18px;
+}
+
+.ui-empty-state__description {
+  color: var(--text-subtle);
+  font-size: var(--font-size-body);
+}
+
+.ui-empty-state__action {
+  margin-top: 4px;
+}

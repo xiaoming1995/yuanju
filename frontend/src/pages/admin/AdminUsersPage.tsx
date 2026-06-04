@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { adminRegistrationSettingsAPI, adminStatsAPI, adminUsersAPI } from '../../lib/adminApi'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { useToast } from '../../components/ui/useToast'
 
 interface User {
   id: string
@@ -14,7 +17,13 @@ interface User {
 
 const initialForm = { email: '', nickname: '', password: '' }
 
+type PendingAction =
+  | { type: 'disable'; user: User }
+  | { type: 'delete'; user: User }
+  | null
+
 export default function AdminUsersPage() {
+  const { showToast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [total, setTotal] = useState(0)
   const [query, setQuery] = useState('')
@@ -28,6 +37,8 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('')
 
   const [page, setPage] = useState(1)
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null)
+  const [actionSaving, setActionSaving] = useState(false)
 
   const load = useCallback((q: string, pageNum: number) => {
     setLoading(true)
@@ -63,8 +74,10 @@ export default function AdminUsersPage() {
       const res = await adminRegistrationSettingsAPI.update({ registration_enabled: next })
       setRegistrationEnabled(res.data.registration_enabled)
       setSettingsMsg('已保存')
+      showToast(res.data.registration_enabled ? '已开启公开注册' : '已关闭公开注册', 'success')
     } catch (e: unknown) {
       setSettingsMsg(e instanceof Error ? e.message : '保存失败')
+      showToast(e instanceof Error ? e.message : '保存失败', 'error')
     } finally {
       setRegistrationSaving(false)
     }
@@ -91,6 +104,7 @@ export default function AdminUsersPage() {
       await adminUsersAPI.create(form)
       setShowModal(false)
       setForm(initialForm)
+      showToast('用户已创建', 'success')
       load(query, page)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '创建失败')
@@ -112,7 +126,7 @@ export default function AdminUsersPage() {
     try {
       await adminUsersAPI.resetPassword(resetTarget!.id, resetPwd)
       setResetTarget(null)
-      alert('已重置，请通过安全渠道告知用户新密码。')
+      showToast('已重置，请通过安全渠道告知用户新密码。', 'success')
     } catch (e: unknown) {
       setResetErr(e instanceof Error ? e.message : '重置失败')
     } finally {
@@ -121,28 +135,31 @@ export default function AdminUsersPage() {
   }
 
   const toggleDisabled = async (u: User) => {
-    const next = !u.disabled_at
-    if (!window.confirm(next ? `确认禁用用户 ${u.email}？禁用后该用户将无法再次登录（已签发的登录令牌在到期前仍有效）。` : `确认解禁用户 ${u.email}？`)) return
-    try {
-      await adminUsersAPI.setDisabled(u.id, next)
-      load(query, page)
-    } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '操作失败')
-    }
+    setPendingAction({ type: 'disable', user: u })
   }
 
   const removeUser = async (u: User) => {
-    const n = u.compat_count || 0
-    const warning = `确认删除用户 ${u.email}？\n\n` +
-      `· 将连带删除其 ${n} 条合盘记录（不可恢复）\n` +
-      `· 其八字命盘将转为游客记录保留\n\n此操作不可撤销。`
-    if (!window.confirm(warning)) return
-    if (!window.confirm(`再次确认：删除 ${u.email} 及其 ${n} 条合盘记录？`)) return
+    setPendingAction({ type: 'delete', user: u })
+  }
+
+  const confirmPendingAction = async () => {
+    if (!pendingAction) return
+    setActionSaving(true)
     try {
-      await adminUsersAPI.remove(u.id)
+      if (pendingAction.type === 'disable') {
+        const next = !pendingAction.user.disabled_at
+        await adminUsersAPI.setDisabled(pendingAction.user.id, next)
+        showToast(next ? '用户已禁用' : '用户已解禁', 'success')
+      } else {
+        await adminUsersAPI.remove(pendingAction.user.id)
+        showToast('用户已删除', 'success')
+      }
+      setPendingAction(null)
       load(query, page)
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '删除失败')
+      showToast(e instanceof Error ? e.message : '操作失败', 'error')
+    } finally {
+      setActionSaving(false)
     }
   }
 
@@ -216,8 +233,8 @@ export default function AdminUsersPage() {
                   </td>
                   <td>
                     {u.disabled_at
-                      ? <span style={{ color: '#ff6b6b', fontSize: 12 }}>已禁用</span>
-                      : <span style={{ color: '#22c55e', fontSize: 12 }}>正常</span>}
+                      ? <StatusBadge tone="danger">已禁用</StatusBadge>
+                      : <StatusBadge tone="success">正常</StatusBadge>}
                   </td>
                   <td style={{ color: '#666', fontSize: 13 }}>
                     {new Date(u.created_at).toLocaleDateString('zh-CN')}
@@ -301,6 +318,25 @@ export default function AdminUsersPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!pendingAction}
+        title={pendingAction?.type === 'delete' ? '删除用户' : pendingAction?.user.disabled_at ? '解禁用户' : '禁用用户'}
+        description={
+          pendingAction?.type === 'delete'
+            ? `确认删除用户 ${pendingAction.user.email}？将连带删除其 ${pendingAction.user.compat_count || 0} 条合盘记录（不可恢复），其八字命盘将转为游客记录保留。`
+            : pendingAction
+              ? pendingAction.user.disabled_at
+                ? `确认解禁用户 ${pendingAction.user.email}？`
+                : `确认禁用用户 ${pendingAction.user.email}？禁用后该用户将无法再次登录，已签发的登录令牌在到期前仍有效。`
+              : ''
+        }
+        confirmText={pendingAction?.type === 'delete' ? '删除' : pendingAction?.user.disabled_at ? '解禁' : '禁用'}
+        danger={pendingAction?.type === 'delete' || !pendingAction?.user.disabled_at}
+        pending={actionSaving}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={confirmPendingAction}
+      />
     </div>
   )
 }

@@ -19,7 +19,7 @@
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: 16px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .text-gold { color: var(--wu-jin); }
@@ -30,6 +30,35 @@
   max-width: 480px;
   margin: 0 auto;
   line-height: 1.7;
+}
+
+.home-intent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 520px;
+  margin: 24px auto 0;
+}
+
+.home-intent-card {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.home-intent-card:hover {
+  border-color: var(--border-accent);
+  color: var(--text-accent);
 }
 
 /* 表单卡片 */
@@ -174,6 +203,10 @@
     font-size: 13px;
     line-height: 1.5;
     max-width: 320px;
+  }
+  .home-intent-grid {
+    grid-template-columns: 1fr;
+    margin-top: 14px;
   }
   .form-section { padding: 8px 0 36px; }
   .form-card-header { margin-bottom: 22px; }

@@ -1,17 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { authAPI } from '../lib/api'
+import { authAPI, baziAPI } from '../lib/api'
+import { buildAuthPath, getNextTargetFromSearch, resolvePostAuthTarget } from '../lib/authRedirect'
+import { clearPendingJourney, readPendingJourney } from '../lib/pendingJourney'
 import './AuthPage.css'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [form, setForm] = useState({ email: '', password: '', nickname: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [registration_enabled, setRegistrationEnabled] = useState(true)
   const [settingsLoading, setSettingsLoading] = useState(true)
+  const safeNext = getNextTargetFromSearch(location.search, '')
+  const switchToLoginPath = buildAuthPath('/login', safeNext)
 
   useEffect(() => {
     authAPI.registrationSettings()
@@ -19,6 +24,36 @@ export default function RegisterPage() {
       .catch(() => setRegistrationEnabled(true))
       .finally(() => setSettingsLoading(false))
   }, [])
+
+  const completePostAuthNavigation = async () => {
+    const pendingJourney = readPendingJourney()
+    if (pendingJourney?.type === 'bazi') {
+      try {
+        const res = await baziAPI.calculate(pendingJourney.input)
+        clearPendingJourney()
+        navigate(pendingJourney.returnPath || '/result', {
+          replace: true,
+          state: {
+            result: res.data.result,
+            chartId: res.data.chart_id,
+            input: pendingJourney.input,
+            isGuest: false,
+            pendingIntent: pendingJourney.intent,
+          },
+        })
+        return true
+      } catch (err: unknown) {
+        setError(err instanceof Error ? `注册成功，但恢复刚才的命盘失败：${err.message}` : '注册成功，但恢复刚才的命盘失败')
+        return false
+      }
+    }
+
+    navigate(resolvePostAuthTarget({
+      search: location.search,
+      stateNext: (location.state as { next?: unknown } | null)?.next,
+    }), { replace: true })
+    return true
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,7 +70,7 @@ export default function RegisterPage() {
     try {
       const res = await authAPI.register(form)
       login(res.data.token, res.data.user)
-      navigate('/')
+      await completePostAuthNavigation()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '注册失败')
     } finally {
@@ -56,7 +91,7 @@ export default function RegisterPage() {
           {!settingsLoading && !registration_enabled ? (
             <div className="auth-unavailable">
               <p>当前暂未开放公开注册</p>
-              <Link to="/login" className="btn btn-primary btn-lg auth-submit">返回登录</Link>
+              <Link to={switchToLoginPath} className="btn btn-primary btn-lg auth-submit">返回登录</Link>
             </div>
           ) : (
           <form onSubmit={handleSubmit} id="register-form">
@@ -113,7 +148,7 @@ export default function RegisterPage() {
           )}
 
           <p className="auth-switch">
-            已有账号？<Link to="/login">立即登录</Link>
+            已有账号？<Link to={switchToLoginPath}>立即登录</Link>
           </p>
         </div>
       </div>

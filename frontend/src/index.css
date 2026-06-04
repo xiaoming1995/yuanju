@@ -58,6 +58,50 @@
   --transition-fast: 150ms ease;
   --transition-base: 250ms ease;
   --transition-slow: 400ms ease;
+
+  /* UX foundation semantic surfaces */
+  --surface-base: var(--bg-base);
+  --surface-panel: var(--bg-card);
+  --surface-muted: var(--bg-elevated);
+  --surface-hover: var(--bg-card-hover);
+  --surface-glass: rgba(26, 31, 46, 0.82);
+
+  /* UX foundation semantic text */
+  --text-heading: var(--text-primary);
+  --text-body: #d7d1c2;
+  --text-subtle: var(--text-secondary);
+  --text-disabled: var(--text-muted);
+
+  /* UX foundation semantic states */
+  --status-success: #4caf7d;
+  --status-success-bg: rgba(76, 175, 125, 0.14);
+  --status-warning: #d8a33c;
+  --status-warning-bg: rgba(216, 163, 60, 0.14);
+  --status-danger: #e05c4b;
+  --status-danger-bg: rgba(224, 92, 75, 0.14);
+  --status-info: #5b9bd5;
+  --status-info-bg: rgba(91, 155, 213, 0.14);
+
+  /* UX foundation rhythm */
+  --space-page-x: 24px;
+  --space-page-y: 96px;
+  --space-section: 32px;
+  --space-card: 24px;
+  --space-field: 14px;
+  --space-control-x: 18px;
+  --space-control-y: 11px;
+
+  /* UX foundation type scale */
+  --font-size-page-title: 32px;
+  --font-size-section-title: 22px;
+  --font-size-card-title: 16px;
+  --font-size-body: 15px;
+  --font-size-caption: 12px;
+
+  /* UX foundation shape */
+  --radius-control: var(--radius-full);
+  --radius-panel: 16px;
+  --radius-dialog: 18px;
 }
 
 /* ======= 基础重置 ======= */

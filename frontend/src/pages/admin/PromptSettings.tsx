@@ -1,5 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { adminPromptsAPI } from '../../lib/adminApi'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { useToast } from '../../components/ui/useToast'
 
 function errorMessage(e: unknown, fallback: string) {
   return e instanceof Error ? e.message : fallback
@@ -19,41 +22,28 @@ interface PromptRecord {
 }
 
 function VersionBadge({ record }: { record: PromptRecord }) {
-  let color: string
-  let bg: string
   let text: string
+  let tone: 'success' | 'warning' | 'danger' | 'neutral'
 
   switch (record.drift_status) {
     case 'outdated':
-      color = '#f97316'
-      bg = 'rgba(249,115,22,0.14)'
       text = `出厂已更新到 ${record.canonical_version}（你基于 ${record.version}）`
+      tone = 'danger'
       break
     case 'customized':
-      color = '#f59e0b'
-      bg = 'rgba(245,158,11,0.12)'
       text = `已自定义（基于出厂 ${record.canonical_version}）`
+      tone = 'warning'
       break
     case 'aligned':
-      color = '#10b981'
-      bg = 'rgba(16,185,129,0.12)'
       text = `已是出厂版 ${record.canonical_version}`
+      tone = 'success'
       break
     default:
-      color = '#888'
-      bg = 'rgba(136,136,136,0.15)'
       text = '历史遗留'
+      tone = 'neutral'
   }
 
-  return (
-    <span style={{
-      fontSize: 11, color, background: bg,
-      padding: '2px 8px', borderRadius: 4,
-      marginLeft: 8, fontWeight: 500,
-    }}>
-      {text}
-    </span>
-  )
+  return <StatusBadge tone={tone}>{text}</StatusBadge>
 }
 
 // 模块分类配置
@@ -71,6 +61,7 @@ const INSTRUCTION_MODULES = [
 ]
 
 const PromptSettings: React.FC = () => {
+  const { showToast } = useToast()
   const [prompts, setPrompts] = useState<PromptRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState<'kb' | 'instruction'>('kb')
@@ -81,19 +72,19 @@ const PromptSettings: React.FC = () => {
   const [resetLoading, setResetLoading] = useState(false)
   const [editBanner, setEditBanner] = useState<string | null>(null)
 
-  const fetchPrompts = async () => {
+  const fetchPrompts = useCallback(async () => {
     setLoading(true)
     try {
       const { data } = await adminPromptsAPI.list()
       setPrompts(data || [])
     } catch (e: unknown) {
-      alert(errorMessage(e, '获取配置失败'))
+      showToast(errorMessage(e, '获取配置失败'), 'error')
     } finally {
       setLoading(false)
     }
-  }
+  }, [showToast])
 
-  useEffect(() => { fetchPrompts() }, [])
+  useEffect(() => { fetchPrompts() }, [fetchPrompts])
 
   const handleEdit = (p: PromptRecord) => {
     setEditingModule(p.module)
@@ -108,7 +99,7 @@ const PromptSettings: React.FC = () => {
       setEditContent(data.content)
       setEditBanner(`这是出厂最新版 ${data.version}，可直接保存采用，或在此基础上改完再保存。`)
     } catch (e: unknown) {
-      alert(errorMessage(e, '载入出厂版失败'))
+      showToast(errorMessage(e, '载入出厂版失败'), 'error')
     }
   }
 
@@ -117,12 +108,12 @@ const PromptSettings: React.FC = () => {
     setSaving(true)
     try {
       await adminPromptsAPI.update(editingModule, { content: editContent })
-      alert('保存成功')
+      showToast('保存成功', 'success')
       setEditingModule(null)
       setEditBanner(null)
       fetchPrompts()
     } catch (e: unknown) {
-      alert(errorMessage(e, '保存失败'))
+      showToast(errorMessage(e, '保存失败'), 'error')
     } finally {
       setSaving(false)
     }
@@ -137,11 +128,11 @@ const PromptSettings: React.FC = () => {
     setResetLoading(true)
     try {
       await adminPromptsAPI.resetToCanonical(resettingModule)
-      alert('已重置为系统默认版本')
+      showToast('已重置为系统默认版本', 'success')
       setResettingModule(null)
       fetchPrompts()
     } catch (e: unknown) {
-      alert(errorMessage(e, '重置失败'))
+      showToast(errorMessage(e, '重置失败'), 'error')
     } finally {
       setResetLoading(false)
     }
@@ -416,53 +407,16 @@ const PromptSettings: React.FC = () => {
         </div>
       )}
 
-      {/* 重置确认 Modal */}
-      {resettingModule && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: 'var(--color-bg-secondary)',
-            padding: '24px 28px', borderRadius: 12,
-            border: '1px solid var(--color-border)',
-            maxWidth: 460, width: '90%',
-          }}>
-            <h3 style={{ margin: '0 0 12px', color: 'var(--color-text-primary)' }}>
-              重置 prompt 为系统默认版本
-            </h3>
-            <p style={{ margin: '0 0 20px', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>
-              模块：<code style={{ background: '#333', padding: '2px 6px', borderRadius: 3 }}>{resettingModule}</code>
-              <br /><br />
-              重置将丢弃当前的自定义内容，恢复为代码注册表的当前版本。<strong style={{ color: '#f59e0b' }}>此操作不可撤销。</strong>
-            </p>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setResettingModule(null)}
-                style={{
-                  padding: '8px 16px', borderRadius: 6,
-                  background: 'transparent', border: '1px solid var(--color-border)',
-                  color: 'var(--color-text-secondary)', cursor: 'pointer',
-                }}
-              >
-                取消
-              </button>
-              <button
-                onClick={confirmReset}
-                disabled={resetLoading}
-                style={{
-                  padding: '8px 20px', borderRadius: 6,
-                  background: '#f59e0b', border: 'none',
-                  color: '#000', fontWeight: 500, cursor: 'pointer',
-                }}
-              >
-                {resetLoading ? '重置中...' : '确认重置'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!resettingModule}
+        title="重置 prompt 为系统默认版本"
+        description={resettingModule ? `模块：${resettingModule}。重置将丢弃当前的自定义内容，恢复为代码注册表的当前版本，此操作不可撤销。` : ''}
+        confirmText="确认重置"
+        danger
+        pending={resetLoading}
+        onCancel={() => setResettingModule(null)}
+        onConfirm={confirmReset}
+      />
     </div>
   )
 }

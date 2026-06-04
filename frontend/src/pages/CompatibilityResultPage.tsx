@@ -32,6 +32,7 @@ import SectionVerdict from '../components/compatibility/SectionVerdict'
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
 import DeepReportNarrative from '../components/compatibility/deep-analysis/DeepReportNarrative'
 import EvidenceDrawer from '../components/compatibility/EvidenceDrawer'
+import { useToast } from '../components/ui/useToast'
 import './CompatibilityResultPage.css'
 
 
@@ -103,6 +104,7 @@ export default function CompatibilityResultPage() {
   const { id } = useParams()
   const { user, isLoading } = useAuth()
   const navigate = useNavigate()
+  const { showToast } = useToast()
   const [detail, setDetail] = useState<CompatibilityDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [reportLoading, setReportLoading] = useState(false)
@@ -154,6 +156,7 @@ export default function CompatibilityResultPage() {
   }, [shareModalOpen])
 
   const handleGenerateReport = async () => {
+    if (reportLoading) return
     if (!id) return
     setReportLoading(true)
     setError('')
@@ -215,7 +218,7 @@ export default function CompatibilityResultPage() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''
       if (!msg.includes('AbortError') && !msg.includes('cancel')) {
-        alert('生成图片失败，请稍后重试')
+        showToast('生成图片失败，请稍后重试', 'error')
       }
     } finally {
       setSavingImage(false)
@@ -256,7 +259,7 @@ export default function CompatibilityResultPage() {
       const partnerName = partnerP?.display_name || '伴侣'
       pdf.save(`缘聚合盘-${selfName}-${partnerName}.pdf`)
     } catch {
-      alert('生成 PDF 失败，请稍后重试')
+      showToast('生成 PDF 失败，请稍后重试', 'error')
     } finally {
       el.style.display = prevDisplay
       setExportingPDF(false)
@@ -340,6 +343,7 @@ export default function CompatibilityResultPage() {
           personalityValidationPlan={personalityValidationPlan}
           decisionStageRisks={decisionStageRisks}
           durationAssessment={durationAssessment}
+          relationshipStrategy={consulting.relationship_strategy}
           dashboard={decisionDashboard}
         />
         <EvidenceDrawer
@@ -349,7 +353,6 @@ export default function CompatibilityResultPage() {
         <DeepReportNarrative
           hasReport={Boolean(detail.latest_report)}
           structuredReport={structuredReport}
-          relationshipStrategy={consulting.relationship_strategy}
           reportDimensions={reportDimensions}
           reportRisks={reportRisks}
           rawContent={detail.latest_report?.content}

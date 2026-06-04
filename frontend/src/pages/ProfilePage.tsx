@@ -73,26 +73,29 @@ export default function ProfilePage() {
   ]
   const latestChart = profile.recent_charts[0]
   const latestCompatibility = profile.recent_compatibility[0]
-  const continueTarget = latestChart
+  const latestChartTime = latestChart ? new Date(latestChart.created_at).getTime() : 0
+  const latestCompatibilityTime = latestCompatibility ? new Date(latestCompatibility.created_at).getTime() : 0
+  const continueWithCompatibility = latestCompatibility && latestCompatibilityTime > latestChartTime
+  const continueTarget = continueWithCompatibility
+    ? {
+        label: '最近合盘',
+        title: `${latestCompatibility.self_name || '我'} 与 ${latestCompatibility.partner_name || '对方'}`,
+        desc: latestCompatibility.summary_tags.length > 0 ? latestCompatibility.summary_tags.join(' · ') : latestCompatibility.overall_level,
+        href: `/compatibility/${latestCompatibility.id}`,
+      }
+    : latestChart
     ? {
         label: '最近命盘',
         title: `${latestChart.year_gan}${latestChart.year_zhi} · ${latestChart.month_gan}${latestChart.month_zhi} · ${latestChart.day_gan}${latestChart.day_zhi} · ${latestChart.hour_gan}${latestChart.hour_zhi}`,
         desc: `${latestChart.birth_year}年${latestChart.birth_month}月${latestChart.birth_day}日 ${latestChart.birth_hour}时 · ${genderText(latestChart.gender)}`,
         href: `/history/${latestChart.id}`,
       }
-    : latestCompatibility
-      ? {
-          label: '最近合盘',
-          title: `${latestCompatibility.self_name || '我'} 与 ${latestCompatibility.partner_name || '对方'}`,
-          desc: latestCompatibility.summary_tags.length > 0 ? latestCompatibility.summary_tags.join(' · ') : latestCompatibility.overall_level,
-          href: `/compatibility/${latestCompatibility.id}`,
-        }
-      : {
-          label: '新的分析',
-          title: '创建新的八字命盘',
-          desc: '填写生辰信息，开始一次新的命理分析',
-          href: '/',
-        }
+    : {
+        label: '新的分析',
+        title: '创建新的八字命盘',
+        desc: '填写生辰信息，开始一次新的命理分析',
+        href: '/',
+      }
 
   return (
     <main className="profile-page container page">
@@ -210,9 +213,9 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <section className="profile-panel">
+      <section className="profile-panel profile-coming-soon">
         <div className="profile-section-title">
-          <h2>充值点数与 PDF 模板</h2>
+          <h2>即将开放</h2>
         </div>
         <div className="profile-feature-row">
           {profile.features.map(feature => (

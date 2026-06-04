@@ -1,15 +1,51 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { authAPI } from '../lib/api'
+import { authAPI, baziAPI } from '../lib/api'
+import { buildAuthPath, getNextTargetFromSearch, resolvePostAuthTarget } from '../lib/authRedirect'
+import { clearPendingJourney, readPendingJourney } from '../lib/pendingJourney'
 import './AuthPage.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { login } = useAuth()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const safeNext = getNextTargetFromSearch(location.search, '')
+  const switchToRegisterPath = buildAuthPath('/register', safeNext)
+
+  const completePostAuthNavigation = async () => {
+    const pendingJourney = readPendingJourney()
+    if (pendingJourney?.type === 'bazi') {
+      try {
+        const res = await baziAPI.calculate(pendingJourney.input)
+        clearPendingJourney()
+        navigate(pendingJourney.returnPath || '/result', {
+          replace: true,
+          state: {
+            result: res.data.result,
+            chartId: res.data.chart_id,
+            input: pendingJourney.input,
+            isGuest: false,
+            pendingIntent: pendingJourney.intent,
+          },
+        })
+        return true
+      } catch (err: unknown) {
+        setError(err instanceof Error ? `登录成功，但恢复刚才的命盘失败：${err.message}` : '登录成功，但恢复刚才的命盘失败')
+        return false
+      }
+    }
+
+    navigate(resolvePostAuthTarget({
+      search: location.search,
+      stateNext: (location.state as { next?: unknown } | null)?.next,
+    }), { replace: true })
+    return true
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,7 +54,7 @@ export default function LoginPage() {
     try {
       const res = await authAPI.login(form)
       login(res.data.token, res.data.user)
-      navigate('/')
+      await completePostAuthNavigation()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '登录失败')
     } finally {
@@ -76,7 +112,7 @@ export default function LoginPage() {
           </form>
 
           <p className="auth-switch">
-            还没有账号？<Link to="/register">立即注册</Link>
+            还没有账号？<Link to={switchToRegisterPath}>立即注册</Link>
           </p>
         </div>
       </div>

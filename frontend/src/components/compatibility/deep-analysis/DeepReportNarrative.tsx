@@ -1,17 +1,14 @@
 import './DeepReportNarrative.css'
 import FamousCoupleCard from '../FamousCoupleCard'
 import PersonalityComparison from './PersonalityComparison'
-import RelationshipStrategy from './RelationshipStrategy'
 import type {
   CompatibilityStructuredReport,
   CompatibilityQuestionFocus,
-  CompatibilityRelationshipStrategy,
 } from '../../../lib/api'
 
 type Props = {
   hasReport: boolean
   structuredReport?: CompatibilityStructuredReport | null
-  relationshipStrategy?: CompatibilityRelationshipStrategy
   reportDimensions: CompatibilityStructuredReport['dimensions']
   reportRisks: string[]
   rawContent?: string
@@ -55,7 +52,6 @@ function QuestionFocusPanel({ focus }: { focus?: CompatibilityQuestionFocus }) {
 export default function DeepReportNarrative({
   hasReport,
   structuredReport,
-  relationshipStrategy,
   reportDimensions,
   reportRisks,
   rawContent,
@@ -73,7 +69,7 @@ export default function DeepReportNarrative({
       <div className={`compat-da-report__body ${reportStateClass}`}>
         {!hasReport && (
           <button className="btn btn-primary compatibility-report-action" onClick={onGenerateReport} disabled={reportLoading}>
-            {reportLoading ? '生成中…' : '生成深度解读'}
+            {reportLoading ? '生成中' : '生成深度解读'}
           </button>
         )}
 
@@ -116,9 +112,6 @@ export default function DeepReportNarrative({
               <div className="serif compatibility-report-title">建议</div>
               <div className="compatibility-report-text">{structuredReport.advice}</div>
             </div>
-            {relationshipStrategy && (
-              <RelationshipStrategy strategy={relationshipStrategy} />
-            )}
           </div>
         ) : rawContent ? (
           <div className="compatibility-report-raw">{rawContent}</div>

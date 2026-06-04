@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import { Diamond, X, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI, baziAPI, brandAPI, fetchShenshaAnnotations } from '../lib/api'
-import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, ExportBrand } from '../lib/api'
+import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, ExportBrand, CalculateInput } from '../lib/api'
 import { cleanReportText } from '../lib/reportText'
+import { buildAuthPath } from '../lib/authRedirect'
+import { createPendingBaziJourney, savePendingJourney } from '../lib/pendingJourney'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
@@ -13,6 +15,10 @@ import TiaohouCard from '../components/TiaohouCard'
 import ShareCard from '../components/ShareCard'
 import PrintLayout from '../components/PrintLayout'
 import PolishedPanel from '../components/PolishedPanel'
+import { SegmentedTabs } from '../components/ui/SegmentedTabs'
+import { useToast } from '../components/ui/useToast'
+import { ResultHeroSummary } from '../components/result/ResultHeroSummary'
+import { ResultActionBar } from '../components/result/ResultActionBar'
 import { toPng, toBlob } from 'html-to-image'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -169,6 +175,7 @@ interface TenGodRelationMatrix {
 }
 
 interface BaziResult {
+  display_name?: string
   year_gan: string; year_zhi: string
   month_gan: string; month_zhi: string
   day_gan: string; day_zhi: string
@@ -343,6 +350,7 @@ export default function ResultPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { showToast } = useToast()
 
   const [result, setResult] = useState<BaziResult | null>(location.state?.result || null)
   const [report, setReport] = useState<AIReport | null>(location.state?.report || null)
@@ -356,7 +364,11 @@ export default function ResultPage() {
   const [polishError, setPolishError] = useState<string | null>(null)
   const [savingImage, setSavingImage] = useState(false)
   const [exportingPDF, setExportingPDF] = useState(false)
+  const [chartDisplayNameDraft, setChartDisplayNameDraft] = useState(location.state?.result?.display_name || '')
+  const [chartDisplayNameError, setChartDisplayNameError] = useState('')
   const shareCardRef = useRef<HTMLDivElement>(null)
+  const pendingIntentConsumedRef = useRef(false)
+  const pendingInput = location.state?.input as CalculateInput | undefined
 
   // 神煞注解状态
   const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
@@ -457,7 +469,7 @@ export default function ResultPage() {
       // 用户主动取消分享不算错误
       const msg = err instanceof Error ? err.message : ''
       if (!msg.includes('AbortError') && !msg.includes('cancel')) {
-        alert('生成图片失败，请稍后重试')
+        showToast('生成图片失败，请稍后重试', 'error')
       }
     } finally {
       setSavingImage(false)
@@ -508,11 +520,22 @@ export default function ResultPage() {
       const fileName = `缘聚命理-命书.pdf`
       pdf.save(fileName)
     } catch {
-      alert('生成 PDF 失败，请稍后重试')
+      showToast('生成 PDF 失败，请稍后重试', 'error')
     } finally {
       el.style.display = prevDisplay
       setExportingPDF(false)
     }
+  }
+
+  const persistGuestJourney = (intent: 'view_result' | 'generate_report' = 'generate_report') => {
+    if (!isGuest || !pendingInput) return
+    savePendingJourney(createPendingBaziJourney({
+      input: pendingInput,
+      anonymousChartId: targetId,
+      displayLabel: result?.display_name || undefined,
+      intent,
+      returnPath: '/result',
+    }))
   }
 
   // AI 解读状态
@@ -557,13 +580,17 @@ export default function ResultPage() {
   // 此页面核心判定是 targetId
   const targetId = id || location.state?.chartId
 
+  useEffect(() => {
+    setChartDisplayNameDraft(result?.display_name || '')
+  }, [result?.display_name])
+
   // 加载润色版报告
   useEffect(() => {
-    if (!targetId) return
+    if (!targetId || !user) return
     baziAPI.getPolishedReport(targetId)
       .then(res => setPolishedReport(res.data.polished_report || null))
       .catch(() => setPolishedReport(null))
-  }, [targetId])
+  }, [targetId, user])
 
   // 从历史记录加载
   useEffect(() => {
@@ -580,6 +607,7 @@ export default function ResultPage() {
 
   // 点击"生成 AI 解读"按钮
   const handleGenerateReport = async () => {
+    if (reportLoading || isStreaming || isThinking) return
     if (!targetId) {
       setReportError('并未侦测到有效的命盘快照身份码，无法生成记录。');
       return;
@@ -631,6 +659,33 @@ export default function ResultPage() {
     )
   }
 
+  useEffect(() => {
+    if (pendingIntentConsumedRef.current) return
+    if (location.state?.pendingIntent !== 'generate_report') return
+    if (!targetId || isGuest || report || reportLoading || isStreaming || isThinking) return
+    pendingIntentConsumedRef.current = true
+    handleGenerateReport()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state?.pendingIntent, targetId, isGuest, report, reportLoading, isStreaming, isThinking])
+
+  const handleSaveChartDisplayName = async () => {
+    if (!targetId || isGuest) return
+    const nextName = chartDisplayNameDraft.trim()
+    if (Array.from(nextName).length > 20) {
+      setChartDisplayNameError('称呼不能超过20个字符')
+      return
+    }
+    try {
+      const res = await baziAPI.updateHistoryDisplayName(targetId, nextName)
+      const savedName = res.data.data.display_name
+      setResult(prev => prev ? { ...prev, display_name: savedName } : prev)
+      setChartDisplayNameDraft(savedName)
+      setChartDisplayNameError('')
+    } catch (err: unknown) {
+      setChartDisplayNameError(err instanceof Error ? err.message : '保存称呼失败')
+    }
+  }
+
   const submitPolish = async (userSituation: string) => {
     if (!targetId) return
     setPolishing(true)
@@ -664,42 +719,77 @@ export default function ResultPage() {
   const reportDigestItems = structured ? buildReportDigestItems(structured, result) : []
   // 旧报告降级：解析纯文字 content
   const reportSections = structured ? [] : parseReport(report?.content || '')
+  const resultSegments = [
+    { id: 'result-section-overview', label: '总览' },
+    { id: 'result-section-chart', label: '命盘' },
+    { id: 'result-section-yongshen', label: '用神' },
+    { id: 'result-section-dayun', label: '大运' },
+    { id: 'result-section-ai', label: 'AI 解读' },
+  ]
 
   return (
     <>
       <div className="result-page page screen-only">
         <div className="container">
 
-        {/* 生辰标题 */}
-        <div className="result-header animate-fade-up">
-          <div className="result-birth-info">
-            {result.birth_year}年{result.birth_month}月{result.birth_day}日 {result.birth_hour}时
-            &nbsp;·&nbsp;{result.gender === 'male' ? '男命' : '女命'}
+        <section id="result-section-overview" className="result-overview-section">
+          <ResultHeroSummary
+            birthYear={result.birth_year}
+            birthMonth={result.birth_month}
+            birthDay={result.birth_day}
+            birthHour={result.birth_hour}
+            gender={result.gender}
+            pillars={pillars}
+            yongshen={result.yongshen || ''}
+            jishen={result.jishen || ''}
+            mingGe={result.ming_ge || ''}
+            reportReady={!!report}
+            reportLoading={reportLoading || isStreaming || isThinking}
+            onMingGeClick={result.ming_ge ? () => setActiveMingGe({ name: result.ming_ge!, desc: result.ming_ge_desc || '' }) : undefined}
+          />
+          <ResultActionBar
+            hasReport={!!report}
+            reportLoading={reportLoading || isStreaming || isThinking}
+            exportingPDF={exportingPDF}
+            isGuest={isGuest}
+            targetId={targetId}
+            onGenerateReport={handleGenerateReport}
+            onExportPDF={handleExportPDF}
+          />
+          {targetId && !isGuest && (
+            <div className="chart-archive-tools">
+              <div className="chart-archive-name">
+                <label htmlFor="result-chart-display-name">命盘称呼</label>
+                <input
+                  id="result-chart-display-name"
+                  value={chartDisplayNameDraft}
+                  onChange={(event) => setChartDisplayNameDraft(event.target.value)}
+                  maxLength={20}
+                  placeholder={`${result.birth_year}年${result.birth_month}月${result.birth_day}日`}
+                />
+                <button type="button" className="btn btn-secondary" onClick={handleSaveChartDisplayName}>
+                  保存称呼
+                </button>
+              </div>
+              {chartDisplayNameError && <div className="chart-archive-error">{chartDisplayNameError}</div>}
+              <div className="chart-archive-compatibility">
+                <span>用此命盘发起合盘</span>
+                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=self`)}>
+                  作为我
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=partner`)}>
+                  作为对方
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="result-segment-nav">
+            <SegmentedTabs items={resultSegments} ariaLabel="结果页分段导航" />
           </div>
-          <h1 className="result-pillars serif">
-            {pillars.map(p => `${p.gan}${p.zhi}`).join('·')}
-          </h1>
-          <div className="result-tags">
-            <span className={`wuxing-badge ${result.yongshen ? 'wuxing-' + (WUXING_MAP[result.yongshen?.charAt(0)] || 'jin') : 'wuxing-unknown'}`}>
-              喜用：{result.yongshen || (reportLoading ? '测算中...' : '待生成')}
-            </span>
-            <span className={`wuxing-badge ${result.jishen ? 'wuxing-' + (WUXING_MAP[result.jishen?.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
-              忌：{result.jishen || (reportLoading ? '测算中...' : '待生成')}
-            </span>
-            {result.ming_ge && (
-              <span
-                className="mingge-badge"
-                onClick={() => setActiveMingGe({ name: result.ming_ge!, desc: result.ming_ge_desc || '' })}
-                title="点击查看格局说明"
-              >
-                {result.ming_ge}
-              </span>
-            )}
-          </div>
-        </div>
+        </section>
 
         {/* 命盘详情 */}
-        <div className="professional-view animate-fade-up">
+        <section id="result-section-chart" className="professional-view animate-fade-up">
 
             {/* 四柱数据网格 (Professional Data Grid) */}
             <div className="pillars-section card bazi-primary-panel">
@@ -856,7 +946,7 @@ export default function ResultPage() {
               )}
             </section>
 
-            <section className="result-structure-section" aria-labelledby="structure-title">
+            <section id="result-section-yongshen" className="result-structure-section" aria-labelledby="structure-title">
               <div className="result-section-heading">
                 <span className="result-section-kicker">结构判断</span>
                 <h2 id="structure-title" className="section-title serif">命局结构</h2>
@@ -900,7 +990,7 @@ export default function ResultPage() {
             )}
 
             {/* 大运时间轴 */}
-            <section className="dayun-section">
+            <section id="result-section-dayun" className="dayun-section">
               <DayunTimeline
                 dayun={result.dayun}
                 birthYear={result.birth_year}
@@ -935,10 +1025,10 @@ export default function ResultPage() {
                 </button>
               )}
             </section>
-          </div>
+          </section>
 
         {/* AI 解读区域 */}
-        <div className="report-section card animate-fade-up">
+        <section id="result-section-ai" className="report-section card animate-fade-up">
           <div className="report-section-header">
             <h2 className="section-title serif">命理解读</h2>
             <div className="report-header-actions">
@@ -1126,7 +1216,25 @@ export default function ResultPage() {
 
               {/* 报错 */}
               {reportError && !reportLoading && !isStreaming && (
-                <p className="form-error" style={{ margin: '12px 0' }}>{reportError}</p>
+                <div className="report-retry-panel">
+                  <p className="form-error">{reportError}</p>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleGenerateReport}
+                    disabled={reportLoading || isStreaming || isThinking}
+                  >
+                    重试生成
+                  </button>
+                </div>
+              )}
+
+              {reportError && streamingText && !report && !reportLoading && !isStreaming && (
+                <div className="report-sections animate-fade-in">
+                  <div className="report-content" style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', lineHeight: 1.8 }}>
+                    {streamingText}
+                  </div>
+                </div>
               )}
 
               {/* 未生成：显示按钮或引导 */}
@@ -1149,8 +1257,24 @@ export default function ResultPage() {
                     <div className="guest-banner">
                       <span>登录后可获得完整解读报告，并保存命盘记录</span>
                       {registration_enabled
-                        ? <a href="/register" className="btn btn-primary btn-sm">立即注册</a>
-                        : <a href="/login" className="btn btn-primary btn-sm">登录账号</a>}
+                        ? (
+                          <a
+                            href={buildAuthPath('/register', '/result')}
+                            className="btn btn-primary btn-sm"
+                            onClick={() => persistGuestJourney('generate_report')}
+                          >
+                            立即注册
+                          </a>
+                        )
+                        : (
+                          <a
+                            href={buildAuthPath('/login', '/result')}
+                            className="btn btn-primary btn-sm"
+                            onClick={() => persistGuestJourney('generate_report')}
+                          >
+                            登录账号
+                          </a>
+                        )}
                     </div>
                   )}
                 </>
@@ -1181,7 +1305,7 @@ export default function ResultPage() {
               </button>
             </div>
           )}
-        </div>
+        </section>
       </div>
 
       {/* 隐藏的分享卡片（用于生成图片，不可见） */}

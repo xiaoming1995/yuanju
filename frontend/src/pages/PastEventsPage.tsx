@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronLeft, Loader2 } from 'lucide-react'
 import { baziAPI } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
+import { Button } from '../components/ui/Button'
+import { EmptyState } from '../components/ui/EmptyState'
 
 interface YearEvent {
   year: number
@@ -513,9 +515,16 @@ export default function PastEventsPage() {
         )}
 
         {yearsLoaded && events.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-            暂无过往年份数据
-          </div>
+          <EmptyState
+            title="暂无过往年份数据"
+            description="这份命盘暂时没有可展示的过往事件推算结果，可以返回结果页继续查看命盘或重新起盘。"
+            action={
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {chartId && <Button href={`/history/${chartId}`} variant="primary">返回结果页</Button>}
+                <Button href="/history" variant="secondary">查看历史命盘</Button>
+              </div>
+            }
+          />
         )}
 
         {yearsLoaded && events.length > 0 && (

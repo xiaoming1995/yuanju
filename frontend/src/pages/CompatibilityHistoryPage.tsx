@@ -8,6 +8,7 @@ import {
   type CompatibilityDimensionScoresLegacy,
 } from '../lib/api'
 import { getPersonalityMatchType } from '../lib/compatibilityPersonality'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import './CompatibilityHistoryPage.css'
 
 const levelText: Record<string, string> = {
@@ -191,33 +192,16 @@ export default function CompatibilityHistoryPage() {
           </div>
         )}
 
-        {deletingItem ? (
-          <div
-            className="compatibility-history-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="删除合盘确认"
-            onClick={() => { if (!deleteLoading) setDeletingItem(null) }}
-          >
-            <div
-              className="compatibility-history-dialog-panel"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <p className="compatibility-history-kicker">删除合盘</p>
-              <h2 className="serif">{deletingItem.self_name} × {deletingItem.partner_name}</h2>
-              <p>删除后该合盘记录及其完整解读将永久消失，无法恢复。</p>
-              {deleteError ? <p className="compatibility-history-dialog-error">{deleteError}</p> : null}
-              <div className="compatibility-history-dialog-actions">
-                <button type="button" className="btn history-danger-button" disabled={deleteLoading} onClick={handleConfirmDelete}>
-                  {deleteLoading ? '删除中...' : '删除'}
-                </button>
-                <button type="button" className="btn btn-secondary" disabled={deleteLoading} onClick={() => setDeletingItem(null)}>
-                  取消
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        <ConfirmDialog
+          open={Boolean(deletingItem)}
+          title={deletingItem ? `删除 ${deletingItem.self_name} × ${deletingItem.partner_name}` : '删除合盘'}
+          description={deleteError ? <>删除后该合盘记录及其完整解读将永久消失，无法恢复。<br />{deleteError}</> : '删除后该合盘记录及其完整解读将永久消失，无法恢复。'}
+          confirmText="删除"
+          danger
+          pending={deleteLoading}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => { if (!deleteLoading) setDeletingItem(null) }}
+        />
       </div>
     </div>
   )

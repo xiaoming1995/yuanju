@@ -29,6 +29,7 @@ import PastEventsPage from './pages/PastEventsPage'
 import CompatibilityPage from './pages/CompatibilityPage'
 import CompatibilityHistoryPage from './pages/CompatibilityHistoryPage'
 import CompatibilityResultPage from './pages/CompatibilityResultPage'
+import { ToastProvider } from './components/ui/Toast'
 import './index.css'
 import './App.css'
 
@@ -46,41 +47,43 @@ export default function App() {
       <ParticleBackground />
       <AdminAuthProvider>
         <AuthProvider>
-          <Routes>
-            {/* 普通用户路由 */}
-            <Route path="/" element={<><Navbar /><BottomNav /><HomePage /></>} />
-            <Route path="/login" element={<><Navbar /><BottomNav /><LoginPage /></>} />
-            <Route path="/register" element={<><Navbar /><BottomNav /><RegisterPage /></>} />
-            <Route path="/result" element={<><Navbar /><BottomNav /><ResultPage /></>} />
-            <Route path="/history" element={<><Navbar /><BottomNav /><HistoryPage /></>} />
-            <Route path="/history/:id" element={<><Navbar /><BottomNav /><ResultPage /></>} />
-            <Route path="/profile" element={<><Navbar /><BottomNav /><ProfilePage /></>} />
-            <Route path="/settings/brand" element={<><Navbar /><BottomNav /><BrandSettingsPage /></>} />
-            <Route path="/bazi/:chartId/past-events" element={<><Navbar /><BottomNav /><PastEventsPage /></>} />
-            <Route path="/compatibility" element={<><Navbar /><BottomNav /><CompatibilityPage /></>} />
-            <Route path="/compatibility/history" element={<><Navbar /><BottomNav /><CompatibilityHistoryPage /></>} />
-            <Route path="/compatibility/:id" element={<><Navbar /><BottomNav /><CompatibilityResultPage /></>} />
+          <ToastProvider>
+            <Routes>
+              {/* 普通用户路由 */}
+              <Route path="/" element={<><Navbar /><BottomNav /><HomePage /></>} />
+              <Route path="/login" element={<><Navbar /><BottomNav /><LoginPage /></>} />
+              <Route path="/register" element={<><Navbar /><BottomNav /><RegisterPage /></>} />
+              <Route path="/result" element={<><Navbar /><BottomNav /><ResultPage /></>} />
+              <Route path="/history" element={<><Navbar /><BottomNav /><HistoryPage /></>} />
+              <Route path="/history/:id" element={<><Navbar /><BottomNav /><ResultPage /></>} />
+              <Route path="/profile" element={<><Navbar /><BottomNav /><ProfilePage /></>} />
+              <Route path="/settings/brand" element={<><Navbar /><BottomNav /><BrandSettingsPage /></>} />
+              <Route path="/bazi/:chartId/past-events" element={<><Navbar /><BottomNav /><PastEventsPage /></>} />
+              <Route path="/compatibility" element={<><Navbar /><BottomNav /><CompatibilityPage /></>} />
+              <Route path="/compatibility/history" element={<><Navbar /><BottomNav /><CompatibilityHistoryPage /></>} />
+              <Route path="/compatibility/:id" element={<><Navbar /><BottomNav /><CompatibilityResultPage /></>} />
 
-            {/* Admin 路由（独立布局，无 Navbar）*/}
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route path="/admin" element={
-              <AdminGuard><AdminLayout /></AdminGuard>
-            }>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboardPage />} />
-              <Route path="llm" element={<AdminLLMPage />} />
-              <Route path="users" element={<AdminUsersPage />} />
-              <Route path="celebrities" element={<AdminCelebritiesPage />} />
-              <Route path="charts" element={<AdminChartsPage />} />
-              <Route path="compatibility" element={<AdminCompatPage />} />
-              <Route path="ai-logs" element={<AdminAILogsPage />} />
-              <Route path="prompts" element={<PromptSettings />} />
-              <Route path="algo-config" element={<AlgoConfigPage />} />
-              <Route path="cleanup-config" element={<CleanupConfigPage />} />
-              <Route path="token-usage" element={<TokenUsagePage />} />
-              <Route path="shensha-annotations" element={<ShenshaAnnotationsPage />} />
-            </Route>
-          </Routes>
+              {/* Admin 路由（独立布局，无 Navbar）*/}
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/admin" element={
+                <AdminGuard><AdminLayout /></AdminGuard>
+              }>
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboardPage />} />
+                <Route path="llm" element={<AdminLLMPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="celebrities" element={<AdminCelebritiesPage />} />
+                <Route path="charts" element={<AdminChartsPage />} />
+                <Route path="compatibility" element={<AdminCompatPage />} />
+                <Route path="ai-logs" element={<AdminAILogsPage />} />
+                <Route path="prompts" element={<PromptSettings />} />
+                <Route path="algo-config" element={<AlgoConfigPage />} />
+                <Route path="cleanup-config" element={<CleanupConfigPage />} />
+                <Route path="token-usage" element={<TokenUsagePage />} />
+                <Route path="shensha-annotations" element={<ShenshaAnnotationsPage />} />
+              </Route>
+            </Routes>
+          </ToastProvider>
         </AuthProvider>
       </AdminAuthProvider>
     </BrowserRouter>

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Bot, CheckCircle } from 'lucide-react'
 import { adminLLMAPI } from '../../lib/adminApi'
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
+import { StatusBadge } from '../../components/ui/StatusBadge'
+import { useToast } from '../../components/ui/useToast'
 
 interface Provider {
   id: string; name: string; type: string; base_url: string
@@ -19,6 +22,7 @@ interface TestResult {
 const initialForm = { name: '', type: 'deepseek', base_url: '', model: '', api_key: '', thinking_enabled: false, input_price_cny: 1.0, output_price_cny: 2.0 }
 
 export default function AdminLLMPage() {
+  const { showToast } = useToast()
   const [providers, setProviders] = useState<Provider[]>([])
   const [presetTypes, setPresetTypes] = useState<PresetType[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,6 +34,8 @@ export default function AdminLLMPage() {
   const [testingId, setTestingId] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
   const [selectedPresetName, setSelectedPresetName] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null)
+  const [deletePending, setDeletePending] = useState(false)
 
   const load = () => {
     adminLLMAPI.list().then(r => {
@@ -95,6 +101,7 @@ export default function AdminLLMPage() {
         await adminLLMAPI.create({ name: form.name, type: form.type, base_url: form.base_url, model: form.model, api_key: form.api_key, thinking_enabled: form.thinking_enabled, input_price_cny: form.input_price_cny, output_price_cny: form.output_price_cny })
       }
       setShowModal(false)
+      showToast(editing ? 'Provider 已更新' : 'Provider 已添加', 'success')
       load()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '保存失败')
@@ -103,13 +110,27 @@ export default function AdminLLMPage() {
 
   const handleActivate = async (id: string) => {
     setProviders(ps => ps.map(p => ({ ...p, active: p.id === id })))
-    try { await adminLLMAPI.activate(id) } catch { load() }
+    try {
+      await adminLLMAPI.activate(id)
+      showToast('Provider 已激活', 'success')
+    } catch {
+      showToast('激活失败，已恢复列表状态', 'error')
+      load()
+    }
   }
 
-  const handleDelete = async (p: Provider) => {
-    if (!confirm(`确定删除 "${p.name}"？`)) return
-    try { await adminLLMAPI.delete(p.id); load() } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '删除失败')
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeletePending(true)
+    try {
+      await adminLLMAPI.delete(deleteTarget.id)
+      showToast(`已删除 ${deleteTarget.name}`, 'success')
+      setDeleteTarget(null)
+      load()
+    } catch (e: unknown) {
+      showToast(e instanceof Error ? e.message : '删除失败', 'error')
+    } finally {
+      setDeletePending(false)
     }
   }
 
@@ -118,8 +139,10 @@ export default function AdminLLMPage() {
     try {
       const res = await adminLLMAPI.test(id)
       setTestResults(prev => ({ ...prev, [id]: res.data }))
+      showToast(res.data.ok ? 'Provider 测试通过' : `Provider 测试失败：${res.data.error || '连接异常'}`, res.data.ok ? 'success' : 'error')
     } catch (e: unknown) {
       setTestResults(prev => ({ ...prev, [id]: { ok: false, error: e instanceof Error ? e.message : '测试失败' } }))
+      showToast(e instanceof Error ? e.message : '测试失败', 'error')
     } finally {
       setTestingId(null)
     }
@@ -167,9 +190,9 @@ export default function AdminLLMPage() {
                   <td style={{ color: '#aaa', fontSize: 13 }}>¥{p.output_price_cny?.toFixed(2) ?? '—'}</td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <span className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <StatusBadge tone={p.active ? 'success' : 'neutral'} className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`}>
                         {p.active ? <><CheckCircle size={12} /> 激活</> : '待机'}
-                      </span>
+                      </StatusBadge>
                       {testResults[p.id] && (
                         <span style={{ fontSize: 11, color: testResults[p.id].ok ? '#4ade80' : '#f87171' }}>
                           {testResults[p.id].ok
@@ -197,7 +220,7 @@ export default function AdminLLMPage() {
                         onClick={() => openEdit(p)}>编辑</button>
                       {!p.active && (
                         <button className="admin-btn admin-btn-danger" style={{ padding: '4px 10px', fontSize: 12 }}
-                          onClick={() => handleDelete(p)}>删除</button>
+                          onClick={() => setDeleteTarget(p)}>删除</button>
                       )}
                     </div>
                   </td>
@@ -299,6 +322,17 @@ export default function AdminLLMPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="删除 Provider"
+        description={deleteTarget ? `确定删除 "${deleteTarget.name}"？删除后不能用于新的 AI 调用。` : ''}
+        confirmText="删除"
+        danger
+        pending={deletePending}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   )
 }

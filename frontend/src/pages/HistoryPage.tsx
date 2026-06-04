@@ -4,6 +4,8 @@ import { CalendarDays, Compass, HeartHandshake, Sparkles, Trash2 } from 'lucide-
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, type BaziHistoryChart } from '../lib/api'
 import { chartDisplayName, chartFallbackName, formatPillars, genderText } from '../lib/chartLabel'
+import { Button } from '../components/ui/Button'
+import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import './HistoryPage.css'
 
 type Chart = BaziHistoryChart
@@ -269,7 +271,15 @@ export default function HistoryPage() {
                       <Trash2 size={14} />
                       删除
                     </button>
-                    <span className="history-record-action">查看命盘</span>
+                    <Button
+                      href={`/bazi/${c.id}/past-events`}
+                      variant="ghost"
+                      size="sm"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      查看过往事件
+                    </Button>
+                    <span className="history-record-action">查看结果</span>
                   </div>
                 </div>
                 <div className="history-record-footer">
@@ -313,34 +323,16 @@ export default function HistoryPage() {
           </div>
         ) : null}
 
-        {deletingChart ? (
-          <div
-            className="history-role-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="删除命盘确认"
-            onClick={() => { if (!deleteLoading) setDeletingChart(null) }}
-          >
-            <div
-              className="history-role-dialog-panel"
-              tabIndex={-1}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <p className="history-kicker">删除命盘</p>
-              <h2 className="serif">{chartDisplayName(deletingChart)}</h2>
-              <p>删除后该命盘及其 AI 报告将永久消失，无法恢复。</p>
-              {deleteError ? <p className="history-name-error">{deleteError}</p> : null}
-              <div className="history-role-actions">
-                <button type="button" className="btn history-danger-button" disabled={deleteLoading} onClick={handleConfirmDelete}>
-                  {deleteLoading ? '删除中...' : '删除'}
-                </button>
-                <button type="button" className="btn btn-secondary" disabled={deleteLoading} onClick={() => setDeletingChart(null)}>
-                  取消
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        <ConfirmDialog
+          open={Boolean(deletingChart)}
+          title={deletingChart ? `删除 ${chartDisplayName(deletingChart)}` : '删除命盘'}
+          description={deleteError ? <>删除后该命盘及其 AI 报告将永久消失，无法恢复。<br />{deleteError}</> : '删除后该命盘及其 AI 报告将永久消失，无法恢复。'}
+          confirmText="删除"
+          danger
+          pending={deleteLoading}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => { if (!deleteLoading) setDeletingChart(null) }}
+        />
       </div>
     </div>
   )

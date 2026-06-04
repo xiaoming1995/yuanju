@@ -151,7 +151,7 @@ export default function CompatibilityPage() {
   useEffect(() => {
     if (!pickerRole) return
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    pickerSearchRef.current?.focus()
+    chartPickerRef.current?.focus()
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setPickerRole(null)
     }

@@ -1,0 +1,32 @@
+.ui-segmented-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+}
+
+.ui-segmented-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ui-segmented-tabs__item {
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  border-radius: var(--radius-control);
+  color: var(--text-subtle);
+  font-size: 14px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ui-segmented-tabs__item:hover,
+.ui-segmented-tabs__item.is-active {
+  background: rgba(201, 168, 76, 0.14);
+  color: var(--primary);
+}

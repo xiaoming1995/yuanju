@@ -220,6 +220,19 @@
   opacity: 0.82;
 }
 
+.profile-coming-soon {
+  opacity: 0.78;
+}
+
+.profile-coming-soon .profile-section-title {
+  margin-bottom: 10px;
+}
+
+.profile-coming-soon .profile-section-title h2 {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
 .profile-feature-status {
   margin-left: auto;
   align-self: center;

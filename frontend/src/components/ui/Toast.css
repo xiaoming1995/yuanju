@@ -1,0 +1,37 @@
+.ui-toast {
+  position: fixed;
+  right: 20px;
+  bottom: calc(24px + env(safe-area-inset-bottom));
+  z-index: 1300;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.ui-toast__item {
+  padding: 12px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-panel);
+  background: var(--surface-panel);
+  color: var(--text-body);
+  box-shadow: var(--shadow-md);
+}
+
+.ui-toast__item--success {
+  border-color: rgba(76, 175, 125, 0.34);
+}
+
+.ui-toast__item--error {
+  border-color: rgba(224, 92, 75, 0.34);
+}
+
+.ui-toast__item--info {
+  border-color: rgba(91, 155, 213, 0.34);
+}
+
+@media (max-width: 640px) {
+  .ui-toast {
+    right: 16px;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
