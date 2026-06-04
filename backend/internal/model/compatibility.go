@@ -202,6 +202,7 @@ type CompatibilityPersonalityComparison struct {
 
 type CompatibilityStructuredReport struct {
 	Summary               string                              `json:"summary"`
+	FamousCouple          *CompatibilityFamousCouple          `json:"famous_couple,omitempty"`
 	QuestionFocus         CompatibilityQuestionFocus          `json:"question_focus"`
 	PersonalityComparison *CompatibilityPersonalityComparison `json:"personality_comparison,omitempty"`
 	Dimensions            []CompatibilityDimensionNarrative   `json:"dimensions"`
@@ -213,6 +214,14 @@ type CompatibilityStructuredReport struct {
 	ClaimEvidenceLinks    []CompatibilityClaimEvidenceLink    `json:"claim_evidence_links"`
 	Risks                 []string                            `json:"risks"`
 	Advice                string                              `json:"advice"`
+}
+
+// CompatibilityFamousCouple 是 LLM 给这对关系挑的名人/经典情侣类比，
+// 反映关系真实动态（可甜可虐），随深度解读生成、随报告 JSON 持久化。
+type CompatibilityFamousCouple struct {
+	Couple  string `json:"couple"`  // 这对 CP 的名字，例如「梁山伯与祝英台」
+	Tagline string `json:"tagline"` // 一句话点出关系气质
+	Reason  string `json:"reason"`  // 1–2 句大白话，扣住报告里已有的信号
 }
 
 type CompatibilityPromptData struct {
