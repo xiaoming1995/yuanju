@@ -442,8 +442,15 @@ export interface CompatibilityPersonalityComparison {
   clash_points: CompatibilityPersonalityPoint[]
 }
 
+export interface CompatibilityFamousCouple {
+  couple: string
+  tagline: string
+  reason: string
+}
+
 export interface CompatibilityStructuredReport {
   summary: string
+  famous_couple?: CompatibilityFamousCouple | null
   question_focus?: CompatibilityQuestionFocus
   personality_comparison?: CompatibilityPersonalityComparison | null
   dimensions: Array<{ key: string; title: string; content: string }>
