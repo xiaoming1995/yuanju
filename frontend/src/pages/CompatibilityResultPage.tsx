@@ -32,7 +32,6 @@ import SectionVerdict from '../components/compatibility/SectionVerdict'
 import SectionDeepAnalysis from '../components/compatibility/SectionDeepAnalysis'
 import DeepReportNarrative from '../components/compatibility/deep-analysis/DeepReportNarrative'
 import EvidenceDrawer from '../components/compatibility/EvidenceDrawer'
-import FamousCoupleCard from '../components/compatibility/FamousCoupleCard'
 import './CompatibilityResultPage.css'
 
 
@@ -325,12 +324,6 @@ export default function CompatibilityResultPage() {
           partnerName={partnerP?.display_name || '对方'}
           overallScore={reading.overall_score}
           verdict={decisionDashboard.verdict}
-        />
-        <FamousCoupleCard
-          hasReport={Boolean(detail.latest_report)}
-          famousCouple={structuredReport?.famous_couple}
-          reportLoading={reportLoading}
-          onGenerateReport={handleGenerateReport}
         />
         <SectionBasicCharts self={selfP || null} partner={partnerP || null} />
         <DayPillarPortrait self={selfP || null} partner={partnerP || null} />

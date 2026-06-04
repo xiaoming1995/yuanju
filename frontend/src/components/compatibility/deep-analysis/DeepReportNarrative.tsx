@@ -1,4 +1,5 @@
 import './DeepReportNarrative.css'
+import FamousCoupleCard from '../FamousCoupleCard'
 import PersonalityComparison from './PersonalityComparison'
 import RelationshipStrategy from './RelationshipStrategy'
 import type {
@@ -90,6 +91,7 @@ export default function DeepReportNarrative({
 
         {structuredReport ? (
           <div className="compatibility-report-content">
+            <FamousCoupleCard famousCouple={structuredReport.famous_couple} />
             <QuestionFocusPanel focus={structuredReport.question_focus} />
             <div className="compatibility-report-section">
               <div className="serif compatibility-report-title">总体判断</div>

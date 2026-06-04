@@ -62,10 +62,9 @@ test('compatibility result page wires a single report generation handler to Deep
   const page = read('src/pages/CompatibilityResultPage.tsx')
   const deepReport = read('src/components/compatibility/deep-analysis/DeepReportNarrative.tsx')
 
-  // page reuses the single handleGenerateReport handler in two generate entrypoints:
-  // the standalone DeepReportNarrative and the top FamousCoupleCard teaser
+  // page passes the handler once (a JSX prop on the standalone DeepReportNarrative)
   const handlerWires = page.match(/onGenerateReport=\{handleGenerateReport\}/g) || []
-  assert.equal(handlerWires.length, 2)
+  assert.equal(handlerWires.length, 1)
   const generateClicks = deepReport.match(/onClick=\{onGenerateReport\}/g) || []
   assert.equal(generateClicks.length, 1)
 })
