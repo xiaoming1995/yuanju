@@ -2,7 +2,7 @@
 
 ## MODIFIED Requirements
 
-### Requirement: Zodiac module (year-zhi liuhe / sanhe + same-element + sheng)
+### Requirement: Zodiac module (year-zhi liuhe / sanhe only)
 The zodiac module SHALL award 50 points when the two year-zhi form 六合 or 三合 (half-sanhe acceptable); 30 points when the two year-zhi have the same 五行 (双生); 20 points when the two year-zhi 五行 stand in a 生 relation (either direction); otherwise 0.
 
 #### Scenario: Year-zhi liuhe hit
@@ -26,7 +26,7 @@ The zodiac module SHALL award 50 points when the two year-zhi form 六合 or 三
 - **WHEN** none of the above hits
 - **THEN** zodiac SHALL be 0
 
-### Requirement: Day pillar module (four tiers)
+### Requirement: Day pillar module
 The day_pillar module SHALL award:
 - 10 (上档 / `day_pillar_upper`) when day-zhi is 六合/三合 AND day-gan is 五合 or 五行相生
 - 5 (下档 / `day_pillar_lower`) when day-zhi is 六合/三合 (day-gan 同/克/无关)
@@ -55,7 +55,7 @@ The day_pillar module SHALL award:
 - **WHEN** none of the above scenarios apply
 - **THEN** day_pillar SHALL be 0
 
-### Requirement: Eight-chars module (per-pillar 0/3/5/10)
+### Requirement: Eight-chars module (year/month/hour aggregation)
 The eight_chars module SHALL score each of the three non-day pillar pairs (year/year, month/month, hour/hour) by the day_pillar rule, sum the three results (0–30) and normalize to [0, 20] via (sum × 2 + 1) / 3 with integer division.
 
 #### Scenario: All three pillars upper tier
@@ -70,7 +70,7 @@ The eight_chars module SHALL score each of the three non-day pillar pairs (year/
 - **WHEN** sum is 10
 - **THEN** eight_chars SHALL be 7
 
-### Requirement: Analysis version tag (v3.1)
+### Requirement: Analysis version tag
 The analysis_version field of new CompatibilityReading records written by this engine SHALL be "v3.1"; v1/v2/v3 records remain unchanged and renderable through their respective frontend paths.
 
 #### Scenario: New reading written
