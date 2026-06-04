@@ -383,6 +383,16 @@ export default function CompatibilityPrintLayout(props: CompatibilityPrintLayout
             <>
               <section className="compat-print-section">
                 <h2 className="compat-print-section-title">六、命理解读</h2>
+                {structured.famous_couple && (
+                  <div className="compat-print-chapter compat-print-couple">
+                    <h4 className="compat-print-chapter-title">名人配对类比</h4>
+                    <p className="compat-print-couple-name">
+                      {structured.famous_couple.couple}
+                      {structured.famous_couple.tagline ? `——${structured.famous_couple.tagline}` : ''}
+                    </p>
+                    {structured.famous_couple.reason && <p>{structured.famous_couple.reason}</p>}
+                  </div>
+                )}
                 {structured.summary && <p className="compat-print-summary">{structured.summary}</p>}
                 {structured.personality_comparison &&
                   (structured.personality_comparison.self || structured.personality_comparison.partner) && (

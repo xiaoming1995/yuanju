@@ -216,6 +216,7 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
     title: d.title,
     digest: firstSentence(d.content),
   }))
+  const famousCouple = structured?.famous_couple
   const personality = structured?.personality_comparison
   const personalityCols = personality && (personality.self || personality.partner)
     ? [
@@ -260,6 +261,15 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
           {reading.overall_score}
         </div>
       </section>
+
+      {famousCouple && (
+        <section className="compat-share-couple">
+          <div className="compat-share-couple-kicker">你们这对，像</div>
+          <div className="compat-share-couple-name">{famousCouple.couple}</div>
+          {famousCouple.tagline && <div className="compat-share-couple-tagline">{famousCouple.tagline}</div>}
+          {famousCouple.reason && <p className="compat-share-couple-reason">{famousCouple.reason}</p>}
+        </section>
+      )}
 
       {dimEntries.length > 0 && (
         <section className="compat-share-dims">
