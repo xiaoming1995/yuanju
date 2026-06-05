@@ -601,3 +601,54 @@ func TestCompatibilityParticipantSummary_AppendsSpouseSignal(t *testing.T) {
 		}
 	}
 }
+
+func TestCompatibilityParticipantSummary_SpouseStarInPalace(t *testing.T) {
+	snapshot, _ := json.Marshal(bazi.BaziResult{
+		YearGan: "甲", YearZhi: "子",
+		MonthGan: "丙", MonthZhi: "寅",
+		DayGan: "甲", DayZhi: "丑",
+		HourGan: "丁", HourZhi: "卯",
+		DayZhiShiShen: []string{"正财"}, // 财坐日支 → 入夫妻宫
+		Gender:        "male",
+	})
+	raw := json.RawMessage(snapshot)
+	p := &model.CompatibilityParticipant{DisplayName: "我", ChartSnapshot: &raw}
+
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatalf("compatibilityParticipantSummary error: %v", err)
+	}
+	if !strings.Contains(summary, "坐夫妻宫(日支)") {
+		t.Errorf("summary 缺『坐夫妻宫(日支)』；got: %s", summary)
+	}
+}
+
+func TestCompatibilityParticipantSummary_GenderFallbackFromBirthProfile(t *testing.T) {
+	// 快照无性别 → 应从 BirthProfile.Gender 兜底，从而能定出配偶星
+	snapshot, _ := json.Marshal(bazi.BaziResult{
+		YearGan: "甲", YearZhi: "子",
+		MonthGan: "丙", MonthZhi: "寅",
+		DayGan: "甲", DayZhi: "丑",
+		HourGan: "丁", HourZhi: "卯",
+		DayZhiShiShen: []string{"正财"},
+		Gender:        "", // 快照无性别
+	})
+	raw := json.RawMessage(snapshot)
+	p := &model.CompatibilityParticipant{
+		DisplayName:   "我",
+		ChartSnapshot: &raw,
+		BirthProfile:  model.CompatibilityBirthProfile{Gender: "male"},
+	}
+
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatalf("compatibilityParticipantSummary error: %v", err)
+	}
+	// 兜底成功 → 能定配偶星(财星)，不应出现『性别缺失』
+	if strings.Contains(summary, "性别缺失") {
+		t.Errorf("性别应已从 BirthProfile 兜底，却仍报缺失；got: %s", summary)
+	}
+	if !strings.Contains(summary, "配偶星(财星)") {
+		t.Errorf("兜底后应能定出配偶星(财星)；got: %s", summary)
+	}
+}
