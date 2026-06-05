@@ -448,11 +448,26 @@ export interface CompatibilityFamousCouple {
   reason: string
 }
 
+export interface CompatibilitySpousePalaceSide {
+  ideal_portrait: string
+  match_level: 'high' | 'medium' | 'low' | ''
+  fit_points: string[]
+  gap_points: string[]
+  evidence_keys: string[]
+}
+
+export interface CompatibilitySpousePalaceMatch {
+  self: CompatibilitySpousePalaceSide
+  partner: CompatibilitySpousePalaceSide
+  summary: string
+}
+
 export interface CompatibilityStructuredReport {
   summary: string
   famous_couple?: CompatibilityFamousCouple | null
   question_focus?: CompatibilityQuestionFocus
   personality_comparison?: CompatibilityPersonalityComparison | null
+  spouse_palace_match?: CompatibilitySpousePalaceMatch | null
   dimensions: Array<{ key: string; title: string; content: string }>
   duration_assessment: CompatibilityDurationAssessment
   relationship_diagnosis?: CompatibilityRelationshipDiagnosis
