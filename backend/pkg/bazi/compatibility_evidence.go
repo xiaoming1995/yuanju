@@ -6,7 +6,8 @@ import (
 )
 
 // buildCompatibilityEvidencesV3 把 4 模块的命中按设计文档 §4.2 转为 evidence 列表。
-// 仅产出"positive"性 evidence（纯加分制无 negative）；4 模块最多 6 条（1+1+1+3）。
+// 本函数仅产出 positive 性 evidence（4 模块最多 6 条：1+1+1+3）；
+// negative 性 evidence（冲/克/刑/害）由调用方 AnalyzeCompatibility 另行 append。
 func buildCompatibilityEvidencesV3(a, b *BaziResult) []CompatibilityEvidence {
 	out := make([]CompatibilityEvidence, 0, 6)
 	out = append(out, zodiacEvidence(a, b)...)
@@ -230,7 +231,7 @@ func buildScoreExplanationsV3(a, b *BaziResult, evidences []CompatibilityEvidenc
 
 func findPositiveEvidenceByDimension(evidences []CompatibilityEvidence, dim string) *CompatibilityEvidence {
 	for i := range evidences {
-		if evidences[i].Dimension == dim && evidences[i].Polarity != "negative" {
+		if evidences[i].Dimension == dim && evidences[i].Polarity == "positive" {
 			return &evidences[i]
 		}
 	}
