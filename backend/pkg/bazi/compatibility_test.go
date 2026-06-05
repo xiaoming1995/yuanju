@@ -1,6 +1,7 @@
 package bazi
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -414,6 +415,13 @@ func TestAnalyzeCompatibility_EvidenceKeyAndShape(t *testing.T) {
 		}
 		if ev.Dimension == "" {
 			t.Errorf("evidence missing dimension: %+v", ev)
+		}
+		if ev.Polarity == "negative" {
+			if !strings.HasPrefix(ev.EvidenceKey, "neg_") {
+				t.Errorf("negative evidence_key %q does not start with \"neg_\"", ev.EvidenceKey)
+			}
+		} else if !strings.HasPrefix(ev.EvidenceKey, ev.Dimension+"_") {
+			t.Errorf("positive evidence_key %q does not start with dimension %q", ev.EvidenceKey, ev.Dimension)
 		}
 	}
 }
