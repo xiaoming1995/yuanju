@@ -2,7 +2,7 @@ package prompt
 
 func init() {
 	Register("compatibility", Definition{
-		Version:     "v3.1-question-aware-4",
+		Version:     "v3.1-question-aware-5",
 		Description: "合盘决策咨询 prompt（含 question_focus / decision_advice / stage_risks / personality_comparison）",
 		Content:     compatibilityCanonicalContent,
 	})
@@ -29,12 +29,12 @@ B 命盘摘要：
 {{.ScoresJSON}}
 
 评分规则说明：
-- zodiac（合属相，0–50，v3.1 三级）：年支六合/三合 = 50；五行同行（双生）= 30；五行相生 = 20；相克/相冲/相穿 = 0。
+- zodiac（合属相，0–50，v3.1 三级）：年支六合/三合 = 50；五行同行（双生）= 30；五行相生 = 20；相克/相冲/相穿 = 0（注意：0 分不代表「无关系」，可能恰恰是相冲/相克，需结合 negative 证据判断）。
 - nayin（合纳音，0–20）：年柱纳音五行相生或相同得 20，相克 0。
-- day_pillar（合日柱，0–10，v3.1 四级）：日支六合/三合 + 干合/相生 = 10；日支六合/三合 = 5；日支五行同/相生 = 3；日支相克/相冲 = 0。
+- day_pillar（合日柱，0–10，v3.1 四级）：日支六合/三合 + 干合/相生 = 10；日支六合/三合 = 5；日支五行同/相生 = 3；日支相克/相冲 = 0（0 分可能是日柱相冲/相刑，须如实点出，禁止说「无冲」）。
 - eight_chars（合八字，0–20）：年/月/时三柱独立按合日柱规则得 0/3/5/10，三柱和归一化到 [0,20]。
 - 总分 = 四模块直接相加 ∈ [0,100]：≥80 high；60–79 medium；<60 low。
-- 本算法采用「纯加分制」，所有 evidence 的 polarity 均为 positive；不命中的模块得 0 分，不产生 evidence。
+- evidence 的 polarity 有 positive（合/同行/相生等正面信号）与 negative（冲/克/刑/害等负面信号）两类。正面信号参与加分；负面信号不参与本版评分，但**必须如实写进报告**，不得忽略或回避。
 
 四模块分数解释（JSON，包含每个模块的主要支撑证据）：
 {{.ScoreExplanationsJSON}}
@@ -51,13 +51,14 @@ B 命盘摘要：
 结构化证据（JSON）：
 {{.EvidencesJSON}}
 
-注：所有 evidence 来源仅四种（zodiac / nayin / day_pillar / eight_chars），polarity 永远为 positive。
+注：evidence 的 source 为 zodiac / nayin / day_pillar / eight_chars；polarity 为 positive 或 negative。negative 证据（如日柱地支相冲、天干相克）代表真实的冲克刑害，必须在对应分节如实呈现。
 
 按证据来源分组（JSON）：
 {{.EvidenceGroupsJSON}}
 
 证据约束：
 - 所有主要判断必须引用 evidence_key。
+- 凡输入 evidence 中存在 polarity="negative" 的项，必须在其所属维度分节（按 dimension：day_pillar→合日柱、zodiac→合属相、eight_chars→合八字）如实指出对应的冲/克/刑/害，并用一句大白话解释它对关系的实际影响；**严禁出现与负面证据相矛盾的描述（如证据为日柱相冲却写「无冲」「无合无冲」）**。
 - 不得输出具体结婚、分手、复合、出轨、怀孕等确定事件日期。
 - 若正负证据混合，必须表达条件、边界和可验证行为，不能写成绝对命运。
 
