@@ -101,3 +101,49 @@ func TestDetectNegativeSignalsArePolarityNegative(t *testing.T) {
 		}
 	}
 }
+
+// 集成断言：触发案例的负面信号进入 Evidences，且评分丝毫未动（总分仍 34）。
+func TestAnalyzeCompatibilitySurfacesNegativesWithoutScoreChange(t *testing.T) {
+	a := makeChart("丙", "子", "庚", "寅", "乙", "亥", "丙", "戌")
+	b := makeChart("乙", "亥", "己", "丑", "己", "巳", "壬", "申")
+	res := AnalyzeCompatibility(a, b)
+
+	// 评分未被触碰
+	if res.OverallScore != 34 {
+		t.Errorf("OverallScore = %d, want 34 (评分不应被负面信号改动)", res.OverallScore)
+	}
+	if res.OverallLevel != CompatibilityLow {
+		t.Errorf("OverallLevel = %q, want low", res.OverallLevel)
+	}
+	if res.DimensionScores.DayPillar != 0 {
+		t.Errorf("DayPillar score = %d, want 0", res.DimensionScores.DayPillar)
+	}
+
+	// 负面证据已进入列表
+	var hasChong, hasKe bool
+	for _, e := range res.Evidences {
+		if e.EvidenceKey == "neg_day_chong" {
+			hasChong = true
+		}
+		if e.EvidenceKey == "neg_day_gan_ke" {
+			hasKe = true
+		}
+	}
+	if !hasChong || !hasKe {
+		t.Errorf("expected neg_day_chong & neg_day_gan_ke in Evidences, got %+v", res.Evidences)
+	}
+
+	// score_explanation 的 day_pillar 条目填了负面因子
+	var dayExp *CompatibilityScoreExplanation
+	for i := range res.ScoreExplanations {
+		if res.ScoreExplanations[i].Dimension == "day_pillar" {
+			dayExp = &res.ScoreExplanations[i]
+		}
+	}
+	if dayExp == nil {
+		t.Fatal("missing day_pillar score explanation")
+	}
+	if dayExp.NegativeFactor == "" || len(dayExp.NegativeEvidenceKeys) == 0 {
+		t.Errorf("day_pillar explanation missing negatives: %+v", dayExp)
+	}
+}
