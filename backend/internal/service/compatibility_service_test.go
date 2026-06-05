@@ -545,3 +545,145 @@ func TestExtractJSON_FencedCompatibilityReportParses(t *testing.T) {
 		t.Errorf("dimensions 未解析: %+v", got.Dimensions)
 	}
 }
+
+func TestSpousePortraitSignalText_Branches(t *testing.T) {
+	// 可用 + 有配偶星
+	present := spousePortraitSignalText("我", bazi.SpouseStarSignal{
+		Available: true, Present: true, Category: "财星",
+		StarNames:              []string{"正财"},
+		Positions:              []string{"月干(透)"},
+		Visible:                true,
+		DayBranchHiddenShiShen: []string{"伤官"},
+	})
+	for _, want := range []string{"配偶星(财星)", "正财", "月干(透)", "透干", "夫妻宫(日支)藏干十神="} {
+		if !strings.Contains(present, want) {
+			t.Errorf("present 分支缺 %q；got: %s", want, present)
+		}
+	}
+
+	// 可用 + 配偶星不现
+	absent := spousePortraitSignalText("我", bazi.SpouseStarSignal{
+		Available: true, Present: false, Category: "财星",
+		DayBranchHiddenShiShen: []string{"劫财"},
+	})
+	if !strings.Contains(absent, "配偶星(财星)不现") {
+		t.Errorf("absent 分支缺『不现』；got: %s", absent)
+	}
+
+	// 不可用（缺性别）
+	missing := spousePortraitSignalText("我", bazi.SpouseStarSignal{Available: false})
+	if !strings.Contains(missing, "性别缺失，无法定配偶星") {
+		t.Errorf("missing 分支缺『性别缺失』；got: %s", missing)
+	}
+}
+
+func TestCompatibilityParticipantSummary_AppendsSpouseSignal(t *testing.T) {
+	snapshot, _ := json.Marshal(bazi.BaziResult{
+		YearGan: "甲", YearZhi: "子",
+		MonthGan: "辛", MonthZhi: "未",
+		DayGan: "甲", DayZhi: "子",
+		HourGan: "丁", HourZhi: "卯",
+		MonthGanShiShen: "正官",
+		DayZhiShiShen:   []string{"正印"},
+		MonthZhiShiShen: []string{"正财"},
+		Gender:          "male",
+	})
+	raw := json.RawMessage(snapshot)
+	p := &model.CompatibilityParticipant{DisplayName: "我", ChartSnapshot: &raw}
+
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatalf("compatibilityParticipantSummary error: %v", err)
+	}
+	for _, want := range []string{"配偶画像信号", "配偶星(财星)", "正财"} {
+		if !strings.Contains(summary, want) {
+			t.Errorf("summary 缺 %q；got: %s", want, summary)
+		}
+	}
+}
+
+func TestCompatibilityParticipantSummary_SpouseStarInPalace(t *testing.T) {
+	snapshot, _ := json.Marshal(bazi.BaziResult{
+		YearGan: "甲", YearZhi: "子",
+		MonthGan: "丙", MonthZhi: "寅",
+		DayGan: "甲", DayZhi: "丑",
+		HourGan: "丁", HourZhi: "卯",
+		DayZhiShiShen: []string{"正财"}, // 财坐日支 → 入夫妻宫
+		Gender:        "male",
+	})
+	raw := json.RawMessage(snapshot)
+	p := &model.CompatibilityParticipant{DisplayName: "我", ChartSnapshot: &raw}
+
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatalf("compatibilityParticipantSummary error: %v", err)
+	}
+	if !strings.Contains(summary, "坐夫妻宫(日支)") {
+		t.Errorf("summary 缺『坐夫妻宫(日支)』；got: %s", summary)
+	}
+}
+
+func TestCompatibilityParticipantSummary_GenderFallbackFromBirthProfile(t *testing.T) {
+	// 快照无性别 → 应从 BirthProfile.Gender 兜底，从而能定出配偶星
+	snapshot, _ := json.Marshal(bazi.BaziResult{
+		YearGan: "甲", YearZhi: "子",
+		MonthGan: "丙", MonthZhi: "寅",
+		DayGan: "甲", DayZhi: "丑",
+		HourGan: "丁", HourZhi: "卯",
+		DayZhiShiShen: []string{"正财"},
+		Gender:        "", // 快照无性别
+	})
+	raw := json.RawMessage(snapshot)
+	p := &model.CompatibilityParticipant{
+		DisplayName:   "我",
+		ChartSnapshot: &raw,
+		BirthProfile:  model.CompatibilityBirthProfile{Gender: "male"},
+	}
+
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatalf("compatibilityParticipantSummary error: %v", err)
+	}
+	// 兜底成功 → 能定配偶星(财星)，不应出现『性别缺失』
+	if strings.Contains(summary, "性别缺失") {
+		t.Errorf("性别应已从 BirthProfile 兜底，却仍报缺失；got: %s", summary)
+	}
+	if !strings.Contains(summary, "配偶星(财星)") {
+		t.Errorf("兜底后应能定出配偶星(财星)；got: %s", summary)
+	}
+}
+
+func TestCompatibilityStructuredReport_SpousePalaceMatchParsing(t *testing.T) {
+	withField := `{"summary":"s","spouse_palace_match":{` +
+		`"self":{"ideal_portrait":"A理想","match_level":"medium","fit_points":["温和"],"gap_points":["急躁"],"evidence_keys":["day_pillar_upper"]},` +
+		`"partner":{"ideal_portrait":"B理想","match_level":"low","fit_points":[],"gap_points":[],"evidence_keys":[]},` +
+		`"summary":"双向偏弱"}}`
+	var r1 model.CompatibilityStructuredReport
+	if err := json.Unmarshal([]byte(withField), &r1); err != nil {
+		t.Fatalf("unmarshal with field: %v", err)
+	}
+	if r1.SpousePalaceMatch == nil {
+		t.Fatal("expected non-nil SpousePalaceMatch")
+	}
+	if r1.SpousePalaceMatch.Self.MatchLevel != "medium" {
+		t.Errorf("self match_level = %q", r1.SpousePalaceMatch.Self.MatchLevel)
+	}
+	if r1.SpousePalaceMatch.Self.IdealPortrait != "A理想" {
+		t.Errorf("self ideal_portrait = %q", r1.SpousePalaceMatch.Self.IdealPortrait)
+	}
+	if len(r1.SpousePalaceMatch.Self.FitPoints) != 1 {
+		t.Errorf("self fit_points len = %d", len(r1.SpousePalaceMatch.Self.FitPoints))
+	}
+	if r1.SpousePalaceMatch.Summary != "双向偏弱" {
+		t.Errorf("summary = %q", r1.SpousePalaceMatch.Summary)
+	}
+
+	// 旧报告无该字段 → nil，不报错
+	var r2 model.CompatibilityStructuredReport
+	if err := json.Unmarshal([]byte(`{"summary":"s"}`), &r2); err != nil {
+		t.Fatalf("unmarshal without field: %v", err)
+	}
+	if r2.SpousePalaceMatch != nil {
+		t.Error("expected nil SpousePalaceMatch for legacy report")
+	}
+}

@@ -607,7 +607,7 @@ func compatibilityParticipantSummary(p *model.CompatibilityParticipant) (string,
 	if strength == "" {
 		strength = "中和"
 	}
-	return fmt.Sprintf(
+	base := fmt.Sprintf(
 		"%s：%s%s·%s%s·%s%s·%s%s；日主=%s；五行=%d木/%d火/%d土/%d金/%d水；十神=%s；命格=%s；旺衰=%s；用神=%s；忌神=%s。",
 		p.DisplayName,
 		result.YearGan, result.YearZhi,
@@ -618,7 +618,38 @@ func compatibilityParticipantSummary(p *model.CompatibilityParticipant) (string,
 		result.Wuxing.Mu, result.Wuxing.Huo, result.Wuxing.Tu, result.Wuxing.Jin, result.Wuxing.Shui,
 		shishen, zeroDash(result.MingGe), strength,
 		result.Yongshen, result.Jishen,
-	), nil
+	)
+
+	// 配偶画像信号：快照无性别时从出生档案兜底
+	if result.Gender == "" {
+		result.Gender = p.BirthProfile.Gender
+	}
+	sig := bazi.DetectSpouseStarSignal(&result)
+	return base + " " + spousePortraitSignalText(p.DisplayName, sig), nil
+}
+
+// spousePortraitSignalText 把配偶星信号格式化为一句话，拼进命盘摘要供 LLM 推配偶画像。
+func spousePortraitSignalText(name string, sig bazi.SpouseStarSignal) string {
+	if !sig.Available {
+		return fmt.Sprintf("%s 配偶画像信号：性别缺失，无法定配偶星，本节跳过。", name)
+	}
+	hidden := zeroDash(strings.Join(sig.DayBranchHiddenShiShen, ","))
+	if !sig.Present {
+		return fmt.Sprintf("%s 配偶画像信号：配偶星(%s)不现；夫妻宫(日支)藏干十神=%s。", name, sig.Category, hidden)
+	}
+	visible := "未透干"
+	if sig.Visible {
+		visible = "透干"
+	}
+	palace := "未坐夫妻宫"
+	if sig.InSpousePalace {
+		palace = "坐夫妻宫(日支)"
+	}
+	return fmt.Sprintf("%s 配偶画像信号：配偶星(%s)=%s；位置=%s；%s；%s；夫妻宫(日支)藏干十神=%s。",
+		name, sig.Category,
+		zeroDash(strings.Join(sig.StarNames, ",")),
+		zeroDash(strings.Join(sig.Positions, ",")),
+		visible, palace, hidden)
 }
 
 // compatibilityStrengthLabels 把日主旺衰等级（GetStrengthDetail）映射为中文标签。
