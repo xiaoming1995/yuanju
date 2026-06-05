@@ -200,11 +200,26 @@ type CompatibilityPersonalityComparison struct {
 	ClashPoints []CompatibilityPersonalityPoint  `json:"clash_points"`
 }
 
+type CompatibilitySpousePalaceSide struct {
+	IdealPortrait string   `json:"ideal_portrait"`
+	MatchLevel    string   `json:"match_level"`
+	FitPoints     []string `json:"fit_points"`
+	GapPoints     []string `json:"gap_points"`
+	EvidenceKeys  []string `json:"evidence_keys"`
+}
+
+type CompatibilitySpousePalaceMatch struct {
+	Self    CompatibilitySpousePalaceSide `json:"self"`
+	Partner CompatibilitySpousePalaceSide `json:"partner"`
+	Summary string                        `json:"summary"`
+}
+
 type CompatibilityStructuredReport struct {
 	Summary               string                              `json:"summary"`
 	FamousCouple          *CompatibilityFamousCouple          `json:"famous_couple,omitempty"`
 	QuestionFocus         CompatibilityQuestionFocus          `json:"question_focus"`
 	PersonalityComparison *CompatibilityPersonalityComparison `json:"personality_comparison,omitempty"`
+	SpousePalaceMatch     *CompatibilitySpousePalaceMatch     `json:"spouse_palace_match,omitempty"`
 	Dimensions            []CompatibilityDimensionNarrative   `json:"dimensions"`
 	DurationAssessment    CompatibilityDurationAssessment     `json:"duration_assessment"`
 	RelationshipDiagnosis CompatibilityRelationshipDiagnosis  `json:"relationship_diagnosis"`

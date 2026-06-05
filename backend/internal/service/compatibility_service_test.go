@@ -652,3 +652,38 @@ func TestCompatibilityParticipantSummary_GenderFallbackFromBirthProfile(t *testi
 		t.Errorf("兜底后应能定出配偶星(财星)；got: %s", summary)
 	}
 }
+
+func TestCompatibilityStructuredReport_SpousePalaceMatchParsing(t *testing.T) {
+	withField := `{"summary":"s","spouse_palace_match":{` +
+		`"self":{"ideal_portrait":"A理想","match_level":"medium","fit_points":["温和"],"gap_points":["急躁"],"evidence_keys":["day_pillar_upper"]},` +
+		`"partner":{"ideal_portrait":"B理想","match_level":"low","fit_points":[],"gap_points":[],"evidence_keys":[]},` +
+		`"summary":"双向偏弱"}}`
+	var r1 model.CompatibilityStructuredReport
+	if err := json.Unmarshal([]byte(withField), &r1); err != nil {
+		t.Fatalf("unmarshal with field: %v", err)
+	}
+	if r1.SpousePalaceMatch == nil {
+		t.Fatal("expected non-nil SpousePalaceMatch")
+	}
+	if r1.SpousePalaceMatch.Self.MatchLevel != "medium" {
+		t.Errorf("self match_level = %q", r1.SpousePalaceMatch.Self.MatchLevel)
+	}
+	if r1.SpousePalaceMatch.Self.IdealPortrait != "A理想" {
+		t.Errorf("self ideal_portrait = %q", r1.SpousePalaceMatch.Self.IdealPortrait)
+	}
+	if len(r1.SpousePalaceMatch.Self.FitPoints) != 1 {
+		t.Errorf("self fit_points len = %d", len(r1.SpousePalaceMatch.Self.FitPoints))
+	}
+	if r1.SpousePalaceMatch.Summary != "双向偏弱" {
+		t.Errorf("summary = %q", r1.SpousePalaceMatch.Summary)
+	}
+
+	// 旧报告无该字段 → nil，不报错
+	var r2 model.CompatibilityStructuredReport
+	if err := json.Unmarshal([]byte(`{"summary":"s"}`), &r2); err != nil {
+		t.Fatalf("unmarshal without field: %v", err)
+	}
+	if r2.SpousePalaceMatch != nil {
+		t.Error("expected nil SpousePalaceMatch for legacy report")
+	}
+}
