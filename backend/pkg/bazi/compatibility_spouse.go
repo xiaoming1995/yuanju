@@ -13,8 +13,8 @@ type SpouseStarSignal struct {
 	DayBranchHiddenShiShen []string // 日支藏干各自的十神（夫妻宫画像主料）
 }
 
-// DetectSpouseStarSignal 按性别定位配偶星（男看财星、女看官杀），扫描四柱天干（透）
-// 与地支藏干（藏）的十神，并附上日支藏干十神。性别缺失或盘异常时返回 Available=false。
+// DetectSpouseStarSignal 按性别定位配偶星（男看财星、女看官杀），扫描年/月/时三柱天干（透，
+// 日干恒为日主故排除）与四柱地支藏干（藏）的十神，并附上日支藏干十神。性别缺失或盘异常时返回 Available=false。
 func DetectSpouseStarSignal(r *BaziResult) SpouseStarSignal {
 	if r == nil || r.DayGan == "" {
 		return SpouseStarSignal{}
