@@ -545,3 +545,59 @@ func TestExtractJSON_FencedCompatibilityReportParses(t *testing.T) {
 		t.Errorf("dimensions 未解析: %+v", got.Dimensions)
 	}
 }
+
+func TestSpousePortraitSignalText_Branches(t *testing.T) {
+	// 可用 + 有配偶星
+	present := spousePortraitSignalText("我", bazi.SpouseStarSignal{
+		Available: true, Present: true, Category: "财星",
+		StarNames:              []string{"正财"},
+		Positions:              []string{"月干(透)"},
+		Visible:                true,
+		DayBranchHiddenShiShen: []string{"伤官"},
+	})
+	for _, want := range []string{"配偶星(财星)", "正财", "月干(透)", "透干", "夫妻宫(日支)藏干十神="} {
+		if !strings.Contains(present, want) {
+			t.Errorf("present 分支缺 %q；got: %s", want, present)
+		}
+	}
+
+	// 可用 + 配偶星不现
+	absent := spousePortraitSignalText("我", bazi.SpouseStarSignal{
+		Available: true, Present: false, Category: "财星",
+		DayBranchHiddenShiShen: []string{"劫财"},
+	})
+	if !strings.Contains(absent, "配偶星(财星)不现") {
+		t.Errorf("absent 分支缺『不现』；got: %s", absent)
+	}
+
+	// 不可用（缺性别）
+	missing := spousePortraitSignalText("我", bazi.SpouseStarSignal{Available: false})
+	if !strings.Contains(missing, "性别缺失，无法定配偶星") {
+		t.Errorf("missing 分支缺『性别缺失』；got: %s", missing)
+	}
+}
+
+func TestCompatibilityParticipantSummary_AppendsSpouseSignal(t *testing.T) {
+	snapshot, _ := json.Marshal(bazi.BaziResult{
+		YearGan: "甲", YearZhi: "子",
+		MonthGan: "辛", MonthZhi: "未",
+		DayGan: "甲", DayZhi: "子",
+		HourGan: "丁", HourZhi: "卯",
+		MonthGanShiShen: "正官",
+		DayZhiShiShen:   []string{"正印"},
+		MonthZhiShiShen: []string{"正财"},
+		Gender:          "male",
+	})
+	raw := json.RawMessage(snapshot)
+	p := &model.CompatibilityParticipant{DisplayName: "我", ChartSnapshot: &raw}
+
+	summary, err := compatibilityParticipantSummary(p)
+	if err != nil {
+		t.Fatalf("compatibilityParticipantSummary error: %v", err)
+	}
+	for _, want := range []string{"配偶画像信号", "配偶星(财星)", "正财"} {
+		if !strings.Contains(summary, want) {
+			t.Errorf("summary 缺 %q；got: %s", want, summary)
+		}
+	}
+}
