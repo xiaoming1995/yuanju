@@ -1,9 +1,13 @@
 package bazi
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // buildCompatibilityEvidencesV3 把 4 模块的命中按设计文档 §4.2 转为 evidence 列表。
-// 仅产出"positive"性 evidence（纯加分制无 negative）；4 模块最多 6 条（1+1+1+3）。
+// 本函数仅产出 positive 性 evidence（4 模块最多 6 条：1+1+1+3）；
+// negative 性 evidence（冲/克/刑/害）由调用方 AnalyzeCompatibility 另行 append。
 func buildCompatibilityEvidencesV3(a, b *BaziResult) []CompatibilityEvidence {
 	out := make([]CompatibilityEvidence, 0, 6)
 	out = append(out, zodiacEvidence(a, b)...)
@@ -198,16 +202,26 @@ func eightCharsEvidence(a, b *BaziResult) []CompatibilityEvidence {
 }
 
 // buildScoreExplanationsV3 按 4 模块各出一条解释（zodiac/nayin/day_pillar/eight_chars）。
-// 纯加分制下 NegativeFactor / NegativeEvidenceKeys 永远为空。
+// PositiveFactor 取该维度首条 positive 证据；NegativeFactor 汇总该维度全部 negative 证据。
 func buildScoreExplanationsV3(a, b *BaziResult, evidences []CompatibilityEvidence) []CompatibilityScoreExplanation {
 	dimensions := []string{"zodiac", "nayin", "day_pillar", "eight_chars"}
 	out := make([]CompatibilityScoreExplanation, 0, 4)
 	for _, dim := range dimensions {
-		hit := findEvidenceByDimension(evidences, dim)
+		hit := findPositiveEvidenceByDimension(evidences, dim)
 		exp := CompatibilityScoreExplanation{Dimension: dim}
 		if hit != nil {
 			exp.PositiveFactor = hit.Title
 			exp.PositiveEvidenceKeys = []string{hit.EvidenceKey}
+		}
+		if negs := findNegativeEvidencesByDimension(evidences, dim); len(negs) > 0 {
+			titles := make([]string, 0, len(negs))
+			keys := make([]string, 0, len(negs))
+			for i := range negs {
+				titles = append(titles, negs[i].Title)
+				keys = append(keys, negs[i].EvidenceKey)
+			}
+			exp.NegativeFactor = strings.Join(titles, "、")
+			exp.NegativeEvidenceKeys = keys
 		}
 		exp.Summary = scoreExplanationSummaryV3(dim, hit, a, b)
 		out = append(out, exp)
@@ -215,13 +229,23 @@ func buildScoreExplanationsV3(a, b *BaziResult, evidences []CompatibilityEvidenc
 	return out
 }
 
-func findEvidenceByDimension(evidences []CompatibilityEvidence, dim string) *CompatibilityEvidence {
+func findPositiveEvidenceByDimension(evidences []CompatibilityEvidence, dim string) *CompatibilityEvidence {
 	for i := range evidences {
-		if string(evidences[i].Dimension) == dim {
+		if evidences[i].Dimension == dim && evidences[i].Polarity == "positive" {
 			return &evidences[i]
 		}
 	}
 	return nil
+}
+
+func findNegativeEvidencesByDimension(evidences []CompatibilityEvidence, dim string) []CompatibilityEvidence {
+	var out []CompatibilityEvidence
+	for i := range evidences {
+		if evidences[i].Dimension == dim && evidences[i].Polarity == "negative" {
+			out = append(out, evidences[i])
+		}
+	}
+	return out
 }
 
 func scoreExplanationSummaryV3(dim string, hit *CompatibilityEvidence, a, b *BaziResult) string {

@@ -410,14 +410,18 @@ func TestAnalyzeCompatibility_EvidenceKeyAndShape(t *testing.T) {
 	b := makeCompatNatal("己丑", "戊辰", "己丑", "庚申", "female")
 	got := AnalyzeCompatibility(a, b)
 	for _, ev := range got.Evidences {
-		if ev.Polarity != "positive" {
-			t.Errorf("v3 evidence should always be positive, got %q", ev.Polarity)
-		}
 		if ev.EvidenceKey == "" {
 			t.Errorf("evidence missing key: %+v", ev)
 		}
-		if !strings.HasPrefix(ev.EvidenceKey, ev.Dimension+"_") {
-			t.Errorf("evidence_key %q does not start with dimension %q", ev.EvidenceKey, ev.Dimension)
+		if ev.Dimension == "" {
+			t.Errorf("evidence missing dimension: %+v", ev)
+		}
+		if ev.Polarity == "negative" {
+			if !strings.HasPrefix(ev.EvidenceKey, "neg_") {
+				t.Errorf("negative evidence_key %q does not start with \"neg_\"", ev.EvidenceKey)
+			}
+		} else if !strings.HasPrefix(ev.EvidenceKey, ev.Dimension+"_") {
+			t.Errorf("positive evidence_key %q does not start with dimension %q", ev.EvidenceKey, ev.Dimension)
 		}
 	}
 }

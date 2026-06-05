@@ -153,6 +153,7 @@ func AnalyzeCompatibility(a, b *BaziResult) CompatibilityAnalysis {
 	}
 	total := scores.Zodiac + scores.Nayin + scores.DayPillar + scores.EightChars
 	evidences := buildCompatibilityEvidencesV3(a, b)
+	evidences = append(evidences, detectNegativeSignals(a, b)...)
 	explanations := buildScoreExplanationsV3(a, b, evidences)
 	tags := buildSummaryTagsV3(scores, total)
 	duration := buildDurationAssessmentV3(scores)
