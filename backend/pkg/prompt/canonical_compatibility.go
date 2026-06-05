@@ -165,7 +165,7 @@ B 命盘摘要：
       "match_level": "high|medium|low",
       "fit_points": ["A 哪里对上了 B 的理想"],
       "gap_points": ["A 哪里和 B 的理想有差距"],
-      "evidence_keys": []
+      "evidence_keys": ["支撑该判断的 evidence_key"]
     },
     "summary": "一句话总括双向夫妻宫匹配（含缺性别 / 配偶星不现的说明）"
   },
