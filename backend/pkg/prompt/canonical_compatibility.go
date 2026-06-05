@@ -2,8 +2,8 @@ package prompt
 
 func init() {
 	Register("compatibility", Definition{
-		Version:     "v3.1-question-aware-5",
-		Description: "合盘决策咨询 prompt（含 question_focus / decision_advice / stage_risks / personality_comparison）",
+		Version:     "v3.1-question-aware-6",
+		Description: "合盘决策咨询 prompt（含 question_focus / decision_advice / stage_risks / personality_comparison / spouse_palace_match）",
 		Content:     compatibilityCanonicalContent,
 	})
 }
@@ -91,6 +91,14 @@ B 命盘摘要：
 - 严禁照搬或续写输入「咨询型结构化诊断 JSON」里 relationship_strategy.communication 的措辞——那只是算法生成的基线，仅供你理解关系倾向，绝不是可复用的句子；你的输出在用词和句式上都不得与它雷同。
 - 至少给一句可以直接照着说的具体话术，落到这两个人会真实遇到的场景（谁容易急、谁需要铺垫、卡在什么话题上），让当事人照着就能用。
 
+夫妻宫匹配约束（spouse_palace_match，务必遵守）：
+- 依据每人命盘摘要里的「配偶画像信号」（配偶星 = 男看财星 / 女看官杀，及其位置、透藏、是否坐夫妻宫、日支藏干十神）推出「这个人命里理想 / 容易吸引的另一半画像」，再拿对方真实的 personality_comparison 画像去比，给出像在哪（fit_points）、差在哪（gap_points）。
+- self 子块 = 用 A 的配偶画像信号推理想另一半、拿 B 的真实画像比；partner 子块 = 用 B 推、拿 A 比。
+- match_level 取 high / medium / low，且必须与已知夫妻宫状态自洽：当 day_pillar 维度或 negative 证据显示双方日支相冲 / 相克 / 相刑 / 相害时，不得给 high；严禁与负面证据相矛盾。
+- 若某人「配偶画像信号」为「性别缺失，无法定配偶星」，其对应子块的 ideal_portrait 写明「缺性别，无法定配偶星」、match_level 置空、fit_points / gap_points 为空数组，并在 summary 注明本节因缺性别跳过。
+- 若配偶星「不现」，照样给画像但注明「配偶星不显，结论偏轮廓」。
+- 文字守表达约束：术语后跟大白话、条件语气不下死命；画像尺度微辣不露骨、不越线。
+
 输出严格为 JSON：
 {
   "summary": "总体判断，必须基于输入证据，不使用绝对断语",
@@ -143,6 +151,23 @@ B 命盘摘要：
     "clash_points": [
       { "title": "容易冲突的地方", "detail": "两人性格在这点上为什么容易摩擦" }
     ]
+  },
+  "spouse_palace_match": {
+    "self": {
+      "ideal_portrait": "A 命里理想 / 容易吸引的另一半画像（基于配偶星 + 夫妻宫藏干）",
+      "match_level": "high|medium|low",
+      "fit_points": ["B 哪里对上了 A 的理想"],
+      "gap_points": ["B 哪里和 A 的理想有差距"],
+      "evidence_keys": ["支撑该判断的 evidence_key"]
+    },
+    "partner": {
+      "ideal_portrait": "B 命里理想 / 容易吸引的另一半画像",
+      "match_level": "high|medium|low",
+      "fit_points": ["A 哪里对上了 B 的理想"],
+      "gap_points": ["A 哪里和 B 的理想有差距"],
+      "evidence_keys": []
+    },
+    "summary": "一句话总括双向夫妻宫匹配（含缺性别 / 配偶星不现的说明）"
   },
   "decision_advice": {
     "recommendation": "observe",
