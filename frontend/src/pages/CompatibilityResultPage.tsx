@@ -359,6 +359,8 @@ export default function CompatibilityResultPage() {
           error={error}
           reportLoading={reportLoading}
           onGenerateReport={handleGenerateReport}
+          selfName={selfP?.display_name || '我'}
+          partnerName={partnerP?.display_name || '对方'}
         />
       </div>
 

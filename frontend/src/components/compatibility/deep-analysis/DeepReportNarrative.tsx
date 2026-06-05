@@ -1,6 +1,7 @@
 import './DeepReportNarrative.css'
 import FamousCoupleCard from '../FamousCoupleCard'
 import PersonalityComparison from './PersonalityComparison'
+import SpousePalaceMatch from './SpousePalaceMatch'
 import type {
   CompatibilityStructuredReport,
   CompatibilityQuestionFocus,
@@ -15,6 +16,8 @@ type Props = {
   error: string
   reportLoading: boolean
   onGenerateReport: () => void
+  selfName: string
+  partnerName: string
 }
 
 function AdviceList({ title, items }: { title: string; items: string[] }) {
@@ -58,6 +61,8 @@ export default function DeepReportNarrative({
   error,
   reportLoading,
   onGenerateReport,
+  selfName,
+  partnerName,
 }: Props) {
   const reportStateClass = hasReport ? 'compatibility-ai-card--generated' : 'compatibility-ai-card--empty'
   return (
@@ -94,6 +99,11 @@ export default function DeepReportNarrative({
               <p className="compatibility-report-summary">{structuredReport.summary}</p>
             </div>
             <PersonalityComparison comparison={structuredReport.personality_comparison} />
+            <SpousePalaceMatch
+              match={structuredReport.spouse_palace_match}
+              selfName={selfName}
+              partnerName={partnerName}
+            />
             {reportDimensions.map(item => (
               <div key={item.key} className="compatibility-report-section">
                 <div className="serif compatibility-report-title">{item.title}</div>
