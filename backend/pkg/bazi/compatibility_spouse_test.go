@@ -86,6 +86,21 @@ func TestDetectSpouseStarSignal(t *testing.T) {
 			in:   nil,
 			want: SpouseStarSignal{},
 		},
+		{
+			name: "女命：日支藏干同时含正官与七杀（官杀同藏夫妻宫）",
+			in: &BaziResult{
+				Gender: "female", DayGan: "甲",
+				DayZhiShiShen: []string{"正官", "七杀"},
+			},
+			want: SpouseStarSignal{
+				Available: true, Present: true, Category: "官杀",
+				StarNames:              []string{"正官", "七杀"},
+				Positions:              []string{"日支(藏)", "日支(藏)"},
+				Visible:                false,
+				InSpousePalace:         true,
+				DayBranchHiddenShiShen: []string{"正官", "七杀"},
+			},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

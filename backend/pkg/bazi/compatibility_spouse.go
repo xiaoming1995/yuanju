@@ -46,14 +46,13 @@ func DetectSpouseStarSignal(r *BaziResult) SpouseStarSignal {
 		}
 	}
 
-	// 透干：四柱天干十神
+	// 透干：年/月/时三柱天干十神（日干恒为「日主」，非有效十神，不参与配偶星定位）
 	ganPillars := []struct {
 		label string
 		ss    string
 	}{
 		{"年干", r.YearGanShiShen},
 		{"月干", r.MonthGanShiShen},
-		{"日干", r.DayGanShiShen},
 		{"时干", r.HourGanShiShen},
 	}
 	for _, p := range ganPillars {
