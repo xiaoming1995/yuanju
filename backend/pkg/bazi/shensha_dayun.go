@@ -386,5 +386,29 @@ func GetDayunShenSha(yearGan, yearZhi, monthZhi, dayGan, dayZhi, dayunGan, dayun
 		add(z == tianYiZhi, "天医")
 	}
 
+	// ── 丧吊类：丧门/披麻（年支起例，比运支）+ 三丘/五墓（月支起例，比运柱全干支）──
+	sangmenMap := map[string]string{
+		"子": "寅", "丑": "卯", "寅": "辰", "卯": "巳",
+		"辰": "午", "巳": "未", "午": "申", "未": "酉",
+		"申": "戌", "酉": "亥", "戌": "子", "亥": "丑",
+	}
+	if smZhi, ok := sangmenMap[yz]; ok {
+		add(z == smZhi, "丧门")
+	}
+	pimaMap := map[string]string{
+		"子": "酉", "丑": "戌", "寅": "亥", "卯": "子",
+		"辰": "丑", "巳": "寅", "午": "卯", "未": "辰",
+		"申": "巳", "酉": "午", "戌": "未", "亥": "申",
+	}
+	if pmZhi, ok := pimaMap[yz]; ok {
+		add(z == pmZhi, "披麻")
+	}
+	if sqTarget := sanqiuGanZhi(mz); sqTarget != "" {
+		add(g+z == sqTarget, "三丘")
+	}
+	if wmTarget := wumuGanZhi(mz); wmTarget != "" {
+		add(g+z == wmTarget, "五墓")
+	}
+
 	return result
 }
