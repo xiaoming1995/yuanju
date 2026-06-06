@@ -43,6 +43,10 @@ var ShenShaPolarity = map[string]string{
 	"流霞":   "xiong",
 	"吊客":   "xiong",
 	"墓门":   "xiong",
+	"丧门":   "xiong",
+	"披麻":   "xiong",
+	"三丘":   "xiong",
+	"五墓":   "xiong",
 	// ── 中性（需结合格局判断）───────────────────────────────────
 	"桃花": "zhong",
 	"驿马": "zhong",
@@ -705,5 +709,85 @@ func GetPillarsShenSha(yg, yz, mg, mz, dg, dz, hg, hz string) [4][]string {
 		}
 	}
 
+	// ══════════════════════════════════════════════════════════
+	// 第九组：丧吊类之丧门/披麻（年支起例，地支匹配，与吊客同源）
+	// 丧门=年支+2位, 披麻=年支-3位
+	// ══════════════════════════════════════════════════════════
+	sangmenMap := map[string]string{
+		"子": "寅", "丑": "卯", "寅": "辰", "卯": "巳",
+		"辰": "午", "巳": "未", "午": "申", "未": "酉",
+		"申": "戌", "酉": "亥", "戌": "子", "亥": "丑",
+	}
+	if smZhi, ok := sangmenMap[yz]; ok {
+		for i, z := range zhis {
+			addIf(i, z == smZhi, "丧门")
+		}
+	}
+	pimaMap := map[string]string{
+		"子": "酉", "丑": "戌", "寅": "亥", "卯": "子",
+		"辰": "丑", "巳": "寅", "午": "卯", "未": "辰",
+		"申": "巳", "酉": "午", "戌": "未", "亥": "申",
+	}
+	if pmZhi, ok := pimaMap[yz]; ok {
+		for i, z := range zhis {
+			addIf(i, z == pmZhi, "披麻")
+		}
+	}
+
+	// ══════════════════════════════════════════════════════════
+	// 第十组：丧吊类之三丘/五墓（月支起例，全干支严格匹配）
+	// 月柱(索引1)为基准柱，自身不参与匹配（基准柱自身不参与惯例）
+	// ══════════════════════════════════════════════════════════
+	if sqTarget := sanqiuGanZhi(mz); sqTarget != "" {
+		for i, gz := range ganZhis {
+			if i == 1 {
+				continue
+			}
+			addIf(i, gz == sqTarget, "三丘")
+		}
+	}
+	if wmTarget := wumuGanZhi(mz); wmTarget != "" {
+		for i, gz := range ganZhis {
+			if i == 1 {
+				continue
+			}
+			addIf(i, gz == wmTarget, "五墓")
+		}
+	}
+
 	return result
+}
+
+// sanqiuGanZhi 返回某月支(按季节)对应的「三丘」目标干支；未知月支返回 ""。
+// 春(寅卯辰)→辛丑、夏(巳午未)→壬辰、秋(申酉戌)→乙未、冬(亥子丑)→丙戌。
+func sanqiuGanZhi(monthZhi string) string {
+	switch {
+	case strings.Contains("寅卯辰", monthZhi):
+		return "辛丑"
+	case strings.Contains("巳午未", monthZhi):
+		return "壬辰"
+	case strings.Contains("申酉戌", monthZhi):
+		return "乙未"
+	case strings.Contains("亥子丑", monthZhi):
+		return "丙戌"
+	}
+	return ""
+}
+
+// wumuGanZhi 返回某月支对应的「五墓」目标干支；四季月(辰未戌丑)→戊辰；未知月支返回 ""。
+// 寅卯→乙未、巳午→丙戌、申酉→辛丑、亥子→壬辰、辰未戌丑→戊辰。
+func wumuGanZhi(monthZhi string) string {
+	switch monthZhi {
+	case "寅", "卯":
+		return "乙未"
+	case "巳", "午":
+		return "丙戌"
+	case "申", "酉":
+		return "辛丑"
+	case "亥", "子":
+		return "壬辰"
+	case "辰", "未", "戌", "丑":
+		return "戊辰"
+	}
+	return ""
 }
