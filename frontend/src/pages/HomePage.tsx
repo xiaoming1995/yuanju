@@ -297,7 +297,7 @@ export default function HomePage() {
 
             {inputMode === 'pillars' && (
               <form onSubmit={handlePillarsSubmit} id="pillars-form">
-                <PillarsInputForm value={pillars} onChange={setPillars} />
+                <PillarsInputForm value={pillars} onChange={next => { setPillars(next); setCandidates([]) }} />
 
                 {candidates.length > 0 && (
                   <div className="candidate-list" aria-live="polite">
