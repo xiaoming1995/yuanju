@@ -17,9 +17,9 @@ type Candidate struct {
 	Year      int    `json:"year"`
 	Month     int    `json:"month"`
 	Day       int    `json:"day"`
-	Hour      int    `json:"hour"`
-	LunarDate string `json:"lunar_date"`
-	RefAge    int    `json:"ref_age"`
+	Hour      int    `json:"hour"`       // 时辰中点小时，供后续 Calculate 复现时柱
+	LunarDate string `json:"lunar_date"` // 如「乙巳年六月初九」
+	RefAge    int    `json:"ref_age"`    // referenceYear - Year，供用户按年龄辨识
 }
 
 // validGanZhi 判断 gz 是否为 60 甲子之一（阴阳同性配对）。
@@ -114,9 +114,13 @@ func ResolvePillars(yearGZ, monthGZ, dayGZ, hourGZ string, minYear, maxYear, ref
 		if s.GetJulianDay() > endJD {
 			break
 		}
-		y, mo, d, h := pillarsAt(s)
+		lunar := s.GetLunar()
+		bz := lunar.GetEightChar()
+		y := bz.GetYearGan() + bz.GetYearZhi()
+		mo := bz.GetMonthGan() + bz.GetMonthZhi()
+		d := bz.GetDayGan() + bz.GetDayZhi()
+		h := bz.GetTimeGan() + bz.GetTimeZhi()
 		if y == yearGZ && mo == monthGZ && d == dayGZ && h == hourGZ {
-			lunar := s.GetLunar()
 			out = append(out, Candidate{
 				Year:      s.GetYear(),
 				Month:     s.GetMonth(),
