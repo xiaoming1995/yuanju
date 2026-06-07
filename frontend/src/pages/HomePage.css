@@ -195,8 +195,20 @@
 
 .pillars-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.pillar-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pillar-col-label {
+  text-align: center;
+  font-size: 0.85em;
+  color: var(--text-secondary, #888);
 }
 
 .pillars-range {

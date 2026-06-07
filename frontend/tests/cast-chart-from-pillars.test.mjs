@@ -7,19 +7,24 @@ import test from 'node:test'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (path) => readFileSync(resolve(root, path), 'utf8')
 
-test('pillars input form renders four ganzhi dropdowns and gender', () => {
+test('pillars input form renders per-character gan/zhi selectors and gender', () => {
   const form = read('src/components/PillarsInputForm.tsx')
   assert.match(form, /年柱/)
   assert.match(form, /月柱/)
   assert.match(form, /日柱/)
   assert.match(form, /时柱/)
-  assert.match(form, /JIAZI/)
+  assert.match(form, /天干/)
+  assert.match(form, /地支/)
+  assert.match(form, /export const GAN/)
+  assert.match(form, /export const ZHI/)
   assert.match(form, /男命/)
 })
 
-test('JIAZI builds 60 sexagenary combinations', () => {
+test('pillars form supports typing the eight characters directly', () => {
   const form = read('src/components/PillarsInputForm.tsx')
-  assert.match(form, /length:\s*60/)
+  assert.match(form, /parseEightChars/)
+  assert.match(form, /快速填入/)
+  assert.match(form, /length !== 8/)
 })
 
 test('homepage offers birth/pillars input mode toggle', () => {

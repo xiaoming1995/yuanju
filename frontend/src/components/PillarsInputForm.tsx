@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 
 export interface PillarsFormValue {
   yearPillar: string
@@ -10,11 +10,10 @@ export interface PillarsFormValue {
   maxYear: number
 }
 
-const GAN = '甲乙丙丁戊己庚辛壬癸'
-const ZHI = '子丑寅卯辰巳午未申酉戌亥'
+type PillarKey = 'yearPillar' | 'monthPillar' | 'dayPillar' | 'hourPillar'
 
-// 60 甲子（干支同阴阳配对）：甲子、乙丑 … 癸亥
-export const JIAZI: string[] = Array.from({ length: 60 }, (_, i) => GAN[i % 10] + ZHI[i % 12])
+export const GAN = '甲乙丙丁戊己庚辛壬癸'
+export const ZHI = '子丑寅卯辰巳午未申酉戌亥'
 
 export const initialPillarsValue = (gender: 'male' | 'female'): PillarsFormValue => ({
   yearPillar: '甲子',
@@ -26,12 +25,29 @@ export const initialPillarsValue = (gender: 'male' | 'female'): PillarsFormValue
   maxYear: 2030,
 })
 
+// 解析连写 / 带空格的 8 个干支字（如「甲子丙寅丁丑丙午」或「甲子 丙寅 丁丑 丙午」）。
+// 偶数位须为天干、奇数位须为地支；成功返回四柱，否则返回 null。
+export function parseEightChars(raw: string): Pick<PillarsFormValue, PillarKey> | null {
+  const chars = [...raw.replace(/\s+/g, '')]
+  if (chars.length !== 8) return null
+  for (let i = 0; i < 8; i++) {
+    const ok = i % 2 === 0 ? GAN.includes(chars[i]) : ZHI.includes(chars[i])
+    if (!ok) return null
+  }
+  return {
+    yearPillar: chars[0] + chars[1],
+    monthPillar: chars[2] + chars[3],
+    dayPillar: chars[4] + chars[5],
+    hourPillar: chars[6] + chars[7],
+  }
+}
+
 interface PillarsInputFormProps {
   value: PillarsFormValue
   onChange: (next: PillarsFormValue) => void
 }
 
-const PILLAR_FIELDS: Array<{ key: keyof PillarsFormValue; label: string }> = [
+const PILLARS: Array<{ key: PillarKey; label: string }> = [
   { key: 'yearPillar', label: '年柱' },
   { key: 'monthPillar', label: '月柱' },
   { key: 'dayPillar', label: '日柱' },
@@ -40,7 +56,30 @@ const PILLAR_FIELDS: Array<{ key: keyof PillarsFormValue; label: string }> = [
 
 export default function PillarsInputForm({ value, onChange }: PillarsInputFormProps) {
   const formId = useId()
+  const [quick, setQuick] = useState('')
+  const [quickError, setQuickError] = useState('')
+
   const update = (patch: Partial<PillarsFormValue>) => onChange({ ...value, ...patch })
+
+  const setGan = (key: PillarKey, gan: string) =>
+    update({ [key]: gan + value[key][1] } as Partial<PillarsFormValue>)
+  const setZhi = (key: PillarKey, zhi: string) =>
+    update({ [key]: value[key][0] + zhi } as Partial<PillarsFormValue>)
+
+  const handleQuick = (raw: string) => {
+    setQuick(raw)
+    if (raw.trim() === '') {
+      setQuickError('')
+      return
+    }
+    const parsed = parseEightChars(raw)
+    if (parsed) {
+      setQuickError('')
+      update(parsed)
+    } else {
+      setQuickError('请输入 8 个干支字，如：甲子 丙寅 丁丑 丙午')
+    }
+  }
 
   return (
     <div className="pillars-input-form">
@@ -61,26 +100,56 @@ export default function PillarsInputForm({ value, onChange }: PillarsInputFormPr
       </div>
 
       <div className="birth-profile-fieldset">
+        <label className="form-label" htmlFor={`${formId}-quick`}>
+          快速填入八字（选填）
+          <span className="field-note">直接打字或粘贴 8 个字，自动拆到下方四柱；也可在下方逐字选择</span>
+        </label>
+        <input
+          id={`${formId}-quick`}
+          className="form-input"
+          type="text"
+          value={quick}
+          onChange={e => handleQuick(e.target.value)}
+          placeholder="如：甲子 丙寅 丁丑 丙午"
+        />
+        {quickError && <p className="form-error">{quickError}</p>}
+      </div>
+
+      <div className="birth-profile-fieldset">
         <div className="form-label">
           四柱八字
-          <span className="field-note">从排盘图或已知八字里逐柱选择，不知道出生时间也能起盘</span>
+          <span className="field-note">点开每个格子选一个字：上为天干、下为地支</span>
         </div>
         <div className="pillars-grid">
-          {PILLAR_FIELDS.map(field => (
-            <div className="form-group" key={field.key}>
-              <select
-                id={`${formId}-${field.key}`}
-                className="form-select"
-                aria-label={field.label}
-                value={value[field.key] as string}
-                onChange={e => update({ [field.key]: e.target.value } as Partial<PillarsFormValue>)}
-              >
-                {JIAZI.map(gz => (
-                  <option key={gz} value={gz}>{field.label.slice(0, 1)}：{gz}</option>
-                ))}
-              </select>
-            </div>
-          ))}
+          {PILLARS.map(p => {
+            const gan = value[p.key][0]
+            const zhi = value[p.key][1]
+            return (
+              <div className="pillar-col" key={p.key}>
+                <div className="pillar-col-label">{p.label}</div>
+                <select
+                  className="form-select"
+                  aria-label={`${p.label}天干`}
+                  value={gan}
+                  onChange={e => setGan(p.key, e.target.value)}
+                >
+                  {[...GAN].map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+                <select
+                  className="form-select"
+                  aria-label={`${p.label}地支`}
+                  value={zhi}
+                  onChange={e => setZhi(p.key, e.target.value)}
+                >
+                  {[...ZHI].map(z => (
+                    <option key={z} value={z}>{z}</option>
+                  ))}
+                </select>
+              </div>
+            )
+          })}
         </div>
       </div>
 
