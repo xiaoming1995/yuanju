@@ -43,9 +43,9 @@ export default function HomePage() {
 
   const calibrationSummary = province ? `${province}省级经度近似校准` : '按北京时间排盘'
 
-  const trimmedDisplayName = () => {
+  const trimmedDisplayName = (): string | undefined => {
     const name = chartDisplayName.trim()
-    return Array.from(name).length > 20 ? null : (name || undefined)
+    return name || undefined
   }
 
   // 用「公历年月日 + 小时 + 性别」直接走现有 calculate
@@ -59,7 +59,7 @@ export default function HomePage() {
       longitude: PROVINCE_LONGITUDE[province] || 0,
       calendar_type: 'solar',
       is_leap_month: false,
-      display_name: trimmedDisplayName() ?? undefined,
+      display_name: trimmedDisplayName(),
     }
     const res = await baziAPI.calculate(input)
     navigate('/result', { state: { result: res.data.result, chartId: res.data.chart_id, input, isGuest: !user } })
@@ -197,7 +197,7 @@ export default function HomePage() {
                   key={m}
                   type="button"
                   className={`birth-profile-option ${inputMode === m ? 'active' : ''}`}
-                  onClick={() => { setInputMode(m); setError(''); setCandidates([]) }}
+                  onClick={() => { setInputMode(m); setError(''); setDisplayNameError(''); setCandidates([]) }}
                 >
                   {m === 'birth' ? '按生辰' : '按八字'}
                 </button>
