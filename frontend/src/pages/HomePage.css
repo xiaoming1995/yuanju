@@ -188,6 +188,66 @@
   line-height: 1.6;
 }
 
+/* 按八字起盘：四柱输入与候选选择 */
+.input-mode-toggle {
+  margin-bottom: 16px;
+}
+
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.pillars-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pillars-range-sep {
+  color: var(--text-secondary, #888);
+}
+
+.candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.candidate-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-default, #333);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.candidate-item:hover {
+  border-color: var(--border-accent, #c9a45b);
+}
+
+.candidate-item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.candidate-lunar {
+  color: var(--text-secondary, #888);
+  font-size: 0.9em;
+}
+
+.candidate-age {
+  color: var(--wu-jin, #c9a45b);
+}
+
 @media (max-width: 768px) {
   .features-grid { grid-template-columns: 1fr; }
 

@@ -291,6 +291,41 @@ func GetHistory(c *gin.Context) {
 	})
 }
 
+// ResolvePillarsInput 四柱反查请求体
+type ResolvePillarsInput struct {
+	YearPillar  string `json:"year_pillar" binding:"required"`
+	MonthPillar string `json:"month_pillar" binding:"required"`
+	DayPillar   string `json:"day_pillar" binding:"required"`
+	HourPillar  string `json:"hour_pillar" binding:"required"`
+	MinYear     int    `json:"min_year"` // 可选，缺省 1900
+	MaxYear     int    `json:"max_year"` // 可选，缺省 2030
+}
+
+// ResolvePillars 四柱反查候选公历日期（无需登录，只读，不落库）
+func ResolvePillars(c *gin.Context) {
+	var input ResolvePillarsInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "请检查四柱：" + err.Error()})
+		return
+	}
+
+	minYear := input.MinYear
+	if minYear == 0 {
+		minYear = 1900
+	}
+	maxYear := input.MaxYear
+	if maxYear == 0 {
+		maxYear = 2030
+	}
+
+	candidates := bazi.ResolvePillars(
+		input.YearPillar, input.MonthPillar, input.DayPillar, input.HourPillar,
+		minYear, maxYear, time.Now().Year(),
+	)
+
+	c.JSON(http.StatusOK, gin.H{"candidates": candidates})
+}
+
 // LiuYueInput 流月查询请求体
 type LiuYueInput struct {
 	LiuNianYear int    `json:"liu_nian_year" binding:"required,min=1900,max=2200"`

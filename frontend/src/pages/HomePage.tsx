@@ -7,6 +7,8 @@ import type { CalculateInput } from '../lib/api'
 import { buildAuthPath } from '../lib/authRedirect'
 import BirthProfileForm from '../components/BirthProfileForm'
 import { initialBirthProfile, type BirthProfileFormValue, type ZiHourMode } from '../components/birthProfile'
+import PillarsInputForm, { initialPillarsValue, type PillarsFormValue } from '../components/PillarsInputForm'
+import type { PillarCandidate } from '../lib/api'
 import './HomePage.css'
 
 // 省份 → 中心经度映射（东8区标准为120°E）
@@ -35,8 +37,79 @@ export default function HomePage() {
   const [showAdvancedCalibration, setShowAdvancedCalibration] = useState(false)
   const [chartDisplayName, setChartDisplayName] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
+  const [inputMode, setInputMode] = useState<'birth' | 'pillars'>('birth')
+  const [pillars, setPillars] = useState<PillarsFormValue>(initialPillarsValue('male'))
+  const [candidates, setCandidates] = useState<PillarCandidate[]>([])
 
   const calibrationSummary = province ? `${province}省级经度近似校准` : '按北京时间排盘'
+
+  const trimmedDisplayName = (): string | undefined => {
+    const name = chartDisplayName.trim()
+    return name || undefined
+  }
+
+  // 用「公历年月日 + 小时 + 性别」直接走现有 calculate
+  const castBySolar = async (
+    year: number, month: number, day: number, hour: number,
+    gender: 'male' | 'female', isEarlyZishi: boolean,
+  ) => {
+    const input: CalculateInput = {
+      year, month, day, hour, gender,
+      is_early_zishi: isEarlyZishi,
+      longitude: PROVINCE_LONGITUDE[province] || 0,
+      calendar_type: 'solar',
+      is_leap_month: false,
+      display_name: trimmedDisplayName(),
+    }
+    const res = await baziAPI.calculate(input)
+    navigate('/result', { state: { result: res.data.result, chartId: res.data.chart_id, input, isGuest: !user } })
+  }
+
+  // 八字模式提交：先反查候选
+  const handlePillarsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setCandidates([])
+    setLoading(true)
+    try {
+      const res = await baziAPI.resolvePillars({
+        year_pillar: pillars.yearPillar,
+        month_pillar: pillars.monthPillar,
+        day_pillar: pillars.dayPillar,
+        hour_pillar: pillars.hourPillar,
+        min_year: pillars.minYear,
+        max_year: pillars.maxYear,
+      })
+      const list = res.data.candidates
+      if (list.length === 0) {
+        const isZiHour = pillars.hourPillar.endsWith('子')
+        setError(isZiHour
+          ? '这组八字找不到对应的真实日期。若出生于 23 点后的子时，日柱排法可能不同（早/晚子时），请核对后再试。'
+          : '这组八字找不到对应的真实日期，请核对四柱')
+      } else if (list.length === 1) {
+        await castBySolar(list[0].year, list[0].month, list[0].day, list[0].hour, pillars.gender, false)
+      } else {
+        setCandidates(list)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '反查失败，请重试')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // 用户从多候选里点选一个
+  const handlePickCandidate = async (c: PillarCandidate) => {
+    setError('')
+    setLoading(true)
+    try {
+      await castBySolar(c.year, c.month, c.day, c.hour, pillars.gender, false)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : '计算失败，请重试')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -121,6 +194,20 @@ export default function HomePage() {
               <p className="form-card-desc">请填写真实的出生时间，以获得准确的命理分析</p>
             </div>
 
+            <div className="input-mode-toggle birth-profile-segmented">
+              {(['birth', 'pillars'] as const).map(m => (
+                <button
+                  key={m}
+                  type="button"
+                  className={`birth-profile-option ${inputMode === m ? 'active' : ''}`}
+                  onClick={() => { setInputMode(m); setError(''); setDisplayNameError(''); setCandidates([]) }}
+                >
+                  {m === 'birth' ? '按生辰' : '按八字'}
+                </button>
+              ))}
+            </div>
+
+            {inputMode === 'birth' && (
             <form onSubmit={handleSubmit} id="bazi-form">
               <BirthProfileForm
                 value={birthProfile}
@@ -209,6 +296,42 @@ export default function HomePage() {
                 </p>
               )}
             </form>
+            )}
+
+            {inputMode === 'pillars' && (
+              <form onSubmit={handlePillarsSubmit} id="pillars-form">
+                <PillarsInputForm value={pillars} onChange={next => { setPillars(next); setCandidates([]) }} />
+
+                {candidates.length > 0 && (
+                  <div className="candidate-list" aria-live="polite">
+                    <div className="form-label">找到多个可能的出生日期，请按年龄选择</div>
+                    {candidates.map(c => (
+                      <button
+                        type="button"
+                        key={`${c.year}-${c.month}-${c.day}-${c.hour}`}
+                        className="candidate-item"
+                        onClick={() => handlePickCandidate(c)}
+                        disabled={loading}
+                      >
+                        <span>{c.year}-{String(c.month).padStart(2, '0')}-{String(c.day).padStart(2, '0')}</span>
+                        <span className="candidate-lunar">{c.lunar_date}</span>
+                        <span className="candidate-age">约 {c.ref_age} 岁</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {error && <p className="form-error">{error}</p>}
+
+                <button type="submit" id="submit-pillars" className="btn btn-primary btn-lg submit-btn" disabled={loading}>
+                  {loading ? (<><span className="loading-spinner" />正在反查...</>) : (<>按八字起盘</>)}
+                </button>
+
+                {!user && (
+                  <p className="guest-hint"><a href="/login">登录</a>后可保存记录并获得完整解读报告</p>
+                )}
+              </form>
+            )}
           </div>
         </div>
       </section>

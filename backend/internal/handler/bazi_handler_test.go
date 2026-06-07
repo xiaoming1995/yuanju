@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"yuanju/pkg/bazi"
 )
 
 func TestNormalizeChartDisplayName(t *testing.T) {
@@ -144,5 +145,72 @@ func TestCalculate_RejectsLongDisplayName(t *testing.T) {
 	}
 	if !strings.Contains(recorder.Body.String(), "20") {
 		t.Fatalf("expected error to mention length limit, got %s", recorder.Body.String())
+	}
+}
+
+func TestResolvePillars_ReturnsCandidates(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/resolve-pillars", ResolvePillars)
+
+	body := `{"year_pillar":"甲子","month_pillar":"丙寅","day_pillar":"丁丑","hour_pillar":"丙午"}`
+	req := httptest.NewRequest(http.MethodPost, "/resolve-pillars", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var resp struct {
+		Candidates []bazi.Candidate `json:"candidates"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(resp.Candidates) == 0 {
+		t.Fatalf("expected at least one candidate")
+	}
+}
+
+func TestResolvePillars_EmptyOnNoMatch(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/resolve-pillars", ResolvePillars)
+
+	body := `{"year_pillar":"甲子","month_pillar":"甲子","day_pillar":"甲子","hour_pillar":"甲子"}`
+	req := httptest.NewRequest(http.MethodPost, "/resolve-pillars", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	var resp struct {
+		Candidates []bazi.Candidate `json:"candidates"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if len(resp.Candidates) != 0 {
+		t.Errorf("expected empty candidates, got %v", resp.Candidates)
+	}
+}
+
+func TestResolvePillars_RejectsMissingPillar(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/resolve-pillars", ResolvePillars)
+
+	// 缺少 hour_pillar，binding:"required" 应返回 422
+	body := `{"year_pillar":"甲子","month_pillar":"丙寅","day_pillar":"丁丑"}`
+	req := httptest.NewRequest(http.MethodPost, "/resolve-pillars", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 for missing pillar, got %d", w.Code)
 	}
 }

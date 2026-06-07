@@ -523,6 +523,24 @@ export interface CalculateInput {
   display_name?: string
 }
 
+export interface ResolvePillarsInput {
+  year_pillar: string
+  month_pillar: string
+  day_pillar: string
+  hour_pillar: string
+  min_year?: number
+  max_year?: number
+}
+
+export interface PillarCandidate {
+  year: number
+  month: number
+  day: number
+  hour: number
+  lunar_date: string
+  ref_age: number
+}
+
 export interface BaziHistoryChart {
   id: string
   birth_year: number
@@ -546,6 +564,8 @@ export interface BaziHistoryChart {
 
 export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
+  resolvePillars: (data: ResolvePillarsInput) =>
+    api.post<{ candidates: PillarCandidate[] }>('/api/bazi/resolve-pillars', data),
   generateReport: (chartId: string) =>
     api.post(`/api/bazi/report/${chartId}`, {}, { timeout: 300000 }), // 推理模型最长 300s
   getPolishedReport: (chartId: string) =>
