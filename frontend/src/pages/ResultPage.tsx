@@ -17,8 +17,6 @@ import PrintLayout from '../components/PrintLayout'
 import PolishedPanel from '../components/PolishedPanel'
 import { SegmentedTabs } from '../components/ui/SegmentedTabs'
 import { useToast } from '../components/ui/useToast'
-import { ResultHeroSummary } from '../components/result/ResultHeroSummary'
-import { ResultActionBar } from '../components/result/ResultActionBar'
 import { toPng, toBlob } from 'html-to-image'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -733,29 +731,32 @@ export default function ResultPage() {
         <div className="container">
 
         <section id="result-section-overview" className="result-overview-section">
-          <ResultHeroSummary
-            birthYear={result.birth_year}
-            birthMonth={result.birth_month}
-            birthDay={result.birth_day}
-            birthHour={result.birth_hour}
-            gender={result.gender}
-            pillars={pillars}
-            yongshen={result.yongshen || ''}
-            jishen={result.jishen || ''}
-            mingGe={result.ming_ge || ''}
-            reportReady={!!report}
-            reportLoading={reportLoading || isStreaming || isThinking}
-            onMingGeClick={result.ming_ge ? () => setActiveMingGe({ name: result.ming_ge!, desc: result.ming_ge_desc || '' }) : undefined}
-          />
-          <ResultActionBar
-            hasReport={!!report}
-            reportLoading={reportLoading || isStreaming || isThinking}
-            exportingPDF={exportingPDF}
-            isGuest={isGuest}
-            targetId={targetId}
-            onGenerateReport={handleGenerateReport}
-            onExportPDF={handleExportPDF}
-          />
+          <div className="result-header animate-fade-up">
+            <div className="result-birth-info">
+              {result.birth_year}年{result.birth_month}月{result.birth_day}日 {result.birth_hour}时
+              &nbsp;·&nbsp;{result.gender === 'male' ? '男命' : '女命'}
+            </div>
+            <h1 className="result-pillars serif">
+              {pillars.map(p => `${p.gan}${p.zhi}`).join('·')}
+            </h1>
+            <div className="result-tags">
+              <span className={`wuxing-badge ${result.yongshen ? 'wuxing-' + (WUXING_MAP[result.yongshen?.charAt(0)] || 'jin') : 'wuxing-unknown'}`}>
+                喜用：{result.yongshen || (reportLoading ? '测算中...' : '待生成')}
+              </span>
+              <span className={`wuxing-badge ${result.jishen ? 'wuxing-' + (WUXING_MAP[result.jishen?.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
+                忌：{result.jishen || (reportLoading ? '测算中...' : '待生成')}
+              </span>
+              {result.ming_ge && (
+                <span
+                  className="mingge-badge"
+                  onClick={() => setActiveMingGe({ name: result.ming_ge!, desc: result.ming_ge_desc || '' })}
+                  title="点击查看格局说明"
+                >
+                  {result.ming_ge}
+                </span>
+              )}
+            </div>
+          </div>
           {targetId && !isGuest && (
             <div className="chart-archive-tools">
               <div className="chart-archive-name">

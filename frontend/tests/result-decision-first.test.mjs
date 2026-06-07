@@ -7,31 +7,29 @@ import test from 'node:test'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (path) => readFileSync(resolve(root, path), 'utf8')
 
-test('result page has decision-first hero and action components', () => {
+test('result page top uses the simple pillar header, not the oversized hero card', () => {
   const page = read('src/pages/ResultPage.tsx')
-  const hero = read('src/components/result/ResultHeroSummary.tsx')
-  const actionBar = read('src/components/result/ResultActionBar.tsx')
 
-  assert.match(page, /ResultHeroSummary/)
-  assert.match(page, /ResultActionBar/)
-  assert.match(hero, /result-hero-summary/)
-  assert.match(hero, /result-core-conclusion/)
-  assert.match(actionBar, /result-action-bar/)
-  assert.match(actionBar, /result-mobile-primary-action/)
+  assert.match(page, /result-header/)
+  assert.match(page, /result-pillars/)
+  assert.match(page, /result-tags/)
+  // The UX-refactor hero/action-bar were reverted; guard against reintroduction.
+  assert.doesNotMatch(page, /ResultHeroSummary/)
+  assert.doesNotMatch(page, /ResultActionBar/)
 })
 
-test('result hero appears before professional detail content', () => {
+test('result page header appears before professional detail and report sections', () => {
   const page = read('src/pages/ResultPage.tsx')
 
-  const hero = page.indexOf('<ResultHeroSummary')
+  const header = page.indexOf('result-header')
   const detail = page.indexOf('professional-view')
   const report = page.indexOf('report-section')
 
-  assert.ok(hero > -1, 'hero should be rendered')
+  assert.ok(header > -1, 'header should be rendered')
   assert.ok(detail > -1, 'professional detail should remain rendered')
   assert.ok(report > -1, 'report section should remain rendered')
-  assert.ok(hero < detail, 'hero should appear before professional detail')
-  assert.ok(hero < report, 'hero should appear before report section')
+  assert.ok(header < detail, 'header should appear before professional detail')
+  assert.ok(header < report, 'header should appear before report section')
 })
 
 test('result page exposes stable segmented navigation targets', () => {
@@ -53,11 +51,7 @@ test('result page exposes stable segmented navigation targets', () => {
   assert.match(css, /overflow-x:\s*auto/)
 })
 
-test('result missing report state still offers deterministic summary and AI generation action', () => {
-  const hero = read('src/components/result/ResultHeroSummary.tsx')
+test('result missing report state still offers AI generation action', () => {
   const page = read('src/pages/ResultPage.tsx')
-
-  assert.match(hero, /buildResultCoreConclusion/)
-  assert.match(hero, /待生成 AI 解读/)
   assert.match(page, /id="generate-ai-report"/)
 })
