@@ -155,6 +155,7 @@ func main() {
 			bazi.PATCH("/history/:id/display-name", middleware.Auth(), handler.UpdateHistoryDisplayName)
 			bazi.DELETE("/history/:id", middleware.Auth(), handler.DeleteHistory)
 			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
+			bazi.POST("/resolve-pillars", handler.ResolvePillars) // 四柱反查候选公历日期（无需登录）
 		}
 
 		compatibility := api.Group("/compatibility", middleware.Auth())
