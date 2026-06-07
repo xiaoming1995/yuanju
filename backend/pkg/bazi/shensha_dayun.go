@@ -64,9 +64,9 @@ func GetDayunShenSha(yearGan, yearZhi, monthZhi, dayGan, dayZhi, dayunGan, dayun
 			(dg == "壬" && z == "亥") || (dg == "癸" && z == "子"),
 		"禄神")
 
-	// 羊刃（日干基准）
+	// 羊刃（日干基准）：阴干刃取「禄后一位」(乙禄卯→刃辰)，与神煞汇总表对齐
 	add(
-		(dg == "甲" && z == "卯") || (dg == "乙" && z == "寅") ||
+		(dg == "甲" && z == "卯") || (dg == "乙" && z == "辰") ||
 			(strings.Contains("丙戊", dg) && z == "午") || (strings.Contains("丁己", dg) && z == "未") ||
 			(dg == "庚" && z == "酉") || (dg == "辛" && z == "戌") ||
 			(dg == "壬" && z == "子") || (dg == "癸" && z == "丑"),
@@ -320,11 +320,11 @@ func GetDayunShenSha(yearGan, yearZhi, monthZhi, dayGan, dayZhi, dayunGan, dayun
 		add(z == zaizhi, "灾煞")
 	}
 
-	// 流霞（年干 → 大运地支）
+	// 流霞（年干 → 大运地支）：与神煞汇总表对齐（甲酉乙戌丙未丁申戊巳己午庚辰辛卯壬亥癸寅）
 	liuxiaMap := map[string]string{
-		"甲": "申", "乙": "酉", "丙": "戌", "丁": "亥",
-		"戊": "子", "己": "丑", "庚": "寅", "辛": "卯",
-		"壬": "辰", "癸": "巳",
+		"甲": "酉", "乙": "戌", "丙": "未", "丁": "申",
+		"戊": "巳", "己": "午", "庚": "辰", "辛": "卯",
+		"壬": "亥", "癸": "寅",
 	}
 	if lxz, ok := liuxiaMap[yg]; ok {
 		add(z == lxz, "流霞")

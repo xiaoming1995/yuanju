@@ -715,6 +715,9 @@ func practicalStanceSentence(signals []EventSignal, primary EventSignal, age int
 		}
 		return "这一年可以主动经营关系，但仍要把节奏掌握在自己手里。"
 	case "health":
+		if ji > xiong {
+			return "这一年健康上要当心，但整体吉象不少，别为赶进度透支身体。"
+		}
 		return "这一年不宜硬扛，休息、安全和情绪管理要排在求快求成之前。"
 	case "money":
 		if xiong > 0 {
