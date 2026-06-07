@@ -82,7 +82,10 @@ export default function HomePage() {
       })
       const list = res.data.candidates
       if (list.length === 0) {
-        setError('这组八字找不到对应的真实日期，请核对四柱')
+        const isZiHour = pillars.hourPillar.endsWith('子')
+        setError(isZiHour
+          ? '这组八字找不到对应的真实日期。若出生于 23 点后的子时，日柱排法可能不同（早/晚子时），请核对后再试。'
+          : '这组八字找不到对应的真实日期，请核对四柱')
       } else if (list.length === 1) {
         await castBySolar(list[0].year, list[0].month, list[0].day, list[0].hour, pillars.gender, false)
       } else {

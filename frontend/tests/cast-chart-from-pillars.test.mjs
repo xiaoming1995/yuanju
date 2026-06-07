@@ -37,3 +37,9 @@ test('homepage resolves pillars then calculates, handling 0 / many candidates', 
   assert.match(home, /candidates/)
   assert.match(home, /ref_age|参考年龄|岁/)
 })
+
+test('homepage gives a zi-hour-specific hint when no candidate matches', () => {
+  const home = read('src/pages/HomePage.tsx')
+  assert.match(home, /endsWith\('子'\)/)
+  assert.match(home, /早\/晚子时|早子时|晚子时/)
+})
