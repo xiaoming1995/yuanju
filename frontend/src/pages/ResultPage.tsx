@@ -382,7 +382,10 @@ export default function ResultPage() {
         list.forEach(a => map.set(a.name, a))
         setShenshaMap(map)
       })
-      .catch(() => { /* 注解加载失败不影响主功能 */ })
+      .catch(err => {
+        // 注解加载失败不影响主功能，留痕便于线上排查
+        console.warn('[shensha] 注解加载失败', err)
+      })
   }, [])
 
   useEffect(() => {
@@ -476,12 +479,13 @@ export default function ResultPage() {
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
   const handleExportPDF = async () => {
+    // 导出相关提示用 toast 就近反馈，不写进 AI 解读区的 reportError
     if (reportTab === 'polished' && !polishedReport) {
-      setReportError('请先生成润色版命理解读，再导出 PDF 报告')
+      showToast('请先生成润色版命理解读，再导出 PDF 报告', 'error')
       return
     }
     if (reportTab !== 'polished' && !report) {
-      setReportError('请先生成命理解读，再导出 PDF 报告')
+      showToast('请先生成命理解读，再导出 PDF 报告', 'error')
       return
     }
     if (!isMobileDevice) {

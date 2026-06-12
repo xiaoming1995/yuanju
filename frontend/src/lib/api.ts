@@ -11,6 +11,8 @@ export function errorMessage(err: unknown, fallback = 'unknown error') {
 
 const DAYUN_STREAM_INACTIVITY_TIMEOUT_MS = 45_000
 const DAYUN_STREAM_INTERRUPTED_MESSAGE = '生成中断，点击重试'
+const DAYUN_STREAM_TIMEOUT_MESSAGE = '等待响应超时，点击重试'
+const DAYUN_STREAM_NETWORK_MESSAGE = '网络连接异常，请检查网络后重试'
 
 interface StreamDayunSummariesOptions {
   inactivityTimeoutMs?: number
@@ -730,7 +732,7 @@ export const baziAPI = {
           : undefined,
         signal: controller.signal,
       })
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      if (!response.ok) throw new Error(`服务暂时不可用（${response.status}），点击重试`)
       const reader = response.body?.getReader()
       if (!reader) throw new Error('No reader available')
       const decoder = new TextDecoder()
@@ -768,8 +770,16 @@ export const baziAPI = {
       }
       safeOnDone()
     } catch (err: unknown) {
-      const interrupted = timedOut || (err instanceof DOMException && err.name === 'AbortError')
-      safeOnError(interrupted ? DAYUN_STREAM_INTERRUPTED_MESSAGE : errorMessage(err))
+      // 按中断原因区分提示文案：超时 / 主动中止 / 网络层失败 / 其他（如服务端错误）
+      if (timedOut) {
+        safeOnError(DAYUN_STREAM_TIMEOUT_MESSAGE)
+      } else if (err instanceof DOMException && err.name === 'AbortError') {
+        safeOnError(DAYUN_STREAM_INTERRUPTED_MESSAGE)
+      } else if (err instanceof TypeError) {
+        safeOnError(DAYUN_STREAM_NETWORK_MESSAGE)
+      } else {
+        safeOnError(errorMessage(err))
+      }
     }
   },
 
