@@ -354,6 +354,15 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(!result && !!id)
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('detail')
   const [reportTab, setReportTab] = useState<'original' | 'polished'>('original')
+  const reportTabRowRef = useRef<HTMLDivElement | null>(null)
+
+  // 切换原版/润色版后把视口拉回报告区顶部，避免停留在另一版的中部位置
+  const switchReportTab = (tab: 'original' | 'polished') => {
+    setReportTab(tab)
+    requestAnimationFrame(() => {
+      reportTabRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
   const [polishedReport, setPolishedReport] = useState<PolishedReport | null>(null)
   const [polishing, setPolishing] = useState(false)
   const [polishError, setPolishError] = useState<string | null>(null)
@@ -1065,16 +1074,16 @@ export default function ResultPage() {
           </div>
 
           {report && (
-            <div className="report-tab-row">
+            <div className="report-tab-row" ref={reportTabRowRef}>
               <button
                 className={`report-tab${reportTab === 'original' ? ' is-active' : ''}`}
-                onClick={() => setReportTab('original')}
+                onClick={() => switchReportTab('original')}
               >
                 原版
               </button>
               <button
                 className={`report-tab${reportTab === 'polished' ? ' is-active' : ''}`}
-                onClick={() => setReportTab('polished')}
+                onClick={() => switchReportTab('polished')}
               >
                 润色版
               </button>

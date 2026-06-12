@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import './DeepReportNarrative.css'
 import FamousCoupleCard from '../FamousCoupleCard'
 import PersonalityComparison from './PersonalityComparison'
@@ -6,6 +7,15 @@ import type {
   CompatibilityStructuredReport,
   CompatibilityQuestionFocus,
 } from '../../../lib/api'
+
+// 生成期间的步进文案，节奏对齐单人结果页的 LOADING_STEPS（每 4s 推进一步）
+const REPORT_LOADING_STEPS = [
+  '比对双方四柱与十神结构...',
+  '推演性格画像与互动模式...',
+  '评估阶段风险与现实因素...',
+  '组织关系叙事与相处建议...',
+  '正在汇总生成深度解读...',
+]
 
 type Props = {
   hasReport: boolean
@@ -65,6 +75,19 @@ export default function DeepReportNarrative({
   partnerName,
 }: Props) {
   const reportStateClass = hasReport ? 'compatibility-ai-card--generated' : 'compatibility-ai-card--empty'
+  const [loadingStep, setLoadingStep] = useState(0)
+
+  useEffect(() => {
+    if (!reportLoading) return
+    const timer = window.setInterval(() => {
+      setLoadingStep(prev => (prev < REPORT_LOADING_STEPS.length - 1 ? prev + 1 : prev))
+    }, 4000)
+    return () => {
+      window.clearInterval(timer)
+      setLoadingStep(0)
+    }
+  }, [reportLoading])
+
   return (
     <details open className="compat-da-report">
       <summary className="compat-da-subsection-summary">
@@ -85,8 +108,8 @@ export default function DeepReportNarrative({
         )}
 
         {reportLoading && (
-          <div className="compatibility-report-state">
-            正在生成 AI 深度解读，请稍候。
+          <div className="compatibility-report-state" key={loadingStep}>
+            {REPORT_LOADING_STEPS[loadingStep]}
           </div>
         )}
 

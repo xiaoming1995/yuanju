@@ -14,7 +14,8 @@ test('profile page route and API are wired', () => {
 })
 
 test('logged-in navigation points 我的 to profile page', () => {
-  assert.match(read('src/components/BottomNav.tsx'), /to="\/profile"[\s\S]*<span>我的<\/span>/)
+  // BottomNav 我的入口为 to={user ? '/profile' : '/login'}
+  assert.match(read('src/components/BottomNav.tsx'), /'\/profile'[\s\S]*<span>我的<\/span>/)
   assert.match(read('src/components/Navbar.tsx'), /to="\/profile"[\s\S]*我的/)
 })
 

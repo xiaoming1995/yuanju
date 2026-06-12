@@ -132,7 +132,8 @@ test('mobile bottom navigation exposes archive destination with anonymous return
   assert.match(nav, /History/)
   assert.match(nav, /<span>记录<\/span>/)
   assert.match(nav, /user\s*\?\s*'\/history'\s*:\s*buildAuthPath\('\/login',\s*'\/history'\)/)
-  assert.match(nav, /location\.pathname\.startsWith\('\/history'\)/)
+  // 高亮判断已抽成 activeTab(pathname) 显式映射
+  assert.match(nav, /pathname\.startsWith\('\/history'\)/)
 })
 
 test('user-facing result and archive flows avoid native dialogs', () => {
