@@ -19,9 +19,6 @@ import {
   getCompatibilityQuestionLabel,
   getPersonalityMatchType,
 } from '../lib/compatibilityPersonality'
-import { toBlob, toPng } from 'html-to-image'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import { brandAPI, type ExportBrand } from '../lib/api'
 import CompatibilityShareCard from '../components/CompatibilityShareCard'
 import CompatibilityPrintLayout from '../components/CompatibilityPrintLayout'
@@ -185,6 +182,8 @@ export default function CompatibilityResultPage() {
     if (!shareCardRef.current) return
     setSavingImage(true)
     try {
+      // 导出库较大，点击时才加载
+      const { toBlob, toPng } = await import('html-to-image')
       await document.fonts.ready
       const selfName = selfP?.display_name || '我'
       const partnerName = partnerP?.display_name || '伴侣'
@@ -236,6 +235,11 @@ export default function CompatibilityResultPage() {
     setExportingPDF(true)
     const prevDisplay = el.style.display
     try {
+      // 导出库较大，点击时才加载
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
       await document.fonts.ready
       el.style.display = 'block'
       const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
