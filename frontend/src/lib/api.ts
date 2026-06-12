@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { cachedFetch } from './staticCache'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',  // 开发环境走 Vite proxy → 9002
@@ -35,7 +36,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('yj_token')
       localStorage.removeItem('yj_user')
-      window.location.href = '/login'
+      // 通知 AuthContext 走 SPA 路由跳转，避免整页 reload 丢状态
+      window.dispatchEvent(new CustomEvent('yj:unauthorized'))
     }
     const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout')
     const message = isTimeout
@@ -894,8 +896,9 @@ export interface ShenshaAnnotation {
   updated_at: string
 }
 
-// 获取全部神煞注解（公开，无需鉴权）
+// 获取全部神煞注解（公开，无需鉴权）；准静态数据，localStorage 缓存 1 小时
 export const fetchShenshaAnnotations = (): Promise<ShenshaAnnotation[]> =>
-  api.get('/api/shensha/annotations').then(res => res.data.data ?? [])
+  cachedFetch('yj_cache_shensha_annotations', 60 * 60 * 1000, () =>
+    api.get('/api/shensha/annotations').then(res => res.data.data ?? []))
 
 export default api

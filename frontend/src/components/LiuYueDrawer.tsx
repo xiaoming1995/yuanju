@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { baziAPI, errorMessage } from '../lib/api'
 import type { LiuYueItem, LiuYueResponse } from '../lib/api'
 
@@ -55,16 +55,22 @@ export default function LiuYueDrawer({
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
 
+  // 请求序号守卫：快速切换年份时丢弃过期响应，避免后到的旧数据覆盖新年份
+  const requestSeqRef = useRef(0)
+
   const fetchData = useCallback(async (y: number) => {
+    const requestId = ++requestSeqRef.current
     setLoading(true)
     setError(null)
     try {
       const res = await baziAPI.fetchLiuYue(y, dayGan)
+      if (requestId !== requestSeqRef.current) return
       setData(res.data)
     } catch (e: unknown) {
+      if (requestId !== requestSeqRef.current) return
       setError(e instanceof Error ? e.message : '加载失败')
     } finally {
-      setLoading(false)
+      if (requestId === requestSeqRef.current) setLoading(false)
     }
   }, [dayGan])
 
