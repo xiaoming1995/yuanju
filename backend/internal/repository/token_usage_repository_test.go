@@ -3,6 +3,7 @@ package repository
 import (
 	"testing"
 	"time"
+	"yuanju/pkg/database"
 )
 
 // fakeCostFn returns 0.01 CNY per 1000 tokens (any model)
@@ -10,10 +11,17 @@ var fakeCostFn = func(_ string, p, c int) float64 {
 	return float64(p+c) * 0.01 / 1000
 }
 
-func TestGetTokenUsageCostByModel_AggregatesGroupedRows(t *testing.T) {
-	if testing.Short() {
-		t.Skip("requires DB")
+// requireDB：无已初始化的 database.DB 时跳过（此前用 testing.Short() 守卫，
+// 普通 go test ./... 会因 DB 为 nil 直接 panic）
+func requireDB(t *testing.T) {
+	t.Helper()
+	if testing.Short() || database.DB == nil {
+		t.Skip("requires DB (database.DB not initialized)")
 	}
+}
+
+func TestGetTokenUsageCostByModel_AggregatesGroupedRows(t *testing.T) {
+	requireDB(t)
 	now := time.Now()
 	from := now.AddDate(0, 0, -1)
 	to := now
@@ -31,9 +39,7 @@ func TestGetTokenUsageCostByModel_AggregatesGroupedRows(t *testing.T) {
 }
 
 func TestGetUserCostBreakdown_RespectsLimitAndSortsByCost(t *testing.T) {
-	if testing.Short() {
-		t.Skip("requires DB")
-	}
+	requireDB(t)
 	now := time.Now()
 	from := now.AddDate(0, 0, -7)
 	to := now
