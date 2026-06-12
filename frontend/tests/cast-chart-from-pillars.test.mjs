@@ -15,16 +15,20 @@ test('pillars input form renders per-character gan/zhi selectors and gender', ()
   assert.match(form, /时柱/)
   assert.match(form, /天干/)
   assert.match(form, /地支/)
-  assert.match(form, /export const GAN/)
-  assert.match(form, /export const ZHI/)
   assert.match(form, /男命/)
+  // GAN/ZHI 常量已抽到 pillarsInput.ts（52dd969）
+  const helpers = read('src/components/pillarsInput.ts')
+  assert.match(helpers, /export const GAN/)
+  assert.match(helpers, /export const ZHI/)
 })
 
 test('pillars form supports typing the eight characters directly', () => {
   const form = read('src/components/PillarsInputForm.tsx')
   assert.match(form, /parseEightChars/)
   assert.match(form, /快速填入/)
-  assert.match(form, /length !== 8/)
+  // 8 字校验逻辑在 pillarsInput.ts 的 parseEightChars 里
+  const helpers = read('src/components/pillarsInput.ts')
+  assert.match(helpers, /length !== 8/)
 })
 
 test('homepage offers birth/pillars input mode toggle', () => {

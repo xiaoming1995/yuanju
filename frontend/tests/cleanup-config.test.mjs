@@ -28,7 +28,8 @@ test('adminApi exposes adminCleanupConfigAPI with get + update', () => {
 test('App.tsx registers /admin/cleanup-config route', () => {
   const src = read('src/App.tsx')
   assert.match(src, /path="cleanup-config"/)
-  assert.match(src, /import CleanupConfigPage/)
+  // 路由懒加载后是 lazy(() => import(...)) 而非顶层 import
+  assert.match(src, /import\('\.\/pages\/admin\/CleanupConfigPage'\)/)
 })
 
 test('AdminLayout nav includes 数据清理配置 entry', () => {
