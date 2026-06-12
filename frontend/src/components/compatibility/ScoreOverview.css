@@ -1,7 +1,7 @@
 /* === Score v3 === */
 .compat-score-v3 {
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 24px;
   margin-bottom: 16px;
 }

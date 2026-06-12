@@ -84,7 +84,7 @@
 .mingge-modal-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-weight: 600;
   letter-spacing: 0.03em;
   color: #a78bfa;
@@ -644,7 +644,7 @@
 .shensha-modal-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-weight: 600;
   letter-spacing: 0.03em;
 }
@@ -867,7 +867,7 @@
   gap: 7px;
   padding: 12px 6px 14px;
   border: 1px solid rgba(201, 168, 76, 0.18);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
     rgba(12, 25, 41, 0.78);
@@ -981,7 +981,7 @@
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
   border: 1px solid rgba(201, 168, 76, 0.22);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(9, 18, 31, 0.96);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
 }
@@ -1142,7 +1142,7 @@
 .dayun-summary-tags span {
   padding: 6px 10px;
   border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--wu-jin);
   background: rgba(201, 168, 76, 0.06);
   font-size: 12px;
@@ -1792,7 +1792,7 @@
   gap: 10px;
   padding: 14px 18px;
   background: color-mix(in srgb, var(--accent-color) 8%, var(--bg-surface));
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-bottom: 20px;
   font-size: var(--font-size-body);
   line-height: 1.7;
