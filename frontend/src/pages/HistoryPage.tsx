@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { CalendarDays, Compass, HeartHandshake, Sparkles, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -25,6 +25,7 @@ export default function HistoryPage() {
   const roleDialogRef = useRef<HTMLDivElement | null>(null)
   const [charts, setCharts] = useState<Chart[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [editingChartId, setEditingChartId] = useState<string | null>(null)
   const [displayNameDraft, setDisplayNameDraft] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
@@ -33,14 +34,20 @@ export default function HistoryPage() {
   const [deleteError, setDeleteError] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  const loadCharts = useCallback(() => {
+    setLoading(true)
+    setLoadError(false)
+    baziAPI.getHistory()
+      .then(res => setCharts(res.data.charts || []))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false))
+  }, [])
+
   useEffect(() => {
     if (isLoading) return
     if (!user) { navigate('/login'); return }
-    baziAPI.getHistory()
-      .then(res => setCharts(res.data.charts || []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [user, isLoading, navigate])
+    loadCharts()
+  }, [user, isLoading, navigate, loadCharts])
 
   useEffect(() => {
     if (!compatibilityRoleChart) return
@@ -162,7 +169,14 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        {charts.length === 0 ? (
+        {loadError ? (
+          <div className="history-empty card animate-fade-up">
+            <div className="empty-icon"><Compass size={48} /></div>
+            <p className="empty-title serif">命盘记录加载失败</p>
+            <p className="empty-desc">网络或服务暂时不可用，已保存的命盘不会丢失</p>
+            <button type="button" className="btn btn-primary" onClick={loadCharts}>重新加载</button>
+          </div>
+        ) : charts.length === 0 ? (
           <div className="history-empty card animate-fade-up">
             <div className="empty-icon"><Compass size={48} /></div>
             <p className="empty-title serif">还没有命盘记录</p>
