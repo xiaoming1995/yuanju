@@ -32,6 +32,8 @@ export default function BrandSettingsPage() {
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null)
+  // 上传失败时保留的裁剪结果，供"重试上传"
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -123,6 +125,7 @@ export default function BrandSettingsPage() {
       return
     }
     setError('')
+    setPendingLogoFile(null)
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result
@@ -141,8 +144,11 @@ export default function BrandSettingsPage() {
       const next = { ...serverState, logo_url: r.data.data.logo_url }
       setServerState(next)
       setDraft(d => ({ ...d, logo_url: r.data.data.logo_url }))
+      setPendingLogoFile(null)
       flashSuccess('Logo 已更新')
     } catch (e) {
+      // 保留裁剪结果，失败后可直接重试，不必重选文件重新裁剪
+      setPendingLogoFile(file)
       setError(e instanceof Error ? e.message : '上传失败')
     } finally {
       setUploading(false)
@@ -246,6 +252,15 @@ export default function BrandSettingsPage() {
             >
               {uploading ? '上传中...' : (serverState.logo_url ? '更换' : '上传')}
             </button>
+            {pendingLogoFile && !uploading && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => handleCropConfirm(pendingLogoFile)}
+              >
+                重试上传
+              </button>
+            )}
             {serverState.logo_url && (
               <button
                 type="button"
