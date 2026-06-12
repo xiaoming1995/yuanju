@@ -70,7 +70,7 @@
 
 .profile-workbench h2 {
   margin: 0 0 6px;
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
   color: var(--text-primary);
 }
 

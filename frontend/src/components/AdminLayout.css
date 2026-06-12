@@ -35,7 +35,7 @@
 }
 
 .admin-brand-title {
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
   font-weight: 700;
   color: #c9a227;
   letter-spacing: 0.5px;
@@ -84,7 +84,7 @@
 }
 
 .admin-user-info {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: #666;
   margin-bottom: 8px;
   overflow: hidden;

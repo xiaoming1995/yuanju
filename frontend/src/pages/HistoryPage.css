@@ -109,7 +109,7 @@
 
 .history-section-title h2 {
   margin: 0 0 4px;
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
 }
 
 .history-section-title p {
@@ -238,7 +238,7 @@
 .history-name-error {
   width: 100%;
   color: #ffb4a8;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .history-meta {
@@ -307,7 +307,7 @@
   padding-top: 12px;
   border-top: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .history-role-dialog {
@@ -333,7 +333,7 @@
 .history-role-dialog-panel h2 {
   margin: 0 0 8px;
   color: var(--text-primary);
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
 }
 
 .history-role-dialog-panel p {

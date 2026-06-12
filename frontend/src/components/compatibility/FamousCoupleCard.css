@@ -21,7 +21,7 @@
 }
 
 .famous-couple-card__tagline {
-  font-size: 15px;
+  font-size: var(--font-size-body);
   margin-top: 6px;
   opacity: 0.9;
 }

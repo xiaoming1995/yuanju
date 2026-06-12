@@ -160,7 +160,7 @@
 .compatibility-history-dialog-panel h2 {
   margin: 0 0 8px;
   color: var(--text-primary);
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
 }
 
 .compatibility-history-dialog-panel p {
@@ -218,7 +218,7 @@
 
 .compatibility-history-personality strong {
   color: var(--wu-jin);
-  font-size: 15px;
+  font-size: var(--font-size-body);
   font-weight: 600;
 }
 

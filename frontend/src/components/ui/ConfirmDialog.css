@@ -26,7 +26,7 @@
 
 .ui-confirm-dialog__title {
   color: var(--text-heading);
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
 }
 
 .ui-confirm-dialog__description {

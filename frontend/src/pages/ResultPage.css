@@ -135,7 +135,7 @@
 }
 
 .report-block-title {
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
   font-weight: 600;
   color: var(--wu-jin);
   margin-bottom: 12px;
@@ -160,7 +160,7 @@
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--border-subtle);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-muted);
   text-align: center;
 }
@@ -735,7 +735,7 @@
 .structure-card-title {
   margin: 0 0 14px;
   color: var(--text-accent);
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
   font-weight: 600;
 }
 
@@ -816,7 +816,7 @@
 .dayun-heading-row h2 {
   margin: 0;
   color: var(--text-accent);
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
   letter-spacing: 0;
 }
 
@@ -1152,7 +1152,7 @@
 .dayun-disclaimer {
   margin: 16px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   text-align: center;
 }
 
@@ -1794,7 +1794,7 @@
   background: color-mix(in srgb, var(--accent-color) 8%, var(--bg-surface));
   border-radius: 12px;
   margin-bottom: 20px;
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.7;
   color: var(--text-color);
   font-style: italic;
@@ -1931,7 +1931,7 @@
 
 .report-chapter-detail summary span {
   color: var(--wu-jin);
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
 }
 
 .report-chapter-detail summary em {
