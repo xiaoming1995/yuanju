@@ -14,3 +14,9 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
+
+/* 路由懒加载 chunk 下载期间的占位块 */
+.route-fallback-skeleton {
+  height: 240px;
+  border-radius: var(--radius-lg);
+}

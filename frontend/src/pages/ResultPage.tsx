@@ -17,9 +17,6 @@ import PrintLayout from '../components/PrintLayout'
 import PolishedPanel from '../components/PolishedPanel'
 import { SegmentedTabs } from '../components/ui/SegmentedTabs'
 import { useToast } from '../components/ui/useToast'
-import { toPng, toBlob } from 'html-to-image'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import './ResultPage.css'
 
 // 💡 特性开关 (Feature Flags)
@@ -411,6 +408,8 @@ export default function ResultPage() {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
     try {
+      // 导出库较大，点击时才加载
+      const { toPng, toBlob } = await import('html-to-image')
       await document.fonts.ready
 
       if (isIOS) {
@@ -495,6 +494,11 @@ export default function ResultPage() {
     setExportingPDF(true)
     const prevDisplay = el.style.display
     try {
+      // 导出库较大，点击时才加载
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
       await document.fonts.ready
       el.style.display = 'block'
       const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })

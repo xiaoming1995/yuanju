@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { AdminAuthProvider, useAdminAuth } from './contexts/AdminAuthContext'
@@ -5,33 +6,46 @@ import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
 import AdminLayout from './components/AdminLayout'
 import HomePage from './pages/HomePage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import ResultPage from './pages/ResultPage'
-import HistoryPage from './pages/HistoryPage'
-import ProfilePage from './pages/ProfilePage'
-import BrandSettingsPage from './pages/BrandSettingsPage'
-import AdminLoginPage from './pages/admin/AdminLoginPage'
-import AdminDashboardPage from './pages/admin/AdminDashboardPage'
-import AdminLLMPage from './pages/admin/AdminLLMPage'
-import AdminUsersPage from './pages/admin/AdminUsersPage'
-import AdminAILogsPage from './pages/admin/AdminAILogsPage'
-import AdminChartsPage from './pages/admin/AdminChartsPage'
-import AdminCompatPage from './pages/admin/AdminCompatPage'
-import AdminCelebritiesPage from './pages/admin/AdminCelebritiesPage'
-import PromptSettings from './pages/admin/PromptSettings'
-import AlgoConfigPage from './pages/admin/AlgoConfigPage'
-import CleanupConfigPage from './pages/admin/CleanupConfigPage'
-import TokenUsagePage from './pages/admin/TokenUsagePage'
-import ShenshaAnnotationsPage from './pages/admin/ShenshaAnnotationsPage'
 import ParticleBackground from './components/ParticleBackground'
-import PastEventsPage from './pages/PastEventsPage'
-import CompatibilityPage from './pages/CompatibilityPage'
-import CompatibilityHistoryPage from './pages/CompatibilityHistoryPage'
-import CompatibilityResultPage from './pages/CompatibilityResultPage'
 import { ToastProvider } from './components/ui/Toast'
 import './index.css'
 import './App.css'
+
+// 除首页外的页面按路由懒加载，避免首屏下载 admin/合婚/导出等全部代码
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const ResultPage = lazy(() => import('./pages/ResultPage'))
+const HistoryPage = lazy(() => import('./pages/HistoryPage'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const BrandSettingsPage = lazy(() => import('./pages/BrandSettingsPage'))
+const PastEventsPage = lazy(() => import('./pages/PastEventsPage'))
+const CompatibilityPage = lazy(() => import('./pages/CompatibilityPage'))
+const CompatibilityHistoryPage = lazy(() => import('./pages/CompatibilityHistoryPage'))
+const CompatibilityResultPage = lazy(() => import('./pages/CompatibilityResultPage'))
+const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'))
+const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'))
+const AdminLLMPage = lazy(() => import('./pages/admin/AdminLLMPage'))
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
+const AdminAILogsPage = lazy(() => import('./pages/admin/AdminAILogsPage'))
+const AdminChartsPage = lazy(() => import('./pages/admin/AdminChartsPage'))
+const AdminCompatPage = lazy(() => import('./pages/admin/AdminCompatPage'))
+const AdminCelebritiesPage = lazy(() => import('./pages/admin/AdminCelebritiesPage'))
+const PromptSettings = lazy(() => import('./pages/admin/PromptSettings'))
+const AlgoConfigPage = lazy(() => import('./pages/admin/AlgoConfigPage'))
+const CleanupConfigPage = lazy(() => import('./pages/admin/CleanupConfigPage'))
+const TokenUsagePage = lazy(() => import('./pages/admin/TokenUsagePage'))
+const ShenshaAnnotationsPage = lazy(() => import('./pages/admin/ShenshaAnnotationsPage'))
+
+// 懒加载 chunk 下载期间的占位（复用全局 .skeleton 样式）
+function RouteFallback() {
+  return (
+    <div className="page">
+      <div className="container">
+        <div className="skeleton route-fallback-skeleton" />
+      </div>
+    </div>
+  )
+}
 
 // Admin 路由守卫（未登录跳转 /admin/login）
 function AdminGuard({ children }: { children: React.ReactNode }) {
@@ -48,6 +62,7 @@ export default function App() {
       <AdminAuthProvider>
         <AuthProvider>
           <ToastProvider>
+            <Suspense fallback={<RouteFallback />}>
             <Routes>
               {/* 普通用户路由 */}
               <Route path="/" element={<><Navbar /><BottomNav /><HomePage /></>} />
@@ -83,6 +98,7 @@ export default function App() {
                 <Route path="shensha-annotations" element={<ShenshaAnnotationsPage />} />
               </Route>
             </Routes>
+            </Suspense>
           </ToastProvider>
         </AuthProvider>
       </AdminAuthProvider>
