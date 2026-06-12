@@ -4,16 +4,8 @@ import { ArrowRight, CalendarDays, CreditCard, FileText, HeartHandshake, History
 import { useAuth } from '../contexts/AuthContext'
 import { userAPI } from '../lib/api'
 import type { UserProfileOverview } from '../lib/api'
+import { formatDate, genderText } from '../lib/chartLabel'
 import './ProfilePage.css'
-
-function formatDate(value: string) {
-  if (!value) return '-'
-  return new Date(value).toLocaleDateString('zh-CN')
-}
-
-function genderText(gender: string) {
-  return gender === 'female' ? '女命' : '男命'
-}
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth()

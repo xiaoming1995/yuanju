@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Compass, HeartHandshake, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -47,9 +47,19 @@ export default function CompatibilityHistoryPage() {
   const navigate = useNavigate()
   const [items, setItems] = useState<CompatibilityHistoryItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [deletingItem, setDeletingItem] = useState<CompatibilityHistoryItem | null>(null)
   const [deleteError, setDeleteError] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const loadItems = useCallback(() => {
+    setLoading(true)
+    setLoadError(false)
+    compatibilityAPI.getHistory()
+      .then(res => setItems(res.data.data || []))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false))
+  }, [])
 
   useEffect(() => {
     if (isLoading) {
@@ -59,10 +69,8 @@ export default function CompatibilityHistoryPage() {
       navigate('/login')
       return
     }
-    compatibilityAPI.getHistory()
-      .then(res => setItems(res.data.data || []))
-      .finally(() => setLoading(false))
-  }, [user, isLoading, navigate])
+    loadItems()
+  }, [user, isLoading, navigate, loadItems])
 
   const handleConfirmDelete = async () => {
     if (!deletingItem) return
@@ -114,7 +122,14 @@ export default function CompatibilityHistoryPage() {
           </Link>
         </nav>
 
-        {items.length === 0 ? (
+        {loadError ? (
+          <div className="compatibility-history-empty card">
+            <HeartHandshake size={46} />
+            <h2 className="serif">合盘记录加载失败</h2>
+            <p>网络或服务暂时不可用，已保存的合盘不会丢失。</p>
+            <button type="button" className="btn btn-primary" onClick={loadItems}>重新加载</button>
+          </div>
+        ) : items.length === 0 ? (
           <div className="compatibility-history-empty card">
             <HeartHandshake size={46} />
             <h2 className="serif">还没有合盘记录</h2>

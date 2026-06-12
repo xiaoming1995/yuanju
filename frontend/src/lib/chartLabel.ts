@@ -4,6 +4,11 @@ export function genderText(gender: string): string {
   return gender === 'female' ? '女命' : '男命'
 }
 
+export function formatDate(value: string): string {
+  if (!value) return '-'
+  return new Date(value).toLocaleDateString('zh-CN')
+}
+
 export function chartFallbackName(chart: BaziHistoryChart): string {
   return `${genderText(chart.gender)} · ${chart.birth_year}年${chart.birth_month}月${chart.birth_day}日`
 }

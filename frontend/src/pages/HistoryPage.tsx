@@ -3,17 +3,12 @@ import { useNavigate, Link } from 'react-router-dom'
 import { CalendarDays, Compass, HeartHandshake, Sparkles, Trash2 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { baziAPI, type BaziHistoryChart } from '../lib/api'
-import { chartDisplayName, chartFallbackName, formatPillars, genderText } from '../lib/chartLabel'
+import { chartDisplayName, chartFallbackName, formatDate, formatPillars, genderText } from '../lib/chartLabel'
 import { Button } from '../components/ui/Button'
 import { ConfirmDialog } from '../components/ui/ConfirmDialog'
 import './HistoryPage.css'
 
 type Chart = BaziHistoryChart
-
-function formatDate(value: string) {
-  if (!value) return '-'
-  return new Date(value).toLocaleDateString('zh-CN')
-}
 
 function isInteractiveTarget(target: EventTarget | null) {
   return target instanceof HTMLElement && Boolean(target.closest('button, input, select, textarea, a'))
