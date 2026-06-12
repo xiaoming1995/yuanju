@@ -1,7 +1,7 @@
 .tiaohou-card-container {
   background: var(--bg-card, #1a1a1a);
   border: 1px solid var(--border-color, #333);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 16px;
   margin: 16px 0;
   font-family: var(--font-family-base, sans-serif);

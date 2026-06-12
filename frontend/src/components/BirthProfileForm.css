@@ -1,5 +1,5 @@
 .birth-profile-title {
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
   margin-bottom: 16px;
 }
 

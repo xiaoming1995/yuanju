@@ -1,7 +1,7 @@
 /* === Score v3 === */
 .compat-score-v3 {
   background: var(--bg-card);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 24px;
   margin-bottom: 16px;
 }
@@ -31,7 +31,7 @@
 .compat-score-v3__module-label { font-weight: 600; }
 .compat-score-v3__module-value { font-size: 18px; font-weight: 700; }
 .compat-score-v3__module-max { color: var(--text-secondary); font-weight: 400; }
-.compat-score-v3__module-hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.compat-score-v3__module-hint { font-size: var(--font-size-caption); color: var(--text-secondary); margin-top: 4px; }
 .compat-score-v3__module-bar {
   height: 4px; margin-top: 8px;
   background: var(--border-default); border-radius: 2px; overflow: hidden;

@@ -84,7 +84,7 @@
 .mingge-modal-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-weight: 600;
   letter-spacing: 0.03em;
   color: #a78bfa;
@@ -135,7 +135,7 @@
 }
 
 .report-block-title {
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
   font-weight: 600;
   color: var(--wu-jin);
   margin-bottom: 12px;
@@ -160,7 +160,7 @@
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--border-subtle);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: var(--text-muted);
   text-align: center;
 }
@@ -537,7 +537,7 @@
 
 /* 吉神：金色调 */
 .shensha-tag--ji {
-  color: var(--wu-jin, #C9A84C);
+  color: var(--wu-jin);
   background: rgba(201, 168, 76, 0.12);
   border: 1px solid rgba(201, 168, 76, 0.25);
 }
@@ -596,7 +596,7 @@
 }
 
 .shensha-modal-card {
-  background: var(--bg-secondary, #1a1f2e);
+  background: var(--bg-card);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   width: 100%;
@@ -630,7 +630,7 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.shensha-modal-dot--ji    { background: #C9A84C; box-shadow: 0 0 8px rgba(201,168,76,0.6); }
+.shensha-modal-dot--ji    { background: var(--wu-jin); box-shadow: 0 0 8px rgba(201,168,76,0.6); }
 .shensha-modal-dot--xiong { background: #e05c5c; box-shadow: 0 0 8px rgba(224,92,92,0.6); }
 .shensha-modal-dot--zhong { background: #888; }
 
@@ -644,14 +644,14 @@
 .shensha-modal-badge {
   font-size: 11px;
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-weight: 600;
   letter-spacing: 0.03em;
 }
 .shensha-modal-badge--ji {
-  color: #C9A84C;
+  color: var(--wu-jin);
   background: rgba(201, 168, 76, 0.15);
-  border: 1px solid rgba(201, 168, 76, 0.3);
+  border: 1px solid var(--border-accent);
 }
 .shensha-modal-badge--xiong {
   color: #e05c5c;
@@ -661,12 +661,12 @@
 .shensha-modal-badge--zhong {
   color: #888;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
 }
 
 .shensha-modal-close {
   background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   color: var(--text-muted, #888);
   cursor: pointer;
@@ -735,7 +735,7 @@
 .structure-card-title {
   margin: 0 0 14px;
   color: var(--text-accent);
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
   font-weight: 600;
 }
 
@@ -816,7 +816,7 @@
 .dayun-heading-row h2 {
   margin: 0;
   color: var(--text-accent);
-  font-size: 22px;
+  font-size: var(--font-size-section-title);
   letter-spacing: 0;
 }
 
@@ -867,7 +867,7 @@
   gap: 7px;
   padding: 12px 6px 14px;
   border: 1px solid rgba(201, 168, 76, 0.18);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
     rgba(12, 25, 41, 0.78);
@@ -911,7 +911,7 @@
   padding: 2px 8px;
   border-radius: 99px;
   background: var(--wu-jin);
-  color: #0d0f14;
+  color: var(--bg-base);
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
@@ -981,7 +981,7 @@
   pointer-events: auto;
   transform: translateX(-50%) translateY(0);
   border: 1px solid rgba(201, 168, 76, 0.22);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: rgba(9, 18, 31, 0.96);
   box-shadow: 0 14px 28px rgba(0, 0, 0, 0.3);
 }
@@ -1142,7 +1142,7 @@
 .dayun-summary-tags span {
   padding: 6px 10px;
   border: 1px solid rgba(201, 168, 76, 0.2);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: var(--wu-jin);
   background: rgba(201, 168, 76, 0.06);
   font-size: 12px;
@@ -1152,7 +1152,7 @@
 .dayun-disclaimer {
   margin: 16px 0 0;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   text-align: center;
 }
 
@@ -1261,7 +1261,7 @@
   overflow: hidden;
   border-radius: 50%;
   background: var(--wu-jin);
-  color: #0d0f14;
+  color: var(--bg-base);
   text-indent: -999px;
   box-shadow: 0 0 10px rgba(201, 168, 76, 0.6);
 }
@@ -1288,7 +1288,7 @@
   border-radius: 0 0 4px 4px;
   background: rgba(201, 168, 76, 0.12);
   color: var(--wu-jin);
-  border: 1px solid rgba(201, 168, 76, 0.3);
+  border: 1px solid var(--border-accent);
 }
 
 .liunian-ganzhi {
@@ -1663,7 +1663,7 @@
   border: 3px solid rgba(201,168,76, 0.1);
   border-top-color: var(--primary);
   animation: spinner 1s linear infinite;
-  box-shadow: 0 0 20px rgba(201, 168, 76, 0.2);
+  box-shadow: 0 0 20px var(--primary-glow);
 }
 
 @keyframes spinner {
@@ -1694,7 +1694,7 @@
 
 @keyframes aiPulse {
   0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(201,168,76,0.6)); }
-  50% { opacity: 0.7; filter: drop-shadow(0 0 2px rgba(201,168,76,0.2)); }
+  50% { opacity: 0.7; filter: drop-shadow(0 0 2px var(--primary-glow)); }
 }
 
 /* 报告区 section-title 间距 */
@@ -1730,7 +1730,7 @@
 
 .report-tab.is-active {
   background: var(--primary);
-  color: #0d0f14;
+  color: var(--bg-base);
   font-weight: 700;
 }
 
@@ -1792,9 +1792,9 @@
   gap: 10px;
   padding: 14px 18px;
   background: color-mix(in srgb, var(--accent-color) 8%, var(--bg-surface));
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   margin-bottom: 20px;
-  font-size: 15px;
+  font-size: var(--font-size-body);
   line-height: 1.7;
   color: var(--text-color);
   font-style: italic;
@@ -1931,7 +1931,7 @@
 
 .report-chapter-detail summary span {
   color: var(--wu-jin);
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
 }
 
 .report-chapter-detail summary em {

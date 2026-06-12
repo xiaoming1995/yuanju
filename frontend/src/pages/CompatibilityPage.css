@@ -221,7 +221,7 @@
 
 .compatibility-chart-picker-head strong {
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
 }
 
 .compatibility-chart-picker-list {
@@ -259,7 +259,7 @@
 
 .compatibility-chart-picker-item-birth {
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-caption);
 }
 
 .compatibility-chart-picker-empty {

@@ -53,8 +53,8 @@
   font-weight: 600;
   color: var(--wu-jin);
   background: rgba(201, 168, 76, 0.12);
-  border: 1px solid rgba(201, 168, 76, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-sm);
   padding: 2px 10px;
   margin-bottom: 10px;
 }

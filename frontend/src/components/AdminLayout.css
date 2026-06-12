@@ -35,7 +35,7 @@
 }
 
 .admin-brand-title {
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
   font-weight: 700;
   color: #c9a227;
   letter-spacing: 0.5px;
@@ -84,7 +84,7 @@
 }
 
 .admin-user-info {
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: #666;
   margin-bottom: 8px;
   overflow: hidden;
@@ -97,7 +97,7 @@
   padding: 8px;
   background: transparent;
   border: 1px solid #2a2f3e;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   color: #888;
   font-size: 13px;
   cursor: pointer;
@@ -121,7 +121,7 @@
 .admin-card {
   background: #161b27;
   border: 1px solid #2a2f3e;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 24px;
   margin-bottom: 20px;
 }
@@ -144,7 +144,7 @@
 .admin-stat-card {
   background: #161b27;
   border: 1px solid #2a2f3e;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 20px;
   text-align: center;
   transition: border-color 0.2s;
@@ -180,7 +180,7 @@
 .admin-table th {
   text-align: left;
   padding: 10px 14px;
-  background: #1a1f2e;
+  background: var(--bg-card);
   font-size: 12px;
   color: #888;
   font-weight: 600;
@@ -195,13 +195,13 @@
   border-bottom: 1px solid #1e2436;
 }
 
-.admin-table tr:hover td { background: #1a1f2e; }
+.admin-table tr:hover td { background: var(--bg-card); }
 
 /* 状态徽章 */
 .badge {
   display: inline-block;
   padding: 3px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   font-size: 12px;
   font-weight: 600;
 }

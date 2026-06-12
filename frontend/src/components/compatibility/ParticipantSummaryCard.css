@@ -52,7 +52,7 @@
 
 .compatibility-pillar-cell {
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
 }
@@ -85,7 +85,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
 }

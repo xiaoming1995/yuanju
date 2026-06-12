@@ -124,7 +124,7 @@
 }
 .compat-share-modal-head h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--font-size-card-title);
   font-weight: 700;
   color: #2a1a0a;
 }
@@ -154,7 +154,7 @@
 
 .compat-share-modal-hint {
   margin: 10px 0 0;
-  font-size: 12px;
+  font-size: var(--font-size-caption);
   color: #888;
   text-align: center;
   letter-spacing: 1px;
