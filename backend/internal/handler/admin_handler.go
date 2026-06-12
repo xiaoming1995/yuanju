@@ -11,7 +11,6 @@ import (
 	"yuanju/internal/repository"
 	"yuanju/internal/service"
 	"yuanju/pkg/crypto"
-	"yuanju/pkg/database"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -235,60 +234,21 @@ func AdminTestProvider(c *gin.Context) {
 // ====== Admin Stats ======
 
 func AdminGetStats(c *gin.Context) {
-	stats := gin.H{}
-
-	var totalUsers, todayUsers int
-	database.DB.QueryRow(`SELECT COUNT(*) FROM users`).Scan(&totalUsers)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE`).Scan(&todayUsers)
-
-	var totalCharts, todayCharts int
-	database.DB.QueryRow(`SELECT COUNT(*) FROM bazi_charts`).Scan(&totalCharts)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM bazi_charts WHERE created_at >= CURRENT_DATE`).Scan(&todayCharts)
-
-	var totalAI, todayAI int
-	database.DB.QueryRow(`SELECT COUNT(*) FROM ai_requests_log`).Scan(&totalAI)
-	database.DB.QueryRow(`SELECT COUNT(*) FROM ai_requests_log WHERE created_at >= CURRENT_DATE`).Scan(&todayAI)
-
-	stats["total_users"] = totalUsers
-	stats["today_users"] = todayUsers
-	stats["total_charts"] = totalCharts
-	stats["today_charts"] = todayCharts
-	stats["total_ai_requests"] = totalAI
-	stats["today_ai_requests"] = todayAI
-
-	c.JSON(http.StatusOK, stats)
-}
-
-func AdminGetAIStats(c *gin.Context) {
-	rows, err := database.DB.Query(`
-		SELECT p.name, COUNT(*) as total,
-		       SUM(CASE WHEN l.status='success' THEN 1 ELSE 0 END) as success_count
-		FROM ai_requests_log l
-		LEFT JOIN llm_providers p ON l.provider_id = p.id
-		GROUP BY p.name
-	`)
+	stats, err := repository.GetAdminOverviewStats()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
 	}
-	defer rows.Close()
+	c.JSON(http.StatusOK, stats)
+}
 
-	type ProviderStat struct {
-		Provider     string  `json:"provider"`
-		Total        int     `json:"total"`
-		SuccessCount int     `json:"success_count"`
-		SuccessRate  float64 `json:"success_rate"`
+func AdminGetAIStats(c *gin.Context) {
+	stats, err := repository.GetAIStatsByProvider()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
 	}
-	var result []ProviderStat
-	for rows.Next() {
-		var s ProviderStat
-		rows.Scan(&s.Provider, &s.Total, &s.SuccessCount)
-		if s.Total > 0 {
-			s.SuccessRate = float64(s.SuccessCount) / float64(s.Total) * 100
-		}
-		result = append(result, s)
-	}
-	c.JSON(http.StatusOK, gin.H{"by_provider": result})
+	c.JSON(http.StatusOK, gin.H{"by_provider": stats})
 }
 
 func AdminGetUsers(c *gin.Context) {
@@ -300,46 +260,12 @@ func AdminGetUsers(c *gin.Context) {
 		}
 	}
 	pageSize := 20
-	offset := (page - 1) * pageSize
 
-	query := `
-		SELECT u.id, u.email, u.nickname, COALESCE(u.source, 'self_registered'), u.created_at, u.disabled_at,
-		       COUNT(b.id) as chart_count,
-		       (SELECT COUNT(*) FROM compatibility_readings cr WHERE cr.user_id = u.id) as compat_count
-		FROM users u
-		LEFT JOIN bazi_charts b ON b.user_id = u.id
-		WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%')
-		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at, u.disabled_at
-		ORDER BY u.created_at DESC
-		LIMIT $2 OFFSET $3`
-
-	rows, err := database.DB.Query(query, q, pageSize, offset)
+	users, total, err := repository.ListAdminUsers(page, pageSize, q)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
 	}
-	defer rows.Close()
-
-	type UserRow struct {
-		ID          string     `json:"id"`
-		Email       string     `json:"email"`
-		Nickname    string     `json:"nickname"`
-		Source      string     `json:"source"`
-		CreatedAt   string     `json:"created_at"`
-		DisabledAt  *time.Time `json:"disabled_at"`
-		ChartCount  int        `json:"chart_count"`
-		CompatCount int        `json:"compat_count"`
-	}
-	var users []UserRow
-	for rows.Next() {
-		var u UserRow
-		rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.DisabledAt, &u.ChartCount, &u.CompatCount)
-		users = append(users, u)
-	}
-
-	var total int
-	database.DB.QueryRow(`SELECT COUNT(*) FROM users WHERE $1 = '' OR email ILIKE '%' || $1 || '%'`, q).Scan(&total)
-
 	c.JSON(http.StatusOK, gin.H{"users": users, "total": total})
 }
 
