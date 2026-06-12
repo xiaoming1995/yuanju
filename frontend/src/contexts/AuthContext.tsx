@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { authAPI } from '../lib/api'
 
 interface User {
@@ -31,6 +32,17 @@ function getStoredUser(): User | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => getStoredUser())
   const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('yj_token'))
+  const navigate = useNavigate()
+
+  // api 层 401 时派发该事件（storage 已清），这里清状态并走路由跳转
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setUser(null)
+      navigate('/login')
+    }
+    window.addEventListener('yj:unauthorized', onUnauthorized)
+    return () => window.removeEventListener('yj:unauthorized', onUnauthorized)
+  }, [navigate])
 
   useEffect(() => {
     const token = localStorage.getItem('yj_token')
