@@ -564,6 +564,15 @@ export interface BaziHistoryChart {
   created_at: string
 }
 
+export interface BaziHistoryResponse {
+  charts: BaziHistoryChart[]
+  page: number
+  limit: number
+  total: number
+  male_count: number
+  female_count: number
+}
+
 export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   resolvePillars: (data: ResolvePillarsInput) =>
@@ -831,7 +840,7 @@ export const baziAPI = {
       onError(errorMessage(err))
     }
   },
-  getHistory: (page = 1) => api.get(`/api/bazi/history?page=${page}`),
+  getHistory: (page = 1) => api.get<BaziHistoryResponse>(`/api/bazi/history?page=${page}`),
   getHistoryDetail: (id: string) => api.get(`/api/bazi/history/${id}`),
   updateHistoryDisplayName: (id: string, displayName: string) =>
     api.patch<{ data: { id: string; display_name: string } }>(

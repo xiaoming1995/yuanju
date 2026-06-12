@@ -26,6 +26,11 @@ export default function HistoryPage() {
   const [charts, setCharts] = useState<Chart[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [maleCount, setMaleCount] = useState(0)
+  const [femaleCount, setFemaleCount] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [editingChartId, setEditingChartId] = useState<string | null>(null)
   const [displayNameDraft, setDisplayNameDraft] = useState('')
   const [displayNameError, setDisplayNameError] = useState('')
@@ -34,14 +39,37 @@ export default function HistoryPage() {
   const [deleteError, setDeleteError] = useState('')
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  const applyCounts = (data: { total: number; male_count: number; female_count: number }) => {
+    setTotal(data.total)
+    setMaleCount(data.male_count)
+    setFemaleCount(data.female_count)
+  }
+
   const loadCharts = useCallback(() => {
     setLoading(true)
     setLoadError(false)
     baziAPI.getHistory()
-      .then(res => setCharts(res.data.charts || []))
+      .then(res => {
+        setCharts(res.data.charts || [])
+        setPage(1)
+        applyCounts(res.data)
+      })
       .catch(() => setLoadError(true))
       .finally(() => setLoading(false))
   }, [])
+
+  const handleLoadMore = () => {
+    if (loadingMore) return
+    setLoadingMore(true)
+    baziAPI.getHistory(page + 1)
+      .then(res => {
+        setCharts(prev => [...prev, ...(res.data.charts || [])])
+        setPage(page + 1)
+        applyCounts(res.data)
+      })
+      .catch(() => { /* 追加失败保留已加载内容，按钮可重试 */ })
+      .finally(() => setLoadingMore(false))
+  }
 
   useEffect(() => {
     if (isLoading) return
@@ -64,10 +92,8 @@ export default function HistoryPage() {
   }, [compatibilityRoleChart])
 
   const latestChart = charts[0]
-  const maleCount = charts.filter(chart => chart.gender === 'male').length
-  const femaleCount = charts.filter(chart => chart.gender === 'female').length
   const stats = [
-    { label: '命盘记录', value: charts.length ? `${charts.length}` : '0', icon: CalendarDays },
+    { label: '命盘记录', value: `${total}`, icon: CalendarDays },
     { label: '最近起盘', value: latestChart ? formatDate(latestChart.created_at) : '-', icon: Sparkles },
     { label: '男女命', value: `${maleCount}/${femaleCount}`, icon: Compass },
   ]
@@ -108,6 +134,9 @@ export default function HistoryPage() {
     try {
       await baziAPI.deleteHistory(deletingChart.id)
       setCharts(prev => prev.filter(item => item.id !== deletingChart.id))
+      setTotal(prev => Math.max(0, prev - 1))
+      if (deletingChart.gender === 'male') setMaleCount(prev => Math.max(0, prev - 1))
+      if (deletingChart.gender === 'female') setFemaleCount(prev => Math.max(0, prev - 1))
       setDeletingChart(null)
     } catch (err: unknown) {
       setDeleteError(err instanceof Error ? err.message : '删除失败，请重试')
@@ -133,7 +162,7 @@ export default function HistoryPage() {
           <div>
             <p className="history-kicker">命盘档案</p>
             <h1 className="history-title serif">我的命盘档案</h1>
-            <p className="history-desc">已保存 {charts.length} 份命盘，回看四柱、出生信息和后续分析入口。</p>
+            <p className="history-desc">已保存 {total} 份命盘，回看四柱、出生信息和后续分析入口。</p>
           </div>
           <Link to="/" className="btn btn-primary">新建命盘</Link>
         </section>
@@ -302,6 +331,16 @@ export default function HistoryPage() {
                 </div>
               </article>
             ))}
+            {charts.length < total && (
+              <button
+                type="button"
+                className="btn btn-secondary history-load-more"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? '加载中…' : `加载更多（已显示 ${charts.length}/${total}）`}
+              </button>
+            )}
           </div>
         )}
 
