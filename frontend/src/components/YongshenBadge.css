@@ -35,13 +35,13 @@
 
 .yongshen-row-label--xi {
   background: rgba(76, 175, 125, 0.15);
-  color: #4caf7d;
+  color: var(--status-success);
   border: 1px solid rgba(76, 175, 125, 0.3);
 }
 
 .yongshen-row-label--ji {
   background: rgba(224, 92, 75, 0.1);
-  color: #e05c4b;
+  color: var(--status-danger);
   border: 1px solid rgba(224, 92, 75, 0.25);
 }
 
@@ -89,7 +89,7 @@
   font-size: 14px;
   font-weight: 600;
   background: var(--tag-light, rgba(255,255,255,0.05));
-  border: 1px solid var(--tag-color, rgba(255,255,255,0.1));
+  border: 1px solid var(--tag-color, var(--border-default));
   color: var(--tag-color, var(--text-primary));
   cursor: pointer;
   transition: all var(--transition-fast);

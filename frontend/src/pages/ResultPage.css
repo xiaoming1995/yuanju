@@ -537,7 +537,7 @@
 
 /* 吉神：金色调 */
 .shensha-tag--ji {
-  color: var(--wu-jin, #C9A84C);
+  color: var(--wu-jin);
   background: rgba(201, 168, 76, 0.12);
   border: 1px solid rgba(201, 168, 76, 0.25);
 }
@@ -596,7 +596,7 @@
 }
 
 .shensha-modal-card {
-  background: var(--bg-secondary, #1a1f2e);
+  background: var(--bg-card);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   width: 100%;
@@ -630,7 +630,7 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-.shensha-modal-dot--ji    { background: #C9A84C; box-shadow: 0 0 8px rgba(201,168,76,0.6); }
+.shensha-modal-dot--ji    { background: var(--wu-jin); box-shadow: 0 0 8px rgba(201,168,76,0.6); }
 .shensha-modal-dot--xiong { background: #e05c5c; box-shadow: 0 0 8px rgba(224,92,92,0.6); }
 .shensha-modal-dot--zhong { background: #888; }
 
@@ -649,9 +649,9 @@
   letter-spacing: 0.03em;
 }
 .shensha-modal-badge--ji {
-  color: #C9A84C;
+  color: var(--wu-jin);
   background: rgba(201, 168, 76, 0.15);
-  border: 1px solid rgba(201, 168, 76, 0.3);
+  border: 1px solid var(--border-accent);
 }
 .shensha-modal-badge--xiong {
   color: #e05c5c;
@@ -661,12 +661,12 @@
 .shensha-modal-badge--zhong {
   color: #888;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
 }
 
 .shensha-modal-close {
   background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   color: var(--text-muted, #888);
   cursor: pointer;
@@ -911,7 +911,7 @@
   padding: 2px 8px;
   border-radius: 99px;
   background: var(--wu-jin);
-  color: #0d0f14;
+  color: var(--bg-base);
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
@@ -1261,7 +1261,7 @@
   overflow: hidden;
   border-radius: 50%;
   background: var(--wu-jin);
-  color: #0d0f14;
+  color: var(--bg-base);
   text-indent: -999px;
   box-shadow: 0 0 10px rgba(201, 168, 76, 0.6);
 }
@@ -1288,7 +1288,7 @@
   border-radius: 0 0 4px 4px;
   background: rgba(201, 168, 76, 0.12);
   color: var(--wu-jin);
-  border: 1px solid rgba(201, 168, 76, 0.3);
+  border: 1px solid var(--border-accent);
 }
 
 .liunian-ganzhi {
@@ -1663,7 +1663,7 @@
   border: 3px solid rgba(201,168,76, 0.1);
   border-top-color: var(--primary);
   animation: spinner 1s linear infinite;
-  box-shadow: 0 0 20px rgba(201, 168, 76, 0.2);
+  box-shadow: 0 0 20px var(--primary-glow);
 }
 
 @keyframes spinner {
@@ -1694,7 +1694,7 @@
 
 @keyframes aiPulse {
   0%, 100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(201,168,76,0.6)); }
-  50% { opacity: 0.7; filter: drop-shadow(0 0 2px rgba(201,168,76,0.2)); }
+  50% { opacity: 0.7; filter: drop-shadow(0 0 2px var(--primary-glow)); }
 }
 
 /* 报告区 section-title 间距 */
@@ -1730,7 +1730,7 @@
 
 .report-tab.is-active {
   background: var(--primary);
-  color: #0d0f14;
+  color: var(--bg-base);
   font-weight: 700;
 }
 
