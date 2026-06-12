@@ -87,7 +87,7 @@ export default function AdminChartsPage() {
 
   useEffect(() => {
     fetchCharts(page)
-  }, [page])
+  }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (expandedId && !liunianReports[expandedId]) {
