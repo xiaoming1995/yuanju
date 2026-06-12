@@ -150,6 +150,11 @@
   gap: 12px;
 }
 
+.history-load-more {
+  align-self: center;
+  margin-top: 8px;
+}
+
 .history-record-card {
   display: grid;
   gap: 14px;

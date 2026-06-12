@@ -210,6 +210,19 @@ func GetChartsByUserID(userID string, limit, offset int) ([]*model.BaziChart, er
 	return charts, nil
 }
 
+// CountChartsGenderByUserID 返回用户命盘总数及男女命分布（供历史页分页与统计卡使用）
+// 注：CountChartsByUserID（user_profile_repository.go）只返回总数，这里多了性别聚合
+func CountChartsGenderByUserID(userID string) (total, male, female int, err error) {
+	err = database.DB.QueryRow(`
+		SELECT COUNT(*),
+		       COUNT(*) FILTER (WHERE gender='male'),
+		       COUNT(*) FILTER (WHERE gender='female')
+		FROM bazi_charts WHERE user_id=$1`,
+		userID,
+	).Scan(&total, &male, &female)
+	return
+}
+
 func UpdateChartDisplayName(chartID, displayName string) error {
 	_, err := database.DB.Exec(
 		`UPDATE bazi_charts SET display_name=$1 WHERE id=$2`,

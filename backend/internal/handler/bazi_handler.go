@@ -284,10 +284,19 @@ func GetHistory(c *gin.Context) {
 		charts = []*model.BaziChart{}
 	}
 
+	total, male, female, err := repository.CountChartsGenderByUserID(userID.(string))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取历史记录失败"})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"charts": charts,
-		"page":   page,
-		"limit":  limit,
+		"charts":       charts,
+		"page":         page,
+		"limit":        limit,
+		"total":        total,
+		"male_count":   male,
+		"female_count": female,
 	})
 }
 
