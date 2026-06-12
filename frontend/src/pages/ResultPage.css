@@ -1714,6 +1714,8 @@
   border-radius: var(--radius-md);
   margin-bottom: 16px;
   width: max-content;
+  /* tab 切换 scrollIntoView 时避开 fixed 导航栏 */
+  scroll-margin-top: 76px;
 }
 
 .report-tab {
