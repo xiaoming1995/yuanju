@@ -108,6 +108,57 @@ func TestVirtualBranchShenshaDoesNotCreateFullPillarGanZhi(t *testing.T) {
 	}
 }
 
+func TestGetGongJiaShenShaIgnoresEmptyInputs(t *testing.T) {
+	tests := []struct {
+		name       string
+		yearGan    string
+		yearZhi    string
+		monthZhi   string
+		dayGan     string
+		dayZhi     string
+		virtualZhi string
+	}{
+		{
+			name:       "empty bases with tianyi branch",
+			virtualZhi: "丑",
+		},
+		{
+			name:       "empty virtual branch with valid year stem",
+			yearGan:    "甲",
+			virtualZhi: "",
+		},
+		{
+			name:       "empty bases with wenchang branch",
+			virtualZhi: "申",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetGongJiaShenSha(tt.yearGan, tt.yearZhi, tt.monthZhi, tt.dayGan, tt.dayZhi, tt.virtualZhi)
+			if len(got) != 0 {
+				t.Fatalf("GetGongJiaShenSha() = %#v, want empty", got)
+			}
+		})
+	}
+}
+
+func TestGetGongJiaShenShaRequiresNonEmptyBranchBases(t *testing.T) {
+	for _, virtualZhi := range []string{"酉", "午", "辰", "子", "巳", "卯"} {
+		t.Run("empty bases "+virtualZhi, func(t *testing.T) {
+			got := GetGongJiaShenSha("", "", "", "", "", virtualZhi)
+			if len(got) != 0 {
+				t.Fatalf("GetGongJiaShenSha() = %#v, want empty", got)
+			}
+		})
+	}
+
+	got := GetGongJiaShenSha("", "子", "", "", "", "酉")
+	if !containsGongJiaString(got, "桃花") {
+		t.Fatalf("GetGongJiaShenSha() = %#v, want 桃花 from valid non-empty yearZhi base", got)
+	}
+}
+
 func TestBuildGongJiaAdjacentOnly(t *testing.T) {
 	result := &BaziResult{
 		YearGan:  "甲",

@@ -1,6 +1,9 @@
 package bazi
 
-import "strings"
+import (
+	"strings"
+	"unicode/utf8"
+)
 
 type GongJiaItem struct {
 	Source       string   `json:"source"`
@@ -77,8 +80,8 @@ func GetGongJiaShenSha(yearGan, yearZhi, monthZhi, dayGan, dayZhi, virtualZhi st
 
 	add(gongJiaTianYi(dayGan, virtualZhi) || gongJiaTianYi(yearGan, virtualZhi), "天乙贵人")
 	add(gongJiaWenChang(dayGan, virtualZhi) || gongJiaWenChang(yearGan, virtualZhi), "文昌贵人")
-	add(isTaohuaBase(yearZhi, virtualZhi) || isTaohuaBase(dayZhi, virtualZhi), "桃花")
-	add(isYimaBase(yearZhi, virtualZhi) || isYimaBase(dayZhi, virtualZhi), "驿马")
+	add(gongJiaTaohua(yearZhi, virtualZhi) || gongJiaTaohua(dayZhi, virtualZhi), "桃花")
+	add(gongJiaYima(yearZhi, virtualZhi) || gongJiaYima(dayZhi, virtualZhi), "驿马")
 	add(gongJiaHuagai(yearZhi, virtualZhi) || gongJiaHuagai(dayZhi, virtualZhi), "华盖")
 	add(gongJiaJiangxing(yearZhi, virtualZhi) || gongJiaJiangxing(dayZhi, virtualZhi), "将星")
 	add(gongJiaJiesha(yearZhi, virtualZhi) || gongJiaJiesha(dayZhi, virtualZhi), "劫煞")
@@ -87,47 +90,63 @@ func GetGongJiaShenSha(yearGan, yearZhi, monthZhi, dayGan, dayZhi, virtualZhi st
 	return result
 }
 
+func gongJiaContainsGan(chars, stem string) bool {
+	return utf8.RuneCountInString(stem) == 1 && strings.Contains(chars, stem)
+}
+
+func gongJiaContainsZhi(chars, branch string) bool {
+	return utf8.RuneCountInString(branch) == 1 && strings.Contains(chars, branch)
+}
+
 func gongJiaTianYi(stem, branch string) bool {
-	return (strings.Contains("甲戊庚", stem) && strings.Contains("丑未", branch)) ||
-		(strings.Contains("乙己", stem) && strings.Contains("子申", branch)) ||
-		(strings.Contains("丙丁", stem) && strings.Contains("亥酉", branch)) ||
-		(strings.Contains("壬癸", stem) && strings.Contains("卯巳", branch)) ||
-		(stem == "辛" && strings.Contains("午寅", branch))
+	return (gongJiaContainsGan("甲戊庚", stem) && gongJiaContainsZhi("丑未", branch)) ||
+		(gongJiaContainsGan("乙己", stem) && gongJiaContainsZhi("子申", branch)) ||
+		(gongJiaContainsGan("丙丁", stem) && gongJiaContainsZhi("亥酉", branch)) ||
+		(gongJiaContainsGan("壬癸", stem) && gongJiaContainsZhi("卯巳", branch)) ||
+		(stem == "辛" && gongJiaContainsZhi("午寅", branch))
 }
 
 func gongJiaWenChang(stem, branch string) bool {
 	return (stem == "甲" && branch == "巳") || (stem == "乙" && branch == "午") ||
-		(strings.Contains("丙戊", stem) && branch == "申") || (strings.Contains("丁己", stem) && branch == "酉") ||
+		(gongJiaContainsGan("丙戊", stem) && branch == "申") || (gongJiaContainsGan("丁己", stem) && branch == "酉") ||
 		(stem == "庚" && branch == "亥") || (stem == "辛" && branch == "子") ||
 		(stem == "壬" && branch == "寅") || (stem == "癸" && branch == "卯")
 }
 
+func gongJiaTaohua(base, check string) bool {
+	return utf8.RuneCountInString(base) == 1 && utf8.RuneCountInString(check) == 1 && isTaohuaBase(base, check)
+}
+
+func gongJiaYima(base, check string) bool {
+	return utf8.RuneCountInString(base) == 1 && utf8.RuneCountInString(check) == 1 && isYimaBase(base, check)
+}
+
 func gongJiaHuagai(base, check string) bool {
-	return (strings.Contains("申子辰", base) && check == "辰") ||
-		(strings.Contains("寅午戌", base) && check == "戌") ||
-		(strings.Contains("亥卯未", base) && check == "未") ||
-		(strings.Contains("巳酉丑", base) && check == "丑")
+	return (gongJiaContainsZhi("申子辰", base) && check == "辰") ||
+		(gongJiaContainsZhi("寅午戌", base) && check == "戌") ||
+		(gongJiaContainsZhi("亥卯未", base) && check == "未") ||
+		(gongJiaContainsZhi("巳酉丑", base) && check == "丑")
 }
 
 func gongJiaJiangxing(base, check string) bool {
-	return (strings.Contains("申子辰", base) && check == "子") ||
-		(strings.Contains("寅午戌", base) && check == "午") ||
-		(strings.Contains("亥卯未", base) && check == "卯") ||
-		(strings.Contains("巳酉丑", base) && check == "酉")
+	return (gongJiaContainsZhi("申子辰", base) && check == "子") ||
+		(gongJiaContainsZhi("寅午戌", base) && check == "午") ||
+		(gongJiaContainsZhi("亥卯未", base) && check == "卯") ||
+		(gongJiaContainsZhi("巳酉丑", base) && check == "酉")
 }
 
 func gongJiaJiesha(base, check string) bool {
-	return (strings.Contains("申子辰", base) && check == "巳") ||
-		(strings.Contains("寅午戌", base) && check == "亥") ||
-		(strings.Contains("亥卯未", base) && check == "申") ||
-		(strings.Contains("巳酉丑", base) && check == "寅")
+	return (gongJiaContainsZhi("申子辰", base) && check == "巳") ||
+		(gongJiaContainsZhi("寅午戌", base) && check == "亥") ||
+		(gongJiaContainsZhi("亥卯未", base) && check == "申") ||
+		(gongJiaContainsZhi("巳酉丑", base) && check == "寅")
 }
 
 func gongJiaZaisha(base, check string) bool {
-	return (strings.Contains("申子辰", base) && check == "午") ||
-		(strings.Contains("寅午戌", base) && check == "子") ||
-		(strings.Contains("亥卯未", base) && check == "酉") ||
-		(strings.Contains("巳酉丑", base) && check == "卯")
+	return (gongJiaContainsZhi("申子辰", base) && check == "午") ||
+		(gongJiaContainsZhi("寅午戌", base) && check == "子") ||
+		(gongJiaContainsZhi("亥卯未", base) && check == "酉") ||
+		(gongJiaContainsZhi("巳酉丑", base) && check == "卯")
 }
 
 func clippedZhiBetween(a, b string) (string, bool) {
