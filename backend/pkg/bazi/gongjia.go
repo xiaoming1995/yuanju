@@ -51,7 +51,7 @@ func BuildGongJia(r *BaziResult) []GongJiaItem {
 		for _, gan := range hideGan {
 			shiShen = append(shiShen, GetShiShen(r.DayGan, gan))
 		}
-		shensha := GetGongJiaShenSha(r.YearGan, r.YearZhi, r.MonthZhi, r.DayGan, r.DayZhi, virtualZhi)
+		shensha := GetGongJiaShenSha(r.YearGan, r.YearZhi, r.DayGan, r.DayZhi, virtualZhi)
 		items = append(items, GongJiaItem{
 			Source:       pair.source,
 			SourceLabels: append([]string(nil), pair.labels...),
@@ -68,7 +68,7 @@ func BuildGongJia(r *BaziResult) []GongJiaItem {
 	return items
 }
 
-func GetGongJiaShenSha(yearGan, yearZhi, monthZhi, dayGan, dayZhi, virtualZhi string) []string {
+func GetGongJiaShenSha(yearGan, yearZhi, dayGan, dayZhi, virtualZhi string) []string {
 	var result []string
 	seen := map[string]bool{}
 	add := func(cond bool, name string) {

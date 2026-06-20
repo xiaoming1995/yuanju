@@ -113,7 +113,6 @@ func TestGetGongJiaShenShaIgnoresEmptyInputs(t *testing.T) {
 		name       string
 		yearGan    string
 		yearZhi    string
-		monthZhi   string
 		dayGan     string
 		dayZhi     string
 		virtualZhi string
@@ -135,7 +134,7 @@ func TestGetGongJiaShenShaIgnoresEmptyInputs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GetGongJiaShenSha(tt.yearGan, tt.yearZhi, tt.monthZhi, tt.dayGan, tt.dayZhi, tt.virtualZhi)
+			got := GetGongJiaShenSha(tt.yearGan, tt.yearZhi, tt.dayGan, tt.dayZhi, tt.virtualZhi)
 			if len(got) != 0 {
 				t.Fatalf("GetGongJiaShenSha() = %#v, want empty", got)
 			}
@@ -146,16 +145,94 @@ func TestGetGongJiaShenShaIgnoresEmptyInputs(t *testing.T) {
 func TestGetGongJiaShenShaRequiresNonEmptyBranchBases(t *testing.T) {
 	for _, virtualZhi := range []string{"酉", "午", "辰", "子", "巳", "卯"} {
 		t.Run("empty bases "+virtualZhi, func(t *testing.T) {
-			got := GetGongJiaShenSha("", "", "", "", "", virtualZhi)
+			got := GetGongJiaShenSha("", "", "", "", virtualZhi)
 			if len(got) != 0 {
 				t.Fatalf("GetGongJiaShenSha() = %#v, want empty", got)
 			}
 		})
 	}
 
-	got := GetGongJiaShenSha("", "子", "", "", "", "酉")
+	got := GetGongJiaShenSha("", "子", "", "", "酉")
 	if !containsGongJiaString(got, "桃花") {
 		t.Fatalf("GetGongJiaShenSha() = %#v, want 桃花 from valid non-empty yearZhi base", got)
+	}
+}
+
+func TestGetGongJiaShenShaPositiveMappings(t *testing.T) {
+	tests := []struct {
+		name       string
+		yearGan    string
+		yearZhi    string
+		dayGan     string
+		dayZhi     string
+		virtualZhi string
+		want       []string
+	}{
+		{
+			name:       "tianyi",
+			yearGan:    "甲",
+			virtualZhi: "丑",
+			want:       []string{"天乙贵人"},
+		},
+		{
+			name:       "wenchang",
+			yearGan:    "甲",
+			virtualZhi: "巳",
+			want:       []string{"文昌贵人"},
+		},
+		{
+			name:       "taohua",
+			yearZhi:    "子",
+			virtualZhi: "酉",
+			want:       []string{"桃花"},
+		},
+		{
+			name:       "yima",
+			yearZhi:    "子",
+			virtualZhi: "寅",
+			want:       []string{"驿马"},
+		},
+		{
+			name:       "huagai",
+			yearZhi:    "子",
+			virtualZhi: "辰",
+			want:       []string{"华盖"},
+		},
+		{
+			name:       "jiangxing",
+			yearZhi:    "子",
+			virtualZhi: "子",
+			want:       []string{"将星"},
+		},
+		{
+			name:       "jiesha",
+			yearZhi:    "子",
+			virtualZhi: "巳",
+			want:       []string{"劫煞"},
+		},
+		{
+			name:       "zaisha",
+			yearZhi:    "子",
+			virtualZhi: "午",
+			want:       []string{"灾煞"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := GetGongJiaShenSha(tt.yearGan, tt.yearZhi, tt.dayGan, tt.dayZhi, tt.virtualZhi)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("GetGongJiaShenSha() = %#v, want %#v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestGetGongJiaShenShaDeduplicatesInDeterministicOrder(t *testing.T) {
+	got := GetGongJiaShenSha("甲", "丑", "庚", "丑", "丑")
+	want := []string{"天乙贵人", "华盖"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("GetGongJiaShenSha() = %#v, want %#v", got, want)
 	}
 }
 
