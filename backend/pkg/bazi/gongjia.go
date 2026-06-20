@@ -78,7 +78,7 @@ func clippedZhiBetween(a, b string) (string, bool) {
 }
 
 func EnsureGongJia(r *BaziResult) bool {
-	if r == nil || r.GongJia != nil {
+	if r == nil || len(r.GongJia) > 0 {
 		return false
 	}
 	r.GongJia = BuildGongJia(r)

@@ -120,3 +120,131 @@ func TestBuildGongJiaRejectsDifferentGanOrNonGapBranches(t *testing.T) {
 		})
 	}
 }
+
+func TestEnsureGongJiaBackfillsExplicitEmptySlice(t *testing.T) {
+	result := &BaziResult{
+		YearGan:  "甲",
+		YearZhi:  "子",
+		MonthGan: "甲",
+		MonthZhi: "寅",
+		DayGan:   "丙",
+		DayZhi:   "午",
+		HourGan:  "戊",
+		HourZhi:  "申",
+		GongJia:  []GongJiaItem{},
+	}
+
+	changed := EnsureGongJia(result)
+
+	if !changed {
+		t.Fatal("EnsureGongJia() changed = false, want true")
+	}
+	if len(result.GongJia) != 1 {
+		t.Fatalf("GongJia len = %d, want 1: %#v", len(result.GongJia), result.GongJia)
+	}
+	if result.GongJia[0].VirtualZhi != "丑" {
+		t.Errorf("VirtualZhi = %q, want 丑", result.GongJia[0].VirtualZhi)
+	}
+}
+
+func TestEnsureGongJiaPreservesNonEmptyExistingSlice(t *testing.T) {
+	existing := []GongJiaItem{{
+		Source:     "manual",
+		VirtualZhi: "辰",
+	}}
+	result := &BaziResult{
+		YearGan:  "甲",
+		YearZhi:  "子",
+		MonthGan: "甲",
+		MonthZhi: "寅",
+		DayGan:   "丙",
+		DayZhi:   "午",
+		HourGan:  "戊",
+		HourZhi:  "申",
+		GongJia:  existing,
+	}
+
+	changed := EnsureGongJia(result)
+
+	if changed {
+		t.Fatal("EnsureGongJia() changed = true, want false")
+	}
+	if !reflect.DeepEqual(result.GongJia, existing) {
+		t.Fatalf("GongJia = %#v, want preserved %#v", result.GongJia, existing)
+	}
+}
+
+func TestCalculateBuildsGongJia(t *testing.T) {
+	result := Calculate(1980, 1, 1, 21, "male", false, 120, "solar", false)
+
+	if len(result.GongJia) == 0 {
+		t.Fatalf("Calculate() GongJia len = 0, want non-empty; pillars=%s%s %s%s %s%s %s%s",
+			result.YearGan, result.YearZhi,
+			result.MonthGan, result.MonthZhi,
+			result.DayGan, result.DayZhi,
+			result.HourGan, result.HourZhi,
+		)
+	}
+	got := result.GongJia[0]
+	if got.Source != "day_hour" {
+		t.Errorf("Source = %q, want day_hour", got.Source)
+	}
+	if got.SameGan != "癸" {
+		t.Errorf("SameGan = %q, want 癸", got.SameGan)
+	}
+	if got.VirtualZhi != "戌" {
+		t.Errorf("VirtualZhi = %q, want 戌", got.VirtualZhi)
+	}
+}
+
+func TestEnsureGongJiaDoesNotMutateCoreFields(t *testing.T) {
+	result := &BaziResult{
+		YearGan:    "甲",
+		YearZhi:    "子",
+		MonthGan:   "甲",
+		MonthZhi:   "寅",
+		DayGan:     "丙",
+		DayZhi:     "午",
+		HourGan:    "戊",
+		HourZhi:    "申",
+		Wuxing:     WuxingStats{Mu: 1, Huo: 2, Tu: 3, Jin: 1, Shui: 1, Total: 8, MuPct: 12.5, HuoPct: 25, TuPct: 37.5, JinPct: 12.5, ShuiPct: 12.5},
+		Yongshen:   "木火",
+		Jishen:     "金水",
+		Tiaohou:    &TiaohouResult{Expected: []string{"壬", "庚"}, Tou: []string{"壬"}, Cang: []string{"庚"}, Text: "fixture"},
+		MingGe:     "食神格",
+		MingGeDesc: "fixture desc",
+		GongJia:    []GongJiaItem{},
+	}
+	wantWuxing := result.Wuxing
+	wantYongshen := result.Yongshen
+	wantJishen := result.Jishen
+	wantTiaohou := TiaohouResult{
+		Expected: append([]string(nil), result.Tiaohou.Expected...),
+		Tou:      append([]string(nil), result.Tiaohou.Tou...),
+		Cang:     append([]string(nil), result.Tiaohou.Cang...),
+		Text:     result.Tiaohou.Text,
+	}
+	wantMingGe := result.MingGe
+	wantMingGeDesc := result.MingGeDesc
+
+	EnsureGongJia(result)
+
+	if result.Wuxing != wantWuxing {
+		t.Errorf("Wuxing mutated: got %#v, want %#v", result.Wuxing, wantWuxing)
+	}
+	if result.Yongshen != wantYongshen {
+		t.Errorf("Yongshen mutated: got %q, want %q", result.Yongshen, wantYongshen)
+	}
+	if result.Jishen != wantJishen {
+		t.Errorf("Jishen mutated: got %q, want %q", result.Jishen, wantJishen)
+	}
+	if !reflect.DeepEqual(*result.Tiaohou, wantTiaohou) {
+		t.Errorf("Tiaohou mutated: got %#v, want %#v", *result.Tiaohou, wantTiaohou)
+	}
+	if result.MingGe != wantMingGe {
+		t.Errorf("MingGe mutated: got %q, want %q", result.MingGe, wantMingGe)
+	}
+	if result.MingGeDesc != wantMingGeDesc {
+		t.Errorf("MingGeDesc mutated: got %q, want %q", result.MingGeDesc, wantMingGeDesc)
+	}
+}
