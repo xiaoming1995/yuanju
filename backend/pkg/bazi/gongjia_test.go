@@ -59,6 +59,55 @@ func TestBuildGongJiaReverseBranchOrder(t *testing.T) {
 	}
 }
 
+func TestBuildGongJiaAddsBranchBasedShenSha(t *testing.T) {
+	result := &BaziResult{
+		YearGan:  "甲",
+		YearZhi:  "子",
+		MonthGan: "甲",
+		MonthZhi: "寅",
+		DayGan:   "庚",
+		DayZhi:   "午",
+		HourGan:  "戊",
+		HourZhi:  "申",
+	}
+
+	items := BuildGongJia(result)
+
+	if len(items) != 1 {
+		t.Fatalf("BuildGongJia() len = %d, want 1: %#v", len(items), items)
+	}
+	if items[0].VirtualZhi != "丑" {
+		t.Fatalf("VirtualZhi = %q, want 丑", items[0].VirtualZhi)
+	}
+	if !containsGongJiaString(items[0].ShenSha, "天乙贵人") {
+		t.Fatalf("ShenSha = %#v, want 天乙贵人", items[0].ShenSha)
+	}
+}
+
+func TestVirtualBranchShenshaDoesNotCreateFullPillarGanZhi(t *testing.T) {
+	result := &BaziResult{
+		YearGan:  "甲",
+		YearZhi:  "子",
+		MonthGan: "甲",
+		MonthZhi: "寅",
+		DayGan:   "庚",
+		DayZhi:   "午",
+		HourGan:  "戊",
+		HourZhi:  "申",
+	}
+
+	items := BuildGongJia(result)
+
+	if len(items) != 1 {
+		t.Fatalf("BuildGongJia() len = %d, want 1: %#v", len(items), items)
+	}
+	for _, name := range []string{"阴差阳错", "魁罡"} {
+		if containsGongJiaString(items[0].ShenSha, name) {
+			t.Fatalf("ShenSha = %#v, should not include full-pillar shensha %s", items[0].ShenSha, name)
+		}
+	}
+}
+
 func TestBuildGongJiaAdjacentOnly(t *testing.T) {
 	result := &BaziResult{
 		YearGan:  "甲",
@@ -247,4 +296,13 @@ func TestEnsureGongJiaDoesNotMutateCoreFields(t *testing.T) {
 	if result.MingGeDesc != wantMingGeDesc {
 		t.Errorf("MingGeDesc mutated: got %q, want %q", result.MingGeDesc, wantMingGeDesc)
 	}
+}
+
+func containsGongJiaString(slice []string, item string) bool {
+	for _, v := range slice {
+		if v == item {
+			return true
+		}
+	}
+	return false
 }
