@@ -115,6 +115,9 @@ type BaziResult struct {
 	// 命主十神关系矩阵（日主为参照点）
 	TenGodRelation *TenGodRelationMatrix `json:"ten_god_relation,omitempty"`
 
+	// 原局夹拱虚支（中性信号层，不参与五行强弱与用忌计算）
+	GongJia []GongJiaItem `json:"gong_jia,omitempty"`
+
 	Dayun         []DayunItem `json:"dayun"`
 	StartYunSolar string      `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
 	Gender        string      `json:"gender"`
@@ -471,6 +474,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 	res.MingGe, res.MingGeDesc = DetectMingGe(res)
 
 	EnsureTenGodRelation(res)
+	EnsureGongJia(res)
 
 	// 喜忌十神（古法映射）— 必须在 Yongshen/Jishen 已就位后
 	strengthLevel, _, _ := dayMasterStrengthLevel(res)
