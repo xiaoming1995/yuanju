@@ -15,6 +15,7 @@ import TiaohouCard from '../components/TiaohouCard'
 import ShareCard from '../components/ShareCard'
 import PrintLayout from '../components/PrintLayout'
 import PolishedPanel from '../components/PolishedPanel'
+import GongJiaPanel, { type GongJiaItem } from '../components/GongJiaPanel'
 import { SegmentedTabs } from '../components/ui/SegmentedTabs'
 import { useToast } from '../components/ui/useToast'
 import './ResultPage.css'
@@ -229,6 +230,7 @@ interface BaziResult {
   ming_ge?: string
   ming_ge_desc?: string
   ten_god_relation?: TenGodRelationMatrix
+  gong_jia?: GongJiaItem[]
 }
 
 function getShiShen(dayGan: string, targetGan: string) {
@@ -911,6 +913,20 @@ export default function ResultPage() {
 
               </div>
             </div>
+
+            <GongJiaPanel
+              items={result.gong_jia || []}
+              hasShenshaAnnotation={(name) => shenshaMap.has(name)}
+              shenshaPolarity={(name) => SHENSHA_POLARITY[name] || 'zhong'}
+              onShenshaClick={(name) => {
+                const ann = shenshaMap.get(name)
+                if (!ann) return
+                setActiveAnnotation({
+                  ...ann,
+                  description: `拱神煞：${ann.description}`,
+                })
+              }}
+            />
 
             <section className="ten-god-relation-section" aria-labelledby="ten-god-relation-title">
               <div className="ten-god-relation-header">

@@ -1,0 +1,145 @@
+.gongjia-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.gongjia-panel__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.gongjia-panel__header p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.gongjia-panel__kicker,
+.gongjia-card__label {
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.gongjia-panel__title {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 20px;
+}
+
+.gongjia-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.gongjia-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.gongjia-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gongjia-card__topline em {
+  color: var(--primary);
+  font-style: normal;
+}
+
+.gongjia-card__main {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.gongjia-card__branch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--primary);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.gongjia-card__main strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.gongjia-card__main p {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.gongjia-card__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.gongjia-card__facts div {
+  min-width: 0;
+}
+
+.gongjia-card__facts dt {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.gongjia-card__facts dd {
+  margin: 2px 0 0;
+  color: var(--text-primary);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.gongjia-card__shensha {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.gongjia-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+@media (max-width: 640px) {
+  .gongjia-panel__header,
+  .gongjia-card__shensha {
+    flex-direction: column;
+  }
+
+  .gongjia-card__facts {
+    grid-template-columns: 1fr;
+  }
+}
