@@ -17,6 +17,7 @@ const (
 	SourceFuyin      = "伏吟"
 	SourceYongshen   = "用神基底"
 	SourceDayunPhase = "大运阶段"
+	SourceGongJia    = "夹拱"
 )
 
 // 信号 Polarity 常量
@@ -517,6 +518,130 @@ func collectJuShiSignals(natal *BaziResult, lnZhi, dyZhi string) []EventSignal {
 		}
 	}
 	return sigs
+}
+
+func collectGongJiaSignals(natal *BaziResult, lnZhi, dyZhi string) []EventSignal {
+	if natal == nil || len(natal.GongJia) == 0 {
+		return nil
+	}
+
+	realNatalZhi := []string{natal.YearZhi, natal.MonthZhi, natal.DayZhi, natal.HourZhi}
+	incoming := []struct {
+		prefix string
+		zhi    string
+	}{
+		{"流年", lnZhi},
+		{"大运", dyZhi},
+	}
+
+	var sigs []EventSignal
+	addSig := func(evidence string) {
+		sigs = append(sigs, EventSignal{
+			Type:     SourceGongJia,
+			Evidence: evidence,
+			Polarity: PolarityNeutral,
+			Source:   SourceGongJia,
+		})
+	}
+
+	for _, item := range natal.GongJia {
+		virtualZhi := item.VirtualZhi
+		if virtualZhi == "" {
+			continue
+		}
+		sourceLabel := compactGongJiaSourceLabel(item)
+		target := fmt.Sprintf("原局%s夹支%s", sourceLabel, virtualZhi)
+		for _, in := range incoming {
+			if in.zhi == "" {
+				continue
+			}
+			if sixChong[in.zhi] == virtualZhi {
+				addSig(fmt.Sprintf("%s%s冲%s，暗藏虚支被冲动，主意料之外但有迹可循的人事变化。", in.prefix, in.zhi, target))
+			}
+			if sixHe[in.zhi] == virtualZhi {
+				addSig(fmt.Sprintf("%s%s合%s，暗藏虚支被合动，主隐性人事牵连与关系变化。", in.prefix, in.zhi, target))
+			}
+			xingHit := sixXing[in.zhi] == virtualZhi || (selfXing[in.zhi] && in.zhi == virtualZhi)
+			if xingHit {
+				addSig(fmt.Sprintf("%s%s刑%s，暗藏虚支被刑动，主压力、规矩与关系边界被引动。", in.prefix, in.zhi, target))
+			}
+			if sixHai[in.zhi] == virtualZhi {
+				addSig(fmt.Sprintf("%s%s害%s，暗藏虚支被穿害，主隐性损耗、误会或人事牵制。", in.prefix, in.zhi, target))
+			}
+			sigs = append(sigs, collectGongJiaJuSignals(item, in.prefix, in.zhi, realNatalZhi)...)
+		}
+	}
+
+	return sigs
+}
+
+func compactGongJiaSourceLabel(item GongJiaItem) string {
+	switch item.Source {
+	case "year_month":
+		return "年月"
+	case "month_day":
+		return "月日"
+	case "day_hour":
+		return "日时"
+	}
+	if len(item.SourceLabels) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for _, label := range item.SourceLabels {
+		if label == "" {
+			continue
+		}
+		runes := []rune(label)
+		if len(runes) == 0 {
+			continue
+		}
+		b.WriteRune(runes[0])
+	}
+	return b.String()
+}
+
+func collectGongJiaJuSignals(item GongJiaItem, prefix, incomingZhi string, realNatalZhi []string) []EventSignal {
+	if item.VirtualZhi == "" || incomingZhi == "" || incomingZhi == item.VirtualZhi {
+		return nil
+	}
+
+	var sigs []EventSignal
+	for _, g := range allJuGroups {
+		if !juGroupContains(g, item.VirtualZhi) || !juGroupContains(g, incomingZhi) {
+			continue
+		}
+		hasRealNatalBranch := false
+		for _, zhi := range g.branches {
+			if zhi == item.VirtualZhi || zhi == incomingZhi {
+				continue
+			}
+			if containsStr(realNatalZhi, zhi) {
+				hasRealNatalBranch = true
+				break
+			}
+		}
+		if !hasRealNatalBranch {
+			continue
+		}
+		juName := string(g.branches[0]) + string(g.branches[1]) + string(g.branches[2])
+		sigs = append(sigs, EventSignal{
+			Type:     SourceGongJia,
+			Evidence: fmt.Sprintf("%s%s与原局真实地支、夹支%s参与%s%s%s局，夹支参与成局，暗藏力量被引出。", prefix, incomingZhi, item.VirtualZhi, juName, g.kind, wxPinyin2CN[g.wx]),
+			Polarity: PolarityNeutral,
+			Source:   SourceGongJia,
+		})
+	}
+	return sigs
+}
+
+func juGroupContains(g juGroup, zhi string) bool {
+	for _, item := range g.branches {
+		if item == zhi {
+			return true
+		}
+	}
+	return false
 }
 
 // yingqiTagged 内部用：带合并元数据的应期信号
@@ -1365,6 +1490,7 @@ func GetYearEventSignalsWithContext(natal *BaziResult, lnGan, lnZhi, dayunGanZhi
 	// ── 应期位置信号（Layer 0：刑冲克合穿破原局用神/忌神位 + 三合/三会局势力）──
 	layer0Sigs := collectYingqiSignals(natal, lnGan, lnZhi, dyGan, dyZhi)
 	layer0Sigs = append(layer0Sigs, collectJuShiSignals(natal, lnZhi, dyZhi)...)
+	layer0Sigs = append(layer0Sigs, collectGongJiaSignals(natal, lnZhi, dyZhi)...)
 	layer0HasXiong := false
 	for _, s := range layer0Sigs {
 		if s.Polarity == PolarityXiong {

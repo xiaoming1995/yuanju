@@ -335,6 +335,48 @@ func TestGetYearEventSignalsWithContextAddsDayunPhaseSignal(t *testing.T) {
 	}
 }
 
+func TestGetYearEventSignals_GongJiaChongIsNeutral(t *testing.T) {
+	natal := makeNatal("甲子", "甲寅", "庚午", "戊申", "火", "水")
+	EnsureGongJia(natal)
+
+	signals := GetYearEventSignals(natal, "己", "未", "戊辰", "female", 30)
+
+	sig, ok := hasSignal(signals, "夹拱")
+	if !ok {
+		t.Fatalf("expected 夹拱 signal, got %+v", signals)
+	}
+	if sig.Polarity != PolarityNeutral {
+		t.Fatalf("expected neutral polarity, got %+v", sig)
+	}
+	if sig.Source != SourceGongJia {
+		t.Fatalf("expected SourceGongJia, got %+v", sig)
+	}
+	if !strings.Contains(sig.Evidence, "流年未冲原局年月夹支丑") {
+		t.Fatalf("expected evidence to mention gongjia chong, got %q", sig.Evidence)
+	}
+}
+
+func TestGetYearEventSignals_GongJiaSanheIsNeutral(t *testing.T) {
+	natal := makeNatal("甲子", "甲寅", "庚巳", "戊申", "火", "水")
+	EnsureGongJia(natal)
+
+	signals := GetYearEventSignals(natal, "辛", "酉", "戊辰", "female", 30)
+
+	sig, ok := hasSignal(signals, "夹拱")
+	if !ok {
+		t.Fatalf("expected 夹拱 signal, got %+v", signals)
+	}
+	if sig.Polarity != PolarityNeutral {
+		t.Fatalf("expected neutral polarity, got %+v", sig)
+	}
+	if sig.Source != SourceGongJia {
+		t.Fatalf("expected SourceGongJia, got %+v", sig)
+	}
+	if !strings.Contains(sig.Evidence, "夹支丑参与巳酉丑三合金局") {
+		t.Fatalf("expected evidence to mention gongjia sanhe, got %q", sig.Evidence)
+	}
+}
+
 // ─── collectYingqiSignals 单元测试 ─────────────────────────────────────────
 
 // TestYingqi_KeYong 流年天干克原局用神天干位 → 凶
