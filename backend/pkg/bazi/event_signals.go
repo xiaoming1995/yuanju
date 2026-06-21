@@ -557,16 +557,15 @@ func collectGongJiaSignals(natal *BaziResult, lnZhi, dyZhi string) []EventSignal
 			}
 			if sixChong[in.zhi] == virtualZhi {
 				addSig(fmt.Sprintf("%s%s冲%s，暗藏虚支被冲动，主意料之外但有迹可循的人事变化。", in.prefix, in.zhi, target))
-			}
-			if sixHe[in.zhi] == virtualZhi {
+			} else if sixHe[in.zhi] == virtualZhi {
 				addSig(fmt.Sprintf("%s%s合%s，暗藏虚支被合动，主隐性人事牵连与关系变化。", in.prefix, in.zhi, target))
-			}
-			xingHit := sixXing[in.zhi] == virtualZhi || (selfXing[in.zhi] && in.zhi == virtualZhi)
-			if xingHit {
-				addSig(fmt.Sprintf("%s%s刑%s，暗藏虚支被刑动，主压力、规矩与关系边界被引动。", in.prefix, in.zhi, target))
-			}
-			if sixHai[in.zhi] == virtualZhi {
-				addSig(fmt.Sprintf("%s%s害%s，暗藏虚支被穿害，主隐性损耗、误会或人事牵制。", in.prefix, in.zhi, target))
+			} else {
+				xingHit := sixXing[in.zhi] == virtualZhi || (selfXing[in.zhi] && in.zhi == virtualZhi)
+				if xingHit {
+					addSig(fmt.Sprintf("%s%s刑%s，暗藏虚支被刑动，主压力、规矩与关系边界被引动。", in.prefix, in.zhi, target))
+				} else if sixHai[in.zhi] == virtualZhi {
+					addSig(fmt.Sprintf("%s%s害%s，暗藏虚支被穿害，主隐性损耗、误会或人事牵制。", in.prefix, in.zhi, target))
+				}
 			}
 			sigs = append(sigs, collectGongJiaJuSignals(item, in.prefix, in.zhi, realNatalZhi)...)
 		}
@@ -611,23 +610,23 @@ func collectGongJiaJuSignals(item GongJiaItem, prefix, incomingZhi string, realN
 		if !juGroupContains(g, item.VirtualZhi) || !juGroupContains(g, incomingZhi) {
 			continue
 		}
-		hasRealNatalBranch := false
+		realBranch := ""
 		for _, zhi := range g.branches {
 			if zhi == item.VirtualZhi || zhi == incomingZhi {
 				continue
 			}
 			if containsStr(realNatalZhi, zhi) {
-				hasRealNatalBranch = true
+				realBranch = zhi
 				break
 			}
 		}
-		if !hasRealNatalBranch {
+		if realBranch == "" {
 			continue
 		}
 		juName := string(g.branches[0]) + string(g.branches[1]) + string(g.branches[2])
 		sigs = append(sigs, EventSignal{
 			Type:     SourceGongJia,
-			Evidence: fmt.Sprintf("%s%s与原局真实地支、夹支%s参与%s%s%s局，夹支参与成局，暗藏力量被引出。", prefix, incomingZhi, item.VirtualZhi, juName, g.kind, wxPinyin2CN[g.wx]),
+			Evidence: fmt.Sprintf("原局%s、%s%s、夹支%s参与%s%s%s局，夹支参与成局，暗藏力量被引出。", realBranch, prefix, incomingZhi, item.VirtualZhi, juName, g.kind, wxPinyin2CN[g.wx]),
 			Polarity: PolarityNeutral,
 			Source:   SourceGongJia,
 		})

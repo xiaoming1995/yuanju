@@ -335,22 +335,44 @@ func TestGetYearEventSignalsWithContextAddsDayunPhaseSignal(t *testing.T) {
 	}
 }
 
+func gongJiaSignals(signals []EventSignal) []EventSignal {
+	var result []EventSignal
+	for _, sig := range signals {
+		if sig.Type == SourceGongJia && sig.Source == SourceGongJia {
+			result = append(result, sig)
+		}
+	}
+	return result
+}
+
+func assertGongJiaSignalCore(t *testing.T, sig EventSignal) {
+	t.Helper()
+	if sig.Type != SourceGongJia {
+		t.Fatalf("expected GongJia type, got %+v", sig)
+	}
+	if sig.Source != SourceGongJia {
+		t.Fatalf("expected GongJia source, got %+v", sig)
+	}
+	if sig.Polarity != PolarityNeutral {
+		t.Fatalf("expected neutral GongJia polarity, got %+v", sig)
+	}
+}
+
 func TestGetYearEventSignals_GongJiaChongIsNeutral(t *testing.T) {
 	natal := makeNatal("甲子", "甲寅", "庚午", "戊申", "火", "水")
 	EnsureGongJia(natal)
 
 	signals := GetYearEventSignals(natal, "己", "未", "戊辰", "female", 30)
 
+	gongSigs := gongJiaSignals(signals)
+	if len(gongSigs) != 1 {
+		t.Fatalf("expected exactly 1 GongJia signal, got %d: %+v", len(gongSigs), gongSigs)
+	}
 	sig, ok := hasSignal(signals, "夹拱")
 	if !ok {
 		t.Fatalf("expected 夹拱 signal, got %+v", signals)
 	}
-	if sig.Polarity != PolarityNeutral {
-		t.Fatalf("expected neutral polarity, got %+v", sig)
-	}
-	if sig.Source != SourceGongJia {
-		t.Fatalf("expected SourceGongJia, got %+v", sig)
-	}
+	assertGongJiaSignalCore(t, sig)
 	if !strings.Contains(sig.Evidence, "流年未冲原局年月夹支丑") {
 		t.Fatalf("expected evidence to mention gongjia chong, got %q", sig.Evidence)
 	}
@@ -362,18 +384,119 @@ func TestGetYearEventSignals_GongJiaSanheIsNeutral(t *testing.T) {
 
 	signals := GetYearEventSignals(natal, "辛", "酉", "戊辰", "female", 30)
 
+	gongSigs := gongJiaSignals(signals)
+	if len(gongSigs) != 1 {
+		t.Fatalf("expected exactly 1 GongJia signal, got %d: %+v", len(gongSigs), gongSigs)
+	}
 	sig, ok := hasSignal(signals, "夹拱")
 	if !ok {
 		t.Fatalf("expected 夹拱 signal, got %+v", signals)
 	}
-	if sig.Polarity != PolarityNeutral {
-		t.Fatalf("expected neutral polarity, got %+v", sig)
-	}
-	if sig.Source != SourceGongJia {
-		t.Fatalf("expected SourceGongJia, got %+v", sig)
+	assertGongJiaSignalCore(t, sig)
+	if !strings.Contains(sig.Evidence, "原局巳、流年酉、夹支丑参与巳酉丑三合金局") {
+		t.Fatalf("expected evidence to name real natal branch, got %q", sig.Evidence)
 	}
 	if !strings.Contains(sig.Evidence, "夹支丑参与巳酉丑三合金局") {
 		t.Fatalf("expected evidence to mention gongjia sanhe, got %q", sig.Evidence)
+	}
+}
+
+func TestCollectGongJiaSignals_NoNatalGongJia(t *testing.T) {
+	natal := makeNatal("甲子", "乙丑", "庚午", "戊申", "火", "水")
+	if sigs := collectGongJiaSignals(natal, "未", ""); len(sigs) != 0 {
+		t.Fatalf("expected no GongJia signal without natal GongJia, got %+v", sigs)
+	}
+}
+
+func TestCollectGongJiaSignals_EmptyVirtualBranch(t *testing.T) {
+	natal := makeNatal("甲子", "乙丑", "庚午", "戊申", "火", "水")
+	natal.GongJia = []GongJiaItem{{Source: "year_month"}}
+	if sigs := collectGongJiaSignals(natal, "未", ""); len(sigs) != 0 {
+		t.Fatalf("expected no GongJia signal for empty virtual branch, got %+v", sigs)
+	}
+}
+
+func TestCollectGongJiaSignals_LiuheTriggerIsNeutral(t *testing.T) {
+	natal := makeNatal("甲寅", "乙卯", "庚午", "戊申", "火", "水")
+	natal.GongJia = []GongJiaItem{{Source: "year_month", VirtualZhi: "丑"}}
+
+	sigs := collectGongJiaSignals(natal, "子", "")
+
+	if len(sigs) != 1 {
+		t.Fatalf("expected 1 GongJia signal, got %d: %+v", len(sigs), sigs)
+	}
+	assertGongJiaSignalCore(t, sigs[0])
+	if !strings.Contains(sigs[0].Evidence, "流年子合原局年月夹支丑") {
+		t.Fatalf("expected liuhe evidence, got %q", sigs[0].Evidence)
+	}
+}
+
+func TestCollectGongJiaSignals_XingTriggerIsNeutral(t *testing.T) {
+	natal := makeNatal("甲子", "乙丑", "庚午", "戊申", "火", "水")
+	natal.GongJia = []GongJiaItem{{Source: "month_day", VirtualZhi: "巳"}}
+
+	sigs := collectGongJiaSignals(natal, "寅", "")
+
+	if len(sigs) != 1 {
+		t.Fatalf("expected 1 GongJia signal, got %d: %+v", len(sigs), sigs)
+	}
+	assertGongJiaSignalCore(t, sigs[0])
+	if !strings.Contains(sigs[0].Evidence, "流年寅刑原局月日夹支巳") {
+		t.Fatalf("expected xing evidence, got %q", sigs[0].Evidence)
+	}
+}
+
+func TestCollectGongJiaSignals_LiuhaiTriggerIsNeutral(t *testing.T) {
+	natal := makeNatal("甲寅", "乙卯", "庚午", "戊申", "火", "水")
+	natal.GongJia = []GongJiaItem{{Source: "day_hour", VirtualZhi: "未"}}
+
+	sigs := collectGongJiaSignals(natal, "子", "")
+
+	if len(sigs) != 1 {
+		t.Fatalf("expected 1 GongJia signal, got %d: %+v", len(sigs), sigs)
+	}
+	assertGongJiaSignalCore(t, sigs[0])
+	if !strings.Contains(sigs[0].Evidence, "流年子害原局日时夹支未") {
+		t.Fatalf("expected liuhai evidence, got %q", sigs[0].Evidence)
+	}
+}
+
+func TestCollectGongJiaSignals_SelfXingTriggerIsNeutral(t *testing.T) {
+	natal := makeNatal("甲子", "乙丑", "庚午", "戊申", "火", "水")
+	natal.GongJia = []GongJiaItem{{Source: "month_day", VirtualZhi: "辰"}}
+
+	sigs := collectGongJiaSignals(natal, "辰", "")
+
+	if len(sigs) != 1 {
+		t.Fatalf("expected 1 GongJia signal, got %d: %+v", len(sigs), sigs)
+	}
+	assertGongJiaSignalCore(t, sigs[0])
+	if !strings.Contains(sigs[0].Evidence, "流年辰刑原局月日夹支辰") {
+		t.Fatalf("expected self-xing evidence, got %q", sigs[0].Evidence)
+	}
+}
+
+func TestCollectGongJiaSignals_SanhuiTriggerNamesRealNatalBranch(t *testing.T) {
+	natal := makeNatal("甲子", "乙午", "庚申", "戊未", "火", "水")
+	natal.GongJia = []GongJiaItem{{Source: "year_month", VirtualZhi: "丑"}}
+
+	sigs := collectGongJiaSignals(natal, "亥", "")
+
+	if len(sigs) != 1 {
+		t.Fatalf("expected 1 GongJia signal, got %d: %+v", len(sigs), sigs)
+	}
+	assertGongJiaSignalCore(t, sigs[0])
+	if !strings.Contains(sigs[0].Evidence, "原局子、流年亥、夹支丑参与亥子丑三会水局") {
+		t.Fatalf("expected sanhui evidence to name real natal branch, got %q", sigs[0].Evidence)
+	}
+}
+
+func TestCollectGongJiaSignals_JuGroupWithoutRealNatalBranchNoSignal(t *testing.T) {
+	natal := makeNatal("甲寅", "乙午", "庚申", "戊未", "火", "水")
+	natal.GongJia = []GongJiaItem{{Source: "year_month", VirtualZhi: "丑"}}
+
+	if sigs := collectGongJiaSignals(natal, "亥", ""); len(sigs) != 0 {
+		t.Fatalf("expected no GongJia ju signal without real natal branch completing group, got %+v", sigs)
 	}
 }
 
