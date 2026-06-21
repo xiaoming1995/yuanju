@@ -155,6 +155,30 @@ func TestBuildBaziPromptIncludesGongJiaContext(t *testing.T) {
 
 	prompt := buildBaziPrompt(result)
 
+	shenshaIndex := strings.Index(prompt, "[神煞]")
+	gongJiaIndex := strings.Index(prompt, "[原局夹拱]")
+	dayunIndex := strings.Index(prompt, "[大运序列]")
+	if shenshaIndex == -1 {
+		t.Fatalf("expected prompt to contain [神煞]")
+	}
+	if gongJiaIndex == -1 {
+		t.Fatalf("expected prompt to contain [原局夹拱]")
+	}
+	if dayunIndex == -1 {
+		t.Fatalf("expected prompt to contain [大运序列]")
+	}
+	if !(shenshaIndex < gongJiaIndex && gongJiaIndex < dayunIndex) {
+		t.Fatalf("expected block order [神煞] -> [原局夹拱] -> [大运序列], got indexes %d, %d, %d", shenshaIndex, gongJiaIndex, dayunIndex)
+	}
+	if got := strings.Count(prompt, "[原局夹拱]"); got != 1 {
+		t.Fatalf("expected [原局夹拱] exactly once, got %d", got)
+	}
+	if strings.Contains(prompt, "[神煞]\n年柱：无 | 月柱：无 | 日柱：无 | 时柱：无\n\n\n[原局夹拱]") {
+		t.Fatalf("prompt should not contain an extra blank line before [原局夹拱]")
+	}
+	if !strings.Contains(prompt, "拱神煞=天乙贵人") {
+		t.Fatalf("expected prompt to include GongJia shensha")
+	}
 	for _, want := range []string{
 		"[原局夹拱]",
 		"年月夹丑",
@@ -165,6 +189,161 @@ func TestBuildBaziPromptIncludesGongJiaContext(t *testing.T) {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("expected prompt to contain %q", want)
 		}
+	}
+}
+
+func TestBuildBaziPromptOmitsGongJiaContextWhenEmpty(t *testing.T) {
+	result := &bazi.BaziResult{
+		YearGan:         "甲",
+		YearZhi:         "子",
+		MonthGan:        "乙",
+		MonthZhi:        "丑",
+		DayGan:          "庚",
+		DayZhi:          "午",
+		HourGan:         "戊",
+		HourZhi:         "申",
+		YearGanWuxing:   "木",
+		YearZhiWuxing:   "水",
+		MonthGanWuxing:  "木",
+		MonthZhiWuxing:  "土",
+		DayGanWuxing:    "金",
+		DayZhiWuxing:    "火",
+		HourGanWuxing:   "土",
+		HourZhiWuxing:   "金",
+		YearGanShiShen:  "偏财",
+		MonthGanShiShen: "正财",
+		HourGanShiShen:  "偏印",
+		YearZhiShiShen:  []string{"伤官"},
+		MonthZhiShiShen: []string{"正印"},
+		DayZhiShiShen:   []string{"正官"},
+		HourZhiShiShen:  []string{"比肩"},
+		YearDiShi:       "死",
+		MonthDiShi:      "墓",
+		DayDiShi:        "沐浴",
+		HourDiShi:       "临官",
+		YearXunKong:     "戌亥",
+		MonthXunKong:    "子丑",
+		DayXunKong:      "戌亥",
+		HourXunKong:     "寅卯",
+		YearHideGan:     []string{"癸"},
+		MonthHideGan:    []string{"己", "癸", "辛"},
+		DayHideGan:      []string{"丁", "己"},
+		HourHideGan:     []string{"庚", "壬", "戊"},
+		YearNaYin:       "海中金",
+		MonthNaYin:      "海中金",
+		DayNaYin:        "路旁土",
+		HourNaYin:       "大驿土",
+		Wuxing:          bazi.WuxingStats{Mu: 2, Huo: 1, Tu: 2, Jin: 2, Shui: 1},
+		Gender:          "male",
+	}
+
+	prompt := buildBaziPrompt(result)
+
+	if strings.Contains(prompt, "[原局夹拱]") {
+		t.Fatalf("prompt should omit [原局夹拱] when GongJia is empty")
+	}
+	if !strings.Contains(prompt, "[神煞]\n年柱：无 | 月柱：无 | 日柱：无 | 时柱：无\n\n[大运序列]") {
+		t.Fatalf("prompt should keep sensible separation between [神煞] and [大运序列] when GongJia is empty")
+	}
+}
+
+func TestFormatGongJiaSummaryUsesFallbackForEmptyHideGan(t *testing.T) {
+	result := &bazi.BaziResult{
+		GongJia: []bazi.GongJiaItem{{
+			Source:     "year_month",
+			SourceZhis: []string{"子", "寅"},
+			VirtualZhi: "丑",
+			HideGan:    nil,
+			ShiShen:    []string{"正印"},
+			ShenSha:    []string{"天乙贵人"},
+		}},
+	}
+
+	summary := formatGongJiaSummary(result)
+
+	if !strings.HasPrefix(summary, "[原局夹拱]\n") {
+		t.Fatalf("summary should not start with a leading blank line, got %q", summary)
+	}
+	if !strings.Contains(summary, "藏干无") {
+		t.Fatalf("empty HideGan should render as 无, got %q", summary)
+	}
+}
+
+func TestLoadOrCalculateResultBackfillsGongJiaSnapshot(t *testing.T) {
+	cached := bazi.BaziResult{
+		YearGan:           "甲",
+		YearZhi:           "子",
+		MonthGan:          "甲",
+		MonthZhi:          "寅",
+		DayGan:            "庚",
+		DayZhi:            "午",
+		HourGan:           "戊",
+		HourZhi:           "申",
+		Yongshen:          "土金",
+		Jishen:            "火木",
+		ShishenConfidence: bazi.ShishenConfHard,
+		FavorableShishen:  []string{"偏印", "正印"},
+		AdverseShishen:    []string{"正官", "七杀"},
+		GongJia:           nil,
+		TenGodRelation:    &bazi.TenGodRelationMatrix{},
+		YearGanShiShen:    "偏财",
+		MonthGanShiShen:   "偏财",
+		HourGanShiShen:    "偏印",
+		YearZhiShiShen:    []string{"伤官"},
+		MonthZhiShiShen:   []string{"偏财"},
+		DayZhiShiShen:     []string{"正官"},
+		HourZhiShiShen:    []string{"比肩"},
+		YearHideGan:       []string{"癸"},
+		MonthHideGan:      []string{"甲", "丙", "戊"},
+		DayHideGan:        []string{"丁", "己"},
+		HourHideGan:       []string{"庚", "壬", "戊"},
+	}
+	raw, err := json.Marshal(cached)
+	if err != nil {
+		t.Fatalf("marshal cached result: %v", err)
+	}
+
+	originalGet := getChartResultJSON
+	originalSave := saveChartResultJSON
+	t.Cleanup(func() {
+		getChartResultJSON = originalGet
+		saveChartResultJSON = originalSave
+	})
+
+	getChartResultJSON = func(chartID string) ([]byte, error) {
+		if chartID != "chart-gongjia-backfill" {
+			t.Fatalf("unexpected chart id for get: %s", chartID)
+		}
+		return raw, nil
+	}
+	var saved []byte
+	saveChartResultJSON = func(chartID string, resultJSON []byte) error {
+		if chartID != "chart-gongjia-backfill" {
+			t.Fatalf("unexpected chart id for save: %s", chartID)
+		}
+		saved = append([]byte(nil), resultJSON...)
+		return nil
+	}
+
+	result, err := LoadOrCalculateResult(&model.BaziChart{ID: "chart-gongjia-backfill"})
+	if err != nil {
+		t.Fatalf("LoadOrCalculateResult returned error: %v", err)
+	}
+	if len(result.GongJia) == 0 {
+		t.Fatalf("expected result to be backfilled with GongJia")
+	}
+	if len(saved) == 0 {
+		t.Fatalf("expected upgraded cached snapshot to be persisted when only GongJia is backfilled")
+	}
+	var persisted bazi.BaziResult
+	if err := json.Unmarshal(saved, &persisted); err != nil {
+		t.Fatalf("saved snapshot should be valid JSON: %v", err)
+	}
+	if persisted.ShishenConfidence != bazi.ShishenConfHard {
+		t.Fatalf("ShishenConfidence should be preserved, got %q", persisted.ShishenConfidence)
+	}
+	if len(persisted.GongJia) == 0 {
+		t.Fatalf("saved snapshot should contain backfilled gong_jia")
 	}
 }
 

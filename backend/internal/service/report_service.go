@@ -22,6 +22,11 @@ type BaziReportInput struct {
 	Result  *bazi.BaziResult
 }
 
+var (
+	getChartResultJSON  = repository.GetChartResultJSON
+	saveChartResultJSON = repository.SaveChartResultJSON
+)
+
 // buildLifeStageHint 按"该段大运 age<18 的年份占比"生成 prompt 提示词
 // youngCount=0 → 空（成人期不附加）
 // youngCount=totalCount → 全段读书期
@@ -46,7 +51,7 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 	if chart == nil {
 		return nil, fmt.Errorf("chart 为 nil")
 	}
-	raw, err := repository.GetChartResultJSON(chart.ID)
+	raw, err := getChartResultJSON(chart.ID)
 	if err != nil {
 		return nil, fmt.Errorf("读取命盘快照失败: %v", err)
 	}
@@ -70,7 +75,7 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 			// 回写升级后的 snapshot，避免下次读取再做同样的 backfill
 			if backfilled {
 				if marshalled, mErr := json.Marshal(&cached); mErr == nil {
-					if sErr := repository.SaveChartResultJSON(chart.ID, marshalled); sErr != nil {
+					if sErr := saveChartResultJSON(chart.ID, marshalled); sErr != nil {
 						log.Printf("[LoadOrCalculateResult] result_json 升级回写失败 chart_id=%s: %v", chart.ID, sErr)
 					}
 				}
@@ -84,7 +89,7 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 	result := bazi.Calculate(chart.BirthYear, chart.BirthMonth, chart.BirthDay, chart.BirthHour,
 		chart.Gender, false, 0, chart.CalendarType, chart.IsLeapMonth)
 	if marshalled, mErr := json.Marshal(result); mErr == nil {
-		if sErr := repository.SaveChartResultJSON(chart.ID, marshalled); sErr != nil {
+		if sErr := saveChartResultJSON(chart.ID, marshalled); sErr != nil {
 			log.Printf("[LoadOrCalculateResult] 写回 result_json 失败 chart_id=%s: %v", chart.ID, sErr)
 		}
 	}
@@ -141,7 +146,7 @@ func formatGongJiaSummary(result *bazi.BaziResult) string {
 	}
 
 	var b strings.Builder
-	b.WriteString("\n[原局夹拱]\n")
+	b.WriteString("[原局夹拱]\n")
 	for _, item := range result.GongJia {
 		sourceZhis := joinOrNone(item.SourceZhis)
 		if len(item.SourceZhis) > 0 {
@@ -152,7 +157,7 @@ func formatGongJiaSummary(result *bazi.BaziResult) string {
 			sourceLabel(item),
 			item.VirtualZhi,
 			sourceZhis,
-			strings.Join(item.HideGan, ""),
+			joinOrNone(item.HideGan),
 			joinOrNone(item.ShiShen),
 			joinOrNone(item.ShenSha),
 		))
