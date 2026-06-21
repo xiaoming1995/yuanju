@@ -133,7 +133,7 @@
   gap: 5px;
 }
 
-.shensha-tag {
+.gongjia-panel .shensha-tag {
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--border-subtle);
@@ -148,26 +148,26 @@
   cursor: default;
 }
 
-button.shensha-tag {
+.gongjia-panel button.shensha-tag {
   appearance: none;
   margin: 0;
   text-align: inherit;
 }
 
-.shensha-tag--ji,
-.shensha-tag--xiong {
+.gongjia-panel .shensha-tag--ji,
+.gongjia-panel .shensha-tag--xiong {
   color: var(--primary);
 }
 
-.shensha-tag--zhong {
+.gongjia-panel .shensha-tag--zhong {
   color: var(--text-muted);
 }
 
-.shensha-tag--clickable {
+.gongjia-panel .shensha-tag--clickable {
   cursor: pointer;
 }
 
-.shensha-tag--clickable:hover {
+.gongjia-panel .shensha-tag--clickable:hover {
   background: var(--bg-elevated);
   color: var(--text-primary);
 }
