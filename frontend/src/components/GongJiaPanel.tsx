@@ -85,14 +85,18 @@ export default function GongJiaPanel({
                     {shensha.map((name) => {
                       const hasAnnotation = hasShenshaAnnotation?.(name) || false
                       const polarity = shenshaPolarity?.(name) || 'zhong'
-                      return (
-                        <span
+                      const className = `shensha-tag shensha-tag--${polarity}${hasAnnotation ? ' shensha-tag--clickable' : ''}`
+                      return hasAnnotation ? (
+                        <button
                           key={name}
-                          className={`shensha-tag shensha-tag--${polarity}${hasAnnotation ? ' shensha-tag--clickable' : ''}`}
-                          onClick={() => {
-                            if (hasAnnotation) onShenshaClick?.(name)
-                          }}
+                          type="button"
+                          className={className}
+                          onClick={() => onShenshaClick?.(name)}
                         >
+                          {name}
+                        </button>
+                      ) : (
+                        <span key={name} className={className}>
                           {name}
                         </span>
                       )

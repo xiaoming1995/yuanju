@@ -133,6 +133,45 @@
   gap: 5px;
 }
 
+.shensha-tag {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  padding: 2px 5px;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: default;
+}
+
+button.shensha-tag {
+  appearance: none;
+  margin: 0;
+  text-align: inherit;
+}
+
+.shensha-tag--ji,
+.shensha-tag--xiong {
+  color: var(--primary);
+}
+
+.shensha-tag--zhong {
+  color: var(--text-muted);
+}
+
+.shensha-tag--clickable {
+  cursor: pointer;
+}
+
+.shensha-tag--clickable:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
 @media (max-width: 640px) {
   .gongjia-panel__header,
   .gongjia-card__shensha {
