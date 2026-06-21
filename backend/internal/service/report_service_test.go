@@ -107,6 +107,67 @@ func TestBuildBaziPrompt_ExcludesCelebritySectionAndPersonaChapter(t *testing.T)
 	}
 }
 
+func TestBuildBaziPromptIncludesGongJiaContext(t *testing.T) {
+	result := &bazi.BaziResult{
+		YearGan:         "甲",
+		YearZhi:         "子",
+		MonthGan:        "甲",
+		MonthZhi:        "寅",
+		DayGan:          "庚",
+		DayZhi:          "午",
+		HourGan:         "戊",
+		HourZhi:         "申",
+		YearGanWuxing:   "木",
+		YearZhiWuxing:   "水",
+		MonthGanWuxing:  "木",
+		MonthZhiWuxing:  "木",
+		DayGanWuxing:    "金",
+		DayZhiWuxing:    "火",
+		HourGanWuxing:   "土",
+		HourZhiWuxing:   "金",
+		YearGanShiShen:  "偏财",
+		MonthGanShiShen: "偏财",
+		HourGanShiShen:  "偏印",
+		YearZhiShiShen:  []string{"伤官"},
+		MonthZhiShiShen: []string{"偏财"},
+		DayZhiShiShen:   []string{"正官"},
+		HourZhiShiShen:  []string{"比肩"},
+		YearDiShi:       "死",
+		MonthDiShi:      "绝",
+		DayDiShi:        "沐浴",
+		HourDiShi:       "临官",
+		YearXunKong:     "戌亥",
+		MonthXunKong:    "子丑",
+		DayXunKong:      "戌亥",
+		HourXunKong:     "寅卯",
+		YearHideGan:     []string{"癸"},
+		MonthHideGan:    []string{"甲", "丙", "戊"},
+		DayHideGan:      []string{"丁", "己"},
+		HourHideGan:     []string{"庚", "壬", "戊"},
+		YearNaYin:       "海中金",
+		MonthNaYin:      "大溪水",
+		DayNaYin:        "路旁土",
+		HourNaYin:       "大驿土",
+		Wuxing:          bazi.WuxingStats{Mu: 3, Huo: 1, Tu: 1, Jin: 2, Shui: 1},
+		Gender:          "male",
+	}
+	bazi.EnsureGongJia(result)
+
+	prompt := buildBaziPrompt(result)
+
+	for _, want := range []string{
+		"[原局夹拱]",
+		"年月夹丑",
+		"暗藏虚支",
+		"不改原局五行、用神或命格",
+		"天乙贵人",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("expected prompt to contain %q", want)
+		}
+	}
+}
+
 func TestBuildBaziPrompt_UsesSystemMingGeAsPrimarySource(t *testing.T) {
 	result := &bazi.BaziResult{
 		YearGan:         "甲",
@@ -661,7 +722,6 @@ func TestFillBlankYearNarratives_ValidatorWipedGetsFallback(t *testing.T) {
 		t.Errorf("xiong basis should produce 偏凶 fallback; got %q", out[0].Narrative)
 	}
 }
-
 
 func TestExtractJSON(t *testing.T) {
 	cases := []struct {

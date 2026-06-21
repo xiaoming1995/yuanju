@@ -54,9 +54,12 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 		var cached bazi.BaziResult
 		if err := json.Unmarshal(raw, &cached); err == nil {
 			bazi.EnsureTenGodRelation(&cached)
+			backfilled := false
+			if bazi.EnsureGongJia(&cached) {
+				backfilled = true
+			}
 			// 老 chart 的 result_json 没有 ShishenConfidence — 幂等回填
 			// （字段值由 Yongshen/Jishen/strength 推算，跨版本可重算）
-			backfilled := false
 			if cached.ShishenConfidence == "" {
 				strengthLevel, _, _ := bazi.GetStrengthDetail(&cached)
 				cached.FavorableShishen, cached.AdverseShishen, cached.ShishenConfidence = bazi.BuildFavorableShishen(
@@ -98,6 +101,63 @@ func formatTiaohouSummary(result *bazi.BaziResult) string {
 		return ""
 	}
 	return strings.Join(result.Tiaohou.Expected, "、")
+}
+
+func formatGongJiaSummary(result *bazi.BaziResult) string {
+	if result == nil || len(result.GongJia) == 0 {
+		return ""
+	}
+
+	sourceLabel := func(item bazi.GongJiaItem) string {
+		switch item.Source {
+		case "year_month":
+			return "年月"
+		case "month_day":
+			return "月日"
+		case "day_hour":
+			return "日时"
+		}
+		if len(item.SourceLabels) == 0 {
+			return "相邻两柱"
+		}
+		labels := make([]string, 0, len(item.SourceLabels))
+		for _, label := range item.SourceLabels {
+			label = strings.TrimSuffix(label, "柱")
+			if label != "" {
+				labels = append(labels, label)
+			}
+		}
+		if len(labels) == 0 {
+			return "相邻两柱"
+		}
+		return strings.Join(labels, "")
+	}
+
+	joinOrNone := func(items []string) string {
+		if len(items) == 0 {
+			return "无"
+		}
+		return strings.Join(items, "、")
+	}
+
+	var b strings.Builder
+	b.WriteString("\n[原局夹拱]\n")
+	for _, item := range result.GongJia {
+		sourceZhis := joinOrNone(item.SourceZhis)
+		if len(item.SourceZhis) > 0 {
+			sourceZhis = strings.Join(item.SourceZhis, "/")
+		}
+		b.WriteString(fmt.Sprintf(
+			"%s夹%s：来源地支%s，藏干%s，对日主十神=%s，拱神煞=%s。此为暗藏虚支，只作暗线与应期参考，不改原局五行、用神或命格。\n",
+			sourceLabel(item),
+			item.VirtualZhi,
+			sourceZhis,
+			strings.Join(item.HideGan, ""),
+			joinOrNone(item.ShiShen),
+			joinOrNone(item.ShenSha),
+		))
+	}
+	return b.String()
 }
 
 // formatYongshenInfo 将 BaziResult 的 yongshen 字段格式化为 prompt 可读的文案
@@ -207,6 +267,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 	if dayunStr == "" {
 		dayunStr = "（暂无大运数据）\n"
 	}
+	gongJiaStr := formatGongJiaSummary(r)
 
 	// ===引擎五行统计初步参考===
 	yongshenHint := ""
@@ -398,11 +459,13 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		fmt.Sprintf("[十二长生]\n年柱[%s] | 月柱[%s] | 日柱[%s] | 时柱[%s]\n\n"+
 			"[旬空-空亡]\n年柱[%s] | 月柱[%s] | 日柱[%s] | 时柱[%s]\n\n"+
 			"[神煞]\n年柱：%s | 月柱：%s | 日柱：%s | 时柱：%s\n\n"+
+			"%s"+
 			"[大运序列]\n%s",
 			r.YearDiShi, r.MonthDiShi, r.DayDiShi, r.HourDiShi,
 			r.YearXunKong, r.MonthXunKong, r.DayXunKong, r.HourXunKong,
 			joinOrNone(r.YearShenSha), joinOrNone(r.MonthShenSha),
 			joinOrNone(r.DayShenSha), joinOrNone(r.HourShenSha),
+			gongJiaStr,
 			dayunStr,
 		) +
 		yongshenHint +
