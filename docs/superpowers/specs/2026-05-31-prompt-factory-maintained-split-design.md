@@ -46,9 +46,9 @@
 
 | drift_status | 条件 | 徽标文案 | 可用操作 |
 |---|---|---|---|
-| `aligned` | `DB.canonical_hash == factory.Hash` 且 `DB.content == factory.content` | ✅ 已是出厂版 {factory.Version} | 编辑 |
-| `customized` | `DB.canonical_hash == factory.Hash` 且 `DB.content != factory.content` | ✏️ 已自定义（基于出厂 {factory.Version}） | 编辑 / 重置为出厂 |
-| `outdated` ★ | `DB.canonical_hash != factory.Hash` | ⚠️ 出厂已更新到 {factory.Version}（你基于 {DB.version}） | 采用出厂新版 / 编辑 |
+| `aligned` | `DB.canonical_hash == factory.Hash` 且 `DB.content == factory.content` | [OK] 已是出厂版 {factory.Version} | 编辑 |
+| `customized` | `DB.canonical_hash == factory.Hash` 且 `DB.content != factory.content` | 编辑 已自定义（基于出厂 {factory.Version}） | 编辑 / 重置为出厂 |
+| `outdated` * | `DB.canonical_hash != factory.Hash` | [WARN] 出厂已更新到 {factory.Version}（你基于 {DB.version}） | 采用出厂新版 / 编辑 |
 | `unregistered` | 代码无此 canonical | 历史遗留 | — |
 
 `outdated` 就是本次事故第一次变得可见的状态。

@@ -20,7 +20,7 @@
   font-size: 40px;
   color: var(--text-accent);
   margin-bottom: 16px;
-  filter: drop-shadow(0 0 12px rgba(201,168,76,0.4));
+  filter: drop-shadow(0 0 12px rgba(201, 168, 76,0.4));
 }
 
 .auth-title {
@@ -53,6 +53,12 @@
 }
 
 .auth-switch a:hover { text-decoration: underline; }
+
+.form-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .auth-unavailable {
   text-align: center;

@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- 在 `ResultPage.tsx` 报告卡片区域新增「📄 导出报告」按钮，点击调用 `window.print()`
+- 在 `ResultPage.tsx` 报告卡片区域新增「文档 导出报告」按钮，点击调用 `window.print()`
 - 在 `ResultPage.css` 新增 `@media print` 打印样式块，覆盖：
   - **隐藏**：顶部导航栏、「重新起盘」/「查看历史记录」底部按钮、精简/专业切换按钮、「生成 AI 解读」按钮、骨架屏加载态
   - **重置**：将深色主题 CSS Variables 替换为白底黑字（确保深色模式下打印可读）

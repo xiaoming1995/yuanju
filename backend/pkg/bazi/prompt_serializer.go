@@ -26,10 +26,11 @@ func CompressYearSignalsForPrompt(years []YearSignals) ([]byte, error) {
 	compressed := make([]compactYear, len(years))
 	for i, y := range years {
 		compressed[i] = compactYear{
-			Year:        y.Year,
-			Age:         y.Age,
-			GanZhi:      y.GanZhi,
-			DayunGanZhi: y.DayunGanZhi,
+			Year:              y.Year,
+			Age:               y.Age,
+			GanZhi:            y.GanZhi,
+			DayunGanZhi:       y.DayunGanZhi,
+			FallbackNarrative: RenderYearNarrative(y),
 			TenGodPower: compactTGPower{
 				Dominant:   y.TenGodPower.Dominant,
 				GroupLabel: y.TenGodPower.GroupLabel,
@@ -44,12 +45,13 @@ func CompressYearSignalsForPrompt(years []YearSignals) ([]byte, error) {
 }
 
 type compactYear struct {
-	Year        int             `json:"year"`
-	Age         int             `json:"age"`
-	GanZhi      string          `json:"gan_zhi"`
-	DayunGanZhi string          `json:"dayun_gan_zhi"`
-	TenGodPower compactTGPower  `json:"ten_god_power,omitempty"`
-	Signals     []compactSignal `json:"signals"`
+	Year              int             `json:"year"`
+	Age               int             `json:"age"`
+	GanZhi            string          `json:"gan_zhi"`
+	DayunGanZhi       string          `json:"dayun_gan_zhi"`
+	FallbackNarrative string          `json:"fallback_narrative,omitempty"`
+	TenGodPower       compactTGPower  `json:"ten_god_power,omitempty"`
+	Signals           []compactSignal `json:"signals"`
 }
 
 type compactTGPower struct {

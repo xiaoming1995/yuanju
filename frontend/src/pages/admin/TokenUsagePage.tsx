@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from 'react'
-import { BarChart2 } from 'lucide-react'
+import { AlertTriangle, BarChart2, Settings } from 'lucide-react'
 import adminApi, { adminTokenUsageAPI } from '../../lib/adminApi'
 
 interface SummaryRow {
@@ -239,9 +239,9 @@ export default function TokenUsagePage() {
             setThresholdError('')
             setThresholdEditOpen(true)
           }}
-          style={{ fontSize: 13 }}
+          style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
-          ⚙️ 编辑预算阈值
+          <Settings size={14} /> 编辑预算阈值
         </button>
       </h1>
 
@@ -249,17 +249,19 @@ export default function TokenUsagePage() {
       {budget && (budget.today.exceeded || budget.this_month.exceeded) && (
         <div
           style={{
-            background: '#7f1d1d',
-            color: '#fee2e2',
+            background: 'rgba(var(--admin-danger-rgb), 0.16)',
+            color: 'var(--admin-danger)',
             padding: '12px 16px',
             borderRadius: 8,
             marginBottom: 20,
-            border: '1px solid #b91c1c',
+            border: '1px solid rgba(var(--admin-danger-rgb), 0.32)',
             fontSize: 14,
             lineHeight: 1.7,
           }}
         >
-          ⚠️ 预算告警
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
+            <AlertTriangle size={16} /> 预算告警
+          </div>
           {budget.today.exceeded && (
             <div>
               今日已用 <strong>¥{budget.today.total_cost_cny.toFixed(2)}</strong>
@@ -279,31 +281,31 @@ export default function TokenUsagePage() {
       {budget && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div className="admin-card" style={{ padding: 16 }}>
-            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>今日累计</div>
-            <div style={{ color: budget.today.exceeded ? '#fca5a5' : budget.today.exceeded_pct >= 80 ? '#fbbf24' : '#86efac', fontSize: 26, fontWeight: 700 }}>
+            <div style={{ color: 'var(--admin-text-muted)', fontSize: 12, marginBottom: 8 }}>今日累计</div>
+            <div style={{ color: budget.today.exceeded ? 'var(--admin-danger)' : budget.today.exceeded_pct >= 80 ? 'var(--admin-warning)' : 'var(--admin-success)', fontSize: 26, fontWeight: 700 }}>
               ¥{budget.today.total_cost_cny.toFixed(2)}
             </div>
-            <div style={{ fontSize: 12, color: '#aaa', marginTop: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--admin-text-secondary)', marginTop: 6 }}>
               {budget.today.exceeded_pct}% · 阈值 ¥{budget.today.threshold_cost_cny.toFixed(2)}
             </div>
           </div>
 
           <div className="admin-card" style={{ padding: 16 }}>
-            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>本月累计</div>
-            <div style={{ color: budget.this_month.exceeded ? '#fca5a5' : budget.this_month.exceeded_pct >= 80 ? '#fbbf24' : '#86efac', fontSize: 26, fontWeight: 700 }}>
+            <div style={{ color: 'var(--admin-text-muted)', fontSize: 12, marginBottom: 8 }}>本月累计</div>
+            <div style={{ color: budget.this_month.exceeded ? 'var(--admin-danger)' : budget.this_month.exceeded_pct >= 80 ? 'var(--admin-warning)' : 'var(--admin-success)', fontSize: 26, fontWeight: 700 }}>
               ¥{budget.this_month.total_cost_cny.toFixed(2)}
             </div>
-            <div style={{ fontSize: 12, color: '#aaa', marginTop: 6 }}>
+            <div style={{ fontSize: 12, color: 'var(--admin-text-secondary)', marginTop: 6 }}>
               {budget.this_month.exceeded_pct}% · 阈值 ¥{budget.this_month.threshold_cost_cny.toFixed(2)}
             </div>
           </div>
 
           <div className="admin-card" style={{ padding: 16 }}>
-            <div style={{ color: '#888', fontSize: 12, marginBottom: 8 }}>
+            <div style={{ color: 'var(--admin-text-muted)', fontSize: 12, marginBottom: 8 }}>
               用户 TOP 5（近 7 天，阈值 ¥{budget.per_user_threshold_cny.toFixed(2)}）
             </div>
             {budget.top_users.length === 0 ? (
-              <div style={{ color: '#666', fontSize: 13 }}>暂无数据</div>
+              <div style={{ color: 'var(--admin-text-faint)', fontSize: 13 }}>暂无数据</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {budget.top_users.map((u, i) => {
@@ -312,9 +314,9 @@ export default function TokenUsagePage() {
                     <div
                       key={u.user_id}
                       title={`${u.email || '(no email)'} · ${u.user_id}`}
-                      style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', color: u.threshold_exceeded ? '#fca5a5' : '#e0e0e0' }}
+                      style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', color: u.threshold_exceeded ? 'var(--admin-danger)' : 'var(--admin-text-secondary)' }}
                     >
-                      <span>{i + 1}. {label.length > 18 ? label.slice(0, 16) + '…' : label}{u.threshold_exceeded ? ' ⚠' : ''}</span>
+                      <span>{i + 1}. {label.length > 18 ? label.slice(0, 16) + '…' : label}{u.threshold_exceeded ? ' (超阈值)' : ''}</span>
                       <span>¥{u.total_cost_cny.toFixed(2)}（{u.calls} 次）</span>
                     </div>
                   )
@@ -327,19 +329,19 @@ export default function TokenUsagePage() {
 
       {/* 筛选栏 */}
       <div className="admin-card" style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-        <label style={{ color: '#aaa', fontSize: 14 }}>开始日期</label>
+        <label style={{ color: 'var(--admin-text-secondary)', fontSize: 14 }}>开始日期</label>
         <input
           type="date"
           value={from}
           onChange={e => setFrom(e.target.value)}
-          style={{ background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: '6px 10px' }}
+          style={{ background: 'var(--admin-bg-muted)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 6, padding: '6px 10px' }}
         />
-        <label style={{ color: '#aaa', fontSize: 14 }}>结束日期</label>
+        <label style={{ color: 'var(--admin-text-secondary)', fontSize: 14 }}>结束日期</label>
         <input
           type="date"
           value={to}
           onChange={e => setTo(e.target.value)}
-          style={{ background: '#1a1a2e', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: '6px 10px' }}
+          style={{ background: 'var(--admin-bg-muted)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 6, padding: '6px 10px' }}
         />
         <button
           className="admin-btn"
@@ -355,7 +357,7 @@ export default function TokenUsagePage() {
       {queried && (
         <div className="admin-card">
           {summary.length === 0 ? (
-            <div style={{ color: '#888', textAlign: 'center', padding: 32 }}>该时间段内无 token 消耗记录</div>
+            <div style={{ color: 'var(--admin-text-muted)', textAlign: 'center', padding: 32 }}>该时间段内无 token 消耗记录</div>
           ) : (
             <>
               <table className="admin-table" style={{ width: '100%' }}>
@@ -377,36 +379,36 @@ export default function TokenUsagePage() {
                     <Fragment key={group.userID}>
                       {/* spacer between groups */}
                       {gi > 0 && (
-                        <tr style={{ height: 4, background: '#0d0d1a' }}>
+                        <tr style={{ height: 4, background: 'var(--admin-bg-base)' }}>
                           <td colSpan={9} style={{ padding: 0 }} />
                         </tr>
                       )}
                       {/* per-model rows */}
                       {group.rows.map((row, ri) => (
                         <tr key={row.model}>
-                          <td style={{ color: '#e0e0e0' }}>{ri === 0 ? row.email : ''}</td>
+                          <td style={{ color: 'var(--admin-text-secondary)' }}>{ri === 0 ? row.email : ''}</td>
                           <td>{ri === 0 ? (row.nickname || '—') : ''}</td>
-                          <td style={{ fontSize: 12, color: '#aaa' }}>{row.model}</td>
+                          <td style={{ fontSize: 12, color: 'var(--admin-text-secondary)' }}>{row.model}</td>
                           <td style={{ textAlign: 'right' }}>{fmt(row.request_count)}</td>
                           <td style={{ textAlign: 'right' }}>{fmt(row.prompt_tokens)}</td>
                           <td style={{ textAlign: 'right' }}>{fmt(row.completion_tokens)}</td>
-                          <td style={{ textAlign: 'right', color: '#a78bfa' }}>{fmt(row.total_tokens)}</td>
-                          <td style={{ textAlign: 'right', color: '#f59e0b', fontSize: 12 }}>
+                          <td style={{ textAlign: 'right', color: 'var(--admin-accent)' }}>{fmt(row.total_tokens)}</td>
+                          <td style={{ textAlign: 'right', color: 'var(--admin-warning)', fontSize: 12 }}>
                             ¥ {row.estimated_cost_cny.toFixed(4)}
                           </td>
                           <td />
                         </tr>
                       ))}
                       {/* subtotal row */}
-                      <tr style={{ background: '#1e1e40' }}>
-                        <td style={{ color: '#888' }} />
-                        <td style={{ color: '#888' }} />
-                        <td style={{ fontWeight: 700, color: '#e0e0e0', fontSize: 13 }}>合计</td>
+                      <tr style={{ background: 'var(--admin-bg-soft)' }}>
+                        <td style={{ color: 'var(--admin-text-muted)' }} />
+                        <td style={{ color: 'var(--admin-text-muted)' }} />
+                        <td style={{ fontWeight: 700, color: 'var(--admin-text-secondary)', fontSize: 13 }}>合计</td>
                         <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(group.totalRequestCount)}</td>
                         <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(group.totalPrompt)}</td>
                         <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmt(group.totalCompletion)}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(group.totalTokens)}</td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#f59e0b' }}>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--admin-accent)' }}>{fmt(group.totalTokens)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--admin-warning)' }}>
                           ¥ {group.totalCost.toFixed(4)}
                         </td>
                         <td>
@@ -426,7 +428,7 @@ export default function TokenUsagePage() {
                   ))}
                 </tbody>
               </table>
-              <div style={{ fontSize: 12, color: '#555', marginTop: 8, padding: '0 4px' }}>
+              <div style={{ fontSize: 12, color: 'var(--admin-text-faint)', marginTop: 8, padding: '0 4px' }}>
                 * 基于当前 algo_config 单价估算，仅供参考
               </div>
             </>
@@ -445,13 +447,13 @@ export default function TokenUsagePage() {
         >
           <div
             style={{
-              width: 600, maxWidth: '95vw', background: '#12122a', height: '100%',
+              width: 600, maxWidth: '95vw', background: 'var(--admin-bg-surface)', height: '100%',
               overflowY: 'auto', padding: 24, boxShadow: '-4px 0 20px rgba(0,0,0,0.4)',
             }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#e0e0e0' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--admin-text-secondary)' }}>
                 {drawerUser.email} 的调用明细
               </h2>
               <button className="admin-btn" onClick={closeDrawer} style={{ padding: '4px 12px' }}>关闭</button>
@@ -467,9 +469,9 @@ export default function TokenUsagePage() {
                     openDetail(drawerUser, 1, m)
                   }}
                   style={{
-                    background: drawerModel === m ? '#a78bfa' : 'transparent',
-                    color: drawerModel === m ? '#fff' : '#888',
-                    border: '1px solid #333',
+                    background: drawerModel === m ? 'var(--admin-accent)' : 'transparent',
+                    color: drawerModel === m ? '#fffdf8' : 'var(--admin-text-muted)',
+                    border: '1px solid var(--admin-border-strong)',
                     borderRadius: 4, padding: '4px 12px', fontSize: 12, cursor: 'pointer',
                   }}
                 >
@@ -481,7 +483,7 @@ export default function TokenUsagePage() {
             {detailLoading ? (
               <div className="admin-loading">加载中…</div>
             ) : detail && detail.items.length === 0 ? (
-              <div style={{ color: '#888', textAlign: 'center', padding: 32 }}>无记录</div>
+              <div style={{ color: 'var(--admin-text-muted)', textAlign: 'center', padding: 32 }}>无记录</div>
             ) : detail ? (
               <>
                 <table className="admin-table" style={{ width: '100%', marginBottom: 16 }}>
@@ -502,23 +504,23 @@ export default function TokenUsagePage() {
                   <tbody>
                     {detail.items.map(item => (
                       <tr key={item.id}>
-                        <td style={{ fontSize: 12, color: '#aaa' }}>
+                        <td style={{ fontSize: 12, color: 'var(--admin-text-secondary)' }}>
                           {new Date(item.created_at).toLocaleString('zh-CN', { hour12: false })}
                         </td>
                         <td>{callTypeLabel[item.call_type] ?? item.call_type}</td>
-                        <td style={{ fontSize: 12, color: '#aaa' }}>{item.model}</td>
+                        <td style={{ fontSize: 12, color: 'var(--admin-text-secondary)' }}>{item.model}</td>
                         <td style={{ textAlign: 'right' }}>{fmt(item.prompt_tokens)}</td>
                         <td style={{ textAlign: 'right' }}>{fmt(item.completion_tokens)}</td>
-                        <td style={{ textAlign: 'right', color: item.reasoning_tokens > 0 ? '#94a3b8' : '#555' }}>
+                        <td style={{ textAlign: 'right', color: item.reasoning_tokens > 0 ? 'var(--admin-accent)' : 'var(--admin-text-faint)' }}>
                           {item.reasoning_tokens > 0 ? fmt(item.reasoning_tokens) : '—'}
                         </td>
-                        <td style={{ textAlign: 'right', color: item.cache_hit_tokens > 0 ? '#4ade80' : '#555' }}>
+                        <td style={{ textAlign: 'right', color: item.cache_hit_tokens > 0 ? 'var(--admin-success)' : 'var(--admin-text-faint)' }}>
                           {item.cache_hit_tokens > 0 ? fmt(item.cache_hit_tokens) : '—'}
                         </td>
-                        <td style={{ textAlign: 'right', color: '#f59e0b', fontSize: 12 }}>
+                        <td style={{ textAlign: 'right', color: 'var(--admin-warning)', fontSize: 12 }}>
                           ¥ {item.estimated_cost_cny.toFixed(4)}
                         </td>
-                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#a78bfa' }}>{fmt(item.total_tokens)}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--admin-accent)' }}>{fmt(item.total_tokens)}</td>
                         <td>
                           <button
                             className="admin-btn"
@@ -544,7 +546,7 @@ export default function TokenUsagePage() {
                     >
                       上一页
                     </button>
-                    <span style={{ color: '#888', lineHeight: '32px', fontSize: 13 }}>
+                    <span style={{ color: 'var(--admin-text-muted)', lineHeight: '32px', fontSize: 13 }}>
                       {detailPage} / {detailTotalPages}（共 {detail.total} 条）
                     </span>
                     <button
@@ -569,39 +571,39 @@ export default function TokenUsagePage() {
           onClick={() => setThresholdEditOpen(false)}
           style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+            background: 'rgba(23,35,33,0.32)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ background: '#1a1a2e', padding: 24, borderRadius: 12, width: 420, color: '#e0e0e0' }}
+            style={{ background: 'var(--admin-bg-muted)', padding: 24, borderRadius: 12, width: 420, color: 'var(--admin-text-secondary)' }}
           >
             <h3 style={{ margin: '0 0 16px', fontSize: 18 }}>编辑预算阈值（CNY）</h3>
-            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>日累计上限</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--admin-text-secondary)', marginBottom: 4 }}>日累计上限</label>
             <input
               type="number"
               step="0.5"
               value={thresholdDraft.daily}
               onChange={(e) => setThresholdDraft({ ...thresholdDraft, daily: e.target.value })}
-              style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 12 }}
+              style={{ width: '100%', background: 'var(--admin-bg-base)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 6, padding: 8, marginBottom: 12 }}
             />
-            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>月累计上限</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--admin-text-secondary)', marginBottom: 4 }}>月累计上限</label>
             <input
               type="number"
               step="5"
               value={thresholdDraft.monthly}
               onChange={(e) => setThresholdDraft({ ...thresholdDraft, monthly: e.target.value })}
-              style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 12 }}
+              style={{ width: '100%', background: 'var(--admin-bg-base)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 6, padding: 8, marginBottom: 12 }}
             />
-            <label style={{ display: 'block', fontSize: 13, color: '#aaa', marginBottom: 4 }}>单用户上限（近 7 天累计）</label>
+            <label style={{ display: 'block', fontSize: 13, color: 'var(--admin-text-secondary)', marginBottom: 4 }}>单用户上限（近 7 天累计）</label>
             <input
               type="number"
               step="0.5"
               value={thresholdDraft.per_user}
               onChange={(e) => setThresholdDraft({ ...thresholdDraft, per_user: e.target.value })}
-              style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #333', borderRadius: 6, padding: 8, marginBottom: 16 }}
+              style={{ width: '100%', background: 'var(--admin-bg-base)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 6, padding: 8, marginBottom: 16 }}
             />
-            {thresholdError && <div style={{ color: '#fca5a5', fontSize: 13, marginBottom: 12 }}>{thresholdError}</div>}
+            {thresholdError && <div style={{ color: 'var(--admin-danger)', fontSize: 13, marginBottom: 12 }}>{thresholdError}</div>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button className="admin-btn" onClick={() => setThresholdEditOpen(false)} disabled={thresholdSaving}>取消</button>
               <button
@@ -638,7 +640,7 @@ export default function TokenUsagePage() {
           onClick={() => setContentModal(null)}
           style={{
             position: 'fixed', inset: 0,
-            background: 'rgba(0,0,0,0.7)',
+            background: 'rgba(23,35,33,0.32)',
             zIndex: 2000,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 24,
@@ -647,8 +649,8 @@ export default function TokenUsagePage() {
           <div
             onClick={e => e.stopPropagation()}
             style={{
-              background: '#1a1f2e',
-              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'var(--admin-bg-soft)',
+              border: '1px solid rgba(23,35,33,0.1)',
               borderRadius: 12,
               width: '90vw', maxWidth: 1100,
               maxHeight: '85vh',
@@ -656,36 +658,36 @@ export default function TokenUsagePage() {
               overflow: 'hidden',
             }}
           >
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: 700, color: '#e8e4d8' }}>调用内容详情</span>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(23,35,33,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, color: 'var(--admin-text)' }}>调用内容详情</span>
               <button className="admin-btn" onClick={() => setContentModal(null)}>关闭</button>
             </div>
             {contentModal.loading ? (
               <div className="admin-loading" style={{ padding: 40 }}>加载中…</div>
             ) : (
-              <div style={{ display: 'flex', flex: 1, overflow: 'hidden', gap: 1, background: 'rgba(255,255,255,0.05)' }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1a1f2e' }}>
-                  <div style={{ padding: '10px 16px', fontSize: 12, color: '#9e9a8a', borderBottom: '1px solid rgba(255,255,255,0.06)', fontWeight: 600 }}>
+              <div style={{ display: 'flex', flex: 1, overflow: 'hidden', gap: 1, background: 'rgba(23,35,33,0.05)' }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--admin-bg-soft)' }}>
+                  <div style={{ padding: '10px 16px', fontSize: 12, color: 'var(--admin-text-muted)', borderBottom: '1px solid rgba(23,35,33,0.06)', fontWeight: 600 }}>
                     输入（Prompt）
                   </div>
                   <pre style={{
                     flex: 1, overflowY: 'auto', margin: 0,
                     padding: '12px 16px',
-                    fontSize: 12, color: '#c8c0b0',
+                    fontSize: 12, color: 'var(--admin-text-secondary)',
                     lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     fontFamily: 'monospace',
                   }}>
                     {contentModal.inputContent || '（无内容）'}
                   </pre>
                 </div>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#1a1f2e' }}>
-                  <div style={{ padding: '10px 16px', fontSize: 12, color: '#9e9a8a', borderBottom: '1px solid rgba(255,255,255,0.06)', fontWeight: 600 }}>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--admin-bg-soft)' }}>
+                  <div style={{ padding: '10px 16px', fontSize: 12, color: 'var(--admin-text-muted)', borderBottom: '1px solid rgba(23,35,33,0.06)', fontWeight: 600 }}>
                     输出（Response）
                   </div>
                   <pre style={{
                     flex: 1, overflowY: 'auto', margin: 0,
                     padding: '12px 16px',
-                    fontSize: 12, color: '#c8c0b0',
+                    fontSize: 12, color: 'var(--admin-text-secondary)',
                     lineHeight: 1.7, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                     fontFamily: 'monospace',
                   }}>

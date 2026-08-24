@@ -19,8 +19,8 @@ EMAIL="${EMAIL:-admin@yuanju.com}"
 # 2) 输入新密码（隐藏，二次确认）
 read -rsp "新密码: " NEWPW; echo
 read -rsp "再输一次确认: " NEWPW2; echo
-[ -n "$NEWPW" ] || { echo "✗ 密码不能为空，已取消。"; exit 1; }
-[ "$NEWPW" = "$NEWPW2" ] || { echo "✗ 两次输入不一致，已取消。"; exit 1; }
+[ -n "$NEWPW" ] || { echo "[ERROR] 密码不能为空，已取消。"; exit 1; }
+[ "$NEWPW" = "$NEWPW2" ] || { echo "[ERROR] 两次输入不一致，已取消。"; exit 1; }
 
 # 3) 用项目 bcrypt 生成 UPDATE SQL（密码只通过环境变量传给子进程，不进命令行历史）
 SQL="$(cd "$ROOT/backend" && NEWPW="$NEWPW" EMAIL="$EMAIL" go run ./cmd/adminpw)"
@@ -29,9 +29,9 @@ SQL="$(cd "$ROOT/backend" && NEWPW="$NEWPW" EMAIL="$EMAIL" go run ./cmd/adminpw)
 RESULT="$(docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" -d "$PG_DB" -t -A -c "$SQL" 2>&1)"
 
 if [ "$RESULT" = "UPDATE 1" ]; then
-  echo "✅ 已重置 [$EMAIL] 的密码。直接用新密码登录后台即可（无需重启）。"
+  echo "[OK] 已重置 [$EMAIL] 的密码。直接用新密码登录后台即可（无需重启）。"
 else
-  echo "⚠️  未更新（数据库返回：$RESULT）。"
+  echo "[WARN] 未更新（数据库返回：$RESULT）。"
   echo "   请确认邮箱是否存在。现有管理员："
   docker exec -i "$PG_CONTAINER" psql -U "$PG_USER" -d "$PG_DB" -t -A -c "SELECT email FROM admins;" 2>&1 | sed 's/^/   - /'
   exit 1

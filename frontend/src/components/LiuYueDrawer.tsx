@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { AlertTriangle, X } from 'lucide-react'
 import { baziAPI, errorMessage } from '../lib/api'
 import type { LiuYueItem, LiuYueResponse } from '../lib/api'
 
@@ -128,7 +129,7 @@ export default function LiuYueDrawer({
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.6)',
+          background: 'rgba(23,35,33,0.32)',
           backdropFilter: 'blur(4px)',
           zIndex: 1000,
           animation: 'fadeIn 0.2s ease',
@@ -184,7 +185,7 @@ export default function LiuYueDrawer({
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-card-hover)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-elevated)')}
           >
-            ✕
+            <X size={16} />
           </button>
         </div>
 
@@ -262,8 +263,8 @@ export default function LiuYueDrawer({
             )}
             
             {reportError && (
-              <div style={{ fontSize: '13px', color: '#ff4d4f', textAlign: 'center', marginTop: '10px' }}>
-                ⚠ {reportError}
+              <div style={{ fontSize: '13px', color: 'var(--wu-huo)', textAlign: 'center', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <AlertTriangle size={14} /> {reportError}
               </div>
             )}
 
@@ -281,7 +282,7 @@ export default function LiuYueDrawer({
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>健康风险</div>
                   <div>{report.content_structured.health}</div>
                 </div>
-                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px', borderLeft: '3px solid var(--color-primary)' }}>
+                <div style={{ background: 'rgba(23,35,33,0.05)', padding: '10px', borderRadius: '8px', borderLeft: '3px solid var(--color-primary)' }}>
                   <div style={{ fontSize: '12px', color: 'var(--color-primary)', marginBottom: '2px', fontWeight: 'bold' }}>年度锦囊</div>
                   <div style={{ fontStyle: 'italic' }}>{report.content_structured.advice}</div>
                 </div>
@@ -313,7 +314,9 @@ export default function LiuYueDrawer({
               textAlign: 'center', padding: '40px 20px',
               color: 'var(--text-muted)',
             }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>⚠</div>
+              <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+                <AlertTriangle size={32} />
+              </div>
               <div style={{ marginBottom: 16 }}>{error}</div>
               <button
                 onClick={() => fetchData(year)}
@@ -351,14 +354,14 @@ export default function LiuYueDrawer({
                     style={{
                       position: 'relative',
                       padding: '12px 8px 10px',
-                      background: isCurrent ? 'rgba(201,168,76,0.08)' : 'var(--bg-elevated)',
+                      background: isCurrent ? 'rgba(201, 168, 76,0.08)' : 'var(--bg-elevated)',
                       border: `1px solid ${isCurrent ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
                       borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: 3,
-                      boxShadow: isCurrent ? '0 0 12px rgba(201,168,76,0.12)' : 'none',
+                      boxShadow: isCurrent ? '0 0 12px rgba(201, 168, 76,0.12)' : 'none',
                       transition: 'all 0.15s',
                     }}
                   >
@@ -366,7 +369,7 @@ export default function LiuYueDrawer({
                     {isCurrent && (
                       <div style={{
                         position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)',
-                        fontSize: 9, background: 'var(--wu-jin)', color: '#0d0f14',
+                        fontSize: 9, background: 'var(--wu-jin)', color: '#fffdf8',
                         padding: '1px 7px', borderRadius: 99, fontWeight: 700,
                         whiteSpace: 'nowrap', letterSpacing: 0.5,
                       }}>当前</div>

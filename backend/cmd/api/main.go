@@ -93,6 +93,7 @@ func main() {
 	// Cost alert scheduler — 5 min ticker, emits structured JSON log on threshold breach
 	costAlertScheduler := service.NewCostAlertScheduler()
 	go costAlertScheduler.StartScheduler(schedCtx)
+	go service.StartArticleCollectionScheduler(schedCtx, service.NewSogouWeChatProvider("", nil))
 	defer cancelSched()
 
 	// SIGTERM/SIGINT 触发 cancelSched 让 scheduler 干净退出
@@ -149,12 +150,13 @@ func main() {
 			bazi.POST("/past-events-stream/:chart_id", middleware.Auth(), handler.HandlePastEventsStream)
 			// 思路 E：即时年份 + 流式大运总结
 			bazi.POST("/past-events/years/:chart_id", middleware.Auth(), handler.HandlePastEventsYears)
+			bazi.GET("/past-events/export/:chart_id", middleware.Auth(), handler.HandlePastEventsExport)
 			bazi.POST("/past-events/dayun-summary-stream/:chart_id", middleware.Auth(), handler.HandleDayunSummariesStream)
 			bazi.GET("/history", middleware.Auth(), handler.GetHistory)
 			bazi.GET("/history/:id", middleware.Auth(), handler.GetHistoryDetail)
 			bazi.PATCH("/history/:id/display-name", middleware.Auth(), handler.UpdateHistoryDisplayName)
 			bazi.DELETE("/history/:id", middleware.Auth(), handler.DeleteHistory)
-			bazi.POST("/liu-yue", handler.HandleLiuYue) // 流月查询（无需登录）
+			bazi.POST("/liu-yue", handler.HandleLiuYue)           // 流月查询（无需登录）
 			bazi.POST("/resolve-pillars", handler.ResolvePillars) // 四柱反查候选公历日期（无需登录）
 		}
 
@@ -174,6 +176,14 @@ func main() {
 			user.PUT("/export-brand", handler.RequireUserID, handler.UpdateExportBrand)
 			user.POST("/export-brand/logo", handler.RequireUserID, handler.UploadExportBrandLogo)
 			user.DELETE("/export-brand/logo", handler.RequireUserID, handler.DeleteExportBrandLogo)
+		}
+
+		api.GET("/articles/settings", handler.GetArticleModuleSettings)
+		articles := api.Group("/articles", middleware.Auth())
+		{
+			articles.GET("", handler.ListArticles)
+			articles.GET("/:id", handler.GetArticleDetail)
+			articles.POST("/:id/original-click", handler.TrackArticleOriginalClick)
 		}
 
 		// 神煞注解（公开）
@@ -210,9 +220,11 @@ func main() {
 				adminAuth.GET("/settings/registration", handler.AdminGetRegistrationSetting)
 				adminAuth.PUT("/settings/registration", handler.AdminUpdateRegistrationSetting)
 				adminAuth.GET("/charts", handler.AdminListCharts)
+				adminAuth.GET("/charts/:chart_id", handler.AdminGetChartDetail)
 				adminAuth.GET("/compatibility/readings", handler.AdminListCompatReadings)
 				adminAuth.GET("/compatibility/readings/:id", handler.AdminGetCompatReadingDetail)
 				adminAuth.GET("/charts/:chart_id/liunian", handler.AdminListLiunianReports)
+				adminAuth.GET("/charts/:chart_id/past-events", handler.AdminListPastEventsReports)
 
 				// AI 调用日志
 				adminAuth.GET("/ai-logs", handler.AdminListAILogs)
@@ -258,6 +270,37 @@ func main() {
 
 				// 神煞注解管理（Admin）
 				adminAuth.PUT("/shensha-annotations/:name", handler.AdminUpdateShenshaAnnotation)
+
+				// 资讯管理
+				adminAuth.GET("/articles/module-settings", handler.AdminGetArticleModuleSettings)
+				adminAuth.PUT("/articles/module-settings", handler.AdminUpdateArticleModuleSettings)
+				adminAuth.GET("/articles", handler.AdminListArticles)
+				adminAuth.POST("/articles/batch-action", handler.AdminArticleBatchAction)
+				adminAuth.POST("/articles/ai-analysis/batch", handler.AdminBatchGenerateArticleAIAnalysis)
+				adminAuth.POST("/articles/:id/ai-analysis", handler.AdminGenerateArticleAIAnalysis)
+				adminAuth.POST("/articles/:id/ai-analysis/retry", handler.AdminGenerateArticleAIAnalysis)
+				adminAuth.GET("/articles/categories", handler.AdminListArticleCategories)
+				adminAuth.POST("/articles/categories", handler.AdminCreateArticleCategory)
+				adminAuth.PUT("/articles/categories/:id", handler.AdminUpdateArticleCategory)
+				adminAuth.GET("/articles/tags", handler.AdminListArticleTags)
+				adminAuth.POST("/articles/tags", handler.AdminCreateArticleTag)
+				adminAuth.PUT("/articles/tags/:id", handler.AdminUpdateArticleTag)
+				adminAuth.GET("/articles/keywords", handler.AdminListArticleKeywords)
+				adminAuth.POST("/articles/keywords", handler.AdminCreateArticleKeyword)
+				adminAuth.PUT("/articles/keywords/:id", handler.AdminUpdateArticleKeyword)
+				adminAuth.POST("/articles/collect", handler.AdminTriggerArticleCollection)
+				adminAuth.GET("/articles/collection-tasks", handler.AdminListArticleCollectionTasks)
+				adminAuth.GET("/articles/collection-tasks/:id/items", handler.AdminListArticleCollectionTaskItems)
+				adminAuth.POST("/articles/collection-tasks/:id/retry", handler.AdminRetryArticleCollectionTask)
+				adminAuth.GET("/articles/collection-config", handler.AdminGetArticleCollectionConfig)
+				adminAuth.PUT("/articles/collection-config", handler.AdminUpdateArticleCollectionConfig)
+				adminAuth.GET("/articles/quality-config", handler.AdminGetArticleQualityConfig)
+				adminAuth.PUT("/articles/quality-config", handler.AdminUpdateArticleQualityConfig)
+				adminAuth.GET("/articles/ai-config", handler.AdminGetArticleAIConfig)
+				adminAuth.PUT("/articles/ai-config", handler.AdminUpdateArticleAIConfig)
+				adminAuth.PUT("/articles/:id/body", handler.AdminUpdateArticleBody)
+				adminAuth.POST("/articles/:id/fetch-body", handler.AdminFetchArticleBody)
+				adminAuth.GET("/articles/:id", handler.AdminGetArticleDetail)
 			}
 		}
 	}

@@ -19,25 +19,25 @@ export default function AdminDashboardPage() {
   }, [])
 
   const handleClearCache = async () => {
-    if (!window.confirm('⚠️ 确定要清空所有 AI 报告缓存吗？\n\n清空后，用户下次访问时将重新生成报告。')) return
+    if (!window.confirm('确定要清空所有 AI 报告缓存吗？\n\n清空后，用户下次访问时将重新生成报告。')) return
     setClearing(true)
     setClearResult(null)
     try {
       const res = await adminReportAPI.clearAll()
       const data = res.data as { deleted: number; message: string }
-      setClearResult({ type: 'success', msg: `✅ ${data.message}，共清除 ${data.deleted} 条记录` })
+      setClearResult({ type: 'success', msg: `${data.message}，共清除 ${data.deleted} 条记录` })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '操作失败'
-      setClearResult({ type: 'error', msg: `❌ ${msg}` })
+      setClearResult({ type: 'error', msg })
     } finally {
       setClearing(false)
     }
   }
 
   const cards = stats ? [
-    { label: '总用户数', value: stats.total_users, sub: `今日 +${stats.today_users}`, icon: <Users size={28} color="#a78bfa" /> },
-    { label: '总命盘数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: <Compass size={28} color="#a78bfa" /> },
-    { label: 'AI 调用总数', value: stats.total_ai_requests, sub: `今日 +${stats.today_ai_requests}`, icon: <Bot size={28} color="#a78bfa" /> },
+    { label: '总用户数', value: stats.total_users, sub: `今日 +${stats.today_users}`, icon: <Users size={28} color="var(--admin-accent)" /> },
+    { label: '总命盘数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: <Compass size={28} color="var(--admin-accent)" /> },
+    { label: 'AI 调用总数', value: stats.total_ai_requests, sub: `今日 +${stats.today_ai_requests}`, icon: <Bot size={28} color="var(--admin-accent)" /> },
   ] : []
 
   return (
@@ -62,13 +62,13 @@ export default function AdminDashboardPage() {
 
       {/* 系统操作区 */}
       <div className="admin-card" style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <Wrench size={18} /> 系统操作
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 14, color: '#aaa', marginBottom: 6 }}>AI 报告缓存</div>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
+            <div style={{ fontSize: 14, color: 'var(--admin-text-secondary)', marginBottom: 6 }}>AI 报告缓存</div>
+            <div style={{ fontSize: 12, color: 'var(--admin-text-faint)', marginBottom: 12 }}>
               清空后用户下次点击"AI 分析"将重新调用 LLM 生成报告
             </div>
             <button
@@ -76,8 +76,8 @@ export default function AdminDashboardPage() {
               disabled={clearing}
               style={{
                 padding: '8px 20px',
-                background: clearing ? '#333' : '#c0392b',
-                color: '#fff',
+                background: clearing ? 'var(--admin-bg-muted)' : 'var(--admin-danger)',
+                color: '#fffdf8',
                 border: 'none',
                 borderRadius: 8,
                 cursor: clearing ? 'not-allowed' : 'pointer',
@@ -95,17 +95,17 @@ export default function AdminDashboardPage() {
           {clearResult && (
             <div style={{
               padding: '10px 16px',
-              background: clearResult.type === 'success' ? 'rgba(46,204,113,0.1)' : 'rgba(231,76,60,0.1)',
-              border: `1px solid ${clearResult.type === 'success' ? '#2ecc71' : '#e74c3c'}`,
+              background: clearResult.type === 'success' ? 'rgba(var(--admin-success-rgb), 0.1)' : 'rgba(var(--admin-danger-rgb), 0.1)',
+              border: `1px solid ${clearResult.type === 'success' ? 'var(--admin-success)' : 'var(--admin-danger)'}`,
               borderRadius: 8,
               fontSize: 13,
-              color: clearResult.type === 'success' ? '#2ecc71' : '#e74c3c',
+              color: clearResult.type === 'success' ? 'var(--admin-success)' : 'var(--admin-danger)',
               display: 'flex',
               alignItems: 'center',
               gap: 6
             }}>
               <span className={`status-dot ${clearResult.type}`}></span>
-              {clearResult.msg.replace(/^[✅❌]\s*/, '')}
+              {clearResult.msg}
             </div>
           )}
         </div>
@@ -127,7 +127,7 @@ function AIStatsSection() {
 
   return (
     <div className="admin-card">
-      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc' }}>AI 调用分布</h2>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--admin-text-secondary)' }}>AI 调用分布</h2>
       <table className="admin-table">
         <thead><tr><th>Provider</th><th>调用次数</th><th>成功率</th></tr></thead>
         <tbody>

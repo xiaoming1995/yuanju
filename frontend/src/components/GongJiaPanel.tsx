@@ -1,4 +1,5 @@
 import './GongJiaPanel.css'
+import { gongJiaSourceDisplay } from '../lib/gongJiaDisplay'
 
 export interface GongJiaItem {
   source: string
@@ -48,7 +49,7 @@ export default function GongJiaPanel({
             <article className="gongjia-card" key={`${item.source}-${item.virtual_zhi}-${index}`}>
               <div className="gongjia-card__topline">
                 <span>{joinList(item.source_labels)}</span>
-                <em>{item.source || '夹拱'}</em>
+                <em>{gongJiaSourceDisplay(item)}</em>
               </div>
 
               <div className="gongjia-card__main">

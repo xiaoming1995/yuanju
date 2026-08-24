@@ -242,7 +242,7 @@
 
 .history-name-error {
   width: 100%;
-  color: #ffb4a8;
+  color: var(--wu-huo-light);
   font-size: var(--font-size-caption);
 }
 
@@ -292,7 +292,7 @@
   border: 1px solid rgba(200, 60, 60, 0.32);
   border-radius: 8px;
   padding: 8px 12px;
-  color: #e07a7a;
+  color: var(--wu-huo);
   background: rgba(200, 60, 60, 0.1);
   font: inherit;
   font-size: 13px;

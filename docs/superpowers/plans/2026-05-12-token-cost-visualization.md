@@ -57,7 +57,7 @@ func SeedLLMPrices() {
 			log.Printf("[seed] LLM 定价 seed 失败: key=%s err=%v", p.key, err)
 		}
 	}
-	log.Println("✅ 种子数据：LLM 定价配置已写入 algo_config（ON CONFLICT DO NOTHING）")
+	log.Println("[OK] 种子数据：LLM 定价配置已写入 algo_config（ON CONFLICT DO NOTHING）")
 }
 ```
 
@@ -667,7 +667,7 @@ interface DetailRow {
 cd /Users/liujiming/web/yuanju/frontend && npm run build 2>&1 | tail -20
 ```
 
-Expected: `✓ built in ...` 无 TypeScript 错误
+Expected: `[OK] built in ...` 无 TypeScript 错误
 
 - [ ] **Step 9: Commit**
 
@@ -696,7 +696,7 @@ Expected: 两个容器 Started/Recreated，无 error
 docker-compose logs backend 2>&1 | grep -E "seed|LLM 定价|llm_price"
 ```
 
-Expected: 包含 `✅ 种子数据：LLM 定价配置已写入 algo_config`
+Expected: 包含 `[OK] 种子数据：LLM 定价配置已写入 algo_config`
 
 - [ ] **Step 3: 在 Admin"算法配置"页验证**
 

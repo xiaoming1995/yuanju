@@ -511,7 +511,7 @@ func collectJuShiSignals(natal *BaziResult, lnZhi, dyZhi string) []EventSignal {
 		} else if jiSet[localWx] {
 			sigs = append(sigs, EventSignal{
 				Type:     TypeJuShiZhong,
-				Evidence: fmt.Sprintf("★流年%s补全%s%s%s局，忌神势力极强，用神承压，应期极凶", lnZhi, juName, g.kind, localWxCN),
+				Evidence: fmt.Sprintf("重点流年%s补全%s%s%s局，忌神势力极强，用神承压，应期极凶", lnZhi, juName, g.kind, localWxCN),
 				Polarity: PolarityXiong,
 				Source:   SourceZhuwei,
 			})

@@ -140,7 +140,7 @@ type BaziResult struct {
 |---|---|
 | 调候字典数据不准（120 条某些条目偏《穷通宝鉴》摘录可能有误差）| 本轮不校对字典；增加 `YongshenGans` 字段让运营可对比命盘原文与字典；如发现错误，下个变更专门做字典校对 |
 | 旧命盘 yongshen 与新命盘不一致 | 设计上接受。前端 admin 面板显示 `YongshenStatus`，老命盘 status 缺失时降级显示"旧版用神"标签 |
-| `getYongshenBaseline` 等下游依赖五行名匹配 — 如调候命中只产生单一五行（去重后）→ 五行字符串变短 → `strings.Contains` 仍匹配 ✓ | 在 yongshen_test.go 增加针对 `strings.Contains` 的回归 case |
+| `getYongshenBaseline` 等下游依赖五行名匹配 — 如调候命中只产生单一五行（去重后）→ 五行字符串变短 → `strings.Contains` 仍匹配 [OK] | 在 yongshen_test.go 增加针对 `strings.Contains` 的回归 case |
 | 调候用神被识别为忌神冲突（极少数命局，调候要求火、扶抑也判忌神含火）| t0 命中时 jishen 由 `wxKe[yongshen 五行] + wxXie[yongshen 五行]` 派生，与扶抑无关。不会出现冲突 |
 | 现有"三冬急用 / 三夏急用"短路被删除导致行为差异 | 删除短路后，原属于该路径的命盘改走字典：字典对寒月的处理比"硬编码火木"更精细。增加测试覆盖 子月日干各档调候用神 |
 | AI 报告内容因 yongshen 变化语气改变，用户体感"为什么我的命盘解释变了" | 前端在 yongshen 变化时不显式提示；老报告缓存继续提供旧解释。本轮不引入"算法版本号"字段（见 D9） |

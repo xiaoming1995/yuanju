@@ -62,8 +62,8 @@ interface SpousePalaceSide {
 - side 卡片内容（A 列 / B 列对称）：
   - 头部：`{名字}理想的另一半` + 契合度徽章（高/中/低，配色见 §3）。
   - `ideal_portrait` 段落。
-  - `fit_points`：标「对上了」，逐条列出（✓ 前缀）。
-  - `gap_points`：标「有差距」，逐条列出（✗ 前缀）。
+  - `fit_points`：标「对上了」，逐条列出（[OK] 前缀）。
+  - `gap_points`：标「有差距」，逐条列出（[NO] 前缀）。
 - 底部：`summary` 一句话（整块通栏，置于两列之下）。
 - 名字来源：A=self 列、B=partner 列。展示名取报告/详情里已有的 self/partner display name（`CompatibilityResultPage` 已能拿到参与者名；若组件层拿不到，则用「A / B」或「你 / 对方」兜底——实现时按页面已有数据决定，优先用真实展示名）。
 

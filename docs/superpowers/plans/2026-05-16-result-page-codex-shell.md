@@ -2324,7 +2324,7 @@ gh pr create --title "feat(result): codex shell redesign · 5 章·古书章卷"
 - [x] AI 流式正常 + 中断重试
 - [x] PDF 打印 5 章铺平 + PrintLayout 不变
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+AI Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )"
 ```

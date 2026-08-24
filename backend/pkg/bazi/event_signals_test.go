@@ -819,19 +819,19 @@ func TestJuShi_YongWins(t *testing.T) {
 	}
 }
 
-// TestJuShi_JiXiong: 忌神=水，原局申+辰，流年=子 → 申子辰三合水局 → 极凶★
+// TestJuShi_JiXiong: 忌神=水，原局申+辰，流年=子 → 申子辰三合水局 → 极凶重点流年
 func TestJuShi_JiXiong(t *testing.T) {
 	natal := makeNatal("壬申", "甲辰", "壬寅", "甲午", "火", "水")
 	sigs := collectJuShiSignals(natal, "子", "")
 	hasXiong := false
 	for _, s := range sigs {
-		if s.Type == TypeJuShiZhong && s.Polarity == PolarityXiong && strings.Contains(s.Evidence, "★") {
+		if s.Type == TypeJuShiZhong && s.Polarity == PolarityXiong && strings.Contains(s.Evidence, "重点流年") {
 			hasXiong = true
 		}
 	}
 	if !hasXiong {
 		t.Logf("sigs: %v", sigs)
-		t.Fatal("expected 极凶 signal Type=局势_重 with ★ for 三合水局（忌神）")
+		t.Fatal("expected 极凶 signal Type=局势_重 with 重点流年 for 三合水局（忌神）")
 	}
 }
 

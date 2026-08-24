@@ -31,7 +31,7 @@ func SeedLLMProviders() {
 				true, // 第一个设为激活
 			)
 			if err == nil {
-				log.Println("✅ 种子数据：DeepSeek Provider 已写入数据库并激活")
+				log.Println("[OK] 种子数据：DeepSeek Provider 已写入数据库并激活")
 				seeded = true
 			}
 		}
@@ -50,7 +50,7 @@ func SeedLLMProviders() {
 				!seeded, // 仅当没有 DeepSeek 时才激活
 			)
 			if err == nil {
-				log.Println("✅ 种子数据：OpenAI Provider 已写入数据库")
+				log.Println("[OK] 种子数据：OpenAI Provider 已写入数据库")
 			}
 		}
 	}
@@ -78,7 +78,7 @@ func SeedLLMPrices() {
 			log.Printf("[seed] LLM 定价 seed 失败: key=%s err=%v", p.key, err)
 		}
 	}
-	log.Println("✅ 种子数据：LLM 定价配置已写入 algo_config（ON CONFLICT DO NOTHING）")
+	log.Println("[OK] 种子数据：LLM 定价配置已写入 algo_config（ON CONFLICT DO NOTHING）")
 }
 
 // SeedCostAlertThresholds 将默认成本阈值写入 algo_config（ON CONFLICT DO NOTHING）。
@@ -104,5 +104,5 @@ func SeedCostAlertThresholds() {
 			return
 		}
 	}
-	log.Println("✅ 种子数据：成本告警阈值已写入 algo_config（ON CONFLICT DO NOTHING）")
+	log.Println("[OK] 种子数据：成本告警阈值已写入 algo_config（ON CONFLICT DO NOTHING）")
 }

@@ -749,8 +749,8 @@ Expected: `Container yuanju_frontend Started`。
 **Placeholder 扫描：** 已扫描全文，无 TBD / TODO / "fill in details" / "similar to Task N"。所有任务都附完整代码 / 命令 / 期望输出。
 
 **Type / 命名一致性：**
-- `className="btn btn-ghost btn-sm"`（BrandSettingsPage logo 按钮 — 任务 3 与测试 — 任务 1） ✓
-- `className="btn btn-ghost"`（LogoCropModal 取消 — 任务 5 与测试 — 任务 1） ✓
-- `className="btn btn-primary"`（LogoCropModal 确认 — 任务 5 与测试 — 任务 1） ✓
-- token 名称（`--bg-card` / `--bg-elevated` / `--text-primary` 等）— 任务 0 step 2 已 sanity-check 它们存在 ✓
-- 测试文件路径 `frontend/tests/brand-settings-dark-theme.test.mjs` — 在任务 1 / 6 中一致 ✓
+- `className="btn btn-ghost btn-sm"`（BrandSettingsPage logo 按钮 — 任务 3 与测试 — 任务 1） [OK]
+- `className="btn btn-ghost"`（LogoCropModal 取消 — 任务 5 与测试 — 任务 1） [OK]
+- `className="btn btn-primary"`（LogoCropModal 确认 — 任务 5 与测试 — 任务 1） [OK]
+- token 名称（`--bg-card` / `--bg-elevated` / `--text-primary` 等）— 任务 0 step 2 已 sanity-check 它们存在 [OK]
+- 测试文件路径 `frontend/tests/brand-settings-dark-theme.test.mjs` — 在任务 1 / 6 中一致 [OK]

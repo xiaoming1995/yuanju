@@ -10,7 +10,7 @@ The cost is structurally wasteful for two compounding reasons:
 ├────────────────────────────────────────────────────────────────┤
 │  System prompt (KB modules)        ~3,000 tokens   prompt cache │
 │  Header (命主/原局/喜忌十神)         ~200 tokens     fixed       │
-│  YearsData JSON (10 years signals) ~7,000 tokens    ★ variable  │
+│  YearsData JSON (10 years signals) ~7,000 tokens    * variable  │
 │  Output rules + 易混淆 reminder      ~1,800 tokens   fixed       │
 └────────────────────────────────────────────────────────────────┘
                             ×
@@ -69,7 +69,7 @@ Expanded (after first click):
 │ 2045 乙丑  [变动][合化]                           │
 │ ...                                              │
 │ ────────────────────────────────────────────     │
-│       [ 🔮 生成本段 AI 批语 ]                     │
+│       [  生成本段 AI 批语 ]                     │
 └──────────────────────────────────────────────────┘
 ```
 

@@ -121,16 +121,16 @@ DELETE /api/admin/llm-providers/:id
 
 | 模块 | 状态 | OpenSpec 变更 |
 |------|------|--------------|
-| 项目脚手架（Go + React + Docker） | ✅ 完成 | yuanju-mvp-bazi |
-| 用户认证（注册/登录/JWT） | ✅ 完成 | yuanju-mvp-bazi |
-| 八字算法引擎（lunar-go） | ✅ 完成 | yuanju-mvp-bazi |
-| AI 报告生成（DeepSeek/OpenAI） | ✅ 完成 | yuanju-mvp-bazi |
-| 历史记录模块 | ✅ 完成 | yuanju-mvp-bazi |
-| 前端设计系统 + 页面 | ✅ 完成 | yuanju-mvp-bazi |
-| 管理后台（Admin 认证） | ✅ 完成 | admin-dashboard-llm |
-| LLM Provider 动态管理 | ✅ 完成 | admin-dashboard-llm |
-| AI 调用日志与统计 | ✅ 完成 | admin-dashboard-llm |
-| 管理后台前端 UI | ✅ 完成 | admin-dashboard-llm |
+| 项目脚手架（Go + React + Docker） | [OK] 完成 | yuanju-mvp-bazi |
+| 用户认证（注册/登录/JWT） | [OK] 完成 | yuanju-mvp-bazi |
+| 八字算法引擎（lunar-go） | [OK] 完成 | yuanju-mvp-bazi |
+| AI 报告生成（DeepSeek/OpenAI） | [OK] 完成 | yuanju-mvp-bazi |
+| 历史记录模块 | [OK] 完成 | yuanju-mvp-bazi |
+| 前端设计系统 + 页面 | [OK] 完成 | yuanju-mvp-bazi |
+| 管理后台（Admin 认证） | [OK] 完成 | admin-dashboard-llm |
+| LLM Provider 动态管理 | [OK] 完成 | admin-dashboard-llm |
+| AI 调用日志与统计 | [OK] 完成 | admin-dashboard-llm |
+| 管理后台前端 UI | [OK] 完成 | admin-dashboard-llm |
 
 ---
 
@@ -217,3 +217,5 @@ curl -X POST http://localhost:8080/api/admin/auth/register \
 ## 工程行为准则
 
 详见 → **[ENGINEERING.md](./ENGINEERING.md)**
+
+Spend time on thinking; you do not need to use the commentary channel to report progress to me.

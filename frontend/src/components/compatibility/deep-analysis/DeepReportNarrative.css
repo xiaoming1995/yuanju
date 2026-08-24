@@ -32,11 +32,11 @@
   border-color: rgba(201, 168, 76, 0.22);
   background:
     linear-gradient(180deg, rgba(201, 168, 76, 0.07), rgba(255, 255, 255, 0.03) 52%),
-    rgba(18, 23, 36, 0.9);
+    rgba(26, 31, 46, 0.92);
 }
 
 .compatibility-ai-card--generated {
-  background: rgba(18, 23, 36, 0.92);
+  background: rgba(26, 31, 46, 0.92);
 }
 
 .compatibility-report-action {
@@ -154,4 +154,3 @@
   gap: 12px;
   margin-top: 14px;
 }
-

@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"yuanju/internal/model"
+	"yuanju/internal/service"
 	"yuanju/pkg/bazi"
 )
 
@@ -91,6 +93,83 @@ func TestDeleteHistory_RejectsMalformedChartID(t *testing.T) {
 	}
 	if !strings.Contains(recorder.Body.String(), "无效的命盘ID") {
 		t.Fatalf("expected invalid chart id error, got %s", recorder.Body.String())
+	}
+}
+
+func TestHandlePastEventsExport_ReturnsReadOnlyExportDataForOwnedChart(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	owner := "user-1"
+	origGetChart := getBaziChartByIDForPastEventsExport
+	origGenerate := generatePastEventsExportForChartHandler
+	getBaziChartByIDForPastEventsExport = func(chartID string) (*model.BaziChart, error) {
+		if chartID != "chart-1" {
+			t.Fatalf("unexpected chart id %q", chartID)
+		}
+		return &model.BaziChart{ID: chartID, UserID: &owner}, nil
+	}
+	generateCalled := false
+	generatePastEventsExportForChartHandler = func(chart *model.BaziChart) (*service.PastEventsExportResponse, error) {
+		generateCalled = true
+		return &service.PastEventsExportResponse{
+			Chart: service.PastEventsExportChart{ID: chart.ID},
+			Segments: []service.PastEventsExportSegment{
+				{DayunIndex: 1, GanZhi: "甲子", Summary: "已生成", Years: []service.PastEventsExportYear{{Year: 2000, GanZhi: "庚辰", Narrative: "已生成年份批语"}}},
+			},
+			Generated: "cached-dayun-summaries",
+		}, nil
+	}
+	t.Cleanup(func() {
+		getBaziChartByIDForPastEventsExport = origGetChart
+		generatePastEventsExportForChartHandler = origGenerate
+	})
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set("user_id", owner) })
+	router.GET("/past-events/export/:chart_id", HandlePastEventsExport)
+	req := httptest.NewRequest(http.MethodGet, "/past-events/export/chart-1", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if !generateCalled {
+		t.Fatalf("expected read-only export service to be called")
+	}
+	if !strings.Contains(recorder.Body.String(), "cached-dayun-summaries") {
+		t.Fatalf("expected cached export response, got %s", recorder.Body.String())
+	}
+}
+
+func TestHandlePastEventsExport_RejectsForeignChartWithoutGenerating(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	owner := "user-1"
+	other := "user-2"
+	origGetChart := getBaziChartByIDForPastEventsExport
+	origGenerate := generatePastEventsExportForChartHandler
+	getBaziChartByIDForPastEventsExport = func(chartID string) (*model.BaziChart, error) {
+		return &model.BaziChart{ID: chartID, UserID: &other}, nil
+	}
+	generatePastEventsExportForChartHandler = func(chart *model.BaziChart) (*service.PastEventsExportResponse, error) {
+		t.Fatalf("must not generate or aggregate export data for foreign chart")
+		return nil, nil
+	}
+	t.Cleanup(func() {
+		getBaziChartByIDForPastEventsExport = origGetChart
+		generatePastEventsExportForChartHandler = origGenerate
+	})
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set("user_id", owner) })
+	router.GET("/past-events/export/:chart_id", HandlePastEventsExport)
+	req := httptest.NewRequest(http.MethodGet, "/past-events/export/chart-1", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusForbidden {
+		t.Fatalf("expected status 403, got %d: %s", recorder.Code, recorder.Body.String())
 	}
 }
 

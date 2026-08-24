@@ -10,6 +10,10 @@ export function errorMessage(err: unknown, fallback = 'unknown error') {
   return err instanceof Error ? err.message : fallback
 }
 
+export function isArticleModuleClosedError(err: unknown) {
+  return err instanceof Error && err.message.includes('资讯模块暂未开放')
+}
+
 const DAYUN_STREAM_INACTIVITY_TIMEOUT_MS = 45_000
 const DAYUN_STREAM_INTERRUPTED_MESSAGE = '生成中断，点击重试'
 const DAYUN_STREAM_TIMEOUT_MESSAGE = '等待响应超时，点击重试'
@@ -575,6 +579,64 @@ export interface BaziHistoryResponse {
   female_count: number
 }
 
+export interface PastEventsExportYear {
+  year: number
+  age: number
+  gan_zhi: string
+  narrative: string
+  signals?: string[]
+  evidence_summary?: string[]
+  year_in_dayun?: number
+  dayun_phase?: string
+}
+
+export interface PastEventsExportSegment {
+  dayun_index: number
+  gan_zhi: string
+  start_age: number
+  end_age: number
+  start_year: number
+  end_year: number
+  themes?: string[]
+  summary: string
+  years: PastEventsExportYear[]
+  model?: string
+  cached_at?: string
+  ten_god_power?: {
+    dominant: string
+    group: string
+    group_label: string
+    strength: string
+    polarity: string
+    plain_title: string
+    plain_text: string
+    score: number
+    reason?: string
+  }
+}
+
+export interface PastEventsExportResponse {
+  chart: {
+    id: string
+    display_name?: string
+    birth_year: number
+    birth_month: number
+    birth_day: number
+    birth_hour: number
+    gender: string
+    year_gan: string
+    year_zhi: string
+    month_gan: string
+    month_zhi: string
+    day_gan: string
+    day_zhi: string
+    hour_gan: string
+    hour_zhi: string
+  }
+  segments: PastEventsExportSegment[]
+  generated_by: string
+}
+
 export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   resolvePillars: (data: ResolvePillarsInput) =>
@@ -665,6 +727,8 @@ export const baziAPI = {
   // 思路 E：即时返回所有年份算法叙述（无 AI）
   fetchPastEventsYears: (chartId: string) =>
     api.post(`/api/bazi/past-events/years/${chartId}`),
+  fetchPastEventsExport: (chartId: string) =>
+    api.get<PastEventsExportResponse>(`/api/bazi/past-events/export/${chartId}`),
 
   // 思路 E：按大运分段流式 AI 总结
   // dayunIndexes: 可选，仅生成列表中的段（用于"展开未来段"的单段触发）；
@@ -900,5 +964,67 @@ export interface ShenshaAnnotation {
 export const fetchShenshaAnnotations = (): Promise<ShenshaAnnotation[]> =>
   cachedFetch('yj_cache_shensha_annotations', 60 * 60 * 1000, () =>
     api.get('/api/shensha/annotations').then(res => res.data.data ?? []))
+
+export interface ArticleCategory {
+  id: string
+  name: string
+  slug: string
+  sort_order: number
+  active: boolean
+}
+
+export interface ArticleTag {
+  id: string
+  name: string
+  slug: string
+  active: boolean
+}
+
+export interface ArticleAIAnalysis {
+  one_sentence_summary?: string
+  key_points?: string[]
+  target_readers?: string[]
+  related_topics?: string[]
+  suggested_tags?: string[]
+  title_pattern?: string
+  opening_style?: string
+  structure_outline?: string[]
+  expression_style?: string[]
+  rewrite_angles?: string[]
+}
+
+export interface ArticleItem {
+  id: string
+  title: string
+  source_name: string
+  original_url: string
+  cover_url?: string
+  published_at_source?: string
+  search_snippet?: string
+  summary?: string
+  full_text_authorized?: boolean
+  body_content?: string
+  body_fetch_status?: string
+  body_fetch_error?: string
+  ai_analysis?: ArticleAIAnalysis | null
+  category_id?: string
+  category?: ArticleCategory | null
+  tags?: ArticleTag[]
+  status: string
+  view_count: number
+  original_click_count: number
+  created_at: string
+}
+
+export const articleAPI = {
+  settings: () =>
+    api.get<{ module_enabled: boolean }>('/api/articles/settings'),
+  list: (params: { page?: number; limit?: number; category?: string; tag?: string; q?: string; sort?: 'latest' | 'hot' }) =>
+    api.get<{ articles: ArticleItem[]; total: number; page: number; limit: number; categories: ArticleCategory[]; tags: ArticleTag[] }>('/api/articles', { params }),
+  detail: (id: string) =>
+    api.get<{ article: ArticleItem }>(`/api/articles/${id}`),
+  trackOriginalClick: (id: string) =>
+    api.post<{ original_url: string }>(`/api/articles/${id}/original-click`, {}),
+}
 
 export default api

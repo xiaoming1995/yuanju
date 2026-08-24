@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AlertTriangle, Compass } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI, baziAPI } from '../lib/api'
 import { buildAuthPath, getNextTargetFromSearch, resolvePostAuthTarget } from '../lib/authRedirect'
 import { clearPendingJourney, readPendingJourney } from '../lib/pendingJourney'
+import { buildBaziResultRoute } from '../lib/resultRoute'
 import './AuthPage.css'
 
 export default function RegisterPage() {
@@ -31,7 +33,7 @@ export default function RegisterPage() {
       try {
         const res = await baziAPI.calculate(pendingJourney.input)
         clearPendingJourney()
-        navigate(pendingJourney.returnPath || '/result', {
+        navigate(buildBaziResultRoute(res.data.chart_id, false), {
           replace: true,
           state: {
             result: res.data.result,
@@ -83,7 +85,7 @@ export default function RegisterPage() {
       <div className="container">
         <div className="auth-card card animate-fade-up">
           <div className="auth-header">
-            <div className="auth-logo serif">☯</div>
+            <div className="auth-logo serif"><Compass size={40} /></div>
             <h1 className="auth-title serif">加入缘聚</h1>
             <p className="auth-desc">注册账号，开启你的命理之旅</p>
           </div>
@@ -134,7 +136,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {error && <p className="form-error">⚠ {error}</p>}
+            {error && <p className="form-error"><AlertTriangle size={14} /> {error}</p>}
 
             <button
               id="register-submit"

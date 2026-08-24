@@ -101,7 +101,7 @@ Case 2：忌神局（极凶）
   Type     = "局势_重"   ← 新 Type 常量
   Polarity = 凶
   Source   = SourceZhuwei
-  Evidence = "★流年{lnZhi}补全{局名}{局类型}{忌神CN}局，
+  Evidence = "*流年{lnZhi}补全{局名}{局类型}{忌神CN}局，
               忌神势力极强，用神承压，应期极凶"
 
 其余（局成但五行无克忌关系）：静默跳过，不产生信号
@@ -118,7 +118,7 @@ const TypeJuShiZhong = "局势_重"  // 三合/三会忌神局极凶标星信号
 | 测试 | 场景 | 期望 |
 |------|------|------|
 | `TestJuShi_YongWins` | 用神=火；原局寅+戌；流年午 → 三合火局；忌神=金（火克金） | 吉，Evidence 含"用神赢" |
-| `TestJuShi_JiXiong` | 忌神=水；原局申+辰；流年子 → 三合水局 | 凶，Type=局势_重，Evidence 含"★" |
+| `TestJuShi_JiXiong` | 忌神=水；原局申+辰；流年子 → 三合水局 | 凶，Type=局势_重，Evidence 含"*" |
 | `TestJuShi_HalfHe_NoSignal` | 原局只有寅；流年=午（缺戌）→ 半合 | 无局势力信号 |
 | `TestJuShi_NoKe_NoSignal` | 用神=火；三合火局成；忌神=土（无克） | 无信号，静默 |
 

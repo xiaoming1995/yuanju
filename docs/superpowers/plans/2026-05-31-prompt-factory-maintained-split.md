@@ -704,7 +704,7 @@ function VersionBadge({ record }: { record: PromptRecord }) {
               </button>
             )}
             {!p && !loading && (
-              <span style={{ color: '#ff6b6b', fontSize: 12, flexShrink: 0 }}>⚠ 未初始化（请重启后端）</span>
+              <span style={{ color: '#ff6b6b', fontSize: 12, flexShrink: 0 }}>[WARN] 未初始化（请重启后端）</span>
             )}
           </div>
 ```
@@ -721,7 +721,7 @@ function VersionBadge({ record }: { record: PromptRecord }) {
                   padding: '10px 14px', borderRadius: 8,
                   border: '1px solid rgba(249,115,22,0.25)',
                 }}>
-                  📦 {editBanner}
+                  包 {editBanner}
                 </div>
               )}
 ```

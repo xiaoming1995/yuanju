@@ -24,5 +24,5 @@ func Connect() {
 	DB.SetMaxOpenConns(25)
 	DB.SetMaxIdleConns(5)
 
-	log.Println("✅ 数据库连接成功")
+	log.Println("[OK] 数据库连接成功")
 }

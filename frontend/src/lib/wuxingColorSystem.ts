@@ -24,8 +24,6 @@ export interface WuxingProfile {
   material: string
   /** 五行描述 */
   description: string
-  /** 代表 Emoji */
-  emoji: string
   /** CSS 变量名（对应 index.css 中已有的五行色彩变量） */
   cssVar: string
   /** CSS 类名后缀（对应 wuxing-badge 样式） */
@@ -43,7 +41,6 @@ export const WUXING_MAP: Record<WuxingKey, WuxingProfile> = {
     luckyNumbers: [3, 8],
     material: '木质、竹制',
     description: '木主生长、仁慈、条达，性格温和富有生命力，适合东方朝阳之地',
-    emoji: '🌿',
     cssVar: '--wu-mu',
     cssClass: 'mu',
   },
@@ -57,7 +54,6 @@ export const WUXING_MAP: Record<WuxingKey, WuxingProfile> = {
     luckyNumbers: [2, 7],
     material: '棉麻、皮质',
     description: '火主礼仪、热情、光明，性格外向充满活力，适合南方温暖之地',
-    emoji: '🔥',
     cssVar: '--wu-huo',
     cssClass: 'huo',
   },
@@ -71,7 +67,6 @@ export const WUXING_MAP: Record<WuxingKey, WuxingProfile> = {
     luckyNumbers: [5, 10],
     material: '陶瓷、石材',
     description: '土主信义、厚重、中庸，性格稳重踏实，中央四方皆宜',
-    emoji: '🌍',
     cssVar: '--wu-tu',
     cssClass: 'tu',
   },
@@ -85,7 +80,6 @@ export const WUXING_MAP: Record<WuxingKey, WuxingProfile> = {
     luckyNumbers: [4, 9],
     material: '金属、矿石',
     description: '金主义气、刚毅、肃杀，性格果敢有原则，适合西方金秋之地',
-    emoji: '⚡',
     cssVar: '--wu-jin',
     cssClass: 'jin',
   },
@@ -99,7 +93,6 @@ export const WUXING_MAP: Record<WuxingKey, WuxingProfile> = {
     luckyNumbers: [1, 6],
     material: '玻璃、水晶',
     description: '水主智慧、灵动、隐忍，性格聪慧善变，适合北方寒冬之地',
-    emoji: '💧',
     cssVar: '--wu-shui',
     cssClass: 'shui',
   },

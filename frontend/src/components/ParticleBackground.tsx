@@ -29,11 +29,11 @@ interface Meteor {
 
 // 真实星色：白色系为主，少量蓝白、暖白、淡金
 const STAR_COLORS = [
-  'rgba(255,255,255,',      // 纯白      45%
-  'rgba(220,235,255,',      // 蓝白      25%
-  'rgba(255,248,220,',      // 暖白      18%
-  'rgba(180,210,255,',      // 淡蓝      8%
-  'rgba(255,220,130,',      // 淡金（命理主题点缀）4%
+  'rgba(255,255,255,',
+  'rgba(220,235,255,',
+  'rgba(255,248,220,',
+  'rgba(180,210,255,',
+  'rgba(255,220,130,',
 ]
 const COLOR_WEIGHTS = [0.45, 0.25, 0.18, 0.08, 0.04]
 
@@ -53,9 +53,9 @@ function createStar(W: number, H: number): Star {
   const layer: 0 | 1 | 2 = layerRand < 0.65 ? 0 : layerRand < 0.90 ? 1 : 2
 
   const layerConfig = [
-    { sizeMin: 0.2, sizeMax: 0.8,  alphaMin: 0.10, alphaMax: 0.45, speedMul: 0.04 },
-    { sizeMin: 0.6, sizeMax: 1.4,  alphaMin: 0.30, alphaMax: 0.75, speedMul: 0.10 },
-    { sizeMin: 1.2, sizeMax: 2.4,  alphaMin: 0.55, alphaMax: 1.00, speedMul: 0.20 },
+    { sizeMin: 0.2, sizeMax: 0.8, alphaMin: 0.10, alphaMax: 0.45, speedMul: 0.04 },
+    { sizeMin: 0.6, sizeMax: 1.4, alphaMin: 0.30, alphaMax: 0.75, speedMul: 0.10 },
+    { sizeMin: 1.2, sizeMax: 2.4, alphaMin: 0.55, alphaMax: 1.00, speedMul: 0.20 },
   ][layer]
 
   const size = Math.random() * (layerConfig.sizeMax - layerConfig.sizeMin) + layerConfig.sizeMin
@@ -115,7 +115,6 @@ export default function ParticleBackground() {
     let frame = 0
     let raf: number
 
-    // 每隔 8~18 秒触发一颗流星
     let nextMeteorAt = frame + Math.floor(Math.random() * 600 + 480)
 
     const resize = () => {
@@ -153,10 +152,10 @@ export default function ParticleBackground() {
         ctx.fillStyle = s.color + s.alpha.toFixed(3) + ')'
         ctx.fill()
 
-        // 近景星：加光晕（glow）
+        // 近景星：加柔和光晕
         if (s.layer === 2 && s.size > 1.6) {
           const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.size * 3.5)
-          grd.addColorStop(0, s.color + (s.alpha * 0.4).toFixed(3) + ')')
+          grd.addColorStop(0, s.color + (s.alpha * 0.18).toFixed(3) + ')')
           grd.addColorStop(1, s.color + '0)')
           ctx.beginPath()
           ctx.arc(s.x, s.y, s.size * 3.5, 0, Math.PI * 2)
@@ -178,8 +177,8 @@ export default function ParticleBackground() {
 
         const grd = ctx.createLinearGradient(tailX, tailY, m.x, m.y)
         grd.addColorStop(0, `rgba(255,255,255,0)`)
-        grd.addColorStop(0.6, `rgba(220,235,255,${(m.life * 0.5).toFixed(3)})`)
-        grd.addColorStop(1, `rgba(255,255,255,${(m.life * 0.9).toFixed(3)})`)
+        grd.addColorStop(0.6, `rgba(220,235,255,${(m.life * 0.25).toFixed(3)})`)
+        grd.addColorStop(1, `rgba(255,255,255,${(m.life * 0.7).toFixed(3)})`)
 
         ctx.beginPath()
         ctx.moveTo(tailX, tailY)

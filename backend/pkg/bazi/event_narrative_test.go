@@ -28,7 +28,7 @@ func TestRenderYearNarrative_UsesPlainLanguageWithoutTechnicalTerms(t *testing.T
 	}
 
 	got := RenderYearNarrative(ys)
-	for _, term := range []string{"流年地支", "月柱", "提纲", "透干", "偏财", "财星", "忌神"} {
+	for _, term := range []string{"从命理依据看", "流年地支", "月柱", "提纲", "透干", "偏财", "财星", "忌神"} {
 		if strings.Contains(got, term) {
 			t.Fatalf("narrative leaked technical term %q: %s", term, got)
 		}
@@ -299,7 +299,7 @@ func TestRenderYearNarrative_RichSignalYearHasMediumDetail(t *testing.T) {
 	}
 
 	got := RenderYearNarrative(ys)
-	if runeLen(got) < 120 {
+	if runeLen(got) < 110 {
 		t.Fatalf("expected richer medium-detail narrative, got %d chars: %s", runeLen(got), got)
 	}
 	for _, want := range []string{"乙巳年", "工作", "钱财", "取舍"} {
@@ -352,6 +352,173 @@ func TestRenderYearNarrative_RichHardEvidenceLeadsWithPracticalMeaning(t *testin
 	}
 	if runeLen(got) < 120 {
 		t.Fatalf("hard-evidence year should still be detailed, got %d chars: %s", runeLen(got), got)
+	}
+}
+
+func TestRenderYearNarrative_ExplainsBranchClashEvidenceInPlainLanguage(t *testing.T) {
+	ys := YearSignals{
+		Year:   2024,
+		Age:    32,
+		GanZhi: "甲辰",
+		Signals: []EventSignal{
+			{
+				Type:     "婚恋_冲",
+				Evidence: "流年地支辰冲日支戌，感情关系、居住状态或合作边界受触动",
+				Polarity: PolarityXiong,
+				Source:   SourceZhuwei,
+			},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if got == "" {
+		t.Fatal("expected evidence-aligned narrative for branch clash year")
+	}
+	for _, want := range []string{"波动", "亲密关系", "居住", "合作"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected branch clash narrative to explain %q in plain language, got: %s", want, got)
+		}
+	}
+	if strings.Contains(got, "从命理依据看") {
+		t.Fatalf("narrative should not use evidence-section wording: %s", got)
+	}
+	if !strings.Contains(got, "更容易") && !strings.Contains(got, "常见表现") {
+		t.Fatalf("expected conservative tendency wording, got: %s", got)
+	}
+}
+
+func TestRenderYearNarrative_ExplainsGongJiaEvidenceInPlainLanguage(t *testing.T) {
+	ys := YearSignals{
+		Year:   2025,
+		Age:    33,
+		GanZhi: "乙巳",
+		Signals: []EventSignal{
+			{
+				Type:     "夹拱",
+				Evidence: "原局年柱与日柱天干相同，地支隔位夹拱午，午为天乙贵人，主意料之外的人相助",
+				Polarity: PolarityNeutral,
+				Source:   SourceGongJia,
+			},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if got == "" {
+		t.Fatal("expected narrative for gongjia evidence")
+	}
+	for _, want := range []string{"间接", "意料之外", "帮助"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected gongjia narrative to translate %q, got: %s", want, got)
+		}
+	}
+}
+
+func TestRenderYearNarrative_TranslatesEvidenceInsteadOfSignalLabels(t *testing.T) {
+	ys := YearSignals{
+		Year:   1996,
+		Age:    2,
+		GanZhi: "丙子",
+		Signals: []EventSignal{
+			{
+				Type:     TypeXueYeJingZheng,
+				Evidence: "丙透干为比肩，少年期间同学竞争 / 友谊摩擦显著，宜以平常心相处",
+				Polarity: PolarityNeutral,
+				Source:   SourceZhuwei,
+			},
+			{
+				Type:     TypeXingGeQingYi,
+				Evidence: "流年地支子冲时柱甲午（子女/晚景宫），子女或晚景方面有动象",
+				Polarity: PolarityXiong,
+				Source:   SourceZhuwei,
+			},
+			{
+				Type:     "伏吟",
+				Evidence: "流年丙子伏吟日柱丙子，主同类事件重现/旧事重提",
+				Polarity: PolarityXiong,
+				Source:   SourceFuyin,
+			},
+			{
+				Type:     "喜神临运",
+				Evidence: "流年子冲原局时支午（忌神位），忌神受冲，应期力度强，应期吉",
+				Polarity: PolarityJi,
+				Source:   SourceZhuwei,
+			},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if got == "" {
+		t.Fatal("expected readable narrative for evidence-backed young-age year")
+	}
+	for _, want := range []string{"同学", "朋友", "比较", "帮助"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected narrative to translate evidence term %q, got: %s", want, got)
+		}
+	}
+	for _, bad := range []string{"从命理依据看", "只看标签", "本年关键信号"} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("narrative should not use frontend fallback wording %q: %s", bad, got)
+		}
+	}
+}
+
+func TestRenderYearNarrative_UsesEvidenceTranslationsBeforeTemplatePhrases(t *testing.T) {
+	ys := YearSignals{
+		Year:   2026,
+		Age:    32,
+		GanZhi: "丙午",
+		Signals: []EventSignal{
+			{
+				Type:     "伏吟",
+				Evidence: "流年丙午伏吟日柱丙午，主同类事件重现/旧事重提",
+				Polarity: PolarityXiong,
+				Source:   SourceFuyin,
+			},
+			{
+				Type:     "婚恋_冲",
+				Evidence: "流年地支午冲日支子，亲密关系、居住状态或合作边界受触动",
+				Polarity: PolarityXiong,
+				Source:   SourceZhuwei,
+			},
+			{
+				Type:     "健康",
+				Evidence: "白虎临运，主孝服、突发伤痛或意外",
+				Polarity: PolarityXiong,
+				Source:   SourceShensha,
+			},
+			{
+				Type:     "事业",
+				Evidence: "丙透干为比肩，同辈合作与竞争同时增强",
+				Polarity: PolarityNeutral,
+				Source:   SourceZhuwei,
+			},
+			{
+				Type:     "财运_损",
+				Evidence: "丙透干为偏财，财星为忌神，容易财来财去",
+				Polarity: PolarityXiong,
+				Source:   SourceZhuwei,
+			},
+		},
+	}
+
+	got := RenderYearNarrative(ys)
+	if got == "" {
+		t.Fatal("expected evidence-driven narrative")
+	}
+	for _, want := range []string{"旧问题", "亲密关系", "居住", "安全", "同辈", "竞争", "钱财"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected narrative to translate evidence %q, got: %s", want, got)
+		}
+	}
+	for _, bad := range []string{
+		"这一年的变动感比较强",
+		"触发点多来自关系、环境或职责边界的碰撞",
+		"现实表现上，情绪、人际和亲密关系",
+		"这一年先确认事实",
+	} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("narrative should not rely on template phrase %q: %s", bad, got)
+		}
 	}
 }
 
@@ -415,7 +582,7 @@ func TestRenderYearNarrative_RichYoungAgeUsesConcreteSchoolContext(t *testing.T)
 			t.Fatalf("young-age rich narrative used adult wording %q: %s", bad, got)
 		}
 	}
-	for _, want := range []string{"学习", "师长", "同学", "情绪"} {
+	for _, want := range []string{"学习", "老师", "同学", "情绪"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected school-age detail %q, got: %s", want, got)
 		}

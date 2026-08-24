@@ -1,10 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronLeft, Loader2 } from 'lucide-react'
-import { baziAPI } from '../lib/api'
+import { ChevronDown, ChevronLeft, Download, Loader2 } from 'lucide-react'
+import { baziAPI, brandAPI } from '../lib/api'
+import type { ExportBrand } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
+import PastEventsPrintLayout from '../components/PastEventsPrintLayout'
+import { useToast } from '../components/ui/useToast'
+import {
+  buildPastEventsExportSegments,
+  countPastEventsProgress,
+  getPastEventsCurrentPeriod,
+  getPastEventsFutureToggleLabel,
+  getPastEventsSegmentViewState,
+  getPastEventsSignalLabel,
+  getPastEventsYearNarrativeState,
+  type PastEventsProgressCounts,
+  type PastEventsSegmentViewState,
+} from '../lib/pastEventsViewModel'
+import './PastEventsPage.css'
 
 interface YearEvent {
   year: number
@@ -52,12 +67,13 @@ interface DayunSummary {
   themes: string[]
   summary: string
   years?: YearNarrativeEntry[]
+  cached?: boolean
   loading?: boolean
   status?: 'loading' | 'interrupted'
   error?: string
   generation?: DayunGenerationMeta
-  // 未来段折叠态：true 表示该段在页面打开时不自动生成 AI 批语
-  // 用户点击 [展开 ▼] 后变 false（仍未生成 AI），再点"生成本段"才触发
+  // 未来段折叠态：true 表示该段在页面打开时不自动生成批语
+  // 用户点击 [展开 ▼] 后变 false（仍未生成批语），再点"生成本段"才触发
   folded?: boolean
 }
 
@@ -75,30 +91,6 @@ const DAYUN_GENERATION_MAX_AUTO_RETRIES = 1
 const DAYUN_GENERATION_INTERRUPTED_COPY = '生成中断，点击重试'
 const DAYUN_GENERATION_FAILED_COPY = '生成失败，请重试'
 
-const SIGNAL_LABEL: Record<string, { label: string; color: string }> = {
-  '婚恋_合': { label: '婚恋↑', color: 'var(--wu-huo)' },
-  '婚恋_冲': { label: '婚恋↓', color: '#e77' },
-  '婚恋_变': { label: '婚恋变', color: 'var(--wu-tu)' },
-  '事业':    { label: '事业', color: 'var(--wu-mu)' },
-  '财运_得': { label: '财运↑', color: 'var(--wu-jin)' },
-  '财运_损': { label: '财运↓', color: '#888' },
-  '健康':    { label: '健康↓', color: '#e77' },
-  '迁变':    { label: '迁变', color: 'var(--wu-shui)' },
-  '伏吟':    { label: '伏吟', color: '#e77' },
-  '反吟':    { label: '反吟', color: '#e77' },
-  '大运合化': { label: '合化', color: 'var(--wu-tu)' },
-  '喜神临运': { label: '喜神', color: 'var(--wu-jin)' },
-  '综合变动': { label: '变动', color: 'var(--wu-shui)' },
-  // 读书期专属（age < 18 由后端自动重映射）
-  '学业_资源': { label: '学业↑', color: 'var(--wu-mu)' },
-  '学业_竞争': { label: '竞争', color: '#888' },
-  '学业_压力': { label: '压力↓', color: '#e77' },
-  '学业_贵人': { label: '贵人', color: 'var(--wu-mu)' },
-  '学业_才艺': { label: '才艺', color: 'var(--wu-mu)' },
-  '性格_情谊': { label: '情谊', color: 'var(--wu-tu)' },
-  '性格_叛逆': { label: '叛逆', color: '#e77' },
-}
-
 const WUXING_GAN: Record<string, string> = {
   '甲': 'mu', '乙': 'mu', '丙': 'huo', '丁': 'huo',
   '戊': 'tu', '己': 'tu', '庚': 'jin', '辛': 'jin',
@@ -107,15 +99,86 @@ const WUXING_GAN: Record<string, string> = {
 
 const currentYear = new Date().getFullYear()
 
+function SegmentStateBadge({ state }: { state: PastEventsSegmentViewState }) {
+  const stateClass = state.state === 'future_folded' || state.state === 'future_expanded_ungenerated'
+    ? 'future'
+    : state.state
+  return (
+    <span className={`past-events-state-badge past-events-state-badge--${stateClass}`}>
+      {state.label}
+    </span>
+  )
+}
+
+function PastEventsStatusPanel({
+  totalYears,
+  progressCounts,
+  currentGroup,
+  currentYearEvent,
+}: {
+  totalYears: number
+  progressCounts: PastEventsProgressCounts
+  currentGroup?: { meta: DayunMeta }
+  currentYearEvent?: YearEvent
+}) {
+  return (
+    <div className="past-events-status-panel">
+      <div className="past-events-status-panel__top">
+        <div>
+          <div className="past-events-status-panel__title">
+            年份信号已就绪，大运批语分段生成
+          </div>
+          <div className="past-events-status-panel__copy">
+            当前年份 {currentYear} 年
+            {currentGroup ? ` · 当前大运 ${currentGroup.meta.gan_zhi}（${currentGroup.meta.start_age}-${currentGroup.meta.end_age}岁）` : ''}
+            {currentYearEvent ? ` · ${currentYearEvent.age}岁` : ''}
+          </div>
+        </div>
+        {currentGroup && (
+          <a className="past-events-status-panel__jump" href="#past-events-current-dayun">
+            跳到当前大运
+          </a>
+        )}
+      </div>
+      <div className="past-events-status-panel__metrics" aria-label="过往推算状态">
+        <span className="past-events-status-metric">
+          <span>算法年份</span>
+          <strong>{totalYears}</strong>
+        </span>
+        <span className="past-events-status-metric">
+          <span>批语完成</span>
+          <strong>{progressCounts.generated}</strong>
+        </span>
+        <span className="past-events-status-metric">
+          <span>生成中</span>
+          <strong>{progressCounts.generating}</strong>
+        </span>
+        <span className="past-events-status-metric">
+          <span>可重试</span>
+          <strong>{progressCounts.interrupted}</strong>
+        </span>
+        <span className="past-events-status-metric">
+          <span>未来待生成</span>
+          <strong>{progressCounts.futurePending}</strong>
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function PastEventsPage() {
   const { chartId } = useParams<{ chartId: string }>()
   const navigate = useNavigate()
   const { user, isLoading } = useAuth()
+  const { showToast } = useToast()
   const [yearsLoaded, setYearsLoaded] = useState(false)
   const [yearsError, setYearsError] = useState('')
   const [events, setEvents] = useState<YearEvent[]>([])
   const [dayunMeta, setDayunMeta] = useState<DayunMeta[]>([])
   const [summaries, setSummaries] = useState<Record<number, DayunSummary>>({})
+  const [includeEvidenceInExport, setIncludeEvidenceInExport] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
+  const [brand, setBrand] = useState<ExportBrand | null>(null)
   const [expandedEvidence, setExpandedEvidence] = useState<Record<string, boolean>>({})
   const [streamDone, setStreamDone] = useState(false)
   const [streamError, setStreamError] = useState('')
@@ -233,7 +296,7 @@ export default function PastEventsPage() {
       setDayunMeta(data.dayun_meta || [])
       // 初始化各大运 summary 占位
       // 未来段（start_year > currentYear）默认 folded=true，不参与 stage 2 自动生成
-      // 已发生 + 当前段默认 loading=true，等流式拉取（可能 cache 命中也可能 AI 新生成）
+      // 已发生 + 当前段默认 loading=true，等流式拉取（可能 cache 命中也可能新生成）
       // 后端若发现 future 段在 cache 中，会主动 emit → setSummaries 把 folded 切回 false
       const init: Record<number, DayunSummary> = {}
       for (const dm of data.dayun_meta || []) {
@@ -261,7 +324,7 @@ export default function PastEventsPage() {
       return
     }
 
-    // Stage 2: 后台流式拉大运 AI 总结
+    // Stage 2: 后台流式拉大运批语
     baziAPI.streamDayunSummaries(
       chartId,
       (item) => {
@@ -291,6 +354,7 @@ export default function PastEventsPage() {
             themes: item.themes || [],
             summary: item.summary || '',
             years: item.years || undefined,
+            cached: Boolean(item.cached),
             loading: false,
             status: undefined,
             generation: undefined,
@@ -316,7 +380,7 @@ export default function PastEventsPage() {
     )
   }, [chartId, markLoadingDayunsInterrupted, writeDayunSummary])
 
-  // 用户点击 [展开 ▼] —— 折叠段进入"已展开但未生成 AI"状态
+  // 用户点击 [展开 ▼] —— 折叠段进入"已展开但未生成批语"状态
   // 还不调任何 API，只切换 folded 状态显示 chips
   const handleExpand = useCallback((dayunIndex: number) => {
     setSummaries((prev) => ({
@@ -325,7 +389,7 @@ export default function PastEventsPage() {
     }))
   }, [])
 
-  // 用户点击 [收起 ▲] —— 折回但保留已加载的 AI 内容（下次展开不重新调）
+  // 用户点击 [收起 ▲] —— 折回但保留已加载的批语内容（下次展开不重新调）
   const handleCollapse = useCallback((dayunIndex: number) => {
     setSummaries((prev) => ({
       ...prev,
@@ -333,7 +397,7 @@ export default function PastEventsPage() {
     }))
   }, [])
 
-  // 用户点击 [生成本段 AI 批语] —— 触发单段 SSE 生成
+  // 用户点击 [生成本段批语] —— 触发单段 SSE 生成
   const handleGenerateSegment = useCallback((dayunIndex: number, source: DayunGenerationSource = 'manual') => {
     if (!chartId) return
     const requestId = beginDayunGeneration(dayunIndex, source)
@@ -359,6 +423,7 @@ export default function PastEventsPage() {
             themes: item.themes || [],
             summary: item.summary || '',
             years: item.years || undefined,
+            cached: Boolean(item.cached),
             loading: false,
             status: undefined,
             generation: undefined,
@@ -431,6 +496,13 @@ export default function PastEventsPage() {
     return () => window.clearTimeout(timer)
   }, [chartId, user, isLoading, navigate, loadAll])
 
+  useEffect(() => {
+    if (!user) return
+    brandAPI.get()
+      .then((r) => setBrand(r.data.data))
+      .catch(() => setBrand(null))
+  }, [user])
+
   // 按 dayun_index 分组（保持原顺序）
   const grouped: Array<{ meta: DayunMeta; years: YearEvent[] }> = dayunMeta.map((dm) => ({
     meta: dm,
@@ -439,36 +511,76 @@ export default function PastEventsPage() {
   const summaryList = Object.values(summaries)
   const hasLoadingSummary = summaryList.some((summary) => summary.loading)
   const hasInterruptedSummary = summaryList.some((summary) => summary.status === 'interrupted')
+  const progressCounts = countPastEventsProgress(summaries)
+  const currentPeriod = getPastEventsCurrentPeriod(dayunMeta, events, currentYear)
+  const currentGroup = currentPeriod.dayun
+    ? grouped.find(({ meta }) => meta.index === currentPeriod.dayun?.index)
+    : undefined
+  const currentYearEvent = currentPeriod.year
   const headerStreamStatus = !yearsLoaded ? '正在加载年份时间轴……' :
-    hasLoadingSummary ? '年份已就绪 · 大运总结正在后台生成' :
-    hasInterruptedSummary ? '部分大运总结生成中断，可点击重试' :
-    streamDone ? '已完成，所有大运总结已生成' :
-    '年份已就绪 · 大运总结正在后台生成'
+    hasLoadingSummary ? '年份已就绪 · 大运批语正在后台生成' :
+    hasInterruptedSummary ? '部分大运批语生成中断，可点击重试' :
+    streamDone ? '已完成，所有大运批语已生成' :
+    '年份已就绪 · 大运批语正在后台生成'
 
   const yearNarrative = (y: YearEvent): { text: string; status: 'loading' | 'ready' | 'empty' } => {
-    // Stage 1 already returned a narrative (template mode) → use it
-    if (y.narrative && y.narrative !== '') {
-      return { text: y.narrative, status: 'ready' }
+    return getPastEventsYearNarrativeState(y, summaries[y.dayun_index])
+  }
+
+  const exportSegments = buildPastEventsExportSegments(dayunMeta, events, summaries, includeEvidenceInExport)
+  const hasExportableContent = exportSegments.length > 0
+  const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+  const handleExportPDF = async () => {
+    if (!hasExportableContent) {
+      showToast('暂无已生成的过往批语可导出', 'info')
+      return
     }
-    const ds = summaries[y.dayun_index]
-    if (!ds || ds.loading) {
-      return { text: '', status: 'loading' }
+    if (!isMobileDevice) {
+      window.print()
+      return
     }
-    if (ds.error) {
-      return { text: '', status: 'empty' }
+    const el = document.querySelector('.past-events-print-layout') as HTMLElement | null
+    if (!el) return
+    setExportingPDF(true)
+    const prevDisplay = el.style.display
+    try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+      await document.fonts.ready
+      el.style.display = 'block'
+      const canvas = await html2canvas(el, { scale: 2, useCORS: true, logging: false })
+      el.style.display = prevDisplay
+      const imgData = canvas.toDataURL('image/jpeg', 0.92)
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const imgH = (canvas.height * pageW) / canvas.width
+      let remaining = imgH
+      let offset = 0
+      pdf.addImage(imgData, 'JPEG', 0, offset, pageW, imgH)
+      remaining -= pageH
+      while (remaining > 0) {
+        offset -= pageH
+        pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, offset, pageW, imgH)
+        remaining -= pageH
+      }
+      const suffix = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      pdf.save(`缘聚-过往年运回看-${suffix}.pdf`)
+    } catch {
+      showToast('生成 PDF 失败，请稍后重试', 'error')
+    } finally {
+      el.style.display = prevDisplay
+      setExportingPDF(false)
     }
-    const entry = ds.years?.find((ye) => ye.year === y.year)
-    if (!entry) {
-      return { text: '', status: 'empty' }
-    }
-    if (entry.narrative === '') {
-      return { text: '', status: 'empty' }
-    }
-    return { text: entry.narrative, status: 'ready' }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingBottom: 60 }}>
+    <>
+    <div className="screen-only" style={{ minHeight: '100vh', background: 'var(--bg-base)', paddingBottom: 60 }}>
       {/* 顶部导航 */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 12,
@@ -491,6 +603,26 @@ export default function PastEventsPage() {
             {headerStreamStatus}
           </div>
         </div>
+        <div className="past-events-export-actions">
+          <label className="past-events-export-option">
+            <input
+              type="checkbox"
+              checked={includeEvidenceInExport}
+              onChange={(event) => setIncludeEvidenceInExport(event.target.checked)}
+            />
+            <span>包含依据</span>
+          </label>
+          <button
+            type="button"
+            className="past-events-export-button"
+            onClick={handleExportPDF}
+            disabled={!hasExportableContent || exportingPDF}
+            title={hasExportableContent ? '导出已生成的过往批语' : '暂无已生成的过往批语'}
+          >
+            {exportingPDF ? <Loader2 size={14} className="past-events-export-spin" /> : <Download size={14} />}
+            <span>{exportingPDF ? '生成中' : '导出已生成内容'}</span>
+          </button>
+        </div>
       </div>
 
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px' }}>
@@ -503,11 +635,11 @@ export default function PastEventsPage() {
 
         {yearsError && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <div style={{ color: '#e77', marginBottom: 16 }}>{yearsError}</div>
+            <div style={{ color: 'var(--status-danger)', marginBottom: 16 }}>{yearsError}</div>
             <button
               onClick={loadAll}
               style={{
-                background: 'var(--wu-jin)', color: '#000', border: 'none',
+                background: 'var(--wu-jin)', color: '#fffdf8', border: 'none',
                 borderRadius: 8, padding: '10px 24px', cursor: 'pointer', fontWeight: 600,
               }}
             >重新加载</button>
@@ -530,15 +662,28 @@ export default function PastEventsPage() {
         {yearsLoaded && events.length > 0 && (
           <div>
             <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: 20, textAlign: 'center' }}>
-              共推算 {events.length} 个年份 · 算法即时生成 · 大运总结后台生成
+              共推算 {events.length} 个年份 · 算法即时生成 · 大运批语后台生成
             </div>
+
+            <PastEventsStatusPanel
+              totalYears={events.length}
+              progressCounts={progressCounts}
+              currentGroup={currentGroup}
+              currentYearEvent={currentYearEvent}
+            />
 
             {grouped.map(({ meta, years }) => {
               const dyGan = meta.gan_zhi[0] || ''
               const dyWx = WUXING_GAN[dyGan] || 'tu'
               const dySum = summaries[meta.index]
+              const segmentState = getPastEventsSegmentViewState(dySum)
+              const isCurrentDayun = currentYear >= meta.start_year && currentYear <= meta.end_year
               return (
-                <div key={meta.index} style={{ marginBottom: 32 }}>
+                <div
+                  key={meta.index}
+                  id={isCurrentDayun ? 'past-events-current-dayun' : undefined}
+                  className={`past-events-segment${isCurrentDayun ? ' past-events-segment--current' : ''}`}
+                >
                   {/* 大运标题 */}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8,
@@ -555,6 +700,10 @@ export default function PastEventsPage() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       大运 {meta.start_age}-{meta.end_age}岁
                     </div>
+                    {isCurrentDayun && (
+                      <span className="past-events-current-badge">当前大运</span>
+                    )}
+                    <SegmentStateBadge state={segmentState} />
                     <div style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -602,7 +751,7 @@ export default function PastEventsPage() {
                           fontSize: '0.72rem',
                           whiteSpace: 'nowrap',
                         }}
-                      >{dySum?.folded ? '展开 ▼' : '收起 ▲'}</button>
+                      >{getPastEventsFutureToggleLabel(Boolean(dySum?.folded))}</button>
                     )}
                   </div>
 
@@ -613,7 +762,7 @@ export default function PastEventsPage() {
                       padding: '4px 0 12px',
                       lineHeight: 1.6,
                     }}>
-                      未来大运段，点击 "展开 ▼" 查看流年信号；展开后可按需生成 AI 批语
+                      未来大运段，点击"展开年份信号"只查看算法信号；展开后再按需生成本段批语。
                     </div>
                   )}
 
@@ -631,11 +780,11 @@ export default function PastEventsPage() {
                       {dySum.loading && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                           <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                          正在生成本段大运总结……
+                          正在生成本段大运批语……
                         </div>
                       )}
                       {dySum.status === 'interrupted' && (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, color: '#e7c766', fontSize: '0.78rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, color: 'var(--primary)', fontSize: '0.78rem' }}>
                           <span>{dySum.error || DAYUN_GENERATION_INTERRUPTED_COPY}</span>
                           <button
                             type="button"
@@ -655,7 +804,7 @@ export default function PastEventsPage() {
                         </div>
                       )}
                       {dySum.error && dySum.status !== 'interrupted' && (
-                        <div style={{ color: '#e77', fontSize: '0.78rem' }}>
+                        <div style={{ color: 'var(--status-danger)', fontSize: '0.78rem' }}>
                           本段总结生成失败：{dySum.error}
                         </div>
                       )}
@@ -667,7 +816,7 @@ export default function PastEventsPage() {
                               const hasDown = theme.includes('↓')
                               const direction = hasUp ? '↑' : hasDown ? '↓' : null
                               const text = direction ? theme.replace(direction, '').trim() : theme
-                              const dirColor = hasUp ? '#66bb6a' : hasDown ? '#ef5350' : null
+                              const dirColor = hasUp ? 'var(--status-success)' : hasDown ? 'var(--status-danger)' : null
                               const borderColor = dirColor ?? `var(--wu-${dyWx})`
                               return (
                                 <span
@@ -707,12 +856,14 @@ export default function PastEventsPage() {
                       const wx = WUXING_GAN[gan] || 'tu'
                       const hasSignals = y.signals && y.signals.length > 0
                       const isFuture = y.year > currentYear
+                      const isCurrentYear = y.year === currentYear
                       const evidenceKey = `${meta.index}-${y.year}`
                       const hasEvidence = Boolean(y.evidence_summary?.length)
                       const evidenceOpen = Boolean(expandedEvidence[evidenceKey])
                       return (
                         <div
                           key={y.year}
+                          className={isCurrentYear ? 'past-events-year-card--current' : undefined}
                           style={{
                             position: 'relative',
                             background: 'var(--bg-card)',
@@ -748,9 +899,11 @@ export default function PastEventsPage() {
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                               {y.year}年 · {y.age}岁
                             </span>
+                            {isCurrentYear && (
+                              <span className="past-events-current-year-badge">当前年份</span>
+                            )}
                             {y.signals?.map((sig) => {
-                              const meta = SIGNAL_LABEL[sig]
-                              if (!meta) return null
+                              const signalMeta = getPastEventsSignalLabel(sig)
                               return (
                                 <span
                                   key={sig}
@@ -758,11 +911,11 @@ export default function PastEventsPage() {
                                     fontSize: '0.65rem',
                                     padding: '2px 6px',
                                     borderRadius: 4,
-                                    border: `1px solid ${meta.color}`,
-                                    color: meta.color,
+                                    border: `1px solid ${signalMeta.color}`,
+                                    color: signalMeta.color,
                                     whiteSpace: 'nowrap',
                                   }}
-                                >{meta.label}</span>
+                                >{signalMeta.label}</span>
                               )
                             })}
                           </div>
@@ -782,11 +935,11 @@ export default function PastEventsPage() {
                                 </div>
                               )
                             }
-                            // status === 'empty'：AI 主动留空或被护栏拦下。
+                            // status === 'empty'：批语主动留空或被护栏拦下。
                             // 当卡片有 chips 时，用 chips 自动拼一句兜底，避免视觉断层。
                             if (y.signals && y.signals.length > 0) {
                               const chipLabels = y.signals
-                                .map((sig) => SIGNAL_LABEL[sig]?.label || sig)
+                                .map((sig) => getPastEventsSignalLabel(sig).label)
                                 .join('、')
                               return (
                                 <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', lineHeight: 1.6 }}>
@@ -796,6 +949,13 @@ export default function PastEventsPage() {
                             }
                             return null
                           })()}
+                          {(y.ten_god_power?.plain_title || y.dayun_phase || y.year_in_dayun) && (
+                            <div className="past-events-year-details">
+                              {y.ten_god_power?.plain_title && <span>主导力量：{y.ten_god_power.plain_title}</span>}
+                              {y.year_in_dayun && <span>大运第 {y.year_in_dayun} 年</span>}
+                              {y.dayun_phase && <span>{y.dayun_phase === 'gan' ? '天干主事' : '地支主事'}</span>}
+                            </div>
+                          )}
                           {hasEvidence && (
                             <div style={{ marginTop: 10 }}>
                               <button
@@ -846,8 +1006,8 @@ export default function PastEventsPage() {
                     })}
                   </div>
 
-                  {/* 展开但未生成 AI 批语 → 生成本段按钮 */}
-                  {dySum?.folded === false && !dySum?.loading && !dySum?.years && !dySum?.error && dySum?.summary === '' && (
+                  {/* 展开但未生成批语 → 生成本段按钮 */}
+                  {segmentState.canGenerateAi && (
                     <div style={{ marginTop: 16, textAlign: 'center' }}>
                       <button
                         onClick={() => handleGenerateSegment(meta.index, 'manual')}
@@ -861,7 +1021,7 @@ export default function PastEventsPage() {
                           fontSize: '0.85rem',
                           fontWeight: 600,
                         }}
-                      >🔮 生成本段 AI 批语</button>
+                      >生成本段批语</button>
                     </div>
                   )}
 
@@ -873,20 +1033,20 @@ export default function PastEventsPage() {
             {streamError && (
               <div style={{
                 marginTop: 16, padding: '10px 14px',
-                background: 'color-mix(in srgb, #e77 12%, transparent)',
-                border: '1px solid #e77',
+                background: 'color-mix(in srgb, var(--status-danger) 12%, transparent)',
+                border: '1px solid var(--status-danger)',
                 borderRadius: 8,
                 fontSize: '0.78rem',
-                color: '#e77',
+                color: 'var(--status-danger)',
               }}>
-                大运总结生成中断：{streamError}
+                大运批语生成中断：{streamError}
                 <button
                   onClick={loadAll}
                   style={{
                     marginLeft: 12,
-                    background: 'none', border: '1px solid #e77',
+                    background: 'none', border: '1px solid var(--status-danger)',
                     borderRadius: 4, padding: '2px 10px',
-                    color: '#e77', cursor: 'pointer', fontSize: '0.72rem',
+                    color: 'var(--status-danger)', cursor: 'pointer', fontSize: '0.72rem',
                   }}
                 >重试</button>
               </div>
@@ -906,5 +1066,12 @@ export default function PastEventsPage() {
         )}
       </div>
     </div>
+    <PastEventsPrintLayout
+      chart={{ id: chartId }}
+      segments={exportSegments}
+      includeEvidence={includeEvidenceInExport}
+      brand={brand}
+    />
+    </>
   )
 }

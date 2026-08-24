@@ -35,7 +35,7 @@
 }
 
 .spouse-match-badge--high {
-  background: rgba(76, 175, 125, 0.12);
+  background: rgba(88, 127, 82, 0.12);
   color: var(--wu-mu);
 }
 
@@ -45,7 +45,7 @@
 }
 
 .spouse-match-badge--low {
-  background: rgba(224, 92, 75, 0.12);
+  background: rgba(184, 93, 80, 0.12);
   color: var(--wu-huo);
 }
 

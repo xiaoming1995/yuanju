@@ -25,9 +25,9 @@ func TestComputeClassicalYongshen_身强寅月乙木(t *testing.T) {
 		MonthGan: "庚", MonthZhi: "寅",
 		DayGan: "乙", DayZhi: "亥",
 		HourGan: "丙", HourZhi: "戌",
-		YearHideGan:  []string{"癸"},      // 子藏癸
+		YearHideGan:  []string{"癸"},           // 子藏癸
 		MonthHideGan: []string{"甲", "丙", "戊"}, // 寅藏甲丙戊
-		DayHideGan:   []string{"壬", "甲"}, // 亥藏壬甲
+		DayHideGan:   []string{"壬", "甲"},      // 亥藏壬甲
 		HourHideGan:  []string{"戊", "辛", "丁"}, // 戌藏戊辛丁
 		Wuxing: WuxingStats{
 			Mu: 2, Huo: 2, Tu: 1, Jin: 1, Shui: 2, Total: 8,
@@ -146,7 +146,7 @@ func TestSelectPrimaryGan_透干优先(t *testing.T) {
 	}
 
 	// 用神集="金土火" → 候选: 丙 丁 戊 己 庚 辛
-	//   透干: 丙(火) ✓  戊(土) ✓  庚(金) ✓
+	//   透干: 丙(火) 通过  戊(土) 通过  庚(金) 通过
 	//   甲乙丙丁顺序 → 丙 优先
 	got := selectPrimaryGan(natal, "金土火")
 	if got != "丙" {

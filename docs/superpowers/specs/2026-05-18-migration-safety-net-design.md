@@ -11,7 +11,7 @@
 2026-05-18 线上 backend 启动失败：
 
 ```
-2026/05/18 10:16:06 ✅ 数据库连接成功
+2026/05/18 10:16:06 [OK] 数据库连接成功
 2026/05/18 10:16:06 数据库迁移失败: pq: could not extend file ...
 ```
 
@@ -43,12 +43,12 @@ func Migrate() {
 - 集成测试基于已有 testcontainers-go 基建
 
 **非目标（明确不做）：**
-- ❌ 多 DB 支持（只用 Postgres）
-- ❌ ORM 化（保持 raw SQL via lib/pq）
-- ❌ 自动 down / rollback CLI（人工跑 `goose down` 或部署新版本）
-- ❌ `/health` 暴露 schema 版本（noise；以后可加）
-- ❌ 试图回溯 git history 拆出多个 baseline 文件（投入产出比差）
-- ❌ 处理 ENV-derived 种子数据（保留现有 `pkg/seed/` 不动）
+- [NO] 多 DB 支持（只用 Postgres）
+- [NO] ORM 化（保持 raw SQL via lib/pq）
+- [NO] 自动 down / rollback CLI（人工跑 `goose down` 或部署新版本）
+- [NO] `/health` 暴露 schema 版本（noise；以后可加）
+- [NO] 试图回溯 git history 拆出多个 baseline 文件（投入产出比差）
+- [NO] 处理 ENV-derived 种子数据（保留现有 `pkg/seed/` 不动）
 
 ---
 
@@ -344,10 +344,10 @@ Connect → Migrate(ModeApply)
 
 ### 7.3 明确不做的事（YAGNI）
 
-- ❌ goose 的 advisory lock（无并发场景）
-- ❌ schema 版本暴露 `/health`
-- ❌ 自动 down / 部分 rollback
-- ❌ migration 进度告警（grep 日志够用，可观测性 spec 再加）
+- [NO] goose 的 advisory lock（无并发场景）
+- [NO] schema 版本暴露 `/health`
+- [NO] 自动 down / 部分 rollback
+- [NO] migration 进度告警（grep 日志够用，可观测性 spec 再加）
 
 ---
 
@@ -407,9 +407,9 @@ DATABASE_URL=... ./backend  # 应当观察到 Migrate(ModeStartup) Skipped=[1]
 
 ### 8.3 测试禁忌
 
-- ❌ 不允许测试连开发者本机 dev DB（用 testcontainers）
-- ❌ 不允许测试共享容器（每个测试独立 spinUpPG）
-- ❌ 不允许测试 fixture 跨目录共享（good_v2 / bad_v2 互不污染）
+- [NO] 不允许测试连开发者本机 dev DB（用 testcontainers）
+- [NO] 不允许测试共享容器（每个测试独立 spinUpPG）
+- [NO] 不允许测试 fixture 跨目录共享（good_v2 / bad_v2 互不污染）
 
 ### 8.4 TDD 节奏
 

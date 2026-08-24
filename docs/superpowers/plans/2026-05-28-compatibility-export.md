@@ -1905,28 +1905,28 @@ After writing this plan, controller should verify:
 
 **Spec coverage check (§ → task)**
 - §1 背景 → covered in plan goal
-- §2 范围 (in scope) → T1+T2+T3+T4+T5 cover all 6 items; out-of-scope items absent ✓
-- §3.1 总体架构 → T3+T4 ✓
-- §3.2 复用基建 → all helpers imported in T1/T2/T3 ✓
-- §3.3 ShareCard 组件 → T1 ✓
-- §3.4 PrintLayout 组件 → T2 ✓
-- §3.5 页面集成 → T3+T4 ✓
-- §3.6 Modal 行为 → T4 Step 3-4 ✓
-- §3.7 PDF 双轨 → T3 Step 5 (handleExportPDF) ✓
-- §4 数据流 → T4 prop passing ✓
-- §5 错误处理 → covered in handlers (T3 Steps 4-5) ✓
-- §6 验证 → T6 ✓
+- §2 范围 (in scope) → T1+T2+T3+T4+T5 cover all 6 items; out-of-scope items absent [OK]
+- §3.1 总体架构 → T3+T4 [OK]
+- §3.2 复用基建 → all helpers imported in T1/T2/T3 [OK]
+- §3.3 ShareCard 组件 → T1 [OK]
+- §3.4 PrintLayout 组件 → T2 [OK]
+- §3.5 页面集成 → T3+T4 [OK]
+- §3.6 Modal 行为 → T4 Step 3-4 [OK]
+- §3.7 PDF 双轨 → T3 Step 5 (handleExportPDF) [OK]
+- §4 数据流 → T4 prop passing [OK]
+- §5 错误处理 → covered in handlers (T3 Steps 4-5) [OK]
+- §6 验证 → T6 [OK]
 - §7 决策摘要 → no implementation needed
-- §8 文件清单 → matches T1-T5 ✓
-- §9 不引入的依赖 → none introduced ✓
+- §8 文件清单 → matches T1-T5 [OK]
+- §9 不引入的依赖 → none introduced [OK]
 
 **Type consistency check**
-- `CompatibilityShareCardProps` (T1) signature matches usage in T4: `reading / participants / evidences / structured / decision / brand` ✓
-- `CompatibilityPrintLayoutProps` (T2) matches T4: `reading / participants / evidences / decision / stageRisks / structured / brand` ✓
-- `shareCardRef: useRef<HTMLDivElement>` (T3 Step 2) matches `forwardRef<HTMLDivElement>` (T1) ✓
-- `brand: ExportBrand | null` consistent across T1/T2/T3 ✓
+- `CompatibilityShareCardProps` (T1) signature matches usage in T4: `reading / participants / evidences / structured / decision / brand` [OK]
+- `CompatibilityPrintLayoutProps` (T2) matches T4: `reading / participants / evidences / decision / stageRisks / structured / brand` [OK]
+- `shareCardRef: useRef<HTMLDivElement>` (T3 Step 2) matches `forwardRef<HTMLDivElement>` (T1) [OK]
+- `brand: ExportBrand | null` consistent across T1/T2/T3 [OK]
 
 **Placeholder scan**
-- No "TBD" / "TODO" / "implement later" in the plan ✓
-- All code blocks are complete (no `// ...` ellipses) ✓
-- Every step has explicit commands and expected outputs ✓
+- No "TBD" / "TODO" / "implement later" in the plan [OK]
+- All code blocks are complete (no `// ...` ellipses) [OK]
+- Every step has explicit commands and expected outputs [OK]

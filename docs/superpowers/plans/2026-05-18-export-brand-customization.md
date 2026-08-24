@@ -378,7 +378,7 @@ Add to the `AppConfig = Config{...}` literal in `Load()` (after `AIPromptLog:`):
 
 - [ ] **Step 2: Add DDL to database.go**
 
-Edit `backend/pkg/database/database.go`. Find the last successful migration (the `token_usage_content` block). Add **after** that block, before `log.Println("✅ 数据库迁移完成")`:
+Edit `backend/pkg/database/database.go`. Find the last successful migration (the `token_usage_content` block). Add **after** that block, before `log.Println("[OK] 数据库迁移完成")`:
 
 ```go
 	// 增量迁移：user_export_brand 用户导出品牌定制
@@ -1785,10 +1785,10 @@ cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test
 ```
 
 Expected:
-- ✅ `ShareCard accepts optional brand prop`
-- ✅ `ShareCard preserves 缘聚 命 理 default when brand title is empty`
-- ❌ `PrintLayout accepts optional brand prop` (still red — fix in Task 11)
-- ✅ `vite dev proxy includes /static for backend static files`
+- [OK] `ShareCard accepts optional brand prop`
+- [OK] `ShareCard preserves 缘聚 命 理 default when brand title is empty`
+- [NO] `PrintLayout accepts optional brand prop` (still red — fix in Task 11)
+- [OK] `vite dev proxy includes /static for backend static files`
 
 - [ ] **Step 10: Commit**
 
@@ -2013,9 +2013,9 @@ Report to user: branch ready at `feat/export-brand-customization` with N commits
 **Placeholder scan:** Searched for "TBD", "TODO", "fill in", "etc." — none found.
 
 **Type consistency:**
-- Backend `ExportBrand` (`internal/model/user_brand.go`) uses snake_case JSON tags matching frontend `ExportBrand` (`lib/api.ts`). ✓
-- `BrandUpdateReq` (handler) matches `BrandUpdateInput` (frontend). ✓
-- `validateBrandUpdate`, `detectImageType`, `Limiter.Allow`, `RequireUserID` — all named consistently across test (Task 1, 3) and impl (Task 2, 5). ✓
+- Backend `ExportBrand` (`internal/model/user_brand.go`) uses snake_case JSON tags matching frontend `ExportBrand` (`lib/api.ts`). [OK]
+- `BrandUpdateReq` (handler) matches `BrandUpdateInput` (frontend). [OK]
+- `validateBrandUpdate`, `detectImageType`, `Limiter.Allow`, `RequireUserID` — all named consistently across test (Task 1, 3) and impl (Task 2, 5). [OK]
 - `requireUserID` → `RequireUserID` rename in Task 5 Step 3 is explicit, won't drift.
 
 **Test naming:**

@@ -18,15 +18,15 @@
 }
 
 .ui-toast__item--success {
-  border-color: rgba(76, 175, 125, 0.34);
+  border-color: rgba(88, 127, 82, 0.34);
 }
 
 .ui-toast__item--error {
-  border-color: rgba(224, 92, 75, 0.34);
+  border-color: rgba(184, 93, 80, 0.34);
 }
 
 .ui-toast__item--info {
-  border-color: rgba(91, 155, 213, 0.34);
+  border-color: rgba(201, 168, 76, 0.34);
 }
 
 @media (max-width: 640px) {

@@ -131,8 +131,8 @@ const AlgoConfigPage: React.FC = () => {
           disabled={reloading}
           style={{
             padding: '8px 16px',
-            background: 'var(--color-primary, #7c6f64)',
-            color: '#fff',
+            background: 'var(--color-primary, var(--admin-primary))',
+            color: '#fffdf8',
             border: 'none',
             borderRadius: '6px',
             cursor: reloading ? 'not-allowed' : 'pointer',
@@ -147,11 +147,11 @@ const AlgoConfigPage: React.FC = () => {
       <section style={{ marginBottom: '40px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>吉凶判定参数</h3>
         {loadingParams ? (
-          <p style={{ color: 'var(--color-muted, #888)' }}>加载中...</p>
+          <p style={{ color: 'var(--color-muted, var(--admin-text-muted))' }}>加载中...</p>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
-              <tr style={{ background: 'var(--color-surface, #f5f0eb)', textAlign: 'left' }}>
+              <tr style={{ background: 'var(--color-surface, var(--admin-bg-soft))', textAlign: 'left' }}>
                 <th style={{ padding: '10px 12px', fontWeight: 600 }}>参数</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600 }}>当前值</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600 }}>来源</th>
@@ -160,12 +160,12 @@ const AlgoConfigPage: React.FC = () => {
             </thead>
             <tbody>
               {params.map((p) => (
-                <tr key={p.key} style={{ borderBottom: '1px solid var(--color-border, #e8e0d8)' }}>
+                <tr key={p.key} style={{ borderBottom: '1px solid var(--color-border, var(--admin-border))' }}>
                   <td style={{ padding: '10px 12px' }}>
                     <div style={{ fontWeight: 500 }}>{PARAM_LABELS[p.key] || p.key}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--color-muted, #888)', marginTop: '2px' }}>{p.key}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--color-muted, var(--admin-text-muted))', marginTop: '2px' }}>{p.key}</div>
                     {PARAM_DESCRIPTIONS[p.key] && (
-                      <div style={{ fontSize: '12px', color: 'var(--color-muted, #aaa)', marginTop: '2px' }}>{PARAM_DESCRIPTIONS[p.key]}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--color-muted, var(--admin-text-secondary))', marginTop: '2px' }}>{PARAM_DESCRIPTIONS[p.key]}</div>
                     )}
                   </td>
                   <td style={{ padding: '10px 12px' }}>
@@ -174,7 +174,7 @@ const AlgoConfigPage: React.FC = () => {
                         <select
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px' }}
+                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, var(--admin-text-secondary))', borderRadius: '4px' }}
                           autoFocus
                         >
                           {SELECT_OPTIONS[p.key].map((opt) => (
@@ -185,7 +185,7 @@ const AlgoConfigPage: React.FC = () => {
                         <input
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px', width: '80px' }}
+                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, var(--admin-text-secondary))', borderRadius: '4px', width: '80px' }}
                           autoFocus
                         />
                       )
@@ -198,8 +198,8 @@ const AlgoConfigPage: React.FC = () => {
                       padding: '2px 8px',
                       borderRadius: '12px',
                       fontSize: '12px',
-                      background: p.source === 'db' ? '#e8f5e9' : '#f5f5f5',
-                      color: p.source === 'db' ? '#2e7d32' : '#666',
+                      background: p.source === 'db' ? 'rgba(var(--admin-success-rgb), 0.12)' : 'var(--admin-bg-soft)',
+                      color: p.source === 'db' ? 'var(--admin-success)' : 'var(--admin-text-faint)',
                     }}>
                       {p.source === 'db' ? '数据库' : '默认值'}
                     </span>
@@ -210,13 +210,13 @@ const AlgoConfigPage: React.FC = () => {
                         <button
                           onClick={() => handleSaveParam(p.key)}
                           disabled={savingKey === p.key}
-                          style={{ padding: '4px 10px', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          style={{ padding: '4px 10px', background: 'var(--admin-success)', color: '#fffdf8', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                         >
                           {savingKey === p.key ? '...' : '保存'}
                         </button>
                         <button
                           onClick={() => setEditingKey(null)}
-                          style={{ padding: '4px 10px', background: '#e0e0e0', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          style={{ padding: '4px 10px', background: 'var(--admin-text-secondary)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                         >
                           取消
                         </button>
@@ -224,7 +224,7 @@ const AlgoConfigPage: React.FC = () => {
                     ) : (
                       <button
                         onClick={() => { setEditingKey(p.key); setEditValue(p.value) }}
-                        style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px', cursor: 'pointer' }}
+                        style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--color-border, var(--admin-text-secondary))', borderRadius: '4px', cursor: 'pointer' }}
                       >
                         编辑
                       </button>
@@ -247,11 +247,11 @@ const AlgoConfigPage: React.FC = () => {
               onClick={() => { setActiveGan(gan); setEditingTiaohou(null) }}
               style={{
                 padding: '6px 14px',
-                border: '1px solid var(--color-border, #ccc)',
+                border: '1px solid var(--color-border, var(--admin-text-secondary))',
                 borderRadius: '6px',
                 cursor: 'pointer',
-                background: activeGan === gan ? 'var(--color-primary, #7c6f64)' : 'transparent',
-                color: activeGan === gan ? '#fff' : 'inherit',
+                background: activeGan === gan ? 'var(--color-primary, var(--admin-primary))' : 'transparent',
+                color: activeGan === gan ? '#fffdf8' : 'inherit',
                 fontWeight: activeGan === gan ? 600 : 400,
               }}
             >
@@ -261,11 +261,11 @@ const AlgoConfigPage: React.FC = () => {
         </div>
 
         {loadingTiaohou ? (
-          <p style={{ color: 'var(--color-muted, #888)' }}>加载中...</p>
+          <p style={{ color: 'var(--color-muted, var(--admin-text-muted))' }}>加载中...</p>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
-              <tr style={{ background: 'var(--color-surface, #f5f0eb)', textAlign: 'left' }}>
+              <tr style={{ background: 'var(--color-surface, var(--admin-bg-soft))', textAlign: 'left' }}>
                 <th style={{ padding: '10px 12px', fontWeight: 600 }}>月支</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600 }}>喜用天干</th>
                 <th style={{ padding: '10px 12px', fontWeight: 600 }}>原文释义</th>
@@ -277,7 +277,7 @@ const AlgoConfigPage: React.FC = () => {
                 const rowKey = `${row.DayGan}_${row.MonthZhi}`
                 const isEditing = editingTiaohou === rowKey
                 return (
-                  <tr key={rowKey} style={{ borderBottom: '1px solid var(--color-border, #e8e0d8)', verticalAlign: 'top' }}>
+                  <tr key={rowKey} style={{ borderBottom: '1px solid var(--color-border, var(--admin-border))', verticalAlign: 'top' }}>
                     <td style={{ padding: '10px 12px', fontWeight: 500 }}>{row.MonthZhi}</td>
                     <td style={{ padding: '10px 12px' }}>
                       {isEditing ? (
@@ -285,7 +285,7 @@ const AlgoConfigPage: React.FC = () => {
                           value={editXi}
                           onChange={(e) => setEditXi(e.target.value)}
                           placeholder="如: 丙,癸"
-                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px', width: '100px' }}
+                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, var(--admin-text-secondary))', borderRadius: '4px', width: '100px' }}
                         />
                       ) : (
                         <span>{row.XiElements}</span>
@@ -297,10 +297,10 @@ const AlgoConfigPage: React.FC = () => {
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
                           rows={3}
-                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px', width: '100%', resize: 'vertical' }}
+                          style={{ padding: '4px 8px', border: '1px solid var(--color-border, var(--admin-text-secondary))', borderRadius: '4px', width: '100%', resize: 'vertical' }}
                         />
                       ) : (
-                        <span style={{ whiteSpace: 'pre-wrap', fontSize: '13px', color: 'var(--color-muted, #666)' }}>{row.Text || '-'}</span>
+                        <span style={{ whiteSpace: 'pre-wrap', fontSize: '13px', color: 'var(--color-muted, var(--admin-text-faint))' }}>{row.Text || '-'}</span>
                       )}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
@@ -309,13 +309,13 @@ const AlgoConfigPage: React.FC = () => {
                           <button
                             onClick={() => handleSaveTiaohou(row)}
                             disabled={savingTiaohou}
-                            style={{ padding: '4px 10px', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            style={{ padding: '4px 10px', background: 'var(--admin-success)', color: '#fffdf8', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                           >
                             {savingTiaohou ? '...' : '保存'}
                           </button>
                           <button
                             onClick={() => setEditingTiaohou(null)}
-                            style={{ padding: '4px 10px', background: '#e0e0e0', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            style={{ padding: '4px 10px', background: 'var(--admin-text-secondary)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                           >
                             取消
                           </button>
@@ -323,7 +323,7 @@ const AlgoConfigPage: React.FC = () => {
                       ) : (
                         <button
                           onClick={() => { setEditingTiaohou(rowKey); setEditXi(row.XiElements); setEditText(row.Text) }}
-                          style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--color-border, #ccc)', borderRadius: '4px', cursor: 'pointer' }}
+                          style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--color-border, var(--admin-text-secondary))', borderRadius: '4px', cursor: 'pointer' }}
                         >
                           编辑
                         </button>

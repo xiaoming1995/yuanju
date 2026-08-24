@@ -1038,7 +1038,7 @@ function InlineScoreOverviewLegacy(_props: { scores: CompatibilityDimensionScore
 }
 ```
 
-> ⚠️ This file deliberately throws — Task 12 must precede Task 13 (wiring). The throw is intentional, ensures dependency ordering, and is removed by Task 12.
+> [WARN] This file deliberately throws — Task 12 must precede Task 13 (wiring). The throw is intentional, ensures dependency ordering, and is removed by Task 12.
 
 - [ ] **Step 4: Implement `SectionVerdict.css`**
 
@@ -1323,7 +1323,7 @@ Example (illustrative — apply to all 3 blocks):
 cd frontend && npm run build && node --test tests/
 ```
 
-Expected: build PASS. ⚠️ Existing `compatibility-decision-dashboard.test.mjs` may start failing because its assertion `assert.ok(dashboard > -1)` may pass (we kept the panel under flag-off) but the relative ordering changed. **Inspect the failure** — if it asserts source order, those assertions still pass because both the new and old paths are present in source. If something fails, defer to Task 22 (test update batch).
+Expected: build PASS. [WARN] Existing `compatibility-decision-dashboard.test.mjs` may start failing because its assertion `assert.ok(dashboard > -1)` may pass (we kept the panel under flag-off) but the relative ordering changed. **Inspect the failure** — if it asserts source order, those assertions still pass because both the new and old paths are present in source. If something fails, defer to Task 22 (test update batch).
 
 - [ ] **Step 4: Manual smoke**
 
@@ -1447,7 +1447,7 @@ Expected: ≥ 11 (one for each summary field used in the original).
 
 Delete `function PersonalityFitPanel(...)` (lines 563-600) and `function PersonalityPointList(...)` (lines 548-562) in `frontend/src/pages/CompatibilityResultPage.tsx`.
 
-⚠️ DO NOT yet remove the JSX call `<PersonalityFitPanel ... />`. We'll do that in Task 19 when wiring `SectionDeepAnalysis`. To prevent a build break in the interim, **at the same time**, change the JSX call site to use a temporary import alias:
+[WARN] DO NOT yet remove the JSX call `<PersonalityFitPanel ... />`. We'll do that in Task 19 when wiring `SectionDeepAnalysis`. To prevent a build break in the interim, **at the same time**, change the JSX call site to use a temporary import alias:
 
 ```ts
 // At top of page imports:

@@ -33,9 +33,9 @@
 ## Task 1: 数据库迁移 — 新增 token_usage_logs 表
 
 **Files:**
-- Modify: `backend/pkg/database/database.go`（在末尾 `log.Println("✅ 数据库迁移完成")` 之前追加）
+- Modify: `backend/pkg/database/database.go`（在末尾 `log.Println("[OK] 数据库迁移完成")` 之前追加）
 
-- [ ] **Step 1: 在 `database.go` 末尾（`log.Println("✅ 数据库迁移完成")` 之前）追加迁移代码**
+- [ ] **Step 1: 在 `database.go` 末尾（`log.Println("[OK] 数据库迁移完成")` 之前）追加迁移代码**
 
 ```go
 // 增量迁移 (token-usage-tracking)：用户 AI token 用量统计
@@ -598,7 +598,7 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 			if json.Unmarshal([]byte(dataStr), &event) == nil && len(event.Choices) > 0 {
 				// 推理模型的思考阶段：通知前端正在推理
 				if event.Choices[0].Delta.ReasoningContent != "" && !thinkingNotified && onThinking != nil {
-					log.Printf("[AIStream T+%dms] 🧠 推理模型开始思考阶段", time.Since(t0).Milliseconds())
+					log.Printf("[AIStream T+%dms]  推理模型开始思考阶段", time.Since(t0).Milliseconds())
 					_ = onThinking()
 					thinkingNotified = true
 				}
@@ -607,7 +607,7 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 				if chunk != "" {
 					chunkNum++
 					if chunkNum == 1 {
-						log.Printf("[AIStream T+%dms] ✅ 首个文字 chunk 到达: %q", time.Since(t0).Milliseconds(), chunk[:min(len(chunk), 20)])
+						log.Printf("[AIStream T+%dms] [OK] 首个文字 chunk 到达: %q", time.Since(t0).Milliseconds(), chunk[:min(len(chunk), 20)])
 					}
 					contentBuilder.WriteString(chunk)
 					if cbErr := callback(chunk); cbErr != nil {
@@ -627,7 +627,7 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 				if len(event.Choices) > 0 {
 					// 推理模型的思考阶段：通知前端正在推理
 					if event.Choices[0].Delta.ReasoningContent != "" && !thinkingNotified && onThinking != nil {
-						log.Printf("[AIStream T+%dms] 🧠 推理模型开始思考阶段", time.Since(t0).Milliseconds())
+						log.Printf("[AIStream T+%dms]  推理模型开始思考阶段", time.Since(t0).Milliseconds())
 						_ = onThinking()
 						thinkingNotified = true
 					}
@@ -636,7 +636,7 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 					if chunk != "" {
 						chunkNum++
 						if chunkNum == 1 {
-							log.Printf("[AIStream T+%dms] ✅ 首个文字 chunk 到达: %q", time.Since(t0).Milliseconds(), chunk[:min(len(chunk), 20)])
+							log.Printf("[AIStream T+%dms] [OK] 首个文字 chunk 到达: %q", time.Since(t0).Milliseconds(), chunk[:min(len(chunk), 20)])
 						}
 						contentBuilder.WriteString(chunk)
 						if cbErr := callback(chunk); cbErr != nil {
@@ -1693,7 +1693,7 @@ git commit -m "feat(ui): 注册 Token 用量统计路由，添加侧边栏入口
 
 - [ ] `go build ./...` 无错误
 - [ ] `go test ./...` 无失败
-- [ ] 后端启动时控制台无迁移错误（`✅ 数据库迁移完成`）
+- [ ] 后端启动时控制台无迁移错误（`[OK] 数据库迁移完成`）
 - [ ] Admin 面板侧边栏有"Token 用量统计"入口
 - [ ] 日期筛选 + 查询返回正确数据
 - [ ] 明细抽屉可打开并分页

@@ -642,7 +642,7 @@ Wait for `VITE ready` line. Open `http://localhost:5173` in a browser; log in if
 
 - [ ] **Step 2: Walk through spec §6 verification points 1-9**
 
-For each, mark a "✅" or "❌ <note>" inline below as you go. The full criteria list is in `docs/superpowers/specs/2026-05-28-compat-chart-picker-ux-design.md` §6.
+For each, mark a "[OK]" or "[NO] <note>" inline below as you go. The full criteria list is in `docs/superpowers/specs/2026-05-28-compat-chart-picker-ux-design.md` §6.
 
 1. **Unnamed chart legibility** — pick a chart without a display_name in the picker. Title should read `男命 · 1996年2月8日` form, NOT `庚午 庚子`. [ ]
 2. **Gender filter functional** — toggle `全部 / 男命 / 女命` chips; list narrows accordingly. [ ]
@@ -656,7 +656,7 @@ For each, mark a "✅" or "❌ <note>" inline below as you go. The full criteria
 
 - [ ] **Step 3: Stop the dev server and commit the plan completion**
 
-After all 9 are ✅, stop the dev server (`Ctrl-C`). If any are ❌, do NOT proceed — re-open the affected task, fix, re-verify.
+After all 9 are [OK], stop the dev server (`Ctrl-C`). If any are [NO], do NOT proceed — re-open the affected task, fix, re-verify.
 
 When all green:
 ```bash

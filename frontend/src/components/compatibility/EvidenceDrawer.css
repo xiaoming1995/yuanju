@@ -132,8 +132,8 @@
 .compatibility-claim-card[open] {
   border-color: rgba(201, 168, 76, 0.26);
   background:
-    linear-gradient(180deg, rgba(201, 168, 76, 0.06), rgba(255, 255, 255, 0.035) 50%),
-    rgba(18, 23, 36, 0.9);
+    linear-gradient(180deg, rgba(201, 168, 76, 0.06), rgba(255, 255, 255, 0.03) 50%),
+    rgba(26, 31, 46, 0.92);
 }
 
 .compatibility-claim-toggle {

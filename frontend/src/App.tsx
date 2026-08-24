@@ -22,12 +22,15 @@ const PastEventsPage = lazy(() => import('./pages/PastEventsPage'))
 const CompatibilityPage = lazy(() => import('./pages/CompatibilityPage'))
 const CompatibilityHistoryPage = lazy(() => import('./pages/CompatibilityHistoryPage'))
 const CompatibilityResultPage = lazy(() => import('./pages/CompatibilityResultPage'))
+const ArticlesPage = lazy(() => import('./pages/ArticlesPage'))
+const ArticleDetailPage = lazy(() => import('./pages/ArticleDetailPage'))
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'))
 const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage'))
 const AdminLLMPage = lazy(() => import('./pages/admin/AdminLLMPage'))
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
 const AdminAILogsPage = lazy(() => import('./pages/admin/AdminAILogsPage'))
 const AdminChartsPage = lazy(() => import('./pages/admin/AdminChartsPage'))
+const AdminChartDetailPage = lazy(() => import('./pages/admin/AdminChartDetailPage'))
 const AdminCompatPage = lazy(() => import('./pages/admin/AdminCompatPage'))
 const AdminCelebritiesPage = lazy(() => import('./pages/admin/AdminCelebritiesPage'))
 const PromptSettings = lazy(() => import('./pages/admin/PromptSettings'))
@@ -35,6 +38,8 @@ const AlgoConfigPage = lazy(() => import('./pages/admin/AlgoConfigPage'))
 const CleanupConfigPage = lazy(() => import('./pages/admin/CleanupConfigPage'))
 const TokenUsagePage = lazy(() => import('./pages/admin/TokenUsagePage'))
 const ShenshaAnnotationsPage = lazy(() => import('./pages/admin/ShenshaAnnotationsPage'))
+const AdminArticlesPage = lazy(() => import('./pages/admin/AdminArticlesPage'))
+const AdminArticleDetailPage = lazy(() => import('./pages/admin/AdminArticleDetailPage'))
 
 // 懒加载 chunk 下载期间的占位（复用全局 .skeleton 样式）
 function RouteFallback() {
@@ -77,6 +82,8 @@ export default function App() {
               <Route path="/compatibility" element={<><Navbar /><BottomNav /><CompatibilityPage /></>} />
               <Route path="/compatibility/history" element={<><Navbar /><BottomNav /><CompatibilityHistoryPage /></>} />
               <Route path="/compatibility/:id" element={<><Navbar /><BottomNav /><CompatibilityResultPage /></>} />
+              <Route path="/articles" element={<><Navbar /><BottomNav /><ArticlesPage /></>} />
+              <Route path="/articles/:id" element={<><Navbar /><BottomNav /><ArticleDetailPage /></>} />
 
               {/* Admin 路由（独立布局，无 Navbar）*/}
               <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -89,6 +96,7 @@ export default function App() {
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="celebrities" element={<AdminCelebritiesPage />} />
                 <Route path="charts" element={<AdminChartsPage />} />
+                <Route path="charts/:chartId" element={<AdminChartDetailPage />} />
                 <Route path="compatibility" element={<AdminCompatPage />} />
                 <Route path="ai-logs" element={<AdminAILogsPage />} />
                 <Route path="prompts" element={<PromptSettings />} />
@@ -96,6 +104,8 @@ export default function App() {
                 <Route path="cleanup-config" element={<CleanupConfigPage />} />
                 <Route path="token-usage" element={<TokenUsagePage />} />
                 <Route path="shensha-annotations" element={<ShenshaAnnotationsPage />} />
+                <Route path="articles" element={<AdminArticlesPage />} />
+                <Route path="articles/:id" element={<AdminArticleDetailPage />} />
               </Route>
             </Routes>
             </Suspense>

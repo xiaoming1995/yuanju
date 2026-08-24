@@ -126,7 +126,7 @@
   margin: 0;
   font-size: var(--font-size-card-title);
   font-weight: 700;
-  color: #2a1a0a;
+  color: #20322f;
 }
 .compat-share-modal-close {
   background: transparent;
@@ -138,7 +138,7 @@
   padding: 0 4px;
 }
 .compat-share-modal-close:hover {
-  color: #2a1a0a;
+  color: #20322f;
 }
 
 .compat-share-modal-preview {

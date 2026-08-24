@@ -31,6 +31,11 @@ type CalculateInput struct {
 	DisplayName  string  `json:"display_name"`                                        // 档案称呼（可选，≤20 字符，由 normalizeChartDisplayName 校验）
 }
 
+var (
+	getBaziChartByIDForPastEventsExport     = repository.GetChartByID
+	generatePastEventsExportForChartHandler = service.GeneratePastEventsExportForChart
+)
+
 // Calculate 计算八字（无需登录，但若是已登录用户起盘，则自动落库保存历史）
 func Calculate(c *gin.Context) {
 	var input CalculateInput
@@ -65,14 +70,14 @@ func Calculate(c *gin.Context) {
 
 	// 无论是否登录（游客为 nil），均强制起盘落库，以便 Admin 观测真实流量
 	chart := &model.BaziChart{
-		UserID:     ptrUserID,
-		BirthYear:  input.Year,
-		BirthMonth: input.Month,
-		BirthDay:   input.Day,
-		BirthHour:  input.Hour,
-		Gender:     input.Gender,
+		UserID:      ptrUserID,
+		BirthYear:   input.Year,
+		BirthMonth:  input.Month,
+		BirthDay:    input.Day,
+		BirthHour:   input.Hour,
+		Gender:      input.Gender,
 		DisplayName: displayName,
-		YearGan:    result.YearGan, YearZhi: result.YearZhi,
+		YearGan:     result.YearGan, YearZhi: result.YearZhi,
 		MonthGan: result.MonthGan, MonthZhi: result.MonthZhi,
 		DayGan: result.DayGan, DayZhi: result.DayZhi,
 		HourGan: result.HourGan, HourZhi: result.HourZhi,
@@ -197,7 +202,7 @@ func GenerateReportStream(c *gin.Context) {
 	err = service.GenerateAIReportStream(chart.ID, result, &userIDStr, func(chunk string) error {
 		chunkCount++
 		if chunkCount == 1 {
-			log.Printf("[Stream T+%dms] ✅ 收到第 1 个 chunk (长度=%d)", time.Since(t0).Milliseconds(), len(chunk))
+			log.Printf("[Stream T+%dms] 收到第 1 个 chunk (长度=%d)", time.Since(t0).Milliseconds(), len(chunk))
 		} else if chunkCount%50 == 0 {
 			log.Printf("[Stream T+%dms] 已接收 %d 个 chunks", time.Since(t0).Milliseconds(), chunkCount)
 		}
@@ -207,7 +212,7 @@ func GenerateReportStream(c *gin.Context) {
 		return nil
 	}, func() error {
 		// 推理模型进入思考阶段时通知前端
-		log.Printf("[Stream T+%dms] 🧠 发送 thinking 事件到前端", time.Since(t0).Milliseconds())
+		log.Printf("[Stream T+%dms] 发送 thinking 事件到前端", time.Since(t0).Milliseconds())
 		fmt.Fprintf(c.Writer, "event: thinking\ndata: {}\n\n")
 		c.Writer.Flush()
 		return nil
@@ -496,6 +501,31 @@ func HandlePastEventsYears(c *gin.Context) {
 		return
 	}
 	resp, err := service.GeneratePastEventsYears(chartID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// HandlePastEventsExport 只读返回当前命盘已缓存的过往事件导出数据。
+func HandlePastEventsExport(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+	chart, err := getBaziChartByIDForPastEventsExport(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return
+	}
+	userID, _ := c.Get("user_id")
+	if chart.UserID == nil || *chart.UserID != userID.(string) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return
+	}
+	resp, err := generatePastEventsExportForChartHandler(chart)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

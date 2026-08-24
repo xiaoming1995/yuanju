@@ -7,6 +7,7 @@ import (
 	"log"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 	"text/template"
 	"time"
@@ -26,6 +27,49 @@ var (
 	getChartResultJSON  = repository.GetChartResultJSON
 	saveChartResultJSON = repository.SaveChartResultJSON
 )
+
+const dayunSummaryPromptTpl = `你是一位资深八字命理师。请只为下列单段大运撰写整体总结和该段 10 年的逐年评述。
+
+命主：性别{{.Gender}} / 日干{{.DayGan}}
+原局：{{.NatalSummary}}
+{{if .StrengthDetail}}身强弱：{{.StrengthDetail}}{{end}}
+
+当前大运：{{.DayunInfo}}
+{{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
+
+本段大运 10 年的算法信号摘要（JSON）。每年包含 signals[type/evidence/polarity/source]、ten_god_power，以及 AI 润色参考 fallback_narrative：
+{{.YearsData}}
+{{if .LifeStageHint}}
+人生阶段提示：{{.LifeStageHint}}{{end}}
+
+输出要求：
+1. themes：2-4 个主题词（如"事业↑""感情动荡""贵人扶持"；读书期可用"学业突破""同窗情谊""叛逆"）
+2. summary：80-120 字，综合评述这 10 年整体走势、关键转折、注意事项；若前5年与后5年信号明显不同，要点出早段/后段气质差异
+3. years：长度等于上方算法信号 JSON 的年份数，与年份顺序一一对应。每个元素：
+   {"year": 数字年, "ganzhi": "干支", "narrative": "..."}
+
+   narrative 撰写规则：
+   - 100-180 字，3-5 句中文
+   - 必须基于该年 signals[].evidence 和 polarity 写，不得编造未在 evidence 中出现的神煞、用神位事件或具体人生事件
+   - 把命理依据翻译成普通用户能听懂的人话：说明这条依据为什么会影响现实、现实里更可能表现在哪些场景、用户该如何处理
+   - fallback_narrative 是算法生成的白话兜底，只作为 AI 润色参考；不得照抄 fallback_narrative，也不要照抄 evidence 原文
+   - 第一句必须先写现实场景，不要先写命理术语。先讲用户能感知到的现实变化，再补一句命理依据
+   - 禁止以「流年」「伏吟」「反吟」「三合」「三会」「六合」「天克地冲」「比肩」「劫财」「食神」「伤官」「正财」「偏财」「正官」「七杀」「正印」「偏印」「白虎」「驿马」「桃花」「天乙」开头
+   - 可以少量使用 evidence 中已有的关键术语，但术语后必须立刻解释成白话；如果不用术语也能讲清楚，优先使用普通表达
+   - 不要写成命理术语清单，也不要逐条罗列 evidence；正文要像对用户解释一年的现实感受和应对方式
+   - 结合极性写倾向：吉应期写助力、机会或缓冲，凶应期写压力、代价或需要防范的边界，中性应期写变化和观察点
+   - 读书期年份（age<18）改写为学业、同学、家庭、性格塑造语义，不出现「事业/婚恋/财运」等成人词
+   - 每一年都必须写 narrative，禁止输出空字符串；凡 evidence 数组非空，narrative 就必须有内容
+   - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
+   - 不同年份的 narrative 之间应有差异化措辞，禁止把多年写成同一段
+   - 弱信号年安全措辞：若该年 evidence 仅含"用神基底"或基底+1 个弱信号，可写为「该年信号较少，整体更像顺着大运底色推进」，但仍要结合 polarity 解释偏顺、偏压或中性
+   - 特别提醒（命理术语易混淆）：
+     · 伏吟 ≠ 反吟：伏吟是流年与原局某柱完全相同；反吟是天克地冲。只能在 evidence 显式出现"伏吟"或"反吟"时使用对应词汇。
+     · 三合 ≠ 三会：三合是申子辰类水局；三会是亥子丑类方局。evidence 写哪个就用哪个。
+     · "受冲""受刑""用神位""忌神位" 这类结构词只能在 evidence 已用时引用，不能为修饰文字而加。
+
+4. 严格输出以下 JSON，不要 Markdown 围栏：
+{"themes":["主题1","主题2"],"summary":"...","years":[{"year":2005,"ganzhi":"乙酉","narrative":"..."},{"year":2006,"ganzhi":"丙戌","narrative":"..."}]}`
 
 // buildLifeStageHint 按"该段大运 age<18 的年份占比"生成 prompt 提示词
 // youngCount=0 → 空（成人期不附加）
@@ -361,7 +405,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 	var stepTwoPrompt string
 	if hasSystemMingge {
 		stepOnePrompt = fmt.Sprintf("[第一步：三模块综合解释（在心中完成，不要在报告中输出计算过程）]\n"+
-			"⚠️ 必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
+			"注意：必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
 			"a. 【调候判断 — 主导依据】\n"+
 			"   月支=%s%s，主气十神=%s\n"+
 			"   读取[调候用神-穷通宝鉴精算]区块，判断命局寒暖燥湿是否平衡；\n"+
@@ -398,7 +442,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 			"若存在其它结构，只能写为“兼带某某倾向”或“局中亦见某某气象”，不得覆盖系统主格。\n\n"
 	} else {
 		stepOnePrompt = fmt.Sprintf("[第一步：三模块加权推断（在心中完成，不要在报告中输出计算过程）]\n"+
-			"⚠️ 必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
+			"注意：必须完整执行以下四步，不可合并或跳过任何模块。\n\n"+
 			"a. 【调候用神评分 — 权重65票】\n"+
 			"   月支=%s%s，主气十神=%s\n"+
 			"   读取[调候用神-穷通宝鉴精算]区块的精算数据和大运征兆；\n"+
@@ -1105,6 +1149,71 @@ type DayunMetaItem struct {
 	TenGodPower bazi.TenGodPowerProfile `json:"ten_god_power,omitempty"`
 }
 
+type PastEventsExportChart struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name,omitempty"`
+	BirthYear   int    `json:"birth_year"`
+	BirthMonth  int    `json:"birth_month"`
+	BirthDay    int    `json:"birth_day"`
+	BirthHour   int    `json:"birth_hour"`
+	Gender      string `json:"gender"`
+	YearGan     string `json:"year_gan"`
+	YearZhi     string `json:"year_zhi"`
+	MonthGan    string `json:"month_gan"`
+	MonthZhi    string `json:"month_zhi"`
+	DayGan      string `json:"day_gan"`
+	DayZhi      string `json:"day_zhi"`
+	HourGan     string `json:"hour_gan"`
+	HourZhi     string `json:"hour_zhi"`
+}
+
+type PastEventsExportYear struct {
+	Year            int      `json:"year"`
+	Age             int      `json:"age"`
+	GanZhi          string   `json:"gan_zhi"`
+	Narrative       string   `json:"narrative"`
+	Signals         []string `json:"signals,omitempty"`
+	EvidenceSummary []string `json:"evidence_summary,omitempty"`
+	YearInDayun     int      `json:"year_in_dayun,omitempty"`
+	DayunPhase      string   `json:"dayun_phase,omitempty"`
+}
+
+type PastEventsExportSegment struct {
+	DayunIndex  int                     `json:"dayun_index"`
+	GanZhi      string                  `json:"gan_zhi"`
+	StartAge    int                     `json:"start_age"`
+	EndAge      int                     `json:"end_age"`
+	StartYear   int                     `json:"start_year"`
+	EndYear     int                     `json:"end_year"`
+	Themes      []string                `json:"themes,omitempty"`
+	Summary     string                  `json:"summary"`
+	Years       []PastEventsExportYear  `json:"years"`
+	Model       string                  `json:"model,omitempty"`
+	CachedAt    time.Time               `json:"cached_at"`
+	TenGodPower bazi.TenGodPowerProfile `json:"ten_god_power,omitempty"`
+}
+
+type PastEventsExportResponse struct {
+	Chart     PastEventsExportChart     `json:"chart"`
+	Segments  []PastEventsExportSegment `json:"segments"`
+	Generated string                    `json:"generated_by"`
+}
+
+type cachedPastEventsExportYear struct {
+	Year        int    `json:"year"`
+	GanZhi      string `json:"ganzhi"`
+	GanZhiAlias string `json:"gan_zhi"`
+	Narrative   string `json:"narrative"`
+}
+
+type pastEventsExportYearMeta struct {
+	Age             int
+	Signals         []string
+	EvidenceSummary []string
+	YearInDayun     int
+	DayunPhase      string
+}
+
 // GeneratePastEventsYears 根据算法 + 模板生成所有年份叙述（毫秒级，无 AI）
 func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 	chart, err := repository.GetChartByID(chartID)
@@ -1144,10 +1253,7 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 
 	years := make([]PastEventsYearItem, 0, len(yearSignals))
 	for _, ys := range yearSignals {
-		var narrative string
-		if mode == "template" {
-			narrative = bazi.RenderYearNarrative(ys)
-		}
+		narrative := renderPastEventsStageOneNarrative(mode, ys)
 		years = append(years, PastEventsYearItem{
 			Year:            ys.Year,
 			Age:             ys.Age,
@@ -1168,6 +1274,183 @@ func GeneratePastEventsYears(chartID string) (*PastEventsYearsResponse, error) {
 		DayunMeta: dayunMeta,
 		Generated: mode + "-yearly",
 	}, nil
+}
+
+// GeneratePastEventsExport 读取已缓存的过往事件大运批语并组合导出所需元数据。
+// 该函数是只读导出路径，不能调用任何 LLM 生成逻辑。
+func GeneratePastEventsExport(chartID string) (*PastEventsExportResponse, error) {
+	chart, err := repository.GetChartByID(chartID)
+	if err != nil || chart == nil {
+		return nil, fmt.Errorf("未找到排盘记录")
+	}
+	return GeneratePastEventsExportForChart(chart)
+}
+
+func GeneratePastEventsExportForChart(chart *model.BaziChart) (*PastEventsExportResponse, error) {
+	if chart == nil {
+		return nil, fmt.Errorf("chart 为 nil")
+	}
+	result, err := LoadOrCalculateResult(chart)
+	if err != nil {
+		return nil, err
+	}
+	cached, err := repository.ListDayunSummaries(chart.ID)
+	if err != nil {
+		return nil, err
+	}
+	return BuildPastEventsExportData(chart, result, cached)
+}
+
+func BuildPastEventsExportData(chart *model.BaziChart, result *bazi.BaziResult, cached []model.AIDayunSummary) (*PastEventsExportResponse, error) {
+	if chart == nil {
+		return nil, fmt.Errorf("chart 为 nil")
+	}
+	if result == nil {
+		return nil, fmt.Errorf("result 为 nil")
+	}
+
+	localResult := *result
+	classical := bazi.ComputeClassicalYongshen(result)
+	localResult.Yongshen = classical.WuxingSet
+	localResult.Jishen = classical.JishenSet
+	localResult.FavorableShishen = nil
+	localResult.AdverseShishen = nil
+	localResult.ShishenConfidence = ""
+	result = &localResult
+
+	metaByIndex := make(map[int]DayunMetaItem, len(result.Dayun))
+	yearMetaByDayun := make(map[int]map[int]pastEventsExportYearMeta, len(result.Dayun))
+	for _, dy := range result.Dayun {
+		gz := dy.Gan + dy.Zhi
+		dayunPower := bazi.BuildDayunTenGodPower(result, dy)
+		metaByIndex[dy.Index] = DayunMetaItem{
+			Index:       dy.Index,
+			GanZhi:      gz,
+			StartAge:    dy.StartAge,
+			EndAge:      dy.StartAge + 9,
+			StartYr:     dy.StartYear,
+			EndYr:       dy.EndYear,
+			TenGodPower: dayunPower,
+		}
+		yearMetaByDayun[dy.Index] = make(map[int]pastEventsExportYearMeta, len(dy.LiuNian))
+		for i, ln := range dy.LiuNian {
+			if ln.Age < 1 {
+				continue
+			}
+			lnRunes := []rune(ln.GanZhi)
+			if len(lnRunes) < 2 {
+				continue
+			}
+			ctx, _ := bazi.NewYearSignalContextForDayunIndex(i, dy.JinBuHuan)
+			yearSignals := bazi.YearSignals{
+				Year:            ln.Year,
+				Age:             ln.Age,
+				GanZhi:          ln.GanZhi,
+				DayunGanZhi:     gz,
+				YearInDayun:     ctx.YearInDayun,
+				DayunPhase:      ctx.DayunPhase,
+				DayunPhaseLevel: ctx.DayunPhaseLevel,
+				TenGodPower:     bazi.BuildYearTenGodPower(result, dy, ln, ctx, dayunPower),
+				Signals:         bazi.GetYearEventSignalsWithContext(result, string(lnRunes[0]), string(lnRunes[1]), gz, chart.Gender, ln.Age, ctx),
+			}
+			yearMetaByDayun[dy.Index][ln.Year] = pastEventsExportYearMeta{
+				Age:             ln.Age,
+				Signals:         bazi.ExtractYearSignalTypes(yearSignals),
+				EvidenceSummary: bazi.RenderEvidenceSummary(yearSignals),
+				YearInDayun:     ctx.YearInDayun,
+				DayunPhase:      ctx.DayunPhase,
+			}
+		}
+	}
+
+	sort.Slice(cached, func(i, j int) bool {
+		return cached[i].DayunIndex < cached[j].DayunIndex
+	})
+
+	segments := make([]PastEventsExportSegment, 0, len(cached))
+	for _, c := range cached {
+		if c.Years == nil || strings.TrimSpace(c.Summary) == "" {
+			continue
+		}
+		var parsedYears []cachedPastEventsExportYear
+		if err := json.Unmarshal(*c.Years, &parsedYears); err != nil {
+			continue
+		}
+		years := make([]PastEventsExportYear, 0, len(parsedYears))
+		for _, y := range parsedYears {
+			narrative := strings.TrimSpace(y.Narrative)
+			if y.Year == 0 || narrative == "" {
+				continue
+			}
+			gz := y.GanZhi
+			if gz == "" {
+				gz = y.GanZhiAlias
+			}
+			meta := yearMetaByDayun[c.DayunIndex][y.Year]
+			years = append(years, PastEventsExportYear{
+				Year:            y.Year,
+				Age:             meta.Age,
+				GanZhi:          gz,
+				Narrative:       narrative,
+				Signals:         meta.Signals,
+				EvidenceSummary: meta.EvidenceSummary,
+				YearInDayun:     meta.YearInDayun,
+				DayunPhase:      meta.DayunPhase,
+			})
+		}
+		if len(years) == 0 {
+			continue
+		}
+		var themes []string
+		if c.Themes != nil {
+			_ = json.Unmarshal(*c.Themes, &themes)
+		}
+		meta := metaByIndex[c.DayunIndex]
+		gz := c.DayunGanZhi
+		if gz == "" {
+			gz = meta.GanZhi
+		}
+		segments = append(segments, PastEventsExportSegment{
+			DayunIndex:  c.DayunIndex,
+			GanZhi:      gz,
+			StartAge:    meta.StartAge,
+			EndAge:      meta.EndAge,
+			StartYear:   meta.StartYr,
+			EndYear:     meta.EndYr,
+			Themes:      themes,
+			Summary:     strings.TrimSpace(c.Summary),
+			Years:       years,
+			Model:       c.Model,
+			CachedAt:    c.CreatedAt,
+			TenGodPower: meta.TenGodPower,
+		})
+	}
+
+	return &PastEventsExportResponse{
+		Chart: PastEventsExportChart{
+			ID:          chart.ID,
+			DisplayName: chart.DisplayName,
+			BirthYear:   chart.BirthYear,
+			BirthMonth:  chart.BirthMonth,
+			BirthDay:    chart.BirthDay,
+			BirthHour:   chart.BirthHour,
+			Gender:      chart.Gender,
+			YearGan:     chart.YearGan,
+			YearZhi:     chart.YearZhi,
+			MonthGan:    chart.MonthGan,
+			MonthZhi:    chart.MonthZhi,
+			DayGan:      chart.DayGan,
+			DayZhi:      chart.DayZhi,
+			HourGan:     chart.HourGan,
+			HourZhi:     chart.HourZhi,
+		},
+		Segments:  segments,
+		Generated: "cached-dayun-summaries",
+	}, nil
+}
+
+func renderPastEventsStageOneNarrative(_ string, ys bazi.YearSignals) string {
+	return bazi.RenderYearNarrative(ys)
 }
 
 // DayunSummaryStreamItem SSE 流式推送的单段大运 summary + 10 年卡片
@@ -1256,21 +1539,83 @@ func fillBlankYearNarratives(parsed []parsedYearAI, signals []bazi.YearSignals, 
 	out := make([]yearOut, len(parsed))
 	for i, y := range parsed {
 		narrative := y.Narrative
+		evidenceAligned := bazi.RenderYearNarrative(signals[i])
 		if narrative != "" {
 			if ok, reason := ValidateYearNarrative(narrative, signals[i].Signals); !ok {
 				log.Printf("[fillBlankYearNarratives] dayun=%d year=%d 校验失败丢弃 narrative：%s",
 					dayunIndex, y.Year, reason)
 				narrative = ""
+			} else if shouldPreferEvidenceAlignedNarrative(narrative, evidenceAligned) {
+				log.Printf("[fillBlankYearNarratives] dayun=%d year=%d AI narrative 过泛，使用 template 依据型兜底",
+					dayunIndex, y.Year)
+				narrative = evidenceAligned
 			}
 		}
 		if narrative == "" {
-			narrative = bazi.RenderYearNarrativeWithFallback(signals[i])
+			if evidenceAligned != "" {
+				narrative = evidenceAligned
+			} else {
+				narrative = bazi.RenderYearNarrativeWithFallback(signals[i])
+			}
 			log.Printf("[fillBlankYearNarratives] dayun=%d year=%d 使用 template 兜底",
 				dayunIndex, y.Year)
 		}
 		out[i] = yearOut{Year: y.Year, GanZhi: y.GanZhi, Narrative: narrative}
 	}
 	return out
+}
+
+func shouldPreferEvidenceAlignedNarrative(generated string, evidenceAligned string) bool {
+	generated = strings.TrimSpace(generated)
+	evidenceAligned = strings.TrimSpace(evidenceAligned)
+	if generated == "" || evidenceAligned == "" {
+		return false
+	}
+	if runeCount(generated) >= runeCount(evidenceAligned)/2 && (hasConcreteNarrativeAnchor(generated) || hasPlainLanguageScenarioAnchor(generated)) {
+		return false
+	}
+	if !hasConcreteNarrativeAnchor(generated) && !hasPlainLanguageScenarioAnchor(generated) {
+		return true
+	}
+	return runeCount(generated) < 60 && runeCount(evidenceAligned) >= 100
+}
+
+func hasConcreteNarrativeAnchor(s string) bool {
+	for _, kw := range []string{
+		"冲动", "受冲", "刑", "合化", "三合", "三会", "空亡", "虚而不实",
+		"伏吟", "反吟", "夹拱", "驿马", "桃花", "白虎", "天乙", "贵人",
+		"食神", "伤官", "正财", "偏财", "正官", "七杀", "正印", "偏印", "比肩", "劫财",
+		"用神位", "忌神位", "喜神位", "双重命中", "力度倍增",
+		"亲密关系", "居住状态", "合作边界", "工作环境", "团队规则", "流程拖延", "二次确认",
+		"间接牵动", "意料之外",
+	} {
+		if strings.Contains(s, kw) {
+			return true
+		}
+	}
+	return false
+}
+
+func hasPlainLanguageScenarioAnchor(s string) bool {
+	hits := 0
+	for _, kw := range []string{
+		"同学", "朋友", "同龄", "老师", "长辈", "家人", "家庭", "学习", "考试", "学校",
+		"关系", "沟通", "摩擦", "比较", "帮助", "提醒", "计划", "承诺", "安排", "确认",
+		"情绪", "压力", "身体", "健康", "安全", "出行", "居住", "合作", "资源", "支出",
+		"节奏", "边界", "调整", "稳定", "处理", "避免", "注意", "适合",
+	} {
+		if strings.Contains(s, kw) {
+			hits++
+		}
+		if hits >= 3 {
+			return true
+		}
+	}
+	return false
+}
+
+func runeCount(s string) int {
+	return len([]rune(s))
 }
 
 // GenerateDayunSummariesStream 按大运分段调 AI 生成 themes + summary，每段独立缓存与推送
@@ -1320,60 +1665,7 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 	// 大运合化 map（gz → 描述）
 	huaheMap := bazi.CollectDayunHuaheMap(result)
 
-	// Prompt 模板（首次启动时已 seed，未 seed 时降级为内置）
-	promptTpl := `你是一位资深八字命理师。请只为下列单段大运撰写整体总结和该段 10 年的逐年评述。
-
-命主：性别{{.Gender}} / 日干{{.DayGan}}
-原局：{{.NatalSummary}}
-{{if .StrengthDetail}}身强弱：{{.StrengthDetail}}{{end}}
-
-当前大运：{{.DayunInfo}}
-{{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
-
-本段大运 10 年的算法信号摘要（JSON，每年含 type/evidence/polarity/source/year_in_dayun/dayun_phase/dayun_phase_level；dayun_phase=gan 表示前5年天干主事，zhi 表示后5年地支主事）：
-{{.YearsData}}
-{{if .LifeStageHint}}
-人生阶段提示：{{.LifeStageHint}}{{end}}
-
-输出要求：
-1. themes：2-4 个主题词（如"事业↑""感情动荡""贵人扶持"；读书期可用"学业突破""同窗情谊""叛逆"）
-2. summary：80-120 字，综合评述这 10 年整体走势、关键转折、注意事项；若前5年与后5年信号明显不同，要点出早段/后段气质差异
-3. years：长度等于上方算法信号 JSON 的年份数，与年份顺序一一对应。每个元素：
-   {"year": 数字年, "ganzhi": "干支", "narrative": "..."}
-
-   narrative 撰写规则：
-   - 100-150 字，3-4 句中文
-   - 必须点名当年关键干支事件，引用上方 evidence 已有的命理术语
-     （如「丙火透干为食神」「流年地支冲日支」「白虎临运」「驿马合年支」
-     「用神位受刑」「伏吟时柱」等）
-   - 结合极性写吉凶（吉应期写助力或机遇，凶应期写注意或代价）
-   - 读书期年份（age<18，由人生阶段提示判断）改写为学业/同学/家庭语义，
-     不出现「事业/婚恋/财运」等成人词
-   - **每一年都必须写 narrative**，禁止输出空字符串。即使该年信号较少，
-     也要把现有信号（哪怕只有 1-2 条神煞或一个用神位变化）写清楚。
-     凡 evidence 数组非空，narrative 就必须有内容。
-   - 措辞与 summary 不重复，summary 概括十年，narrative 具体到当年
-   - 不同年份的 narrative 之间应有差异化措辞，禁止把多年写成同一段。
-   - **弱信号年安全措辞**：若该年 evidence 仅含"用神基底"或基底+1 个弱信号，
-     可直接使用以下安全句式，禁止省略 narrative：
-     · 「该年信号稀疏，运势相对平顺」
-     · 「基底为吉/凶/中性，本年无明显波动」
-     · 「与大运 {大运干支} 同调，按本段方向延展」
-     上述句式不含"用神位/忌神位/伏吟/反吟/神煞名"等需追溯术语，可安全使用。
-   - 严禁编造未在 evidence 中出现的神煞或用神位事件
-   - **特别提醒（命理术语易混淆）**：
-     · 伏吟 ≠ 反吟：伏吟是流年与原局某柱完全相同；反吟是天克地冲。
-       只能在 evidence 显式出现"伏吟"或"反吟"时使用对应词汇。
-     · 三合 ≠ 三会：三合是申子辰类水局；三会是亥子丑类方局。
-       evidence 写哪个就用哪个。
-     · "受冲""受刑""用神位""忌神位" 这类结构词只能在 evidence 已用时引用，
-       不能为修饰文字而加。
-     · 例：evidence 写"流年与时柱反吟"，narrative 必须用"反吟"，不能写成"伏吟"。
-
-4. 严格输出以下 JSON，不要 Markdown 围栏：
-{"themes":["主题1","主题2"],"summary":"...","years":[{"year":2005,"ganzhi":"乙酉","narrative":"..."},{"year":2006,"ganzhi":"丙戌","narrative":"..."}]}`
-
-	tmpl, terr := template.New("dayun_summary").Parse(promptTpl)
+	tmpl, terr := template.New("dayun_summary").Parse(dayunSummaryPromptTpl)
 	if terr != nil {
 		return fmt.Errorf("dayun_summary prompt 解析失败: %v", terr)
 	}

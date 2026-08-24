@@ -559,7 +559,7 @@ onClick={() => openDetail(drawerUser, detailPage + 1, drawerModel)}
 cd /Users/liujiming/web/yuanju/frontend && npm run build 2>&1 | tail -10
 ```
 
-Expected: `✓ built in ...` 无 TypeScript 错误
+Expected: `[OK] built in ...` 无 TypeScript 错误
 
 - [ ] **Step 8: Commit**
 

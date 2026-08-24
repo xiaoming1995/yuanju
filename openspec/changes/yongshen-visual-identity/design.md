@@ -35,7 +35,7 @@ export const WUXING_MAP = {
     season: '春',
     luckyNumbers: [3, 8],
     luckyMaterial: '木',
-    emoji: '🌿',
+    emoji: '木',
   },
   火: { color: '#FF6B35', shape: 'sharp', direction: '南方', ... },
   土: { color: '#C8962E', shape: 'square', direction: '中央', ... },
@@ -52,10 +52,10 @@ export const WUXING_MAP = {
 
 ```
 ┌──────────────────────────────────────┐
-│  ✦ 命元特质                           │
+│  * 命元特质                           │
 │                                      │
-│  喜  [🌿木] [🔥火]  →  颜色色块示意  │
-│  忌  [⚪金] [💧水]  →  颜色色块示意  │
+│  喜  [木木] [火火]  →  颜色色块示意  │
+│  忌  [金金] [水水]  →  颜色色块示意  │
 │                                      │
 │  幸运方位  东方 · 南方                │
 │  幸运数字  3 · 8 · 2 · 7             │

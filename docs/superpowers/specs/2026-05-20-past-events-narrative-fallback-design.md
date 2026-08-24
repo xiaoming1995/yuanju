@@ -38,7 +38,7 @@
 │   └─ 失败 → 清空                                              │
 │         │                                                     │
 │         ▼                                                     │
-│   ★ 新增：narrative == "" 时调用                              │
+│   * 新增：narrative == "" 时调用                              │
 │      bazi.RenderYearNarrativeWithFallback(dySignals[i])     │
 │         │                                                     │
 │         ▼                                                     │
@@ -49,7 +49,7 @@
 │  RenderYearNarrative(ys)            ← 保持现状不动            │
 │    返回 "" 当 <2 句                                          │
 │                                                              │
-│  ★ 新增 RenderYearNarrativeWithFallback(ys) string            │
+│  * 新增 RenderYearNarrativeWithFallback(ys) string            │
 │    1) result := RenderYearNarrative(ys)                     │
 │    2) if result != "" → return result                       │
 │    3) else → return makeMinimalFallback(ys)                 │

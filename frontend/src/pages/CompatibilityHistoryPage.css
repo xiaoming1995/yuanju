@@ -124,7 +124,7 @@
   border: 1px solid rgba(200, 60, 60, 0.32);
   border-radius: 8px;
   padding: 6px 10px;
-  color: #e07a7a;
+  color: var(--wu-huo);
   background: rgba(200, 60, 60, 0.1);
   font: inherit;
   font-size: 13px;
@@ -171,7 +171,7 @@
 }
 
 .compatibility-history-dialog-error {
-  color: #e07a7a;
+  color: var(--wu-huo);
 }
 
 .compatibility-history-dialog-actions {
@@ -305,7 +305,7 @@
 }
 
 .compat-history__level--medium {
-  background: rgba(224, 92, 75, 0.15);
+  background: rgba(184, 93, 80, 0.15);
   color: var(--wu-huo);
 }
 

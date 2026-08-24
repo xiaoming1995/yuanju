@@ -8,14 +8,31 @@ import (
 	"yuanju/pkg/database"
 )
 
-// GetDayunSummary 按 chart + dayun_index 查询缓存
+const getDayunSummarySQL = `
+	SELECT s.id, s.chart_id, s.dayun_index, s.dayun_ganzhi, s.themes, s.summary, s.years, s.model, s.created_at
+	FROM ai_dayun_summaries s
+	WHERE s.chart_id = $1
+		AND s.dayun_index = $2
+		AND s.algorithm_version = $3
+		AND s.years IS NOT NULL
+	ORDER BY s.created_at DESC
+	LIMIT 1`
+
+const listDayunSummariesSQL = `
+	SELECT s.id, s.chart_id, s.dayun_index, s.dayun_ganzhi, s.themes, s.summary, s.years, s.model, s.created_at
+	FROM ai_dayun_summaries s
+	WHERE s.chart_id = $1
+		AND s.algorithm_version = $2
+		AND s.years IS NOT NULL
+	ORDER BY s.dayun_index`
+
+// GetDayunSummary 按当前 chart_id + dayun_index 查询当前版本缓存。
+// 新起盘会产生新 chart_id，因此不会复用同八字历史缓存；同一 chart 刷新仍可复用自己的缓存。
 func GetDayunSummary(chartID string, dayunIndex int) (*model.AIDayunSummary, error) {
 	r := &model.AIDayunSummary{}
 	err := database.DB.QueryRow(
-		`SELECT id, chart_id, dayun_index, dayun_ganzhi, themes, summary, years, model, created_at
-		 FROM ai_dayun_summaries
-		 WHERE chart_id = $1 AND dayun_index = $2`,
-		chartID, dayunIndex,
+		getDayunSummarySQL,
+		chartID, dayunIndex, CurrentAlgorithmVersion,
 	).Scan(&r.ID, &r.ChartID, &r.DayunIndex, &r.DayunGanZhi, &r.Themes, &r.Summary, &r.Years, &r.Model, &r.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -23,14 +40,11 @@ func GetDayunSummary(chartID string, dayunIndex int) (*model.AIDayunSummary, err
 	return r, err
 }
 
-// ListDayunSummaries 按 chart 拉取所有已缓存大运 summary
+// ListDayunSummaries 拉取当前 chart_id 下所有当前版本已缓存大运 summary。
 func ListDayunSummaries(chartID string) ([]model.AIDayunSummary, error) {
 	rows, err := database.DB.Query(
-		`SELECT id, chart_id, dayun_index, dayun_ganzhi, themes, summary, years, model, created_at
-		 FROM ai_dayun_summaries
-		 WHERE chart_id = $1
-		 ORDER BY dayun_index`,
-		chartID,
+		listDayunSummariesSQL,
+		chartID, CurrentAlgorithmVersion,
 	)
 	if err != nil {
 		return nil, err

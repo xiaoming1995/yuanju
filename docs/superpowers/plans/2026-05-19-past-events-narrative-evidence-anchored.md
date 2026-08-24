@@ -155,7 +155,7 @@ cd backend && go test ./pkg/bazi
 ```
 
 Expected output: at least the following existing tests are likely to fail because they assume polarity-count opener exists:
-- `TestRenderYearNarrative_RichSignalYearHasMediumDetail` may complain about "取舍" not in narrative (yearTone removed). Check whether "取舍" still appears in `practicalStanceSentence` output for that input (it does — see line 683 "稳责任边界和取舍" ✓), so should still pass.
+- `TestRenderYearNarrative_RichSignalYearHasMediumDetail` may complain about "取舍" not in narrative (yearTone removed). Check whether "取舍" still appears in `practicalStanceSentence` output for that input (it does — see line 683 "稳责任边界和取舍" [OK]), so should still pass.
 - `TestRenderYearNarrative_AdjacentYoungYearsDoNotRepeatGenericChangeOpening` may have empty narratives now (will be reconciled in Task 8).
 
 Do **not** fix existing tests yet; that's Task 8's job. As long as the new `TestYearToneSentence_*` tests pass, this task is done.

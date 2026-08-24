@@ -69,17 +69,17 @@ export default function AdminAILogsPage() {
       {/* 统计卡片 */}
       <div className="admin-stats-grid" style={{ marginBottom: 24 }}>
         <div className="admin-stat-card">
-          <div style={{ marginBottom: 12, display: 'flex' }}><Activity size={28} color="#a78bfa" /></div>
+          <div style={{ marginBottom: 12, display: 'flex' }}><Activity size={28} color="var(--admin-accent)" /></div>
           <div className="admin-stat-value">{totalAll}</div>
           <div className="admin-stat-label">近7天总调用</div>
         </div>
         <div className="admin-stat-card">
-          <div style={{ marginBottom: 12, display: 'flex' }}><CheckCircle size={28} color="#2ecc71" /></div>
+          <div style={{ marginBottom: 12, display: 'flex' }}><CheckCircle size={28} color="var(--admin-success)" /></div>
           <div className="admin-stat-value">{successRate}%</div>
           <div className="admin-stat-label">近7天成功率</div>
         </div>
         <div className="admin-stat-card">
-          <div style={{ marginBottom: 12, display: 'flex' }}><Clock size={28} color="#e67e22" /></div>
+          <div style={{ marginBottom: 12, display: 'flex' }}><Clock size={28} color="var(--admin-warning)" /></div>
           <div className="admin-stat-value">{avgDuration}ms</div>
           <div className="admin-stat-label">日均响应耗时</div>
         </div>
@@ -88,7 +88,7 @@ export default function AdminAILogsPage() {
       {/* 近7天趋势 */}
       {summary.length > 0 && (
         <div className="admin-card" style={{ marginBottom: 24 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
             <TrendingUp size={18} /> 近7天趋势
           </h2>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 80 }}>
@@ -97,29 +97,29 @@ export default function AdminAILogsPage() {
               const height = Math.max((d.total / maxTotal) * 60, d.total > 0 ? 6 : 2)
               return (
                 <div key={d.date} style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: '#666', marginBottom: 4 }}>{d.total}</div>
+                  <div style={{ fontSize: 10, color: 'var(--admin-text-faint)', marginBottom: 4 }}>{d.total}</div>
                   <div style={{
                     height,
                     background: d.error_count > 0
-                      ? `linear-gradient(to top, #e74c3c ${Math.round((d.error_count / Math.max(d.total, 1)) * 100)}%, #2ecc71 0%)`
-                      : '#2ecc71',
+                      ? `linear-gradient(to top, var(--admin-danger) ${Math.round((d.error_count / Math.max(d.total, 1)) * 100)}%, var(--admin-success) 0%)`
+                      : 'var(--admin-success)',
                     borderRadius: 3,
                     minHeight: 2,
                   }} />
-                  <div style={{ fontSize: 9, color: '#555', marginTop: 4 }}>
+                  <div style={{ fontSize: 9, color: 'var(--admin-text-faint)', marginTop: 4 }}>
                     {d.date.slice(5)}
                   </div>
                 </div>
               )
             })}
           </div>
-          <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: '#666' }}>
+          <div style={{ display: 'flex', gap: 16, marginTop: 8, fontSize: 11, color: 'var(--admin-text-faint)' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 10, height: 10, background: '#2ecc71', borderRadius: 2, display: 'inline-block' }} />
+              <span style={{ width: 10, height: 10, background: 'var(--admin-success)', borderRadius: 2, display: 'inline-block' }} />
               成功
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ width: 10, height: 10, background: '#e74c3c', borderRadius: 2, display: 'inline-block' }} />
+              <span style={{ width: 10, height: 10, background: 'var(--admin-danger)', borderRadius: 2, display: 'inline-block' }} />
               失败
             </span>
           </div>
@@ -147,15 +147,15 @@ export default function AdminAILogsPage() {
                 cursor: 'pointer',
                 fontSize: 13,
                 fontWeight: 600,
-                background: statusFilter === val ? '#a78bfa' : '#1e1e2e',
-                color: statusFilter === val ? '#fff' : '#888',
+                background: statusFilter === val ? 'var(--admin-accent)' : 'var(--admin-bg-soft)',
+                color: statusFilter === val ? '#fffdf8' : 'var(--admin-text-muted)',
                 transition: 'all 0.2s',
               }}
             >
               {icon} {label}
             </button>
           ))}
-          <span style={{ marginLeft: 'auto', fontSize: 13, color: '#666', lineHeight: '32px' }}>
+          <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--admin-text-faint)', lineHeight: '32px' }}>
             共 {total} 条记录
           </span>
         </div>
@@ -164,7 +164,7 @@ export default function AdminAILogsPage() {
         {loading ? (
           <div className="admin-loading">加载中...</div>
         ) : logs.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#555', padding: '40px 0' }}>暂无记录</div>
+          <div style={{ textAlign: 'center', color: 'var(--admin-text-faint)', padding: '40px 0' }}>暂无记录</div>
         ) : (
           <table className="admin-table">
             <thead>
@@ -181,11 +181,11 @@ export default function AdminAILogsPage() {
               {logs.map(log => (
                 <>
                   <tr key={log.id} style={{ cursor: log.error_msg ? 'pointer' : 'default' }}>
-                    <td style={{ fontSize: 12, color: '#888' }}>
+                    <td style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>
                       {new Date(log.created_at).toLocaleString('zh-CN')}
                     </td>
                     <td>{log.provider_name || '–'}</td>
-                    <td style={{ fontSize: 12, color: '#aaa' }}>{log.model || '–'}</td>
+                    <td style={{ fontSize: 12, color: 'var(--admin-text-secondary)' }}>{log.model || '–'}</td>
                     <td style={{ fontFamily: 'monospace' }}>{log.duration_ms.toLocaleString()}ms</td>
                     <td>
                       <span style={{
@@ -194,8 +194,8 @@ export default function AdminAILogsPage() {
                         borderRadius: 12,
                         fontSize: 12,
                         fontWeight: 600,
-                        background: log.status === 'success' ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)',
-                        color: log.status === 'success' ? '#2ecc71' : '#e74c3c',
+                        background: log.status === 'success' ? 'rgba(var(--admin-success-rgb), 0.15)' : 'rgba(var(--admin-danger-rgb), 0.15)',
+                        color: log.status === 'success' ? 'var(--admin-success)' : 'var(--admin-danger)',
                       }}>
                         {log.status === 'success' ? '成功' : '失败'}
                       </span>
@@ -207,10 +207,10 @@ export default function AdminAILogsPage() {
                           style={{
                             padding: '3px 10px',
                             fontSize: 11,
-                            background: '#2a2a3a',
-                            border: '1px solid #444',
+                            background: 'var(--admin-bg-soft)',
+                            border: '1px solid var(--admin-border-strong)',
                             borderRadius: 6,
-                            color: '#aaa',
+                            color: 'var(--admin-text-secondary)',
                             cursor: 'pointer',
                           }}
                         >
@@ -222,11 +222,11 @@ export default function AdminAILogsPage() {
                   {expandedId === log.id && log.error_msg && (
                     <tr key={`${log.id}-detail`}>
                       <td colSpan={6} style={{
-                        background: 'rgba(231,76,60,0.05)',
+                        background: 'rgba(var(--admin-danger-rgb), 0.05)',
                         padding: '12px 16px',
-                        borderLeft: '3px solid #e74c3c',
+                        borderLeft: '3px solid var(--admin-danger)',
                       }}>
-                        <div style={{ fontSize: 12, color: '#e74c3c', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                        <div style={{ fontSize: 12, color: 'var(--admin-danger)', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                           {log.error_msg}
                         </div>
                       </td>
@@ -246,11 +246,11 @@ export default function AdminAILogsPage() {
               onClick={() => setPage(p => p - 1)}
               style={{
                 padding: '6px 14px', borderRadius: 8, border: 'none',
-                background: page === 1 ? '#1a1a2e' : '#2a2a3a',
-                color: page === 1 ? '#444' : '#aaa', cursor: page === 1 ? 'default' : 'pointer',
+                background: page === 1 ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)',
+                color: page === 1 ? 'var(--admin-border-strong)' : 'var(--admin-text-secondary)', cursor: page === 1 ? 'default' : 'pointer',
               }}
             >← 上一页</button>
-            <span style={{ lineHeight: '34px', fontSize: 13, color: '#666' }}>
+            <span style={{ lineHeight: '34px', fontSize: 13, color: 'var(--admin-text-faint)' }}>
               {page} / {totalPages}
             </span>
             <button
@@ -258,8 +258,8 @@ export default function AdminAILogsPage() {
               onClick={() => setPage(p => p + 1)}
               style={{
                 padding: '6px 14px', borderRadius: 8, border: 'none',
-                background: page === totalPages ? '#1a1a2e' : '#2a2a3a',
-                color: page === totalPages ? '#444' : '#aaa', cursor: page === totalPages ? 'default' : 'pointer',
+                background: page === totalPages ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)',
+                color: page === totalPages ? 'var(--admin-border-strong)' : 'var(--admin-text-secondary)', cursor: page === totalPages ? 'default' : 'pointer',
               }}
             >下一页 →</button>
           </div>

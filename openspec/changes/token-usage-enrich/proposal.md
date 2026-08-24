@@ -6,9 +6,9 @@
 
 | 字段 | 含义 | 当前状态 |
 |------|------|---------|
-| `reasoning_tokens` | 推理模型（R1/V4-pro）思考过程消耗的 token，单价远高于普通 completion | ❌ 丢失 |
-| `prompt_cache_hit_tokens` | System Prompt 命中 KV Cache 的 token 数，**免费或折扣价** | ❌ 丢失 |
-| `prompt_cache_miss_tokens` | 未命中缓存的 prompt token（全价） | ❌ 丢失 |
+| `reasoning_tokens` | 推理模型（R1/V4-pro）思考过程消耗的 token，单价远高于普通 completion | [NO] 丢失 |
+| `prompt_cache_hit_tokens` | System Prompt 命中 KV Cache 的 token 数，**免费或折扣价** | [NO] 丢失 |
+| `prompt_cache_miss_tokens` | 未命中缓存的 prompt token（全价） | [NO] 丢失 |
 
 由于 `reasoning_tokens` 是计费中最贵的部分，不记录就无法分析哪些用户/场景在消耗推理预算。
 

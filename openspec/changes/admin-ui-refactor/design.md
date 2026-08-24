@@ -21,12 +21,12 @@
 
 ### 2. 映射表设计
 为了保持视觉的一致性，我们会做如下统一的图标规范映射：
-- 品牌 Logo：由 ⚙ 替换为 `Rocket` 或者 `LayoutTemplate` 图标结合文字
-- 导航「数据概览」：由 📊 替换为 `LayoutDashboard`
-- 导航「LLM 管理」：由 🤖 替换为 `Bot` 或 `Cpu`
-- 导航「用户列表」：由 👥 替换为 `Users`
-- 导航「AI 调用日志」：由 📋 替换为 `ListRender` 或者 `FileText`
-- 警示及操作：由 🗑️ 替换为 `Trash2`，由 🛠️ 替换为 `Wrench`
+- 品牌 Logo：由 设置 替换为 `Rocket` 或者 `LayoutTemplate` 图标结合文字
+- 导航「数据概览」：由 数据 替换为 `LayoutDashboard`
+- 导航「LLM 管理」：由 AI 替换为 `Bot` 或 `Cpu`
+- 导航「用户列表」：由 用户 替换为 `Users`
+- 导航「AI 调用日志」：由 清单 替换为 `ListRender` 或者 `FileText`
+- 警示及操作：由 删除 替换为 `Trash2`，由 工具 替换为 `Wrench`
 - 状态展示：成功使用 `CheckCircle`，失败使用 `XCircle` 或 `AlertCircle`
 
 ### 3. CSS 微调

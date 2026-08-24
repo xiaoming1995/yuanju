@@ -6,7 +6,10 @@ import (
 	"yuanju/pkg/database"
 )
 
-const SettingRegistrationEnabled = "registration_enabled"
+const (
+	SettingRegistrationEnabled   = "registration_enabled"
+	SettingArticlesModuleEnabled = "articles_module_enabled"
+)
 
 func GetBoolSetting(key string, defaultValue bool) (bool, error) {
 	var raw string
@@ -25,6 +28,10 @@ func GetBoolSetting(key string, defaultValue bool) (bool, error) {
 	default:
 		return defaultValue, fmt.Errorf("invalid bool setting %s=%q", key, raw)
 	}
+}
+
+func IsArticleModuleEnabled() (bool, error) {
+	return GetBoolSetting(SettingArticlesModuleEnabled, true)
 }
 
 func SetBoolSetting(key string, value bool) error {

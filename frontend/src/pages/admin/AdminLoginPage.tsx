@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Settings } from 'lucide-react'
 import { useAdminAuth } from '../../contexts/AdminAuthContext'
 import { adminAuthAPI } from '../../lib/adminApi'
 import '../../components/AdminLayout.css'
@@ -30,7 +31,9 @@ export default function AdminLoginPage() {
   return (
     <div className="admin-login-page">
       <div className="admin-login-box">
-        <div className="admin-login-title">⚙ 缘聚后台</div>
+        <div className="admin-login-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Settings size={22} /> 缘聚后台
+        </div>
         <div className="admin-login-sub">管理员登录</div>
         {error && <div className="admin-error">{error}</div>}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

@@ -94,11 +94,11 @@ Implement tasks from an OpenSpec change.
 
 Working on task 3/7: <task description>
 [...implementation happening...]
-✓ Task complete
+[OK] Task complete
 
 Working on task 4/7: <task description>
 [...implementation happening...]
-✓ Task complete
+[OK] Task complete
 ```
 
 **Output On Completion**
@@ -108,7 +108,7 @@ Working on task 4/7: <task description>
 
 **Change:** <change-name>
 **Schema:** <schema-name>
-**Progress:** 7/7 tasks complete ✓
+**Progress:** 7/7 tasks complete [OK]
 
 ### Completed This Session
 - [x] Task 1

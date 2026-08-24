@@ -549,7 +549,7 @@ cd frontend && npm run build 2>&1 | tail -20
 
 期望：
 ```
-✓ built in Xs
+[OK] built in Xs
 ```
 无 TypeScript 错误，无 Vite 错误。
 

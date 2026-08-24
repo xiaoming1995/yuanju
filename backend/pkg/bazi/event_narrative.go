@@ -22,7 +22,7 @@ const MinSentencesForNarrative = 2
 // that the narrative engine treats as concrete, citable anchors. Used by
 // hasEvidenceAnchor to gate secondaryDetailSentence.
 var structuralEvidenceKeywords = []string{
-	"冲", "刑", "空", "用神", "忌神", "驿马", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎",
+	"冲", "刑", "合", "会", "空", "用神", "忌神", "喜神", "驿马", "桃花", "天乙", "贵人", "夹拱", "月柱", "提纲", "日支", "自我宫位", "大运流年双重命中", "意外", "白虎",
 }
 
 // hasEvidenceAnchor returns true when sig carries a specific differentiator
@@ -60,11 +60,18 @@ func RenderYearNarrative(ys YearSignals) string {
 	}
 	secondary, hasSecondary := pickDominantSignal(ys.Signals, themeOf(primary.Type), ys.Age)
 
+	if evidenceSentences := evidenceDrivenNarrativeSentences(ys.Signals, primary, ys.Age); len(evidenceSentences) >= MinSentencesForNarrative {
+		return joinNarrativeParts(append([]string{ys.GanZhi + "年，" + evidenceSentences[0]}, evidenceSentences[1:]...))
+	}
+
 	sentences := make([]string, 0, 6)
 	if s := yearToneSentence(ys.Signals, primary); s != "" {
 		sentences = append(sentences, s)
 	}
 	if s := triggerSourceSentence(primary, ys.Age); s != "" {
+		sentences = append(sentences, s)
+	}
+	if s := evidencePlainLanguageSentence(primary, ys.Age); s != "" {
 		sentences = append(sentences, s)
 	}
 	if s := domainDetailSentence(primary, secondary, hasSecondary, ys.Age); s != "" {
@@ -86,6 +93,47 @@ func RenderYearNarrative(ys YearSignals) string {
 		return ""
 	}
 	return joinNarrativeParts(append([]string{ys.GanZhi + "年，" + sentences[0]}, sentences[1:]...))
+}
+
+func evidenceDrivenNarrativeSentences(signals []EventSignal, primary EventSignal, age int) []string {
+	candidates := make([]EventSignal, 0, len(signals))
+	candidates = append(candidates, primary)
+	for _, s := range signals {
+		if sameSignal(s, primary) {
+			continue
+		}
+		candidates = append(candidates, s)
+	}
+
+	out := make([]string, 0, 5)
+	seenSentences := map[string]bool{}
+	seenThemes := map[string]int{}
+	for _, s := range candidates {
+		if s.Type == "用神基底" || s.Type == TypeDayunPhase {
+			continue
+		}
+		if themeOf(s.Type) == "" || !hasEvidenceAnchor(s) {
+			continue
+		}
+		if seenThemes[themeOf(s.Type)] >= 2 {
+			continue
+		}
+		sentence := evidencePlainLanguageSentence(s, age)
+		if sentence == "" || seenSentences[sentence] {
+			continue
+		}
+		seenSentences[sentence] = true
+		seenThemes[themeOf(s.Type)]++
+		out = append(out, sentence)
+		if len(out) >= 5 {
+			break
+		}
+	}
+	return out
+}
+
+func sameSignal(a EventSignal, b EventSignal) bool {
+	return a.Type == b.Type && a.Evidence == b.Evidence && a.Source == b.Source
 }
 
 // RenderEvidenceSummary 提取专业用户可展开查看的命理依据。
@@ -182,6 +230,8 @@ func yearToneSentence(signals []EventSignal, primary EventSignal) string {
 func triggerSourceSentence(sig EventSignal, age int) string {
 	ev := sig.Evidence
 	switch {
+	case sig.Source == SourceGongJia || strings.Contains(ev, "夹拱"):
+		return "触发点带有间接性质，事情未必一开始就摆在明面上，却容易在关键处被隐藏条件或旁人助力带出来。"
 	case strings.Contains(ev, "冲"):
 		if age > 0 && age < YoungAgeCutoff {
 			return "触发点多落在日常环境、同学关系或家庭沟通上，容易因为节奏变化而需要重新适应。"
@@ -203,6 +253,66 @@ func triggerSourceSentence(sig EventSignal, age int) string {
 		return "触发点带有消耗性质，越是看似诱人的机会，越要先判断代价。"
 	case strings.Contains(ev, "驿马") || strings.Contains(ev, "奔波") || strings.Contains(ev, "迁移"):
 		return "触发点落在移动和环境变化上，出行、搬动、换环境或事务奔波会增加。"
+	default:
+		return ""
+	}
+}
+
+func evidencePlainLanguageSentence(sig EventSignal, age int) string {
+	ev := sig.Evidence
+	switch {
+	case strings.Contains(ev, "比肩") || strings.Contains(ev, "劫财") || strings.Contains(ev, "同学竞争") || strings.Contains(ev, "同伴"):
+		if age > 0 && age < YoungAgeCutoff {
+			return "同学、朋友和同龄人的影响会被放大：有人能给你帮助，也容易带来比较、争资源、意见不合或友谊里的摩擦。"
+		}
+		return "同辈、朋友、团队和竞争者会被推到台前：既可能得到帮助，也容易出现比较、分利、抢资源或合作边界的问题。"
+	case strings.Contains(ev, "伏吟"):
+		if age > 0 && age < YoungAgeCutoff {
+			return "类似的主题容易反复出现，常见为旧问题、旧关系或相似情境再次被触发，需要重新面对而不是简单翻篇。"
+		}
+		return "同类主题容易反复出现，现实里常见为旧问题、旧关系或类似情境再次被触发，需要重新面对而不是简单翻篇。"
+	case strings.Contains(ev, "正印") || strings.Contains(ev, "偏印") || strings.Contains(ev, "师长") || strings.Contains(ev, "印星"):
+		if age > 0 && age < YoungAgeCutoff {
+			return "学习上的保护、指导和方法支持会更明显，常见为老师、长辈或规则体系给到帮助，也会带来更明确的要求。"
+		}
+		return "学习、资质、外部保护和制度支持会更明显，现实里常见为有人指导、证书文书推进，或通过规则资源获得缓冲。"
+	case sig.Source == SourceGongJia || strings.Contains(ev, "夹拱"):
+		if strings.Contains(ev, "天乙") || strings.Contains(ev, "贵人") || strings.Contains(ev, "相助") {
+			return "这类间接牵动常表现为意料之外的人提供帮助、信息或缓冲，让原本卡住的事出现转机。"
+		}
+		return "隐藏条件容易被带动，事情可能不是正面发生，而是通过旁人、环境或临时机会间接出现。"
+	case strings.Contains(ev, "冲日支") || strings.Contains(ev, "日支") && strings.Contains(ev, "冲"):
+		if age > 0 && age < YoungAgeCutoff {
+			return "这类波动更容易落到情绪、安全感、同学朋友和家庭互动上，表现为关系距离、沟通方式或日常安排需要调整。"
+		}
+		return "这类波动常落在亲密关系、居住状态、合作关系和内在安全感上，现实里更容易出现边界重谈、关系节奏变化或住处环境调整。"
+	case strings.Contains(ev, "冲月柱") || strings.Contains(ev, "提纲") && strings.Contains(ev, "冲"):
+		if age > 0 && age < YoungAgeCutoff {
+			return "这类波动更容易落到学习环境、班级团队或师长要求上，现实里常见为规则变化、任务调整或需要重新适应节奏。"
+		}
+		return "这类波动更容易落到工作环境、团队规则、上级要求或行业方向上，现实里常见为岗位、合作和职责边界需要重新调整。"
+	case strings.Contains(ev, "受刑") || strings.Contains(ev, "刑"):
+		return "事情更容易出现摩擦、卡点和反复处理，现实里常见为流程拖延、细节出错、沟通不顺或压力积累。"
+	case sig.Source == SourceKongwang || strings.Contains(ev, "空亡") || strings.Contains(ev, "虚而不实"):
+		return "事情的确定性会被削弱，现实里常见为说法反复、计划延后、承诺落空或需要二次确认。"
+	case strings.Contains(ev, "驿马") || strings.Contains(ev, "奔波") || strings.Contains(ev, "迁移"):
+		return "移动和环境转换会增加，现实里常见为出差、搬动、换团队、跑手续或因为外出而带来新变化。"
+	case strings.Contains(ev, "天乙") || strings.Contains(ev, "贵人"):
+		return "外部支持会更容易出现，现实里常见为有人提醒、协调、介绍资源，或在关键节点帮你缓一口气。"
+	case strings.Contains(ev, "桃花"):
+		return "人际吸引和被看见的机会会增加，现实里常见为社交机会增加、关系互动变多，也更需要拿捏分寸。"
+	case strings.Contains(ev, "白虎") || strings.Contains(ev, "意外"):
+		return "安全边界需要被放在前面，现实里要特别留意交通、运动、器械、熬夜和身体发出的警讯。"
+	case strings.Contains(ev, "正财") || strings.Contains(ev, "偏财") || strings.Contains(ev, "财星") || strings.Contains(ev, "财来财去") || strings.Contains(ev, "破耗"):
+		if age > 0 && age < YoungAgeCutoff {
+			return "钱财和资源问题落在少年期，更常表现为家庭投入、学习花费、零用钱安排或物质条件变化，重点是别让资源分散学习和生活节奏。"
+		}
+		return "钱财这一条不是单纯有收入，而是资源机会、支出压力和利益分配一起出现；现实里适合先算清成本，再决定投入、合作或取舍。"
+	case strings.Contains(ev, "七杀") || strings.Contains(ev, "正官") || strings.Contains(ev, "官星") || strings.Contains(ev, "考核") || strings.Contains(ev, "规则"):
+		if age > 0 && age < YoungAgeCutoff {
+			return "规则和考核压力在少年期多表现为学习要求、考试压力、班级纪律或师长期待变强，稳住基础比临时硬撑更重要。"
+		}
+		return "规则和责任会被带动，现实里常见为考核、制度、上级要求或岗位职责变明确，需要按规则推进，少靠临场发挥。"
 	default:
 		return ""
 	}
@@ -243,6 +353,9 @@ func domainDetailSentence(primary EventSignal, secondary EventSignal, hasSeconda
 	case "movement":
 		return "现实表现上，出行、搬动、岗位、学校或生活环境有变化机会，提前规划路线和时间会更从容。"
 	case "support":
+		if primary.Source == SourceGongJia || strings.Contains(primary.Evidence, "夹拱") {
+			return "现实表现上，这种帮助多半不是直线出现，可能通过介绍、提醒、临时资源、旧关系或旁人的一句话把事情推开。"
+		}
 		return "现实表现上，外部助力、长辈提携或贵人资源更容易出现，适合借势推进重要安排。"
 	case "change":
 		return richChangeSentence(primary)
@@ -437,6 +550,8 @@ func themeOf(typ string) string {
 	case "迁变":
 		return "movement"
 	case "喜神临运":
+		return "support"
+	case "夹拱":
 		return "support"
 	case TypeDayunPhase:
 		return "phase"

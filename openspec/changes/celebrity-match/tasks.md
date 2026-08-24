@@ -29,7 +29,7 @@
 
 - [x] 6.1 后端服务：新增 `GenerateCelebrities` 服务逻辑，向当前激活的 LLM 派发强 JSON 约束 Prompt，结构化生成指定领域的名人。
 - [x] 6.2 后端接口：在 `internal/handler/admin/celebrity_handler.go` 增设 `POST /api/admin/celebrities/ai-generate`，接收 `{topic, count}` 并批量入库。
-- [x] 6.3 前端新增：在 `AdminCelebritiesPage` 添加“✨ AI 自动收集”按钮与弹窗，用户可设置生成主题和数量。
+- [x] 6.3 前端新增：在 `AdminCelebritiesPage` 添加“ AI 自动收集”按钮与弹窗，用户可设置生成主题和数量。
 - [x] 6.4 前端联调：完成数据拉取等待态并实现入库后的列表自动数据刷新。
 
 ## 7. Bug Fixes (探索模式发现的体验问题)

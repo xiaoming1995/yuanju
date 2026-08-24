@@ -95,9 +95,9 @@ func TestCompressYearSignalsForPrompt_DropsRedundantFields(t *testing.T) {
 func TestCompressYearSignalsForPrompt_StripsEvidenceParens(t *testing.T) {
 	years := []YearSignals{
 		{
-			Year:    2020,
-			Age:     25,
-			GanZhi:  "庚子",
+			Year:   2020,
+			Age:    25,
+			GanZhi: "庚子",
 			Signals: []EventSignal{
 				{Type: "综合变动", Evidence: "庚冲原局甲月（用神位），用神受冲（月柱宫位，权重次之）", Polarity: "凶"},
 			},
@@ -111,6 +111,42 @@ func TestCompressYearSignalsForPrompt_StripsEvidenceParens(t *testing.T) {
 	// 主体内容保留
 	if !strings.Contains(out, "用神受冲") {
 		t.Errorf("main evidence should survive; got: %s", out)
+	}
+}
+
+func TestCompressYearSignalsForPrompt_IncludesFallbackNarrativeForAIRewrite(t *testing.T) {
+	years := []YearSignals{
+		{
+			Year:   2026,
+			Age:    32,
+			GanZhi: "丙午",
+			Signals: []EventSignal{
+				{
+					Type:     "婚恋_冲",
+					Evidence: "流年地支午冲日支子，亲密关系、居住状态或合作边界受触动",
+					Polarity: PolarityXiong,
+					Source:   SourceZhuwei,
+				},
+			},
+		},
+	}
+
+	compressed, err := CompressYearSignalsForPrompt(years)
+	if err != nil {
+		t.Fatalf("compress error: %v", err)
+	}
+	out := string(compressed)
+
+	if !strings.Contains(out, `"fallback_narrative"`) {
+		t.Fatalf("expected prompt JSON to include fallback_narrative for AI rewrite, got: %s", out)
+	}
+	for _, want := range []string{"亲密关系", "居住状态", "合作关系"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("expected fallback_narrative to preserve %q, got: %s", want, out)
+		}
+	}
+	if strings.Contains(out, "从命理依据看") {
+		t.Fatalf("fallback_narrative should be plain user-facing text, got: %s", out)
 	}
 }
 
@@ -143,7 +179,14 @@ func TestCompressYearSignalsForPrompt_RoughSizeSaving(t *testing.T) {
 		},
 	}
 	rawSize := func() int {
-		raw, _ := json.Marshal(years)
+		type rawYearWithFallback struct {
+			YearSignals
+			FallbackNarrative string `json:"fallback_narrative,omitempty"`
+		}
+		raw, _ := json.Marshal([]rawYearWithFallback{{
+			YearSignals:       years[0],
+			FallbackNarrative: RenderYearNarrative(years[0]),
+		}})
 		return len(raw)
 	}()
 	compressed, _ := CompressYearSignalsForPrompt(years)

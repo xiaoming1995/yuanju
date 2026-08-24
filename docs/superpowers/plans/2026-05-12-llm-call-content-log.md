@@ -646,7 +646,7 @@ cd backend && go build ./... 2>&1
 cd frontend && npm run build 2>&1 | tail -10
 ```
 
-期望：`✓ built in Xs`，无 TypeScript 错误
+期望：`[OK] built in Xs`，无 TypeScript 错误
 
 - [ ] **Step 3: 推送**
 

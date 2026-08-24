@@ -99,7 +99,7 @@ Archive a completed change in the experimental workflow.
 **Change:** <change-name>
 **Schema:** <schema-name>
 **Archived to:** openspec/changes/archive/YYYY-MM-DD-<name>/
-**Specs:** ✓ Synced to main specs (or "No delta specs" or "Sync skipped")
+**Specs:** [OK] Synced to main specs (or "No delta specs" or "Sync skipped")
 
 All artifacts complete. All tasks complete.
 ```

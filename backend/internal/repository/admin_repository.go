@@ -458,6 +458,74 @@ func ListBaziCharts(page, pageSize int, q, from, to string) ([]model.AdminChartR
 	return charts, total, nil
 }
 
+// GetAdminBaziChartByID 查询后台单条命盘详情，包含最新 AI 原局报告摘要。
+func GetAdminBaziChartByID(chartID string) (*model.AdminChartRecord, error) {
+	var r model.AdminChartRecord
+	err := database.DB.QueryRow(`
+		SELECT
+			c.id, c.user_id, u.email as user_email,
+			c.birth_year, c.birth_month, c.birth_day, c.birth_hour,
+			c.gender, c.year_gan, c.year_zhi,
+			c.month_gan, c.month_zhi, c.day_gan, c.day_zhi, c.hour_gan, c.hour_zhi,
+			COALESCE(c.yongshen, '') as yongshen,
+			COALESCE(c.jishen, '') as jishen,
+			(SELECT content FROM ai_reports WHERE chart_id=c.id ORDER BY created_at DESC LIMIT 1) as ai_result,
+			(SELECT content_structured FROM ai_reports WHERE chart_id=c.id ORDER BY created_at DESC LIMIT 1) as ai_result_structured,
+			c.created_at
+		FROM bazi_charts c
+		LEFT JOIN users u ON c.user_id = u.id
+		WHERE c.id = $1`,
+		chartID,
+	).Scan(
+		&r.ID, &r.UserID, &r.UserEmail,
+		&r.BirthYear, &r.BirthMonth, &r.BirthDay, &r.BirthHour,
+		&r.Gender, &r.YearGan, &r.YearZhi,
+		&r.MonthGan, &r.MonthZhi, &r.DayGan, &r.DayZhi, &r.HourGan, &r.HourZhi,
+		&r.Yongshen, &r.Jishen,
+		&r.AIResult,
+		&r.AIResultStructured,
+		&r.CreatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &r, nil
+}
+
+// ListAdminPastEventsByChartID 查询某命盘下所有过往推算大运段缓存，供后台排查生成内容。
+func ListAdminPastEventsByChartID(chartID string) ([]model.AdminPastEventsDayunRecord, error) {
+	rows, err := database.DB.Query(`
+		SELECT id, chart_id, dayun_index, COALESCE(dayun_ganzhi, ''),
+		       themes, COALESCE(summary, ''), years, COALESCE(model, ''),
+		       COALESCE(algorithm_version, 'v1'), created_at
+		FROM ai_dayun_summaries
+		WHERE chart_id = $1
+		ORDER BY dayun_index ASC, created_at DESC`,
+		chartID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	records := []model.AdminPastEventsDayunRecord{}
+	for rows.Next() {
+		var r model.AdminPastEventsDayunRecord
+		if err := rows.Scan(
+			&r.ID, &r.ChartID, &r.DayunIndex, &r.DayunGanZhi,
+			&r.Themes, &r.Summary, &r.Years, &r.Model,
+			&r.AlgorithmVersion, &r.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		records = append(records, r)
+	}
+	return records, rows.Err()
+}
+
 // DeleteRequestLogsOlderThan 删除超期 AI 请求日志。
 func DeleteRequestLogsOlderThan(cutoff time.Time) (int64, error) {
 	res, err := database.DB.Exec(`DELETE FROM ai_requests_log WHERE created_at < $1`, cutoff)

@@ -1,0 +1,4 @@
+.gocache
+tmp
+dist
+coverage.out

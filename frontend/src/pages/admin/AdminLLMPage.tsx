@@ -169,35 +169,35 @@ export default function AdminLLMPage() {
             </thead>
             <tbody>
               {providers.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: '#666', padding: 40 }}>
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--admin-text-faint)', padding: 40 }}>
                   暂无 Provider，点击右上角添加
                 </td></tr>
               )}
               {providers.map(p => (
                 <tr key={p.id}>
-                  <td style={{ fontWeight: 600, color: '#e8e8e8' }}>{p.name}</td>
-                  <td style={{ color: '#888', fontSize: 12 }}>{p.type}</td>
-                  <td style={{ color: '#aaa', fontSize: 13 }}>{p.model}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--admin-text)' }}>{p.name}</td>
+                  <td style={{ color: 'var(--admin-text-muted)', fontSize: 12 }}>{p.type}</td>
+                  <td style={{ color: 'var(--admin-text-secondary)', fontSize: 13 }}>{p.model}</td>
                   <td>
-                    <code style={{ fontSize: 12, color: '#888' }}>{keyDisplay(p)}</code>
+                    <code style={{ fontSize: 12, color: 'var(--admin-text-muted)' }}>{keyDisplay(p)}</code>
                   </td>
                   <td>
                     {p.thinking_enabled
-                      ? <span style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600 }}>开启</span>
-                      : <span style={{ fontSize: 12, color: '#555' }}>—</span>}
+                      ? <span style={{ fontSize: 12, color: 'var(--admin-accent)', fontWeight: 600 }}>开启</span>
+                      : <span style={{ fontSize: 12, color: 'var(--admin-text-faint)' }}>—</span>}
                   </td>
-                  <td style={{ color: '#aaa', fontSize: 13 }}>¥{p.input_price_cny?.toFixed(2) ?? '—'}</td>
-                  <td style={{ color: '#aaa', fontSize: 13 }}>¥{p.output_price_cny?.toFixed(2) ?? '—'}</td>
+                  <td style={{ color: 'var(--admin-text-secondary)', fontSize: 13 }}>¥{p.input_price_cny?.toFixed(2) ?? '—'}</td>
+                  <td style={{ color: 'var(--admin-text-secondary)', fontSize: 13 }}>¥{p.output_price_cny?.toFixed(2) ?? '—'}</td>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                       <StatusBadge tone={p.active ? 'success' : 'neutral'} className={`badge ${p.active ? 'badge-active' : 'badge-inactive'}`}>
                         {p.active ? <><CheckCircle size={12} /> 激活</> : '待机'}
                       </StatusBadge>
                       {testResults[p.id] && (
-                        <span style={{ fontSize: 11, color: testResults[p.id].ok ? '#4ade80' : '#f87171' }}>
+                        <span style={{ fontSize: 11, color: testResults[p.id].ok ? 'var(--admin-success)' : 'var(--admin-danger)' }}>
                           {testResults[p.id].ok
-                            ? `✓ ${testResults[p.id].latency_ms}ms`
-                            : `✗ ${testResults[p.id].error}`}
+                            ? `OK ${testResults[p.id].latency_ms}ms`
+                            : `失败：${testResults[p.id].error}`}
                         </span>
                       )}
                     </div>
@@ -274,9 +274,9 @@ export default function AdminLLMPage() {
                   type="checkbox"
                   checked={form.thinking_enabled}
                   onChange={e => setForm(f => ({ ...f, thinking_enabled: e.target.checked }))}
-                  style={{ width: 16, height: 16, accentColor: '#a78bfa' }}
+                  style={{ width: 16, height: 16, accentColor: 'var(--admin-accent)' }}
                 />
-                <span style={{ fontSize: 13, color: form.thinking_enabled ? '#a78bfa' : '#888' }}>
+                <span style={{ fontSize: 13, color: form.thinking_enabled ? 'var(--admin-accent)' : 'var(--admin-text-muted)' }}>
                   {form.thinking_enabled ? '已开启（deepseek-pro / qwen3 / qwq 等推理模型）' : '已关闭（标准模型不需要开启）'}
                 </span>
               </label>
@@ -301,11 +301,11 @@ export default function AdminLLMPage() {
 
             <div className="admin-form-group" style={{ marginBottom: 16 }}>
               <label className="admin-form-label">
-                API Key {editing && <span style={{ color: '#666' }}>(留空则不修改)</span>}
+                API Key {editing && <span style={{ color: 'var(--admin-text-faint)' }}>(留空则不修改)</span>}
               </label>
               {editing && (editing.api_key_preview || editing.api_key_masked) && (
-                <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>
-                  当前：<code style={{ color: '#a78bfa' }}>{editing.api_key_preview || editing.api_key_masked}</code>
+                <div style={{ fontSize: 12, color: 'var(--admin-text-muted)', marginBottom: 6 }}>
+                  当前：<code style={{ color: 'var(--admin-accent)' }}>{editing.api_key_preview || editing.api_key_masked}</code>
                 </div>
               )}
               <input className="admin-form-input" type="password" value={form.api_key}

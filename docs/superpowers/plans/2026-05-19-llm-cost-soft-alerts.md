@@ -25,7 +25,7 @@
 - `backend/pkg/seed/seed.go` — add `SeedCostAlertThresholds()` function
 - `backend/cmd/api/main.go` — register route, call seed, start scheduler
 - `frontend/src/lib/adminApi.ts` — add `budgetStatus()` method to `adminTokenUsageAPI`
-- `frontend/src/pages/admin/TokenUsagePage.tsx` — banner + 3 stat cards + ⚙️ threshold modal + 30s auto-refresh
+- `frontend/src/pages/admin/TokenUsagePage.tsx` — banner + 3 stat cards + 设置 threshold modal + 30s auto-refresh
 
 **Not touched (out of scope per spec):**
 - Existing `GetTokenUsageSummary`/`Detail`/`Content` repository functions and handlers
@@ -898,7 +898,7 @@ func SeedCostAlertThresholds() {
 			return
 		}
 	}
-	log.Println("✅ 种子数据：成本告警阈值已写入 algo_config（ON CONFLICT DO NOTHING）")
+	log.Println("[OK] 种子数据：成本告警阈值已写入 algo_config（ON CONFLICT DO NOTHING）")
 }
 ```
 
@@ -1135,7 +1135,7 @@ In the `TokenUsagePage` return JSX, find the existing `<h1>` title block (around
           }}
           style={{ fontSize: 13 }}
         >
-          ⚙️ 编辑预算阈值
+          设置 编辑预算阈值
         </button>
       </h1>
 
@@ -1153,7 +1153,7 @@ In the `TokenUsagePage` return JSX, find the existing `<h1>` title block (around
             lineHeight: 1.7,
           }}
         >
-          ⚠️ 预算告警
+          [WARN] 预算告警
           {budget.today.exceeded && (
             <div>
               今日已用 <strong>¥{budget.today.total_cost_cny.toFixed(2)}</strong>
@@ -1209,7 +1209,7 @@ In the `TokenUsagePage` return JSX, find the existing `<h1>` title block (around
                     title={c.chart_id}
                     style={{ fontSize: 12, display: 'flex', justifyContent: 'space-between', color: c.threshold_exceeded ? '#fca5a5' : '#e0e0e0' }}
                   >
-                    <span>{i + 1}. {c.chart_id.slice(0, 8)}…{c.threshold_exceeded ? ' ⚠' : ''}</span>
+                    <span>{i + 1}. {c.chart_id.slice(0, 8)}…{c.threshold_exceeded ? ' [WARN]' : ''}</span>
                     <span>¥{c.total_cost_cny.toFixed(2)}（{c.calls} 次）</span>
                   </div>
                 ))}
@@ -1335,7 +1335,7 @@ git -c commit.gpgsign=false commit -m "feat(admin): cost soft alerts UI on Token
 - New banner (red, only renders on exceedance) at top of page
 - 3 stat cards: today / this_month / top_charts (near-budget yellow,
   exceeded red, healthy green)
-- ⚙️ button in title opens modal to edit 3 threshold values; saves
+- 设置 button in title opens modal to edit 3 threshold values; saves
   via existing PUT /api/admin/algo-config/:key endpoint
 - 30s auto-refresh of budget status (cleared on unmount)
 - adminApi gains budgetStatus() method
@@ -1392,10 +1392,10 @@ Expected JSON shape:
 Open `http://localhost:3000/admin/token-usage` (or wherever TokenUsagePage is routed).
 
 Verify:
-- ⚙️ "编辑预算阈值" button appears in the title bar
+- 设置 "编辑预算阈值" button appears in the title bar
 - 3 stat cards render (today / month / top 5)
 - Red banner appears if today.exceeded or this_month.exceeded
-- Clicking ⚙️ opens modal with 3 number inputs populated from current thresholds
+- Clicking 设置 opens modal with 3 number inputs populated from current thresholds
 - Saving modal triggers a refetch and banner/cards update
 - Existing summary table, filters, drawer all still work as before
 

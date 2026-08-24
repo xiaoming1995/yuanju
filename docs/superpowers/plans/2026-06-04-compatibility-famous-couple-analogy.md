@@ -381,7 +381,7 @@ export default function FamousCoupleCard({ hasReport, famousCouple, reportLoadin
   if (!hasReport) {
     return (
       <div className="famous-couple-card famous-couple-card--teaser">
-        <div className="famous-couple-card__teaser-text">✨ 生成深度解读，揭晓你们的名人配对</div>
+        <div className="famous-couple-card__teaser-text"> 生成深度解读，揭晓你们的名人配对</div>
         <button
           type="button"
           className="btn btn-primary famous-couple-card__cta"
@@ -566,7 +566,7 @@ Expected: lint 通过；tsc 无错误；所有 .mjs 测试 PASS。
 
 - [ ] **Step 3: 人工冒烟（可选但推荐）**
 
-1. 启动应用，做一次合盘 → 顶部应显示「✨ 生成深度解读，揭晓你们的名人配对」钩子卡。
+1. 启动应用，做一次合盘 → 顶部应显示「 生成深度解读，揭晓你们的名人配对」钩子卡。
 2. 点「生成深度解读」→ 顶部钩子卡替换为名人类比卡（couple + tagline + reason），reason 扣住该盘信号。
 3. 刷新页面 → 类比卡内容不变（随报告持久化）。
 4. （已有部署）若钩子卡生成后类比为空：检查后台「AI Prompt」compatibility 是否已更新到最新出厂版（见顶部「运维须知」）。
@@ -577,6 +577,6 @@ Expected: lint 通过；tsc 无错误；所有 .mjs 测试 PASS。
 
 ## Self-Review 记录
 
-- **Spec 覆盖**：§3 数据结构 → Task 1（Go）/ Task 3（TS）；§4 prompt 约束 → Task 2；§5 三态前端卡 → Task 4 + Task 5；§6 改动清单全覆盖；§7 成功标准 → Task 6 验证。分享图/PDF（§8 范围外）未建任务 ✓。
+- **Spec 覆盖**：§3 数据结构 → Task 1（Go）/ Task 3（TS）；§4 prompt 约束 → Task 2；§5 三态前端卡 → Task 4 + Task 5；§6 改动清单全覆盖；§7 成功标准 → Task 6 验证。分享图/PDF（§8 范围外）未建任务 [OK]。
 - **Placeholder 扫描**：无 TBD/TODO；所有代码步骤给出完整代码。
 - **类型一致性**：`CompatibilityFamousCouple`（Go `Couple/Tagline/Reason` ↔ JSON/TS `couple/tagline/reason`）、组件 props（`hasReport/famousCouple/reportLoading/onGenerateReport`）在 Task 4 定义、Task 5 调用一致；`famous_couple` 字段名在 Go tag / TS / prompt schema / 测试断言中统一。

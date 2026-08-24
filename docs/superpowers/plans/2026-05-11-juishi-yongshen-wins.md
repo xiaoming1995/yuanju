@@ -55,19 +55,19 @@ func TestJuShi_YongWins(t *testing.T) {
 	}
 }
 
-// TestJuShi_JiXiong: 忌神=水，原局申+辰，流年=子 → 申子辰三合水局 → 极凶★
+// TestJuShi_JiXiong: 忌神=水，原局申+辰，流年=子 → 申子辰三合水局 → 极凶*
 func TestJuShi_JiXiong(t *testing.T) {
 	natal := makeNatal("壬申", "甲辰", "壬寅", "甲午", "火", "水")
 	sigs := collectJuShiSignals(natal, "子", "")
 	hasXiong := false
 	for _, s := range sigs {
-		if s.Type == TypeJuShiZhong && s.Polarity == PolarityXiong && strings.Contains(s.Evidence, "★") {
+		if s.Type == TypeJuShiZhong && s.Polarity == PolarityXiong && strings.Contains(s.Evidence, "*") {
 			hasXiong = true
 		}
 	}
 	if !hasXiong {
 		t.Logf("sigs: %v", sigs)
-		t.Fatal("expected 极凶 signal Type=局势_重 with ★ for 三合水局（忌神）")
+		t.Fatal("expected 极凶 signal Type=局势_重 with * for 三合水局（忌神）")
 	}
 }
 
@@ -206,7 +206,7 @@ func collectJuShiSignals(natal *BaziResult, lnZhi, dyZhi string) []EventSignal {
 		} else if jiSet[localWx] {
 			sigs = append(sigs, EventSignal{
 				Type:     TypeJuShiZhong,
-				Evidence: fmt.Sprintf("★流年%s补全%s%s%s局，忌神势力极强，用神承压，应期极凶", lnZhi, juName, g.kind, localWxCN),
+				Evidence: fmt.Sprintf("*流年%s补全%s%s%s局，忌神势力极强，用神承压，应期极凶", lnZhi, juName, g.kind, localWxCN),
 				Polarity: PolarityXiong,
 				Source:   SourceZhuwei,
 			})
@@ -300,6 +300,6 @@ git commit -m "feat(bazi): 将三合/三会局势力信号纳入 Layer 0 压制�
 
 ## 自检结果
 
-- **Spec 覆盖**：三合/三会全齐判断 ✓、用神赢（吉）✓、忌神局（极凶+★+新 Type）✓、静默跳过（无克/半合）✓、Layer 0 集成 ✓
+- **Spec 覆盖**：三合/三会全齐判断 [OK]、用神赢（吉）[OK]、忌神局（极凶+*+新 Type）[OK]、静默跳过（无克/半合）[OK]、Layer 0 集成 [OK]
 - **Placeholder**：无 TBD/TODO
 - **类型一致性**：`TypeJuShiZhong`、`collectJuShiSignals`、`allJuGroups`、`juGroup` 在所有 Task 中命名一致

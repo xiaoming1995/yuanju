@@ -119,7 +119,7 @@ function SideCard({ name, side }: { name: string; side?: CompatibilitySpousePala
         <div className="spouse-match-list">
           <div className="spouse-match-list-title">对上了</div>
           {fit.map((text, index) => (
-            <p key={`fit-${index}`} className="spouse-match-point">✓ {text}</p>
+            <p key={`fit-${index}`} className="spouse-match-point">[OK] {text}</p>
           ))}
         </div>
       )}
@@ -127,7 +127,7 @@ function SideCard({ name, side }: { name: string; side?: CompatibilitySpousePala
         <div className="spouse-match-list">
           <div className="spouse-match-list-title">有差距</div>
           {gap.map((text, index) => (
-            <p key={`gap-${index}`} className="spouse-match-point">✗ {text}</p>
+            <p key={`gap-${index}`} className="spouse-match-point">[NO] {text}</p>
           ))}
         </div>
       )}

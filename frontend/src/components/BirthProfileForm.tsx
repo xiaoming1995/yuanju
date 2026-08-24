@@ -150,7 +150,7 @@ export default function BirthProfileForm({
                   className={`birth-profile-option ${value.gender === g ? 'active' : ''}`}
                   onClick={() => update({ gender: g })}
                 >
-                  {g === 'male' ? '♂ 男命' : '♀ 女命'}
+                  {g === 'male' ? '男命' : '女命'}
                 </button>
               ))}
             </div>

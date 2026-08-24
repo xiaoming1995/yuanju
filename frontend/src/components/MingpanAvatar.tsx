@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { Lock } from 'lucide-react'
 import { WUXING_MAP, parseWuxingList } from '../lib/wuxingColorSystem'
 import type { WuxingKey } from '../lib/wuxingColorSystem'
 import './MingpanAvatar.css'
@@ -186,7 +187,7 @@ export default function MingpanAvatar({ yongshen, jishen, dayGan }: MingpanAvata
   if (yongList.length === 0) {
     return (
       <div className="mingpan-avatar-locked card">
-        <div className="avatar-lock-icon">🔒</div>
+        <div className="avatar-lock-icon"><Lock size={32} /></div>
         <p className="avatar-lock-text">生成 AI 报告后解锁命理头像</p>
       </div>
     )

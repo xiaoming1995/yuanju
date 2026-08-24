@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { AlertTriangle, BookOpen, Bot, CalendarDays, Heart, Landmark, Library, Lightbulb, Package, Scale, Thermometer, Zap } from 'lucide-react'
 import { adminPromptsAPI } from '../../lib/adminApi'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { StatusBadge } from '../../components/ui/StatusBadge'
@@ -48,16 +50,16 @@ function VersionBadge({ record }: { record: PromptRecord }) {
 
 // 模块分类配置
 const KB_MODULES = [
-  { module: 'kb_shishen', label: '十神断事口诀', icon: '📖', hint: '十神的标准定义与断事逻辑，修改后将影响所有 AI 批断的十神解读方式。' },
-  { module: 'kb_gejv',    label: '格局判断规则', icon: '🏛️', hint: '子平真诠格局定义、成格破格条件，是推断命局高下的核心逻辑层。' },
-  { module: 'kb_tiaohou', label: '调候用神表',   icon: '🌡️', hint: '穷通宝鉴按月调候精华，使 AI 判断寒暖燥湿时有典籍依据。' },
-  { module: 'kb_yingqi',  label: '流年应期推算', icon: '📅', hint: '冲合刑害应期推算规则，使 AI 能准确定位吉凶发生的月份。' },
-  { module: 'kb_tonality', label: '语调与立场', icon: '⚖️', hint: '控制 AI 分析的语气风格——中立理性 vs 温暖积极，修改后影响所有报告的文风。' },
+  { module: 'kb_shishen', label: '十神断事口诀', icon: BookOpen, hint: '十神的标准定义与断事逻辑，修改后将影响所有 AI 批断的十神解读方式。' },
+  { module: 'kb_gejv',    label: '格局判断规则', icon: Landmark, hint: '子平真诠格局定义、成格破格条件，是推断命局高下的核心逻辑层。' },
+  { module: 'kb_tiaohou', label: '调候用神表',   icon: Thermometer, hint: '穷通宝鉴按月调候精华，使 AI 判断寒暖燥湿时有典籍依据。' },
+  { module: 'kb_yingqi',  label: '流年应期推算', icon: CalendarDays, hint: '冲合刑害应期推算规则，使 AI 能准确定位吉凶发生的月份。' },
+  { module: 'kb_tonality', label: '语调与立场', icon: Scale, hint: '控制 AI 分析的语气风格——中立理性 vs 温暖积极，修改后影响所有报告的文风。' },
 ]
 
 const INSTRUCTION_MODULES = [
-  { module: 'liunian', label: '流年运势批断', icon: '⚡', hint: '流年精批的 User Prompt 模版，支持 Go Template 占位变量注入命盘数据。' },
-  { module: 'compatibility', label: '婚恋合盘解读', icon: '💞', hint: '双人合盘分析的 User Prompt 模版，输入双方命盘摘要、四维分数与结构化证据。' },
+  { module: 'liunian', label: '流年运势批断', icon: Zap, hint: '流年精批的 User Prompt 模版，支持 Go Template 占位变量注入命盘数据。' },
+  { module: 'compatibility', label: '婚恋合盘解读', icon: Heart, hint: '双人合盘分析的 User Prompt 模版，输入双方命盘摘要、四维分数与结构化证据。' },
 ]
 
 const PromptSettings: React.FC = () => {
@@ -141,11 +143,12 @@ const PromptSettings: React.FC = () => {
   const getPrompt = (module: string) => prompts.find(p => p.module === module)
 
   const renderModuleCard = (
-    def: { module: string; label: string; icon: string; hint: string },
+    def: { module: string; label: string; icon: LucideIcon; hint: string },
     isKb: boolean
   ) => {
     const p = getPrompt(def.module)
     const isEditing = editingModule === def.module
+    const ModuleIcon = def.icon
 
     return (
       <div key={def.module} style={{
@@ -166,18 +169,18 @@ const PromptSettings: React.FC = () => {
           alignItems: 'flex-start',
           borderBottom: '1px solid var(--color-border)',
           background: isKb
-            ? 'rgba(167, 139, 250, 0.04)'
-            : 'rgba(251, 191, 36, 0.04)',
+            ? 'rgba(var(--admin-accent-rgb), 0.04)'
+            : 'rgba(var(--admin-warning-rgb), 0.04)',
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 18 }}>{def.icon}</span>
+              <ModuleIcon size={18} color={isKb ? 'var(--admin-accent)' : 'var(--admin-warning)'} />
               <h3 style={{ margin: 0, color: 'var(--color-text-primary)', fontSize: 15 }}>
                 {def.label}
               </h3>
               <span style={{
-                fontSize: 11, color: '#888',
-                background: '#333', padding: '1px 6px', borderRadius: 4,
+                fontSize: 11, color: 'var(--admin-text-muted)',
+                background: 'var(--admin-border-strong)', padding: '1px 6px', borderRadius: 4,
                 fontFamily: 'monospace',
               }}>
                 {def.module}
@@ -195,8 +198,8 @@ const PromptSettings: React.FC = () => {
                 style={{
                   marginLeft: 8, flexShrink: 0,
                   padding: '6px 14px', borderRadius: 6, fontSize: 13,
-                  background: '#f97316', border: 'none',
-                  color: '#000', fontWeight: 500, cursor: 'pointer',
+                  background: 'var(--admin-warning)', border: 'none',
+                  color: 'var(--admin-text)', fontWeight: 500, cursor: 'pointer',
                 }}
               >
                 采用出厂新版
@@ -209,8 +212,8 @@ const PromptSettings: React.FC = () => {
                   marginLeft: 8, flexShrink: 0,
                   padding: '6px 14px', borderRadius: 6, fontSize: 13,
                   background: 'transparent',
-                  border: '1px solid #f59e0b',
-                  color: '#f59e0b',
+                  border: '1px solid var(--admin-warning)',
+                  color: 'var(--admin-warning)',
                   cursor: 'pointer',
                 }}
               >
@@ -233,7 +236,9 @@ const PromptSettings: React.FC = () => {
               </button>
             )}
             {!p && !loading && (
-              <span style={{ color: '#ff6b6b', fontSize: 12, flexShrink: 0 }}>⚠ 未初始化（请重启后端）</span>
+              <span style={{ color: 'var(--admin-danger)', fontSize: 12, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <AlertTriangle size={12} /> 未初始化（请重启后端）
+              </span>
             )}
           </div>
         </div>
@@ -241,28 +246,29 @@ const PromptSettings: React.FC = () => {
         {/* Body */}
         <div style={{ padding: '16px 20px' }}>
           {!p ? (
-            <div style={{ color: '#666', fontSize: 13 }}>暂无数据</div>
+            <div style={{ color: 'var(--admin-text-faint)', fontSize: 13 }}>暂无数据</div>
           ) : isEditing ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {editBanner && (
                 <div style={{
-                  fontSize: 12, color: '#f97316',
-                  background: 'rgba(249,115,22,0.08)',
+                  fontSize: 12, color: 'var(--admin-warning)',
+                  background: 'rgba(var(--admin-warning-rgb), 0.08)',
                   padding: '10px 14px', borderRadius: 8,
-                  border: '1px solid rgba(249,115,22,0.25)',
+                  border: '1px solid rgba(var(--admin-warning-rgb), 0.25)',
                 }}>
-                  📦 {editBanner}
+                  <Package size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />
+                  {editBanner}
                 </div>
               )}
               {/* Variables hint for liunian */}
               {def.module === 'liunian' && (
                 <div style={{
                   fontSize: 12, color: 'var(--color-text-secondary)',
-                  background: 'rgba(255,255,255,0.03)',
+                  background: 'rgba(23,35,33,0.03)',
                   padding: '10px 14px', borderRadius: 8,
                   border: '1px solid var(--color-border)',
                 }}>
-                  <strong>💡 可用 Go Template 占位变量：</strong>
+                  <strong><Lightbulb size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />可用 Go Template 占位变量：</strong>
                   <code style={{ display: 'block', marginTop: 6, lineHeight: 1.8 }}>
                     {'{{.NatalAnalysisLogic}}'} / {'{{.CurrentDayunGanZhi}}'} / {'{{.CurrentDayunGanShiShen}}'} / {'{{.CurrentDayunZhiShiShen}}'}<br />
                     {'{{.TargetYear}}'} / {'{{.TargetYearGanZhi}}'} / {'{{.TargetYearGanShiShen}}'} / {'{{.TargetYearZhiShiShen}}'}
@@ -271,12 +277,13 @@ const PromptSettings: React.FC = () => {
               )}
               {isKb && (
                 <div style={{
-                  fontSize: 12, color: '#a78bfa',
-                  background: 'rgba(167,139,250,0.06)',
+                  fontSize: 12, color: 'var(--admin-accent)',
+                  background: 'rgba(var(--admin-accent-rgb), 0.06)',
                   padding: '10px 14px', borderRadius: 8,
-                  border: '1px solid rgba(167,139,250,0.2)',
+                  border: '1px solid rgba(var(--admin-accent-rgb), 0.2)',
                 }}>
-                  📚 这是命理知识库模块，修改后将作为 <strong>System Prompt</strong> 注入到所有流年精批请求中。
+                  <Library size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />
+                  这是命理知识库模块，修改后将作为 <strong>System Prompt</strong> 注入到所有流年精批请求中。
                 </div>
               )}
               <textarea
@@ -285,8 +292,8 @@ const PromptSettings: React.FC = () => {
                 rows={18}
                 style={{
                   width: '100%', fontFamily: 'monospace', fontSize: 13,
-                  padding: '12px', background: '#1a1a2e',
-                  color: '#d4d4d4', border: '1px solid #333',
+                  padding: '12px', background: 'var(--admin-bg-muted)',
+                  color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)',
                   borderRadius: 8, resize: 'vertical', boxSizing: 'border-box',
                   lineHeight: 1.6,
                 }}
@@ -310,7 +317,7 @@ const PromptSettings: React.FC = () => {
             </div>
           ) : (
             <pre style={{
-              background: '#111', color: '#aaa',
+              background: 'var(--admin-bg-raised)', color: 'var(--admin-text-secondary)',
               padding: '14px 16px', borderRadius: 8,
               fontSize: 12, whiteSpace: 'pre-wrap',
               overflowX: 'auto', maxHeight: 240,
@@ -328,7 +335,8 @@ const PromptSettings: React.FC = () => {
     <div>
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ color: 'var(--color-primary)', margin: '0 0 6px 0' }}>
-          🤖 AI 指令设定 (Prompts)
+          <Bot size={22} style={{ marginRight: 8, verticalAlign: '-4px' }} />
+          AI 指令设定 (Prompts)
         </h2>
         <p style={{ color: 'var(--color-text-secondary)', margin: 0, fontSize: 14 }}>
           动态配置 AI 命理批断所使用的典籍知识库（System Prompt）与批断指令模版（User Prompt）。
@@ -338,8 +346,8 @@ const PromptSettings: React.FC = () => {
       {/* Tab 导航 */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid var(--color-border)' }}>
         {[
-          { key: 'kb' as const, label: '📚 命理知识库', desc: '5 个典籍模块' },
-          { key: 'instruction' as const, label: '⚡ 批断指令', desc: '流年等模版' },
+          { key: 'kb' as const, label: '命理知识库', desc: '5 个典籍模块' },
+          { key: 'instruction' as const, label: '批断指令', desc: '流年等模版' },
         ].map(tab => (
           <button
             key={tab.key}
@@ -352,7 +360,7 @@ const PromptSettings: React.FC = () => {
                 ? '2px solid var(--color-primary)'
                 : '2px solid transparent',
               background: activeTab === tab.key
-                ? 'rgba(167,139,250,0.08)'
+                ? 'rgba(var(--admin-accent-rgb), 0.08)'
                 : 'transparent',
               color: activeTab === tab.key
                 ? 'var(--color-primary)'
@@ -378,11 +386,12 @@ const PromptSettings: React.FC = () => {
           {activeTab === 'kb' && (
             <div>
               <div style={{
-                background: 'rgba(167,139,250,0.06)', border: '1px solid rgba(167,139,250,0.2)',
+                background: 'rgba(var(--admin-accent-rgb), 0.06)', border: '1px solid rgba(var(--admin-accent-rgb), 0.2)',
                 borderRadius: 10, padding: '12px 16px', marginBottom: 24,
-                fontSize: 13, color: '#a78bfa', lineHeight: 1.6,
+                fontSize: 13, color: 'var(--admin-accent)', lineHeight: 1.6,
               }}>
-                💡 <strong>知识库工作原理：</strong>
+                <Lightbulb size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />
+                <strong>知识库工作原理：</strong>
                 以下 5 个模块会在每次 AI 流年精批时自动被拼入 System Prompt，让 AI 先"精通典籍"再对命盘进行批断。
                 你可以随时修改并保存，清除旧流年缓存后立即生效。
               </div>
@@ -393,11 +402,12 @@ const PromptSettings: React.FC = () => {
           {activeTab === 'instruction' && (
             <div>
               <div style={{
-                background: 'rgba(251,191,36,0.05)', border: '1px solid rgba(251,191,36,0.2)',
+                background: 'rgba(var(--admin-warning-rgb), 0.05)', border: '1px solid rgba(var(--admin-warning-rgb), 0.2)',
                 borderRadius: 10, padding: '12px 16px', marginBottom: 24,
-                fontSize: 13, color: '#fbbf24', lineHeight: 1.6,
+                fontSize: 13, color: 'var(--admin-warning)', lineHeight: 1.6,
               }}>
-                💡 <strong>批断指令说明：</strong>
+                <Lightbulb size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />
+                <strong>批断指令说明：</strong>
                 此处为 User Prompt 模版，支持 Go Template 语法注入命盘结构化数据。
                 AI 会在"已掌握知识库"的基础上，按此模版的要求执行具体批断并输出 JSON。
               </div>

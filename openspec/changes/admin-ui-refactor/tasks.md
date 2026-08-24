@@ -10,8 +10,8 @@
 
 ## 3. 改造 Admin 页面内容中的 Emoji
 
-- [x] 3.1 改造 `AdminDashboardPage.tsx`，将 `👥`, `☯`, `🤖`, `🛠️`, `🗑️`, `✅`, `❌` 替换为 `lucide-react` 组件并微调。
-- [x] 3.2 改造 `AdminLLMPage.tsx`，替换页面 Title 的 `🤖` 等相关 Emoji。
+- [x] 3.1 改造 `AdminDashboardPage.tsx`，将 `用户`, `命理`, `AI`, `工具`, `删除`, `[OK]`, `[NO]` 替换为 `lucide-react` 组件并微调。
+- [x] 3.2 改造 `AdminLLMPage.tsx`，替换页面 Title 的 `AI` 等相关 Emoji。
 - [x] 3.3 改造刚才我们编写的 `AdminAILogsPage.tsx`，将其中的标题 Emoji、按钮的对钩/叉号、卡片上的 Emoji 替换掉。
 
 ## 4. 验证效果

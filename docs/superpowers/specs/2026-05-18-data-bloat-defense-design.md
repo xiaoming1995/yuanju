@@ -11,7 +11,7 @@
 2026-05-18 线上 backend 启动失败：
 
 ```
-2026/05/18 10:16:06 ✅ 数据库连接成功
+2026/05/18 10:16:06 [OK] 数据库连接成功
 2026/05/18 10:16:06 数据库迁移失败: pq: could not extend file
   "base/16384/3455": No space left on device (53100)
 ```
@@ -35,13 +35,13 @@
 - 提供 `--cleanup-once` CLI flag，便于 ops 手动触发与烟雾测试
 
 **非目标（明确不做）：**
-- ❌ 表大小 / 磁盘告警（留给"可观测性骨架" spec）
-- ❌ 迁移版本化与回滚（留给"迁移安全网" spec）
-- ❌ 用户业务表（命盘 / 合盘 readings / participants / evidences / 账号等）的清理 —— **永不删用户数据**
-- ❌ `cleanup_history` 审计表
-- ❌ 错过 tick 的 catch-up 补跑
-- ❌ "Run now" admin API（已由 CLI flag 覆盖）
-- ❌ 主动 VACUUM / VACUUM FULL（依赖 autovacuum）
+- [NO] 表大小 / 磁盘告警（留给"可观测性骨架" spec）
+- [NO] 迁移版本化与回滚（留给"迁移安全网" spec）
+- [NO] 用户业务表（命盘 / 合盘 readings / participants / evidences / 账号等）的清理 —— **永不删用户数据**
+- [NO] `cleanup_history` 审计表
+- [NO] 错过 tick 的 catch-up 补跑
+- [NO] "Run now" admin API（已由 CLI flag 覆盖）
+- [NO] 主动 VACUUM / VACUUM FULL（依赖 autovacuum）
 
 ---
 
@@ -456,9 +456,9 @@ mock 8 个 repository，验证：
 
 ### 8.5 测试禁忌
 
-- ❌ 不允许写"调真 LLM"的测试
-- ❌ 不允许测试里硬编码当前日期 —— 必须用注入的 `Clock`
-- ❌ 不允许集成测试连开发者本地 dev DB（要么 testcontainers，要么跳过）
+- [NO] 不允许写"调真 LLM"的测试
+- [NO] 不允许测试里硬编码当前日期 —— 必须用注入的 `Clock`
+- [NO] 不允许集成测试连开发者本地 dev DB（要么 testcontainers，要么跳过）
 
 ### 8.6 TDD 节奏
 

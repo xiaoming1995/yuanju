@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import type { StructuredReport, ExportBrand } from '../lib/api'
+import type { PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
 import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 
 // ── 天干地支专属 Google Fonts 子集（仅22字，< 20KB，保障截图字体渲染） ──
@@ -63,6 +64,140 @@ function ChapterBlock({ icon, title, content }: { icon: string; title: string; c
   )
 }
 
+function PastEventsShareSection({ segments }: { segments: PastEventsExportReadySegment[] }) {
+  if (!segments.length) return null
+
+  return (
+    <>
+      <Divider />
+      <div style={{
+        padding: '16px 24px 12px',
+        background: '#fdf8f0',
+      }}>
+        <div style={{
+          fontSize: 11,
+          color: '#a08060',
+          letterSpacing: 4,
+          textAlign: 'center',
+          fontFamily: '"Noto Serif SC", serif',
+          marginBottom: 12,
+        }}>
+          ── 过 往 年 运 回 看 ──
+        </div>
+        {segments.map((segment) => (
+          <div key={segment.dayun_index} style={{
+            border: '1px solid #ead8b8',
+            background: '#fffaf2',
+            marginBottom: 10,
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 8,
+              padding: '7px 9px',
+              borderBottom: '1px solid #ead8b8',
+              background: '#faf0df',
+              alignItems: 'baseline',
+            }}>
+              <strong style={{
+                color: '#7a5c3a',
+                fontSize: 14,
+                letterSpacing: 2,
+                fontFamily: '"Noto Serif SC", serif',
+              }}>
+                {segment.gan_zhi}
+              </strong>
+              <span style={{
+                color: '#9b815c',
+                fontSize: 10,
+                fontFamily: '"Noto Sans SC", sans-serif',
+                whiteSpace: 'nowrap',
+              }}>
+                {segment.start_age !== undefined && segment.end_age !== undefined
+                  ? `${segment.start_age}-${segment.end_age}岁`
+                  : ''}
+                {segment.start_year !== undefined && segment.end_year !== undefined
+                  ? `（${segment.start_year}-${segment.end_year}年）`
+                  : ''}
+              </span>
+            </div>
+            {segment.themes.length > 0 && (
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 4,
+                padding: '7px 9px 0',
+              }}>
+                {segment.themes.map((theme) => (
+                  <span key={theme} style={{
+                    border: '1px solid #e0cca0',
+                    background: '#fdf8f0',
+                    color: '#7a6830',
+                    borderRadius: 2,
+                    padding: '1px 5px',
+                    fontSize: 9,
+                    lineHeight: 1.5,
+                    fontFamily: '"Noto Sans SC", sans-serif',
+                  }}>
+                    {theme}
+                  </span>
+                ))}
+              </div>
+            )}
+            <p style={{
+              margin: '7px 9px 8px',
+              color: '#4a3728',
+              fontSize: 11,
+              lineHeight: 1.65,
+              fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+            }}>
+              {segment.summary}
+            </p>
+            {segment.years.map((year) => (
+              <div key={`${segment.dayun_index}-${year.year}`} style={{
+                padding: '7px 9px',
+                borderTop: '1px solid #f0e8d4',
+                background: year.year % 2 === 0 ? '#fff' : '#fdf8f0',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  gap: 6,
+                  alignItems: 'baseline',
+                  marginBottom: 3,
+                }}>
+                  <strong style={{
+                    color: '#7a5c3a',
+                    fontSize: 12,
+                    fontFamily: '"Noto Serif SC", serif',
+                  }}>
+                    {year.gan_zhi}
+                  </strong>
+                  <span style={{
+                    color: '#9b815c',
+                    fontSize: 9,
+                    fontFamily: '"Noto Sans SC", sans-serif',
+                  }}>
+                    {year.year}年{year.age ? ` · ${year.age}岁` : ''}
+                  </span>
+                </div>
+                <p style={{
+                  margin: 0,
+                  color: '#4a3728',
+                  fontSize: 10,
+                  lineHeight: 1.6,
+                  fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+                }}>
+                  {year.narrative}
+                </p>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
 export interface ShareCardProps {
   birthYear: number
   birthMonth: number
@@ -79,6 +214,7 @@ export interface ShareCardProps {
   hourGanWx: string; hourZhiWx: string
   structured: StructuredReport | null
   brand?: ExportBrand | null
+  pastEventsExportSegments?: PastEventsExportReadySegment[]
 }
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
@@ -89,6 +225,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
     dayGanWx, dayZhiWx, hourGanWx, hourZhiWx,
     structured,
     brand,
+    pastEventsExportSegments = [],
   } = props
 
   const pillars = [
@@ -102,10 +239,10 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
   const chapters = structured?.chapters ?? []
 
   const chapterDefs = [
-    { icon: '◈', key: 'personality' },
-    { icon: '❤', key: 'romance' },
-    { icon: '✦', key: 'career' },
-    { icon: '☽', key: 'health' },
+    { icon: '命', key: 'personality' },
+    { icon: '情', key: 'romance' },
+    { icon: '业', key: 'career' },
+    { icon: '身', key: 'health' },
   ]
 
   const resolvedTitle = brand?.title || '缘 聚 命 理'
@@ -308,6 +445,8 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           命盘尚未生成命理解读，请先生成报告后再保存图片
         </div>
       )}
+
+      <PastEventsShareSection segments={pastEventsExportSegments} />
 
       {/* ┌ 品牌落款 ── */}
       <div style={{

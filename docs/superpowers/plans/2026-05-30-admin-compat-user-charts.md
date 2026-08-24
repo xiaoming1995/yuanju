@@ -1382,10 +1382,10 @@ git commit -m "feat(admin): search charts by email and cast-time range"
 
 ## 自检对照（spec 覆盖）
 
-- 合盘只读列表+详情 → Task 1-4 ✓
-- 用户列表分页 Bug → Task 5 ✓
-- 重置用户密码 → Task 6 + Task 9 ✓
-- 禁用用户（disabled_at + 登录拦截）→ Task 7 + Task 9 ✓
-- 删除用户（硬删除 + 强警告）→ Task 8 + Task 9 ✓
-- 起盘按邮箱/排盘时间搜索 → Task 10-11 ✓
-- 不在范围（合盘删除/搜索、角色权限、起盘删除/按出生日期）→ 未引入 ✓
+- 合盘只读列表+详情 → Task 1-4 [OK]
+- 用户列表分页 Bug → Task 5 [OK]
+- 重置用户密码 → Task 6 + Task 9 [OK]
+- 禁用用户（disabled_at + 登录拦截）→ Task 7 + Task 9 [OK]
+- 删除用户（硬删除 + 强警告）→ Task 8 + Task 9 [OK]
+- 起盘按邮箱/排盘时间搜索 → Task 10-11 [OK]
+- 不在范围（合盘删除/搜索、角色权限、起盘删除/按出生日期）→ 未引入 [OK]

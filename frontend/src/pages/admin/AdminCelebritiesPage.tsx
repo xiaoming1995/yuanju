@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, CheckCircle, XCircle } from 'lucide-react'
+import { Users, CheckCircle, Sparkles, XCircle } from 'lucide-react'
 import { adminCelebritiesAPI } from '../../lib/adminApi'
 
 interface Celebrity {
@@ -101,7 +101,9 @@ export default function AdminCelebritiesPage() {
           <Users size={24} /> 名人库管理
         </h1>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button className="admin-btn admin-btn-ghost" onClick={() => { setAiTopic(''); setAiCount(10); setAiError(''); setShowAIModal(true); }}>✨ AI 自动收集</button>
+          <button className="admin-btn admin-btn-ghost" onClick={() => { setAiTopic(''); setAiCount(10); setAiError(''); setShowAIModal(true); }}>
+            <Sparkles size={14} /> AI 自动收集
+          </button>
           <button className="admin-btn admin-btn-primary" onClick={openCreate}>+ 添加名人</button>
         </div>
       </div>
@@ -121,16 +123,16 @@ export default function AdminCelebritiesPage() {
             </thead>
             <tbody>
               {celebs.length === 0 && (
-                <tr><td colSpan={6} style={{ textAlign: 'center', color: '#666', padding: 40 }}>
+                <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--admin-text-faint)', padding: 40 }}>
                   暂无名人数据，点击右上角添加
                 </td></tr>
               )}
               {celebs.map(c => (
                 <tr key={c.id}>
-                  <td style={{ fontWeight: 600, color: '#e8e8e8' }}>{c.name}</td>
-                  <td style={{ color: '#aaa' }}>{c.gender}</td>
-                  <td style={{ color: '#aaa' }}>{c.career}</td>
-                  <td style={{ color: '#888', fontSize: 13, maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.traits}>
+                  <td style={{ fontWeight: 600, color: 'var(--admin-text)' }}>{c.name}</td>
+                  <td style={{ color: 'var(--admin-text-secondary)' }}>{c.gender}</td>
+                  <td style={{ color: 'var(--admin-text-secondary)' }}>{c.career}</td>
+                  <td style={{ color: 'var(--admin-text-muted)', fontSize: 13, maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={c.traits}>
                     {c.traits || '-'}
                   </td>
                   <td>
@@ -194,7 +196,7 @@ export default function AdminCelebritiesPage() {
             <div className="admin-form-group" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="checkbox" id="active-checkbox" checked={form.active}
                 onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />
-              <label htmlFor="active-checkbox" style={{ cursor: 'pointer', color: '#ccc' }}>
+              <label htmlFor="active-checkbox" style={{ cursor: 'pointer', color: 'var(--admin-text-secondary)' }}>
                 立即作为 AI 推荐候选（启用）
               </label>
             </div>
@@ -212,8 +214,10 @@ export default function AdminCelebritiesPage() {
       {showAIModal && (
         <div className="admin-modal-overlay" onClick={e => e.target === e.currentTarget && !aiGenerating && setShowAIModal(false)}>
           <div className="admin-modal">
-            <div className="admin-modal-title">✨ AI 自动收集名人</div>
-            <p style={{ color: '#888', fontSize: 13, marginBottom: 16 }}>
+            <div className="admin-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Sparkles size={18} /> AI 自动收集名人
+            </div>
+            <p style={{ color: 'var(--admin-text-muted)', fontSize: 13, marginBottom: 16 }}>
               设定主题和数量，系统将调用大模型自动生成相关的名人记录并填充至数据库。
             </p>
 

@@ -593,18 +593,18 @@ WHERE (y->>'year')::int IN (1999, 2008, 2017, 2019, 2028);
 ## Self-Review
 
 **Spec 覆盖：**
-- ✅ `RenderYearNarrativeWithFallback` 新增 → Task 1
-- ✅ `makeMinimalFallback` 三个 polarity 分支 → Task 1（实现）+ Task 2（测试）
-- ✅ 兜底句不触发 28 个 validatedKeywords → Task 2 Step 2.2
-- ✅ `GenerateDayunSummariesStream` 调用点改写 → Task 3
-- ✅ Prompt 加固"弱信号年安全措辞" → Task 4
-- ✅ `CurrentAlgorithmVersion` 升级到 `v3.1-narrative-guarded` → Task 5
-- ✅ TestRenderYearNarrativeWithFallback_AlwaysNonEmpty → Task 1 Step 1.1 (`NoSignalsReturnsNonEmpty`)
-- ✅ TestMakeMinimalFallback_PolarityBranches → Task 2 Step 2.1
-- ✅ TestMakeMinimalFallback_KeywordSafe → Task 2 Step 2.2
-- ✅ TestGenerateDayunSummariesStream_FillsBlankNarrative → Task 3 Step 3.1（实现为 `TestFillBlankYearNarratives_*` 三个，因为整体 stream 函数难以纯单测；通过抽出 helper 实现等价覆盖）
-- ✅ 存量数据不动 → 无相关任务即满足
-- ✅ 无前端改动 → 计划无前端任务
+- [OK] `RenderYearNarrativeWithFallback` 新增 → Task 1
+- [OK] `makeMinimalFallback` 三个 polarity 分支 → Task 1（实现）+ Task 2（测试）
+- [OK] 兜底句不触发 28 个 validatedKeywords → Task 2 Step 2.2
+- [OK] `GenerateDayunSummariesStream` 调用点改写 → Task 3
+- [OK] Prompt 加固"弱信号年安全措辞" → Task 4
+- [OK] `CurrentAlgorithmVersion` 升级到 `v3.1-narrative-guarded` → Task 5
+- [OK] TestRenderYearNarrativeWithFallback_AlwaysNonEmpty → Task 1 Step 1.1 (`NoSignalsReturnsNonEmpty`)
+- [OK] TestMakeMinimalFallback_PolarityBranches → Task 2 Step 2.1
+- [OK] TestMakeMinimalFallback_KeywordSafe → Task 2 Step 2.2
+- [OK] TestGenerateDayunSummariesStream_FillsBlankNarrative → Task 3 Step 3.1（实现为 `TestFillBlankYearNarratives_*` 三个，因为整体 stream 函数难以纯单测；通过抽出 helper 实现等价覆盖）
+- [OK] 存量数据不动 → 无相关任务即满足
+- [OK] 无前端改动 → 计划无前端任务
 
 **Placeholder scan：** 无 TBD/TODO/handle edge cases，每步含完整代码或完整命令。
 

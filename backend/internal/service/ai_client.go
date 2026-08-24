@@ -42,10 +42,10 @@ func logAIPromptToFile(modelName, systemPrompt, userPrompt, response string, dur
 	filename := fmt.Sprintf("%s_%s.md", now.Format("2006-01-02_15-04-05"), modelName)
 	filePath := filepath.Join(logDir, filename)
 
-	status := "✅ success"
+	status := "success"
 	errStr := ""
 	if err != nil {
-		status = "❌ error"
+		status = "error"
 		errStr = fmt.Sprintf("\n## Error\n\n```\n%s\n```\n", err.Error())
 	}
 
@@ -126,7 +126,7 @@ type AIRequest struct {
 	MaxTokens      int             `json:"max_tokens"`
 	Temperature    float64         `json:"temperature"`
 	Stream         bool            `json:"stream,omitempty"`
-	Thinking       *ThinkingConfig `json:"thinking,omitempty"`       // DeepSeek 官方格式
+	Thinking       *ThinkingConfig `json:"thinking,omitempty"`        // DeepSeek 官方格式
 	EnableThinking *bool           `json:"enable_thinking,omitempty"` // Qwen3 等格式
 	StreamOptions  *StreamOptions  `json:"stream_options,omitempty"`
 }
@@ -282,6 +282,10 @@ func applyThinkingToRequest(req *AIRequest, modelName, userPrompt string, thinki
 
 // StreamAI 统一流式调用入口，思考模式由激活 Provider 的 thinking_enabled 配置驱动
 func StreamAI(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
+	return streamAI(userPrompt, callback, onThinking, false)
+}
+
+func streamAI(userPrompt string, callback func(string) error, onThinking func() error, forceNoThink bool) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
 	systemPrompt := buildKnowledgeBaseSystem()
 	start := time.Now()
 
@@ -292,7 +296,8 @@ func StreamAI(userPrompt string, callback func(string) error, onThinking func() 
 			return "", "", provider.ID, 0, TokenUsage{}, fmt.Errorf("Provider [%s] API Key 解密失败，请检查 ADMIN_ENCRYPTION_KEY 配置", provider.Name)
 		}
 		baseURL := strings.TrimSuffix(strings.TrimSuffix(provider.BaseURL, "/v1"), "/")
-		result, u, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback, onThinking, provider.ThinkingEnabled)
+		thinkingEnabled := resolveStreamThinkingEnabled(provider.ThinkingEnabled, forceNoThink)
+		result, u, callErr := streamOpenAICompatible(baseURL+"/v1/chat/completions", apiKey, provider.Model, systemPrompt, userPrompt, callback, onThinking, thinkingEnabled)
 		elapsed := int(time.Since(start).Milliseconds())
 		if callErr != nil {
 			return result, provider.Model, provider.ID, elapsed, TokenUsage{}, fmt.Errorf("Provider [%s] 调用失败: %w", provider.Name, callErr)
@@ -318,14 +323,21 @@ func StreamAI(userPrompt string, callback func(string) error, onThinking func() 
 	return "", "", "", 0, TokenUsage{}, fmt.Errorf("未配置可用的 LLM Provider")
 }
 
+func resolveStreamThinkingEnabled(providerThinkingEnabled bool, forceNoThink bool) bool {
+	if forceNoThink {
+		return false
+	}
+	return providerThinkingEnabled
+}
+
 // StreamAIWithSystem 保留兼容名（内部调用 StreamAI）
 func StreamAIWithSystem(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
 	return StreamAI(userPrompt, callback, onThinking)
 }
 
-// StreamAIWithSystemNoThink 保留兼容名（内部调用 StreamAI，思考模式由 Provider 配置决定）
+// StreamAIWithSystemNoThink 保留兼容名，用于过往事件等需要快速开始输出的场景，强制关闭思考模式。
 func StreamAIWithSystemNoThink(userPrompt string, callback func(string) error, onThinking func() error) (rawContent, model, providerID string, durationMs int, usage TokenUsage, err error) {
-	return StreamAI(userPrompt, callback, onThinking)
+	return streamAI(userPrompt, callback, onThinking, true)
 }
 
 func callOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt string) (string, TokenUsage, error) {
@@ -449,11 +461,11 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 						} `json:"delta"`
 					} `json:"choices"`
 					Usage struct {
-						PromptTokens     int `json:"prompt_tokens"`
-						CompletionTokens int `json:"completion_tokens"`
-						TotalTokens      int `json:"total_tokens"`
-						CacheHitTokens   int `json:"prompt_cache_hit_tokens"`
-						CacheMissTokens  int `json:"prompt_cache_miss_tokens"`
+						PromptTokens            int `json:"prompt_tokens"`
+						CompletionTokens        int `json:"completion_tokens"`
+						TotalTokens             int `json:"total_tokens"`
+						CacheHitTokens          int `json:"prompt_cache_hit_tokens"`
+						CacheMissTokens         int `json:"prompt_cache_miss_tokens"`
 						CompletionTokensDetails struct {
 							ReasoningTokens int `json:"reasoning_tokens"`
 						} `json:"completion_tokens_details"`
@@ -475,7 +487,7 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 					if len(event.Choices) > 0 {
 						// 推理模型的思考阶段：通知前端正在推理
 						if event.Choices[0].Delta.ReasoningContent != "" && !thinkingNotified && onThinking != nil {
-							log.Printf("[AIStream T+%dms] 🧠 推理模型开始思考阶段", time.Since(t0).Milliseconds())
+							log.Printf("[AIStream T+%dms] 推理模型开始思考阶段", time.Since(t0).Milliseconds())
 							_ = onThinking()
 							thinkingNotified = true
 						}
@@ -484,7 +496,7 @@ func streamOpenAICompatible(url, apiKey, modelName, systemPrompt, userPrompt str
 						if chunk != "" {
 							chunkNum++
 							if chunkNum == 1 {
-								log.Printf("[AIStream T+%dms] ✅ 首个文字 chunk 到达: %q", time.Since(t0).Milliseconds(), chunk[:min(len(chunk), 20)])
+								log.Printf("[AIStream T+%dms] 首个文字 chunk 到达: %q", time.Since(t0).Milliseconds(), chunk[:min(len(chunk), 20)])
 							}
 							contentBuilder.WriteString(chunk)
 							if cbErr := callback(chunk); cbErr != nil {

@@ -70,6 +70,20 @@ type AdminChartRecord struct {
 	CreatedAt          time.Time        `db:"created_at" json:"created_at"`
 }
 
+// AdminPastEventsDayunRecord 管理后台：过往推算大运段缓存记录
+type AdminPastEventsDayunRecord struct {
+	ID               string           `json:"id"`
+	ChartID          string           `json:"chart_id"`
+	DayunIndex       int              `json:"dayun_index"`
+	DayunGanZhi      string           `json:"dayun_ganzhi"`
+	Themes           *json.RawMessage `json:"themes"`
+	Summary          string           `json:"summary"`
+	Years            *json.RawMessage `json:"years"`
+	Model            string           `json:"model"`
+	AlgorithmVersion string           `json:"algorithm_version"`
+	CreatedAt        time.Time        `json:"created_at"`
+}
+
 // CelebrityRecord 名人八字信息记录
 type CelebrityRecord struct {
 	ID        string    `db:"id" json:"id"`

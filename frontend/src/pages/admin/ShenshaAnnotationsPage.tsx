@@ -19,9 +19,9 @@ const polarityLabel: Record<string, string> = {
 }
 
 const polarityColor: Record<string, string> = {
-  ji: '#4ade80',
-  xiong: '#f87171',
-  zhong: '#a78bfa',
+  ji: 'var(--admin-success)',
+  xiong: 'var(--admin-danger)',
+  zhong: 'var(--admin-accent)',
 }
 
 export default function ShenshaAnnotationsPage() {
@@ -102,15 +102,15 @@ export default function ShenshaAnnotationsPage() {
             <tbody>
               {items.map(item => (
                 editName === item.name ? (
-                  <tr key={item.name} style={{ background: '#1a1a3e' }}>
-                    <td style={{ fontWeight: 700, color: polarityColor[item.polarity] ?? '#e0e0e0' }}>{item.name}</td>
+                  <tr key={item.name} style={{ background: 'var(--admin-bg-soft)' }}>
+                    <td style={{ fontWeight: 700, color: polarityColor[item.polarity] ?? 'var(--admin-text-secondary)' }}>{item.name}</td>
                     <td>{polarityLabel[item.polarity] ?? item.polarity}</td>
                     <td>
                       <input
                         value={editCategory}
                         onChange={e => setEditCategory(e.target.value)}
                         placeholder="贵人系"
-                        style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #444', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}
+                        style={{ width: '100%', background: 'var(--admin-bg-base)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}
                       />
                     </td>
                     <td>
@@ -118,7 +118,7 @@ export default function ShenshaAnnotationsPage() {
                         value={editShortDesc}
                         onChange={e => setEditShortDesc(e.target.value)}
                         placeholder="一句话简介…"
-                        style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #444', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}
+                        style={{ width: '100%', background: 'var(--admin-bg-base)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}
                       />
                     </td>
                     <td>
@@ -134,10 +134,10 @@ export default function ShenshaAnnotationsPage() {
                   </tr>
                 ) : (
                   <tr key={item.name} style={{ cursor: 'pointer' }} onClick={() => startEdit(item)}>
-                    <td style={{ fontWeight: 700, color: polarityColor[item.polarity] ?? '#e0e0e0' }}>{item.name}</td>
-                    <td style={{ color: polarityColor[item.polarity] ?? '#888' }}>{polarityLabel[item.polarity] ?? item.polarity}</td>
-                    <td style={{ color: '#aaa', fontSize: 12 }}>{item.category || '—'}</td>
-                    <td style={{ color: '#aaa', fontSize: 12 }}>{item.short_desc || '—'}</td>
+                    <td style={{ fontWeight: 700, color: polarityColor[item.polarity] ?? 'var(--admin-text-secondary)' }}>{item.name}</td>
+                    <td style={{ color: polarityColor[item.polarity] ?? 'var(--admin-text-muted)' }}>{polarityLabel[item.polarity] ?? item.polarity}</td>
+                    <td style={{ color: 'var(--admin-text-secondary)', fontSize: 12 }}>{item.category || '—'}</td>
+                    <td style={{ color: 'var(--admin-text-secondary)', fontSize: 12 }}>{item.short_desc || '—'}</td>
                     <td>
                       <button className="admin-btn" style={{ padding: '2px 8px', fontSize: 12 }} onClick={e => { e.stopPropagation(); startEdit(item) }}>
                         编辑
@@ -149,17 +149,17 @@ export default function ShenshaAnnotationsPage() {
             </tbody>
           </table>
           {editName && (
-            <div style={{ marginTop: 16, padding: 16, background: '#1a1a3e', borderRadius: 8 }}>
-              <label style={{ color: '#aaa', fontSize: 13, display: 'block', marginBottom: 6 }}>
+            <div style={{ marginTop: 16, padding: 16, background: 'var(--admin-bg-soft)', borderRadius: 8 }}>
+              <label style={{ color: 'var(--admin-text-secondary)', fontSize: 13, display: 'block', marginBottom: 6 }}>
                 {editName} — 详细说明
               </label>
               <textarea
                 value={editDescription}
                 onChange={e => setEditDescription(e.target.value)}
                 rows={6}
-                style={{ width: '100%', background: '#0d0d1a', color: '#e0e0e0', border: '1px solid #444', borderRadius: 6, padding: 10, fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                style={{ width: '100%', background: 'var(--admin-bg-base)', color: 'var(--admin-text-secondary)', border: '1px solid var(--admin-border-strong)', borderRadius: 6, padding: 10, fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
               />
-              {error && <div style={{ color: '#f87171', fontSize: 13, marginTop: 6 }}>{error}</div>}
+              {error && <div style={{ color: 'var(--admin-danger)', fontSize: 13, marginTop: 6 }}>{error}</div>}
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <button className="admin-btn" onClick={save} disabled={saving}>{saving ? '保存中…' : '保存'}</button>
                 <button className="admin-btn" style={{ background: 'transparent' }} onClick={cancelEdit}>取消</button>

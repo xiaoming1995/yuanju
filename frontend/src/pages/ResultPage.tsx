@@ -7,6 +7,7 @@ import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, Exp
 import { cleanReportText } from '../lib/reportText'
 import { buildAuthPath } from '../lib/authRedirect'
 import { createPendingBaziJourney, savePendingJourney } from '../lib/pendingJourney'
+import { buildBaziResultRoute } from '../lib/resultRoute'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
@@ -18,9 +19,10 @@ import PolishedPanel from '../components/PolishedPanel'
 import GongJiaPanel, { type GongJiaItem } from '../components/GongJiaPanel'
 import { SegmentedTabs } from '../components/ui/SegmentedTabs'
 import { useToast } from '../components/ui/useToast'
+import { filterPastEventsExportSegments, type PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
 import './ResultPage.css'
 
-// 💡 特性开关 (Feature Flags)
+// 特性开关 (Feature Flags)
 const ENABLE_MINGPAN_AVATAR = false // 暂时隐藏专属命理头像模块
 
 const WUXING_MAP: Record<string, string> = {
@@ -375,6 +377,8 @@ export default function ResultPage() {
   const shareCardRef = useRef<HTMLDivElement>(null)
   const pendingIntentConsumedRef = useRef(false)
   const pendingInput = location.state?.input as CalculateInput | undefined
+  // 页面当前命盘 id：历史 URL、起盘 state 都会汇入这里。
+  const targetId = id || location.state?.chartId
 
   // 神煞注解状态
   const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
@@ -384,6 +388,7 @@ export default function ResultPage() {
 
   // 导出品牌定制
   const [brand, setBrand] = useState<ExportBrand | null>(null)
+  const [pastEventsExportSegments, setPastEventsExportSegments] = useState<PastEventsExportReadySegment[]>([])
 
   // 预加载神煞注解
   useEffect(() => {
@@ -422,12 +427,15 @@ export default function ResultPage() {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
 
     try {
+      await loadPastEventsExportForPrint()
+      await waitForPrintLayoutUpdate()
+
       // 导出库较大，点击时才加载
       const { toPng, toBlob } = await import('html-to-image')
       await document.fonts.ready
 
       if (isIOS) {
-        // ✅ iOS 最佳方案：Web Share API + File Blob
+        // iOS 最佳方案：Web Share API + File Blob
         // 调起系统原生分享面板，用户可直接选“存储图像”保存到相册
         const blob = await toBlob(shareCardRef.current, {
           quality: 0.98,
@@ -489,6 +497,27 @@ export default function ResultPage() {
 
   const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
+  const loadPastEventsExportForPrint = async () => {
+    if (!targetId) {
+      setPastEventsExportSegments([])
+      return
+    }
+    try {
+      const resp = await baziAPI.fetchPastEventsExport(targetId)
+      const normalized = resp.data.segments.map((segment) => ({
+        ...segment,
+        themes: segment.themes || [],
+      }))
+      setPastEventsExportSegments(filterPastEventsExportSegments(normalized, false))
+    } catch {
+      setPastEventsExportSegments([])
+    }
+  }
+
+  const waitForPrintLayoutUpdate = () => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  })
+
   const handleExportPDF = async () => {
     // 导出相关提示用 toast 就近反馈，不写进 AI 解读区的 reportError
     if (reportTab === 'polished' && !polishedReport) {
@@ -499,16 +528,20 @@ export default function ResultPage() {
       showToast('请先生成命理解读，再导出 PDF 报告', 'error')
       return
     }
-    if (!isMobileDevice) {
-      window.print()
-      return
-    }
-    // 移动端：用 html2canvas + jsPDF 生成 PDF 文件下载
-    const el = document.querySelector('.print-only') as HTMLElement | null
-    if (!el) return
     setExportingPDF(true)
-    const prevDisplay = el.style.display
+    let el: HTMLElement | null = null
+    let prevDisplay = ''
     try {
+      await loadPastEventsExportForPrint()
+      await waitForPrintLayoutUpdate()
+      if (!isMobileDevice) {
+        window.print()
+        return
+      }
+      // 移动端：用 html2canvas + jsPDF 生成 PDF 文件下载
+      el = document.querySelector('.print-only') as HTMLElement | null
+      if (!el) return
+      prevDisplay = el.style.display
       // 导出库较大，点击时才加载
       const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
         import('html2canvas'),
@@ -539,7 +572,7 @@ export default function ResultPage() {
     } catch {
       showToast('生成 PDF 失败，请稍后重试', 'error')
     } finally {
-      el.style.display = prevDisplay
+      if (el) el.style.display = prevDisplay
       setExportingPDF(false)
     }
   }
@@ -592,11 +625,6 @@ export default function ResultPage() {
     return () => window.clearInterval(timer)
   }, [isThinking])
 
-  // 确立目前针对的独立资源 id
-  // 有三个来源可能带有 id：1. 历史页面跳入 URL 的 id；2. HomePage 计算后传入的 state.chartId; 3. 新建后 result 从后端捞出的 chart.id(这里为了简化统一用 route 的方式)
-  // 此页面核心判定是 targetId
-  const targetId = id || location.state?.chartId
-
   useEffect(() => {
     setChartDisplayNameDraft(result?.display_name || '')
   }, [result?.display_name])
@@ -625,9 +653,32 @@ export default function ResultPage() {
   // 点击"生成 AI 解读"按钮
   const handleGenerateReport = async () => {
     if (reportLoading || isStreaming || isThinking) return
-    if (!targetId) {
-      setReportError('并未侦测到有效的命盘快照身份码，无法生成记录。');
-      return;
+    let reportTargetId = targetId
+    if (!reportTargetId && pendingInput && !isGuest) {
+      setReportLoading(true)
+      setReportError('')
+      try {
+        const res = await baziAPI.calculate(pendingInput)
+        reportTargetId = res.data.chart_id
+        setResult(res.data.result || result)
+        navigate(buildBaziResultRoute(reportTargetId, false) + window.location.hash, {
+          replace: true,
+          state: {
+            result: res.data.result || result,
+            chartId: reportTargetId,
+            input: pendingInput,
+            isGuest: false,
+          },
+        })
+      } catch (err: unknown) {
+        setReportError(err instanceof Error ? `保存命盘失败：${err.message}` : '保存命盘失败，请重新起盘后再生成解读。')
+        setReportLoading(false)
+        return
+      }
+    }
+    if (!reportTargetId) {
+      setReportError('未找到可保存的命盘记录，请返回首页重新起盘后再生成解读。')
+      return
     }
     setReportLoading(true)
     setIsStreaming(false)
@@ -638,7 +689,7 @@ export default function ResultPage() {
     let currentText = ''
     let isFirstByte = true
     await baziAPI.generateReportStream(
-      targetId,
+      reportTargetId,
       (text) => {
         if (isFirstByte) {
           setReportLoading(false)
@@ -657,7 +708,7 @@ export default function ResultPage() {
       },
       () => {
         // 流结束：先保持 isStreaming=true 避免闪烁，等拉取完结构化数据后再统一切换
-        baziAPI.getHistoryDetail(targetId).then(res => {
+        baziAPI.getHistoryDetail(reportTargetId).then(res => {
           setResult(res.data.result || res.data.chart || null)
           setReport(res.data.report || null)
         }).catch(err => {
@@ -1044,17 +1095,17 @@ export default function ResultPage() {
                   className={`past-events-entry${isGuest ? ' is-disabled' : ''}`}
                   onClick={isGuest || !targetId ? undefined : () => navigate(`/bazi/${targetId}/past-events`)}
                   disabled={isGuest || !targetId}
-                  aria-label="过往事件推算"
+                  aria-label="过往年运回看"
                 >
                   <History className="past-events-entry-icon" size={22} aria-hidden="true" />
                   <span className="past-events-entry-body">
-                    <span className="past-events-entry-title">过往事件推算</span>
+                    <span className="past-events-entry-title">过往年运回看</span>
                     <span className="past-events-entry-sub">
-                      {isGuest ? '登录后可查看' : '展开每个大运段，看年份信号与白话批语'}
+                      {isGuest ? '登录后可查看年运回看' : '查看大运分段、年份信号与 AI 批语'}
                     </span>
                   </span>
                   {!isGuest && (
-                    <span className="past-events-entry-cta" aria-hidden="true">继续 →</span>
+                    <span className="past-events-entry-cta" aria-hidden="true">进入回看 →</span>
                   )}
                 </button>
               )}
@@ -1361,6 +1412,7 @@ export default function ResultPage() {
           hourGanWx={result.hour_gan_wuxing} hourZhiWx={result.hour_zhi_wuxing}
           structured={report?.content_structured ?? null}
           brand={brand}
+          pastEventsExportSegments={pastEventsExportSegments}
         />
       </div>
 
@@ -1393,12 +1445,12 @@ export default function ResultPage() {
             <div className="shensha-modal-divider" />
             <div className="shensha-modal-body">
               {activeAnnotation.category && (
-                <span style={{ fontSize: 11, color: '#a78bfa', background: '#2a1a4e', borderRadius: 4, padding: '2px 8px', marginBottom: 8, display: 'inline-block' }}>
+                <span style={{ fontSize: 11, color: 'var(--wu-shui)', background: 'rgba(91,155,213,0.12)', borderRadius: 4, padding: '2px 8px', marginBottom: 8, display: 'inline-block' }}>
                   {activeAnnotation.category}
                 </span>
               )}
               {activeAnnotation.short_desc && (
-                <p style={{ color: '#c0b0ff', fontSize: 13, margin: '6px 0 10px', fontStyle: 'italic' }}>{activeAnnotation.short_desc}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '6px 0 10px', fontStyle: 'italic' }}>{activeAnnotation.short_desc}</p>
               )}
               <p className="shensha-modal-description">{activeAnnotation.description}</p>
             </div>
@@ -1459,6 +1511,7 @@ export default function ResultPage() {
             tenGodRelation={relation}
             polishedUserSituation={isPolishedExport ? polishedReport.user_situation : undefined}
             brand={brand}
+            pastEventsExportSegments={pastEventsExportSegments}
           />
         )
       })()}

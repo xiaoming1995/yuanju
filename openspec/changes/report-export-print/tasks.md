@@ -1,6 +1,6 @@
 ## 1. 导出按钮
 
-- [x] 1.1 在 `ResultPage.tsx` 的 AI 报告区 `<h2>` 标题行右侧，新增「📄 导出报告」按钮（仅当 `report` 存在时渲染）
+- [x] 1.1 在 `ResultPage.tsx` 的 AI 报告区 `<h2>` 标题行右侧，新增「文档 导出报告」按钮（仅当 `report` 存在时渲染）
 - [x] 1.2 按钮 `onClick` 调用 `window.print()`，class 使用已有的 `btn btn-ghost btn-sm` 样式
 
 ## 2. 打印颜色与全局样式重置

@@ -23,10 +23,10 @@
 - **用户中心**：`User` 组件。
 
 ### 2. 五行徽章几何化
-- 去除「火=🔥，水=💧」等映射，所有五行用神标记全部统一采用 `lucide-react` 中的 `Hexagon`（填充色继承五行基色），通过外加 `fill="currentColor"` 配合组件的 `color` 属性渲染出专业的科技质感。
+- 去除「火=火，水=水」等映射，所有五行用神标记全部统一采用 `lucide-react` 中的 `Hexagon`（填充色继承五行基色），通过外加 `fill="currentColor"` 配合组件的 `color` 属性渲染出专业的科技质感。
 
 ### 3. 标题点缀统一标识
-- 将原来分散的 🔮、📋、✨ 等全部废弃，设计一个通用的微型前缀：`<Diamond size={14} className="title-diamond-icon" />`
+- 将原来分散的 、清单、 等全部废弃，设计一个通用的微型前缀：`<Diamond size={14} className="title-diamond-icon" />`
 - 配合 CSS：`.title-diamond-icon { color: var(--color-primary); filter: drop-shadow(0 0 4px var(--color-primary-alpha)); }` 创造出仪表盘发光感。
 
 ## Risks / Trade-offs

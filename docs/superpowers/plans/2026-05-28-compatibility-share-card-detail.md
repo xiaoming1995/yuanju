@@ -501,13 +501,13 @@ After T3 commit, dispatch final code-reviewer over `HEAD~3..HEAD` (the 3 commits
 - §8 不引入的依赖 → none introduced
 
 **Type consistency:**
-- `firstSentence(content: string)` defined T1 step 2, used T1 step 4 ✓
-- `explByDim` shape `Record<string, CompatibilityScoreExplanation>` T1 step 4, looked up by `d.key` in step 5 ✓
-- `topFindings` element shape `CompatibilityFinding` (with `.text`) T1 step 4, accessed as `f.text` in step 6 ✓
-- `strategyEntries` shape `{ key, label, value }` T1 step 4, mapped in step 7 with `e.key/e.label/e.value` ✓
-- `dimDigests` shape `{ key, title, digest }` T1 step 4, mapped in step 8 with `d.key/d.title/d.digest` ✓
+- `firstSentence(content: string)` defined T1 step 2, used T1 step 4 [OK]
+- `explByDim` shape `Record<string, CompatibilityScoreExplanation>` T1 step 4, looked up by `d.key` in step 5 [OK]
+- `topFindings` element shape `CompatibilityFinding` (with `.text`) T1 step 4, accessed as `f.text` in step 6 [OK]
+- `strategyEntries` shape `{ key, label, value }` T1 step 4, mapped in step 7 with `e.key/e.label/e.value` [OK]
+- `dimDigests` shape `{ key, title, digest }` T1 step 4, mapped in step 8 with `d.key/d.title/d.digest` [OK]
 
 **Placeholder scan:**
-- No "TBD" / "TODO" / "implement later" ✓
-- All code blocks complete ✓
-- All commands explicit with expected output ✓
+- No "TBD" / "TODO" / "implement later" [OK]
+- All code blocks complete [OK]
+- All commands explicit with expected output [OK]

@@ -10,6 +10,7 @@ import { initialBirthProfile, type BirthProfileFormValue, type ZiHourMode } from
 import PillarsInputForm from '../components/PillarsInputForm'
 import { initialPillarsValue, type PillarsFormValue } from '../components/pillarsInput'
 import type { PillarCandidate } from '../lib/api'
+import { buildBaziResultRoute } from '../lib/resultRoute'
 import './HomePage.css'
 
 // 省份 → 中心经度映射（东8区标准为120°E）
@@ -63,7 +64,10 @@ export default function HomePage() {
       display_name: trimmedDisplayName(),
     }
     const res = await baziAPI.calculate(input)
-    navigate('/result', { state: { result: res.data.result, chartId: res.data.chart_id, input, isGuest: !user } })
+    const isGuest = !user
+    navigate(buildBaziResultRoute(res.data.chart_id, isGuest), {
+      state: { result: res.data.result, chartId: res.data.chart_id, input, isGuest },
+    })
   }
 
   // 八字模式提交：先反查候选
@@ -147,7 +151,10 @@ export default function HomePage() {
 
       // 统一调用算法排盘（快速），AI 解读由用户在结果页按钮触发
       const res = await baziAPI.calculate(input)
-      navigate('/result', { state: { result: res.data.result, chartId: res.data.chart_id, input, isGuest: !user } })
+      const isGuest = !user
+      navigate(buildBaziResultRoute(res.data.chart_id, isGuest), {
+        state: { result: res.data.result, chartId: res.data.chart_id, input, isGuest },
+      })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '计算失败，请重试')
     } finally {

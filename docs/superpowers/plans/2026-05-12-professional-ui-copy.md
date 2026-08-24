@@ -37,7 +37,7 @@
 
 将第 73 行：
 ```tsx
-<div className="hero-badge serif">✦ 八字命理 · AI 解读 ✦</div>
+<div className="hero-badge serif">* 八字命理 · AI 解读 *</div>
 ```
 改为：
 ```tsx
@@ -59,7 +59,7 @@
 
 将第 143 行：
 ```tsx
-<>✦ 立即起盘</>
+<>* 立即起盘</>
 ```
 改为：
 ```tsx
@@ -82,7 +82,7 @@
 将第 161–164 行的 features 数组：
 ```tsx
 { icon: '◉', title: '传统算法', desc: '基于 lunar-go 天文历法库，精确到秒级节气与真太阳时' },
-{ icon: '✦', title: 'AI 智能解读', desc: '大模型结合命理知识，生成通俗易懂的个性报告' },
+{ icon: '*', title: 'AI 智能解读', desc: '大模型结合命理知识，生成通俗易懂的个性报告' },
 { icon: '◈', title: '五行分析', desc: '可视化五行分布，直观了解命局特点' },
 ```
 改为：
@@ -96,7 +96,7 @@
 
 将第 129 行：
 ```tsx
-{error && <p className="form-error">⚠ {error}</p>}
+{error && <p className="form-error">[WARN] {error}</p>}
 ```
 改为：
 ```tsx
@@ -133,7 +133,7 @@ reportLoading ? '测算中...' : '待生成'
 
 将第 482 行（Feature Flag 区块内）：
 ```tsx
-<h2 className="section-title serif">✦ 专属命理头像</h2>
+<h2 className="section-title serif">* 专属命理头像</h2>
 ```
 改为：
 ```tsx
@@ -144,7 +144,7 @@ reportLoading ? '测算中...' : '待生成'
 
 将第 502 行：
 ```tsx
-<h2 className="section-title serif">✦ AI 命理解读</h2>
+<h2 className="section-title serif">* AI 命理解读</h2>
 ```
 改为：
 ```tsx
@@ -156,7 +156,7 @@ reportLoading ? '测算中...' : '待生成'
 将第 554–556 行：
 ```tsx
 <div className="report-summary">
-  <span className="report-summary-icon">✦</span>
+  <span className="report-summary-icon">*</span>
   <span>{structured.analysis.summary}</span>
 </div>
 ```
@@ -182,7 +182,7 @@ reportLoading ? '测算中...' : '待生成'
 
 将第 603 行：
 ```tsx
-🧠 AI 正在深度推理中...  已思考 {thinkingSeconds} 秒
+ AI 正在深度推理中...  已思考 {thinkingSeconds} 秒
 ```
 改为：
 ```tsx
@@ -193,7 +193,7 @@ reportLoading ? '测算中...' : '待生成'
 
 将第 625 行：
 ```tsx
-<p className="form-error" style={{ margin: '12px 0' }}>⚠ {reportError}</p>
+<p className="form-error" style={{ margin: '12px 0' }}>[WARN] {reportError}</p>
 ```
 改为：
 ```tsx
@@ -379,19 +379,19 @@ git commit -m "chore(ui): CompatibilityPage 去掉 AI 字眼"
 
 将第 112 行：
 ```tsx
-✦ 精确交运时间：{startYunSolar} ✦
+* 精确交运时间：{startYunSolar} *
 ```
 改为：
 ```tsx
 精确交运时间：{startYunSolar}
 ```
 
-- [ ] **Step 2: 删除大运面板标题前的 ✦ span**
+- [ ] **Step 2: 删除大运面板标题前的 * span**
 
 将第 221–224 行：
 ```tsx
 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-accent)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-  <span>✦</span>
+  <span>*</span>
   <span>{activeDayun.gan}{activeDayun.zhi}大运流年</span>
 </div>
 ```
@@ -402,7 +402,7 @@ git commit -m "chore(ui): CompatibilityPage 去掉 AI 字眼"
 </div>
 ```
 
-- [ ] **Step 3: 删除交脱日期前的 ⚡ span**
+- [ ] **Step 3: 删除交脱日期前的 闪电 span**
 
 将第 277–279 行：
 ```tsx
@@ -410,7 +410,7 @@ git commit -m "chore(ui): CompatibilityPage 去掉 AI 字眼"
   position: 'absolute', top: -8, background: 'var(--bg-elevated)', padding: '0 4px', fontSize: 9, 
   color: 'var(--wu-jin)', display: 'flex', alignItems: 'center', gap: 2, borderRadius: 2
 }}>
-  <span>⚡</span>{ln.trans_month}月{ln.trans_day}日交脱
+  <span>闪电</span>{ln.trans_month}月{ln.trans_day}日交脱
 </div>
 ```
 改为：
@@ -441,7 +441,7 @@ git commit -m "chore(ui): DayunTimeline 去掉装饰符号"
 
 将第 70 行：
 ```tsx
-<h3 className="yongshen-badge-title serif">✦ 命元特质</h3>
+<h3 className="yongshen-badge-title serif">* 命元特质</h3>
 ```
 改为：
 ```tsx
@@ -466,7 +466,7 @@ git commit -m "chore(ui): YongshenBadge 去掉装饰符号"
 
 将第 135 行：
 ```tsx
-✦ 缘 聚 命 理 ✦
+* 缘 聚 命 理 *
 ```
 改为：
 ```tsx
@@ -491,7 +491,7 @@ git commit -m "chore(ui): ShareCard 去掉装饰符号"
 
 将第 219 行：
 ```tsx
-✨ {year}年运势精批
+ {year}年运势精批
 ```
 改为：
 ```tsx
@@ -530,7 +530,7 @@ cd /Users/liujiming/web/yuanju/frontend && npx tsc --noEmit
 - [ ] **Step 2: 全局搜索剩余 AI 字眼（用户端）**
 
 ```bash
-grep -rn "AI\|人工智能\|✦\|✨\|🧠\|⚡\|◉\|◈\|⚠" \
+grep -rn "AI\|人工智能\|*\|\|\|闪电\|◉\|◈\|[WARN]" \
   frontend/src/pages/HomePage.tsx \
   frontend/src/pages/ResultPage.tsx \
   frontend/src/pages/PastEventsPage.tsx \

@@ -1526,7 +1526,7 @@ gh pr create --title "feat(result): 命理解读·润色版个性化" --body "$(
 - [x] 前端 tsc + lint + tests 全通过
 - [x] 真机 QA：原版/润色版 tab 切换、20-300 字校验、生成+重生、刷新持久化、DB 记录写入
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
+AI Generated with [Claude Code](https://claude.com/claude-code)
 EOF
 )" 2>&1 | tail -3
 ```
@@ -1542,6 +1542,6 @@ EOF
 - [ ] frontend `tsc -b --force` 0 errors
 - [ ] frontend `node --test tests/*.test.mjs` 全 pass
 - [ ] frontend `npm run lint` 0 errors（pre-existing warning 可接受）
-- [ ] 真机 QA · Step 3-7 全部 ✓
-- [ ] DB 验证看到记录 · Step 8 ✓
+- [ ] 真机 QA · Step 3-7 全部 [OK]
+- [ ] DB 验证看到记录 · Step 8 [OK]
 - [ ] PR 已创建链接到 spec + plan

@@ -243,6 +243,6 @@ Vite 跑在 :5200（HMR）。后端 :9002。
 
 ## Self-Review
 
-- **Spec coverage**：① LLM 正文 → Task 1；② 证据卡 detail（10 条）→ Task 2；不改 summary/tags/前端/字段 → 已在 plan 与 design 明确排除；存储模型导致「仅新报告生效」→ Task 3 Step 2 已强调。✅
-- **Placeholder scan**：每个 code step 均给出完整 `fmt.Sprintf` 实参；无 TODO/TBD/「类似上文」。✅
-- **Type consistency**：Task 2 各条仅改 `Detail` 字面量与其 `fmt` 实参，未触碰 `EvidenceKey`/`Weight`/`Dimension`/`Title`/`Type`；eight_chars 删参后 `t`/`s` 仍被引用（已在 Step 4 校验注明）。Task 1 版本串 `v3.1-question-aware-3` 在 prompt 与 test 两处一致。✅
+- **Spec coverage**：① LLM 正文 → Task 1；② 证据卡 detail（10 条）→ Task 2；不改 summary/tags/前端/字段 → 已在 plan 与 design 明确排除；存储模型导致「仅新报告生效」→ Task 3 Step 2 已强调。[OK]
+- **Placeholder scan**：每个 code step 均给出完整 `fmt.Sprintf` 实参；无 TODO/TBD/「类似上文」。[OK]
+- **Type consistency**：Task 2 各条仅改 `Detail` 字面量与其 `fmt` 实参，未触碰 `EvidenceKey`/`Weight`/`Dimension`/`Title`/`Type`；eight_chars 删参后 `t`/`s` 仍被引用（已在 Step 4 校验注明）。Task 1 版本串 `v3.1-question-aware-3` 在 prompt 与 test 两处一致。[OK]

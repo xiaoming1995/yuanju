@@ -302,11 +302,11 @@ git -C /Users/liujiming/web/yuanju -c commit.gpgsign=false commit -m "feat(brand
 		log.Fatalf("增量迁移失败 (user_export_brand): %v", err)
 	}
 
-	log.Println("✅ 数据库迁移完成")
+	log.Println("[OK] 数据库迁移完成")
 }
 ```
 
-在 `if _, err := DB.Exec(brandMigration); err != nil { ... }` 块之后、`log.Println("✅ 数据库迁移完成")` 之前插入：
+在 `if _, err := DB.Exec(brandMigration); err != nil { ... }` 块之后、`log.Println("[OK] 数据库迁移完成")` 之前插入：
 
 ```go
 
@@ -909,10 +909,10 @@ async function cropToBlob(src: string, area: PixelArea, outW: number, outH: numb
 - [ ] **Step 3: 跑测试，确认 LogoCropModal 那条 PASS**
 
 ```bash
-cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '(✔|✖|LogoCropModal)' | head
+cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '([OK]|[NO]|LogoCropModal)' | head
 ```
 
-Expected: `LogoCropModal accepts mode prop and branches on wordmark` 现在 ✔ PASS。其它 4 个 wordmark 测试仍 FAIL。
+Expected: `LogoCropModal accepts mode prop and branches on wordmark` 现在 [OK] PASS。其它 4 个 wordmark 测试仍 FAIL。
 
 - [ ] **Step 4: 提交**
 
@@ -1124,10 +1124,10 @@ const DEFAULT_BRAND: ExportBrand = {
 - [ ] **Step 8: 跑测试，确认 BrandSettingsPage 那条 PASS**
 
 ```bash
-cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '(✔|✖|BrandSettingsPage)' | head
+cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '([OK]|[NO]|BrandSettingsPage)' | head
 ```
 
-Expected: `BrandSettingsPage references draft.logo_mode` 现在 ✔。
+Expected: `BrandSettingsPage references draft.logo_mode` 现在 [OK]。
 
 - [ ] **Step 9: 提交**
 
@@ -1265,10 +1265,10 @@ git -C /Users/liujiming/web/yuanju -c commit.gpgsign=false commit -m "style(bran
 - [ ] **Step 3: 跑测试，确认 ShareCard 那条 PASS**
 
 ```bash
-cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '(✔|✖|ShareCard)' | head
+cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '([OK]|[NO]|ShareCard)' | head
 ```
 
-Expected: `ShareCard branches on brand.logo_mode === wordmark` 现在 ✔。
+Expected: `ShareCard branches on brand.logo_mode === wordmark` 现在 [OK]。
 
 - [ ] **Step 4: 提交**
 
@@ -1440,10 +1440,10 @@ git -C /Users/liujiming/web/yuanju -c commit.gpgsign=false commit -m "feat(share
 - [ ] **Step 5: 跑测试，确认 PrintLayout 那条 PASS**
 
 ```bash
-cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '(✔|✖|PrintLayout)' | head
+cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '([OK]|[NO]|PrintLayout)' | head
 ```
 
-Expected: `PrintLayout branches on brand.logo_mode === wordmark` 现在 ✔。
+Expected: `PrintLayout branches on brand.logo_mode === wordmark` 现在 [OK]。
 
 - [ ] **Step 6: 提交**
 
@@ -1547,10 +1547,10 @@ export default function BrandPreviewCard({ brand }: Props) {
 - [ ] **Step 3: 跑测试，确认 BrandPreviewCard 那条 PASS**
 
 ```bash
-cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '(✔|✖|BrandPreviewCard)' | head
+cd /Users/liujiming/web/yuanju/frontend && node --test tests/brand-settings.test.mjs 2>&1 | grep -E '([OK]|[NO]|BrandPreviewCard)' | head
 ```
 
-Expected: `BrandPreviewCard branches on brand.logo_mode === wordmark` 现在 ✔。
+Expected: `BrandPreviewCard branches on brand.logo_mode === wordmark` 现在 [OK]。
 
 - [ ] **Step 4: 提交**
 
@@ -1678,9 +1678,9 @@ Expected: 输出含 `logo_mode | character varying(16) | not null` 一行，且 
 **Placeholder 扫描：** 已扫描全文。所有任务都附完整代码 / 命令 / 期望输出。无 "TBD" / "TODO" / "similar to Task N" / 未定义类型。
 
 **Type / 命名一致性：**
-- `LogoMode` Go 字段（Task 2/4/5）↔ `logo_mode` JSON tag（Task 2/4）↔ `logo_mode` TS interface 键（Task 7）↔ `draft.logo_mode` / `brand.logo_mode` 引用（Task 10/12/13/14） ✓
-- `UpsertExportBrandText` 签名（Task 5）含 6 个参数，与 handler 调用（Task 2 Step 4）参数列表一一对应 ✓
-- `Props` interface 中 `mode: 'icon' | 'wordmark'`（Task 9）↔ `<LogoCropModal mode={draft.logo_mode}>`（Task 10 Step 7） ✓
-- `isWordmark` 变量名在 ShareCard / PrintLayout / BrandPreviewCard 三处保持一致 ✓
-- CSS class `.print-page-header-wordmark`（Task 13 Step 4）↔ JSX className（Task 13 Step 2） ✓
-- 静态测试断言（Task 8）↔ 实际实现的字符串模式 ✓
+- `LogoMode` Go 字段（Task 2/4/5）↔ `logo_mode` JSON tag（Task 2/4）↔ `logo_mode` TS interface 键（Task 7）↔ `draft.logo_mode` / `brand.logo_mode` 引用（Task 10/12/13/14） [OK]
+- `UpsertExportBrandText` 签名（Task 5）含 6 个参数，与 handler 调用（Task 2 Step 4）参数列表一一对应 [OK]
+- `Props` interface 中 `mode: 'icon' | 'wordmark'`（Task 9）↔ `<LogoCropModal mode={draft.logo_mode}>`（Task 10 Step 7） [OK]
+- `isWordmark` 变量名在 ShareCard / PrintLayout / BrandPreviewCard 三处保持一致 [OK]
+- CSS class `.print-page-header-wordmark`（Task 13 Step 4）↔ JSX className（Task 13 Step 2） [OK]
+- 静态测试断言（Task 8）↔ 实际实现的字符串模式 [OK]

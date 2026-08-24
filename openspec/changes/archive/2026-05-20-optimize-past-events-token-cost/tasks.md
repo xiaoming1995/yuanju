@@ -54,7 +54,7 @@
 ## 8. Frontend: expansion interactions
 
 - [x] 8.1 Click `[展开 ▼]` on folded → setState `expanded=true`. Render year chips (already computed locally from `events` array — no network).
-- [x] 8.2 When expanded but no AI narrative yet → render `[ 🔮 生成本段 AI 批语 ]` button at segment bottom.
+- [x] 8.2 When expanded but no AI narrative yet → render `[  生成本段 AI 批语 ]` button at segment bottom.
 - [x] 8.3 Click `生成本段 AI 批语` → call `baziAPI.generateDayunSubset(chartId, [dayunIndex])` (new function). Show per-segment loading state. SSE emits item → render narratives inline.
 - [x] 8.4 Replace button with rendered narratives on success.
 - [x] 8.5 Show error chip on failure with `重试` button.

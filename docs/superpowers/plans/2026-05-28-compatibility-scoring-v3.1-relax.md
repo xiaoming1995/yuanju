@@ -1295,13 +1295,13 @@ cd /Users/liujiming/web/yuanju && docker-compose up -d
 ## Self-Review（仅供 plan 作者，实施时跳过）
 
 **1. Spec coverage（spec 中的每个 Requirement 是否有对应 task？）**
-- ✅ Zodiac three-tier → Task 2 + 修订 evidence (Task 5)
-- ✅ Day pillar four-tier → Task 3 + evidence (Task 5)
-- ✅ Eight-chars normalization unchanged → 隐含在 Task 3（scoreEightChars 调用更新后的 scoreDayPillar）
-- ✅ analysis_version v3.1 → Task 6 + 前端 (Task 8/9)
-- ✅ Spec 文档更新 → Task 10
-- ✅ Prompt 同步 → Task 7
-- ✅ 真实案例 5/100 → Task 4 (单元) + Task 11 (端到端)
+- [OK] Zodiac three-tier → Task 2 + 修订 evidence (Task 5)
+- [OK] Day pillar four-tier → Task 3 + evidence (Task 5)
+- [OK] Eight-chars normalization unchanged → 隐含在 Task 3（scoreEightChars 调用更新后的 scoreDayPillar）
+- [OK] analysis_version v3.1 → Task 6 + 前端 (Task 8/9)
+- [OK] Spec 文档更新 → Task 10
+- [OK] Prompt 同步 → Task 7
+- [OK] 真实案例 5/100 → Task 4 (单元) + Task 11 (端到端)
 
 **2. Placeholder scan：** 无 TBD / TODO，每个 step 都有具体代码或具体 path。
 

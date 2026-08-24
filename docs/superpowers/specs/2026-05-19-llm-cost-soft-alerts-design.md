@@ -23,7 +23,7 @@
 2. **三档阈值**：单日 / 单月 / 单命盘成本上限，均以 CNY 为单位（不是 tokens）。
 3. **检测双路**：admin dashboard 加载时实时聚合（用户可见 banner）+ backend 5 分钟 ticker（写结构化日志钩子）。
 4. **超阈值 = 红色 banner**，不阻断 AI 调用、不降级到 template 模式。
-5. **阈值编辑入口在 TokenUsagePage 标题栏的 ⚙️ 按钮**，不分散到 AlgoConfigPage。
+5. **阈值编辑入口在 TokenUsagePage 标题栏的 设置 按钮**，不分散到 AlgoConfigPage。
 
 ## 架构
 
@@ -46,7 +46,7 @@
         │ TokenUsagePage │  │ stdout JSON 日志：       │
         │ 顶部状态条    │  │ {"evt":"cost_threshold_  │
         │ + 3 块卡片    │  │   exceeded", "scope":...} │
-        │ + ⚙️ 阈值入口 │  │  写一次/告警类型/小时    │
+        │ + 设置 阈值入口 │  │  写一次/告警类型/小时    │
         └───────────────┘  └─────────────────────────┘
 ```
 
@@ -141,14 +141,14 @@ func tick() {
 
 ```
 ┌────────────────────────────────────────────────────┐
-│ 📊 Token 用量统计              ⚙️ 编辑预算阈值     │ ← 标题栏（+ 阈值入口）
+│ 数据 Token 用量统计              设置 编辑预算阈值     │ ← 标题栏（+ 阈值入口）
 ├────────────────────────────────────────────────────┤
-│ ⚠️ 本月已用 ¥95.6（96% 月预算 ¥100）               │ ← banner（仅越界时显示）
+│ [WARN] 本月已用 ¥95.6（96% 月预算 ¥100）               │ ← banner（仅越界时显示）
 │    今日已用 ¥48.3（966% 日预算 ¥5）                │
 ├────────────────────────────────────────────────────┤
 │ ┌─────────────┐ ┌─────────────┐ ┌────────────────┐ │
 │ │ 今日累计    │ │ 本月累计    │ │ 单命盘 TOP 5   │ │
-│ │ ¥48.3       │ │ ¥95.6       │ │ 1. 9eddf08a ⚠ │ │
+│ │ ¥48.3       │ │ ¥95.6       │ │ 1. 9eddf08a [WARN] │ │
 │ │ ↑ 966%      │ │ ↑ 96%       │ │ 2. b2a8045f    │ │
 │ │ 日预算 ¥5   │ │ 月预算 ¥100 │ │ 3. ...         │ │
 │ └─────────────┘ └─────────────┘ └────────────────┘ │
@@ -159,13 +159,13 @@ func tick() {
 └────────────────────────────────────────────────────┘
 ```
 
-**Banner** —— 红色背景，多条越界堆同一个 banner 内（不并列 3 个），不可关闭。仅 daily 或 monthly 超阈值时渲染；per_chart 阈值越界只在 TOP 5 卡片里以 ⚠ 标注。
+**Banner** —— 红色背景，多条越界堆同一个 banner 内（不并列 3 个），不可关闭。仅 daily 或 monthly 超阈值时渲染；per_chart 阈值越界只在 TOP 5 卡片里以 [WARN] 标注。
 
 **3 张 stat card**：
 - 今日 / 本月：进度条样式，<80% 绿、80-100% 黄、>100% 红
-- 单命盘 TOP 5：列出 chart_id 前 8 字符（hover 显示完整）+ 调用次数 + 总成本，超阈值前面 ⚠
+- 单命盘 TOP 5：列出 chart_id 前 8 字符（hover 显示完整）+ 调用次数 + 总成本，超阈值前面 [WARN]
 
-**⚙️ 阈值 modal**：3 个 number 输入框（CNY 单位），保存调 `PUT /api/admin/algo-config/:key`。复用现有 algo_config 上传机制，需要在 `validKeys` 白名单加 3 个 cost_alert_* 键 + 数字 validation。
+**设置 阈值 modal**：3 个 number 输入框（CNY 单位），保存调 `PUT /api/admin/algo-config/:key`。复用现有 algo_config 上传机制，需要在 `validKeys` 白名单加 3 个 cost_alert_* 键 + 数字 validation。
 
 **自动刷新**：组件 mount 后 setInterval 30s 调一次 `budget-status`，卸载清理。**summary 表格保持手动"查询"刷**，不耦合两路。
 
@@ -214,7 +214,7 @@ ON CONFLICT (key) DO NOTHING;
 - `cmd/api/main.go` —— 注册路由 + 启动 ticker
 
 前端（1 文件）：
-- `frontend/src/pages/admin/TokenUsagePage.tsx` —— banner + 3 stat card + ⚙️ modal + 自动刷新
+- `frontend/src/pages/admin/TokenUsagePage.tsx` —— banner + 3 stat card + 设置 modal + 自动刷新
 - `frontend/src/lib/adminApi.ts` —— 加 `budgetStatus()` 方法
 
 测试：

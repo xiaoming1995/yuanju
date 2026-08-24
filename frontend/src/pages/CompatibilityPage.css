@@ -7,26 +7,32 @@
 }
 
 .compatibility-intro {
-  padding: 24px;
-  margin-top: 28px;
-  margin-bottom: 20px;
+  padding: 28px 30px;
+  margin-top: 26px;
+  margin-bottom: 18px;
+  border-radius: 14px;
 }
 
 .compatibility-intro-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  color: var(--text-primary);
 }
 
 .compatibility-intro-title h1 {
-  font-size: 30px;
+  font-size: clamp(28px, 3.2vw, 40px);
   margin: 0;
+  line-height: 1.16;
+  letter-spacing: 0;
 }
 
 .compatibility-intro p {
   margin: 0;
-  color: var(--text-muted);
+  max-width: 780px;
+  color: var(--text-secondary);
+  font-size: 15px;
   line-height: 1.7;
 }
 
@@ -36,11 +42,13 @@
 
 .compatibility-forms {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
 .compatibility-profile-panel {
   padding: 20px;
+  border-radius: 14px;
 }
 
 .compatibility-import-toolbar {
@@ -62,8 +70,9 @@
 }
 
 .compatibility-context-card {
-  padding: 20px;
-  margin-bottom: 16px;
+  padding: 24px;
+  margin-bottom: 18px;
+  border-radius: 14px;
 }
 
 .compatibility-personality-consultation {
@@ -76,7 +85,9 @@
 .compatibility-context-heading {
   color: var(--wu-jin);
   font-size: 13px;
-  margin-bottom: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 16px;
 }
 
 .compatibility-step-progress {
@@ -88,7 +99,7 @@
 
 .compatibility-step-item {
   min-width: 0;
-  padding: 12px;
+  padding: 14px 16px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   background: rgba(255, 255, 255, 0.04);
@@ -105,55 +116,67 @@
   display: block;
   color: var(--text-primary);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.45;
 }
 
 .compatibility-context-group + .compatibility-context-group {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .compatibility-context-title {
   color: var(--text-primary);
-  margin-bottom: 10px;
-  font-weight: 600;
+  margin-bottom: 11px;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .compatibility-context-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .compatibility-context-option {
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: 38px;
+  padding: 0 14px;
   border: 1px solid var(--border-default);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-secondary);
   font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.compatibility-context-option:hover {
+  border-color: rgba(201, 168, 76, 0.35);
+  color: var(--text-primary);
+  background: rgba(201, 168, 76, 0.08);
 }
 
 .compatibility-context-option.active {
   border-color: rgba(201, 168, 76, 0.5);
-  background: rgba(201, 168, 76, 0.12);
+  background: rgba(201, 168, 76, 0.14);
   color: var(--primary);
+  box-shadow: 0 0 18px rgba(201, 168, 76, 0.12);
 }
 
 .compatibility-personality-preview {
-  margin-top: 18px;
-  padding: 16px;
+  margin-top: 22px;
+  padding: 18px 20px;
   border-radius: 8px;
-  border: 1px solid rgba(201, 168, 76, 0.2);
+  border: 1px solid rgba(201, 168, 76, 0.3);
   background: rgba(201, 168, 76, 0.08);
 }
 
 .compatibility-personality-preview-title {
-  color: var(--wu-jin);
-  font-weight: 600;
-  margin-bottom: 6px;
+  color: var(--primary);
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 8px;
 }
 
 .compatibility-personality-preview p {
@@ -170,23 +193,26 @@
 }
 
 .compatibility-personality-preview-list span {
-  padding: 5px 9px;
+  padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.04);
   font-size: 12px;
+  font-weight: 600;
 }
 
 .compatibility-error {
-  color: #e77;
+  color: var(--wu-huo);
   margin-top: 16px;
 }
 
 .compatibility-actions {
   display: flex;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 22px;
+  align-items: center;
+  justify-content: center;
 }
 
 .compatibility-chart-picker {
@@ -198,6 +224,7 @@
   justify-content: center;
   padding: 20px;
   background: rgba(5, 8, 14, 0.72);
+  backdrop-filter: blur(8px);
 }
 
 .compatibility-chart-picker-panel {
@@ -205,9 +232,9 @@
   max-height: min(620px, calc(100vh - 40px));
   overflow: hidden;
   border: 1px solid var(--border-default);
-  border-radius: 8px;
-  background: var(--bg-elevated);
-  box-shadow: var(--shadow-lg);
+  border-radius: 14px;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
 }
 
 .compatibility-chart-picker-head {
@@ -356,13 +383,13 @@
 .compatibility-chart-picker-badge-selected {
   border: 1px solid rgba(201, 168, 76, 0.6);
   background: rgba(201, 168, 76, 0.15);
-  color: rgba(201, 168, 76, 1);
+  color: var(--primary);
 }
 
 .compatibility-chart-picker-badge-conflict {
-  border: 1px solid rgba(255, 165, 0, 0.4);
-  background: rgba(255, 165, 0, 0.1);
-  color: rgba(255, 165, 0, 0.9);
+  border: 1px solid rgba(224, 92, 75, 0.35);
+  background: rgba(224, 92, 75, 0.12);
+  color: var(--wu-huo);
 }
 
 .compatibility-chart-picker-item-pillars {
@@ -438,6 +465,10 @@
   .compatibility-context-card {
     padding: 16px;
     margin-bottom: 12px;
+  }
+
+  .compatibility-forms {
+    grid-template-columns: 1fr;
   }
 
   .compatibility-step-progress {

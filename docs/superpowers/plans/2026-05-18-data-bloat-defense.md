@@ -190,16 +190,16 @@ git -C /Users/liujiming/web/yuanju commit -m "deps: add testcontainers-go for cl
 **Files:**
 - Modify: `backend/pkg/database/database.go`
 
-- [ ] **Step 1: 找到 database.go 中"✅ 数据库迁移完成"之前的位置**
+- [ ] **Step 1: 找到 database.go 中"[OK] 数据库迁移完成"之前的位置**
 
 ```bash
 grep -n "数据库迁移完成" /Users/liujiming/web/yuanju/backend/pkg/database/database.go
 ```
-Expected: 找到 `log.Println("✅ 数据库迁移完成")` 的行号。新迁移块插在那一行之前。
+Expected: 找到 `log.Println("[OK] 数据库迁移完成")` 的行号。新迁移块插在那一行之前。
 
 - [ ] **Step 2: 在 "数据库迁移完成" 行之前追加 token_usage_logs_monthly DDL**
 
-把这段插入到 `log.Println("✅ 数据库迁移完成")` **前面**：
+把这段插入到 `log.Println("[OK] 数据库迁移完成")` **前面**：
 
 ```go
 	// 增量迁移 (data-bloat-defense)：token 用量月度汇总表
@@ -246,7 +246,7 @@ Expected: 无 error。
 ```bash
 cd /Users/liujiming/web/yuanju/backend && go run ./cmd/api 2>&1 | head -20
 ```
-启动后看到 `✅ 数据库迁移完成` 一行说明 DDL 全部 OK。看到后 Ctrl+C 退出。
+启动后看到 `[OK] 数据库迁移完成` 一行说明 DDL 全部 OK。看到后 Ctrl+C 退出。
 
 或者，跑迁移单测（如果有），或在 docker-compose 环境下 `docker-compose up backend` 看日志。
 

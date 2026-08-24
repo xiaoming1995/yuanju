@@ -1,4 +1,6 @@
 import type { ShenshaAnnotation, ExportBrand } from '../lib/api'
+import type { PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
+import { PastEventsPrintSection } from './PastEventsPrintLayout'
 import { cleanReportText, splitParagraphs } from '../lib/reportText'
 import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 
@@ -74,6 +76,7 @@ interface PrintLayoutProps {
   /** 当导出润色版 PDF 时传入：用户写的当下情况，会在「命理解读」section 前以 banner 显示 */
   polishedUserSituation?: string
   brand?: ExportBrand | null
+  pastEventsExportSegments?: PastEventsExportReadySegment[]
 }
 
 const gold = '#b8952a'
@@ -104,6 +107,7 @@ export default function PrintLayout({
   tenGodRelation,
   polishedUserSituation,
   brand,
+  pastEventsExportSegments = [],
 }: PrintLayoutProps) {
   const chapters = structured?.chapters ?? []
   const analysis = structured?.analysis ?? null
@@ -674,6 +678,10 @@ export default function PrintLayout({
           </tbody>
         </table>
       </div>
+
+      {pastEventsExportSegments.length > 0 && (
+        <PastEventsPrintSection segments={pastEventsExportSegments} compact />
+      )}
 
       {/* ── 附 · 术语释义（接大运总览自然流，不强制换页）── */}
       <div style={{ marginBottom: 16 }}>

@@ -169,19 +169,19 @@ export default function AdminUsersPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 className="admin-page-title" style={{ margin: 0 }}>用户列表</h1>
-        <span style={{ color: '#888', fontSize: 14 }}>共 {total} 名用户</span>
+        <span style={{ color: 'var(--admin-text-muted)', fontSize: 14 }}>共 {total} 名用户</span>
       </div>
 
       <div className="admin-card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ color: '#e8e8e8', fontWeight: 700, marginBottom: 4 }}>公开注册</div>
-            <div style={{ color: '#888', fontSize: 13 }}>
+            <div style={{ color: 'var(--admin-text)', fontWeight: 700, marginBottom: 4 }}>公开注册</div>
+            <div style={{ color: 'var(--admin-text-muted)', fontSize: 13 }}>
               当前状态：{registration_enabled ? '允许访客自行注册' : '关闭公开注册，仅后台可创建用户'}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {settingsMsg && <span style={{ color: settingsMsg === '已保存' ? '#22c55e' : '#ef4444', fontSize: 13 }}>{settingsMsg}</span>}
+            {settingsMsg && <span style={{ color: settingsMsg === '已保存' ? 'var(--admin-success)' : 'var(--admin-danger)', fontSize: 13 }}>{settingsMsg}</span>}
             <button className="admin-btn admin-btn-ghost" onClick={toggleRegistration} disabled={registrationSaving}>
               {registrationSaving ? '保存中...' : registration_enabled ? '关闭公开注册' : '开启公开注册'}
             </button>
@@ -213,21 +213,21 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {!users?.length && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: '#666', padding: 40 }}>
+                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--admin-text-faint)', padding: 40 }}>
                   暂无用户数据
                 </td></tr>
               )}
               {users?.map(u => (
                 <tr key={u.id}>
-                  <td style={{ color: '#e8e8e8' }}>{u.email}</td>
-                  <td style={{ color: '#aaa' }}>{u.nickname || '—'}</td>
-                  <td style={{ color: u.source === 'admin_created' ? '#c9a227' : '#888', fontSize: 13 }}>
+                  <td style={{ color: 'var(--admin-text)' }}>{u.email}</td>
+                  <td style={{ color: 'var(--admin-text-secondary)' }}>{u.nickname || '—'}</td>
+                  <td style={{ color: u.source === 'admin_created' ? 'var(--admin-primary)' : 'var(--admin-text-muted)', fontSize: 13 }}>
                     {sourceLabel(u.source)}
                   </td>
                   <td>
                     <span style={{
-                      background: u.chart_count > 0 ? 'rgba(201,162,39,0.15)' : 'transparent',
-                      color: u.chart_count > 0 ? '#c9a227' : '#666',
+                      background: u.chart_count > 0 ? 'rgba(var(--admin-primary-rgb), 0.15)' : 'transparent',
+                      color: u.chart_count > 0 ? 'var(--admin-primary)' : 'var(--admin-text-faint)',
                       padding: '2px 8px', borderRadius: 12, fontSize: 13
                     }}>{u.chart_count}</span>
                   </td>
@@ -236,7 +236,7 @@ export default function AdminUsersPage() {
                       ? <StatusBadge tone="danger">已禁用</StatusBadge>
                       : <StatusBadge tone="success">正常</StatusBadge>}
                   </td>
-                  <td style={{ color: '#666', fontSize: 13 }}>
+                  <td style={{ color: 'var(--admin-text-faint)', fontSize: 13 }}>
                     {new Date(u.created_at).toLocaleDateString('zh-CN')}
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
@@ -244,7 +244,7 @@ export default function AdminUsersPage() {
                       onClick={() => openReset(u)}>重置密码</button>
                     <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
                       onClick={() => toggleDisabled(u)}>{u.disabled_at ? '解禁' : '禁用'}</button>
-                    <button className="admin-btn admin-btn-ghost" style={{ color: '#ff6b6b' }}
+                    <button className="admin-btn admin-btn-ghost" style={{ color: 'var(--admin-danger)' }}
                       onClick={() => removeUser(u)}>删除</button>
                   </td>
                 </tr>
@@ -259,9 +259,9 @@ export default function AdminUsersPage() {
         if (totalPages <= 1) return null
         return (
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page === 1 ? '#1a1a2e' : '#2a2a3a', color: page === 1 ? '#555' : '#ccc', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>上一页</button>
-            <span style={{ lineHeight: '32px', fontSize: 13, color: '#666', margin: '0 8px' }}>第 {page} / {totalPages} 页</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page >= totalPages ? '#1a1a2e' : '#2a2a3a', color: page >= totalPages ? '#555' : '#ccc', cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}>下一页</button>
+            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page === 1 ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)', color: page === 1 ? 'var(--admin-text-faint)' : 'var(--admin-text-secondary)', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>上一页</button>
+            <span style={{ lineHeight: '32px', fontSize: 13, color: 'var(--admin-text-faint)', margin: '0 8px' }}>第 {page} / {totalPages} 页</span>
+            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page >= totalPages ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)', color: page >= totalPages ? 'var(--admin-text-faint)' : 'var(--admin-text-secondary)', cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}>下一页</button>
           </div>
         )
       })()}
@@ -286,7 +286,7 @@ export default function AdminUsersPage() {
               <input className="admin-form-input" type="password" value={form.password}
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
             </div>
-            <div style={{ color: '#888', fontSize: 12, marginTop: 10 }}>
+            <div style={{ color: 'var(--admin-text-muted)', fontSize: 12, marginTop: 10 }}>
               请通过安全渠道告知用户初始密码。
             </div>
             <div className="admin-modal-actions">

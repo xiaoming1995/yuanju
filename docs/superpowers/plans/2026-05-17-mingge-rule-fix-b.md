@@ -1,6 +1,6 @@
 # 命格定格规则修正（方案 B）Implementation Plan
 
-> ## ⚠️ 状态：已实施但已废弃（SUPERSEDED）
+> ## [WARN] 状态：已实施但已废弃（SUPERSEDED）
 >
 > 此 plan 已被完整执行（5 个 commit 在 feat/mingge-rule-fix-b 分支上）。但实施后用 12 个专业命师标注的真实盘对照，发现方向偏离 —— 对齐率仅 5/12。分支已删除，未合并 main。
 >

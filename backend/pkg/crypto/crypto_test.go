@@ -16,7 +16,7 @@ func TestEncryptDecryptRoundtrip(t *testing.T) {
 	}{
 		{"普通 API Key", "sk-abc1234567890xyz", testKey},
 		{"空明文", "", testKey},
-		{"中文与符号", "密钥-🔑-!@#$%^&*()", testKey},
+		{"中文与符号", "密钥-符号-!@#$%^&*()", testKey},
 		{"超过 32 字节的密钥（截断）", "secret", strings.Repeat("k", 40)},
 		{"长明文", strings.Repeat("a", 4096), testKey},
 	}

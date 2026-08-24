@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"text/template"
+	"time"
 
 	"yuanju/internal/model"
 	"yuanju/pkg/bazi"
@@ -754,6 +755,45 @@ func TestDayunSummaryPrompt_SoftConfidence_OmitsTiaohouSentenceWhenAbsent(t *tes
 	}
 }
 
+func TestDayunSummaryPrompt_YearNarrativeRequiresAIRewriteFromEvidence(t *testing.T) {
+	prompt := dayunSummaryPromptTpl
+
+	for _, want := range []string{
+		"AI 润色参考",
+		"fallback_narrative",
+		"把命理依据翻译成普通用户能听懂的人话",
+		"不得照抄 fallback_narrative",
+		"不要照抄 evidence 原文",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("expected prompt to contain %q", want)
+		}
+	}
+	for _, bad := range []string{
+		"必须点名当年关键干支事件",
+		"引用上方 evidence 已有的命理术语",
+	} {
+		if strings.Contains(prompt, bad) {
+			t.Fatalf("prompt should no longer force technical citation %q", bad)
+		}
+	}
+}
+
+func TestDayunSummaryPrompt_YearNarrativeMustLeadWithPlainLanguage(t *testing.T) {
+	prompt := dayunSummaryPromptTpl
+
+	for _, want := range []string{
+		"第一句必须先写现实场景",
+		"禁止以「流年」「伏吟」「反吟」「三合」「三会」「六合」「天克地冲」",
+		"先讲用户能感知到的现实变化，再补一句命理依据",
+		"不要写成命理术语清单",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("expected prompt to enforce plain-language lead %q", want)
+		}
+	}
+}
+
 // ── computeAutoGenDayunIndexes 测试 ──────────────────────────────────
 
 // helper for building DayunItem slices in tests; StartYear 由 birthYear + StartAge 推算，
@@ -876,6 +916,180 @@ func TestFillBlankYearNarratives_ValidAIPreserved(t *testing.T) {
 	out := fillBlankYearNarratives(parsed, signals, 1)
 	if out[0].Narrative != "庚子年食神高透，事业稳步推进。" {
 		t.Errorf("valid AI narrative should be preserved verbatim; got %q", out[0].Narrative)
+	}
+}
+
+func TestFillBlankYearNarratives_GenericGeneratedTextUsesEvidenceAlignedFallback(t *testing.T) {
+	parsed := []parsedYearAI{
+		{Year: 2024, GanZhi: "甲辰", Narrative: "甲辰年整体会有变化，感情和生活节奏需要稳一点。"},
+	}
+	signals := []bazi.YearSignals{
+		{
+			Year:   2024,
+			Age:    32,
+			GanZhi: "甲辰",
+			Signals: []bazi.EventSignal{
+				{
+					Type:     "婚恋_冲",
+					Evidence: "流年地支辰冲日支戌，感情关系、居住状态或合作边界受触动",
+					Polarity: bazi.PolarityXiong,
+					Source:   bazi.SourceZhuwei,
+				},
+			},
+		},
+	}
+
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if len(out) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(out))
+	}
+	if out[0].Narrative == parsed[0].Narrative {
+		t.Fatalf("generic generated text should not override evidence-aligned fallback: %q", out[0].Narrative)
+	}
+	for _, want := range []string{"波动", "亲密关系"} {
+		if !strings.Contains(out[0].Narrative, want) {
+			t.Fatalf("expected fallback narrative to explain %q, got: %s", want, out[0].Narrative)
+		}
+	}
+	if strings.Contains(out[0].Narrative, "从命理依据看") {
+		t.Fatalf("fallback narrative should be readable body text, got: %s", out[0].Narrative)
+	}
+}
+
+func TestFillBlankYearNarratives_HumanizedAINarrativePreserved(t *testing.T) {
+	parsed := []parsedYearAI{
+		{Year: 1997, GanZhi: "丁丑", Narrative: "这一年同学朋友的影响会更明显，身边有人愿意帮忙，但也容易因为比较、资源分配或意见不同产生小摩擦。遇到计划变化时，先确认对方承诺和具体安排，不要只凭一句话就当成定局。长辈或老师的提醒可以帮你缓和局面，适合把注意力放在学习节奏和日常关系的稳定上。"},
+	}
+	signals := []bazi.YearSignals{
+		{
+			Year:   1997,
+			Age:    3,
+			GanZhi: "丁丑",
+			Signals: []bazi.EventSignal{
+				{
+					Type:     bazi.TypeXueYeJingZheng,
+					Evidence: "丁透干为劫财，少年期间同学竞争 / 友谊摩擦显著，宜以平常心相处",
+					Polarity: bazi.PolarityNeutral,
+					Source:   bazi.SourceZhuwei,
+				},
+				{
+					Type:     "夹拱",
+					Evidence: "原局年柱与日柱天干相同，地支隔位夹拱，主意料之外的人相助",
+					Polarity: bazi.PolarityNeutral,
+					Source:   bazi.SourceGongJia,
+				},
+				{
+					Type:     "综合变动",
+					Evidence: "流年地支丑落日柱旬空，事件虚而不实/过而不留",
+					Polarity: bazi.PolarityNeutral,
+					Source:   bazi.SourceKongwang,
+				},
+			},
+		},
+	}
+
+	out := fillBlankYearNarratives(parsed, signals, 1)
+	if len(out) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(out))
+	}
+	if out[0].Narrative != parsed[0].Narrative {
+		t.Fatalf("humanized AI narrative should be preserved, got: %s", out[0].Narrative)
+	}
+}
+
+func TestRenderPastEventsStageOneNarrative_AIModeStillReturnsEvidenceFallback(t *testing.T) {
+	ys := bazi.YearSignals{
+		Year:   2024,
+		Age:    32,
+		GanZhi: "甲辰",
+		Signals: []bazi.EventSignal{
+			{
+				Type:     "婚恋_冲",
+				Evidence: "流年地支辰冲日支戌，感情关系、居住状态或合作边界受触动",
+				Polarity: bazi.PolarityXiong,
+				Source:   bazi.SourceZhuwei,
+			},
+		},
+	}
+
+	got := renderPastEventsStageOneNarrative("ai", ys)
+	if got == "" {
+		t.Fatal("ai mode should still expose deterministic evidence-aligned fallback narrative")
+	}
+	for _, want := range []string{"亲密关系", "居住状态", "合作关系"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected stage-one fallback to include %q, got: %s", want, got)
+		}
+	}
+	if strings.Contains(got, "从命理依据看") {
+		t.Fatalf("stage-one fallback should not use evidence-section wording: %s", got)
+	}
+}
+
+func TestBuildPastEventsExportDataFiltersToGeneratedCachedSegments(t *testing.T) {
+	validYears := json.RawMessage(`[
+		{"year":2000,"ganzhi":"庚辰","narrative":"这一年学习和关系节奏更容易被外界推动，适合稳住安排。"},
+		{"year":2001,"ganzhi":"辛巳","narrative":""}
+	]`)
+	themes := json.RawMessage(`["学业突破","同伴助力"]`)
+	emptyYears := json.RawMessage(`[]`)
+	invalidYears := json.RawMessage(`{"bad":true}`)
+	chart := &model.BaziChart{
+		ID: "chart-1", DisplayName: "测试命盘",
+		BirthYear: 1990, BirthMonth: 1, BirthDay: 2, BirthHour: 12,
+		Gender:  "male",
+		YearGan: "庚", YearZhi: "午", MonthGan: "戊", MonthZhi: "寅",
+		DayGan: "甲", DayZhi: "子", HourGan: "庚", HourZhi: "午",
+	}
+	result := &bazi.BaziResult{
+		YearGan: "庚", YearZhi: "午", MonthGan: "戊", MonthZhi: "寅",
+		DayGan: "甲", DayZhi: "子", HourGan: "庚", HourZhi: "午",
+		Gender: "male", BirthYear: 1990, BirthMonth: 1, BirthDay: 2, BirthHour: 12,
+		Dayun: []bazi.DayunItem{
+			{
+				Index: 2, Gan: "乙", Zhi: "卯", StartAge: 10, StartYear: 2000, EndYear: 2009,
+				GanShiShen: "劫财", ZhiShiShen: "劫财",
+				LiuNian: []bazi.LiuNianItem{
+					{Year: 2000, Age: 10, GanZhi: "庚辰", GanShiShen: "七杀", ZhiShiShen: "偏财"},
+					{Year: 2001, Age: 11, GanZhi: "辛巳", GanShiShen: "正官", ZhiShiShen: "食神"},
+				},
+			},
+			{
+				Index: 1, Gan: "甲", Zhi: "寅", StartAge: 0, StartYear: 1990, EndYear: 1999,
+				GanShiShen: "比肩", ZhiShiShen: "比肩",
+			},
+		},
+	}
+	cached := []model.AIDayunSummary{
+		{DayunIndex: 9, DayunGanZhi: "癸亥", Summary: "没有年份数据", Years: &emptyYears},
+		{DayunIndex: 2, DayunGanZhi: "乙卯", Themes: &themes, Summary: "这步大运已经生成。", Years: &validYears, Model: "test-model", CreatedAt: time.Unix(100, 0)},
+		{DayunIndex: 3, DayunGanZhi: "丙辰", Summary: "坏 JSON", Years: &invalidYears},
+		{DayunIndex: 4, DayunGanZhi: "丁巳", Summary: "", Years: &validYears},
+		{DayunIndex: 5, DayunGanZhi: "戊午", Summary: "无 years"},
+	}
+
+	got, err := BuildPastEventsExportData(chart, result, cached)
+	if err != nil {
+		t.Fatalf("BuildPastEventsExportData returned error: %v", err)
+	}
+	if got.Chart.ID != "chart-1" || got.Chart.DisplayName != "测试命盘" {
+		t.Fatalf("unexpected chart context: %+v", got.Chart)
+	}
+	if len(got.Segments) != 1 {
+		t.Fatalf("expected only one exportable segment, got %d: %+v", len(got.Segments), got.Segments)
+	}
+	seg := got.Segments[0]
+	if seg.DayunIndex != 2 || seg.StartAge != 10 || seg.EndAge != 19 || seg.StartYear != 2000 || seg.EndYear != 2009 {
+		t.Fatalf("unexpected segment metadata: %+v", seg)
+	}
+	if len(seg.Themes) != 2 || seg.Themes[0] != "学业突破" {
+		t.Fatalf("unexpected themes: %+v", seg.Themes)
+	}
+	if len(seg.Years) != 1 {
+		t.Fatalf("expected only non-empty generated year narrative, got %+v", seg.Years)
+	}
+	if seg.Years[0].Year != 2000 || seg.Years[0].Age != 10 || seg.Years[0].GanZhi != "庚辰" {
+		t.Fatalf("unexpected year metadata: %+v", seg.Years[0])
 	}
 }
 

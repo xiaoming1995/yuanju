@@ -64,7 +64,7 @@
 
 | 状态 | 判定 | 显示 |
 |---|---|---|
-| 还没生成深度解读 | `!detail.latest_report` | 钩子占位：「✨ 生成深度解读，揭晓你们的名人配对」+ 生成按钮（点了走 `handleGenerateReport`，loading 时禁用） |
+| 还没生成深度解读 | `!detail.latest_report` | 钩子占位：「 生成深度解读，揭晓你们的名人配对」+ 生成按钮（点了走 `handleGenerateReport`，loading 时禁用） |
 | 已生成且有类比 | `famous_couple` 存在 | 醒目类比卡：大字 `couple` + `tagline` + 一行 `reason` |
 | 旧报告但无该字段 | `latest_report` 存在但 `famous_couple` 缺省 | 隐藏该卡（不误导、不重复提示生成） |
 

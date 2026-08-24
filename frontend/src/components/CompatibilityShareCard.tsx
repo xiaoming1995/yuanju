@@ -384,7 +384,7 @@ const CompatibilityShareCard = forwardRef<HTMLDivElement, CompatibilityShareCard
       {/* §8 避免 */}
       {decision.avoid.length > 0 && (
         <section className="compat-share-avoid">
-          <h3 className="compat-share-section-h">⚠ 避免</h3>
+          <h3 className="compat-share-section-h">避免</h3>
           {decision.avoid.slice(0, 2).map((a, i) => (
             <div key={i} className="compat-share-avoid-item">· {a}</div>
           ))}

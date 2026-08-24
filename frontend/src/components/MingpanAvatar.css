@@ -52,8 +52,8 @@
 }
 
 .avatar-lock-icon {
-  font-size: 32px;
-  filter: grayscale(0.6);
+  display: flex;
+  color: var(--text-muted);
 }
 
 .avatar-lock-text {

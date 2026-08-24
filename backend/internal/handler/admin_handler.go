@@ -397,6 +397,25 @@ func AdminListCharts(c *gin.Context) {
 	})
 }
 
+// AdminGetChartDetail 获取后台单条起盘详情
+func AdminGetChartDetail(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少 chart_id 参数"})
+		return
+	}
+	chart, err := repository.GetAdminBaziChartByID(chartID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取排盘详情失败"})
+		return
+	}
+	if chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "命盘不存在"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": chart})
+}
+
 // ====== Admin Report Cache ======
 
 // AdminClearAllReports 清空所有 AI 报告缓存（强制下次重新生成）
@@ -444,6 +463,24 @@ func AdminListLiunianReports(c *gin.Context) {
 	}
 	if reports == nil {
 		reports = []model.AILiunianReport{}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": reports})
+}
+
+// AdminListPastEventsReports 获取某命盘下所有的过往推算大运段记录
+func AdminListPastEventsReports(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少 chart_id 参数"})
+		return
+	}
+	reports, err := repository.ListAdminPastEventsByChartID(chartID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取过往推算记录失败: " + err.Error()})
+		return
+	}
+	if reports == nil {
+		reports = []model.AdminPastEventsDayunRecord{}
 	}
 	c.JSON(http.StatusOK, gin.H{"data": reports})
 }
