@@ -189,7 +189,7 @@ function DayunTrendPrintSection({
         ))}
       </div>
       <div style={{ marginTop: 8, fontSize: 10, color: '#888', textAlign: 'center', fontStyle: 'italic' }}>
-        趋势根据当前大运内流年十神信号整理，仅作节奏参考，不重新计算命盘算法。
+        本图只展示所选大运内部 10 年的相对起伏，不代表不同大运之间的绝对好坏或机会上限。同样是“上行”，坏运中的上行可能只是压力减轻、收入从 50 到 100；好运中的上行可能是机会放大、收入从 500 到 1000。请结合命局喜忌、大运整体强弱与 AI 解读判断。
       </div>
     </div>
   )

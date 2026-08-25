@@ -1160,9 +1160,12 @@ export default function ResultPage() {
                 ))}
               </div>
 
-              <p className="result-trend-note">
-                试用版基于当前大运流年十神做轻量归类，不使用分数或百分比；完整判断仍以 AI 解读与专业命盘为准。
-              </p>
+              <div className="result-trend-note" role="note">
+                <span>趋势说明</span>
+                <p>
+                  曲线表示本段大运内部的相对趋势，不代表不同大运的绝对层级。同样上行，坏运可能只是从 50 到 100，好运可能是从 500 到 1000；请结合命局喜忌、大运整体强弱与 AI 解读判断。
+                </p>
+              </div>
             </section>
           )}
 

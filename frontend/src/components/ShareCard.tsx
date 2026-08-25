@@ -279,7 +279,7 @@ function DayunTrendShareSection({
           textAlign: 'center',
           fontFamily: '"Noto Sans SC", sans-serif',
         }}>
-          趋势根据当前大运内流年十神信号整理，仅作节奏参考。
+          本图为段内相对趋势：同样上行，坏运可能只是小幅改善，好运可能是机会放大，需结合大运整体判断。
         </p>
       </div>
     </>

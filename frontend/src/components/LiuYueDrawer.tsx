@@ -1,7 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { AlertTriangle, X } from 'lucide-react'
 import { baziAPI, errorMessage } from '../lib/api'
 import type { LiuYueItem, LiuYueResponse } from '../lib/api'
+import {
+  buildLiuYueTrendPath,
+  buildLiuYueTrendSeries,
+  liuyueTrendX,
+  liuyueTrendY,
+  type LiuYueTrendKey,
+  type LiuYueTrendLevel,
+} from '../lib/liuyueTrend'
 
 interface LiuYueDrawerProps {
   open: boolean
@@ -10,6 +18,7 @@ interface LiuYueDrawerProps {
   dayGan: string
   liuNianGanZhi: string // 例如 "丙午"，用于标题
   chartId?: string
+  gender?: string
 }
 
 interface LiuNianReportContent {
@@ -31,11 +40,39 @@ const GAN_WUXING: Record<string, string> = {
   己: 'tu', 庚: 'jin', 辛: 'jin', 壬: 'shui', 癸: 'shui',
 }
 
+const LIUYUE_TREND_TABS: Array<{ key: LiuYueTrendKey; label: string }> = [
+  { key: 'overall', label: '综合' },
+  { key: 'career', label: '事业' },
+  { key: 'marriage', label: '婚恋' },
+  { key: 'wealth', label: '财运' },
+  { key: 'health', label: '健康' },
+]
+
+const LIUYUE_TREND_LEVEL_COLORS: Record<LiuYueTrendLevel, string> = {
+  3: '#8fd5a6',
+  2: '#d8cca7',
+  1: '#d58b79',
+}
+
+const LIUYUE_TREND_LINE_COLORS: Record<LiuYueTrendKey, string> = {
+  overall: 'var(--wu-jin-light)',
+  career: 'var(--wu-jin)',
+  marriage: 'var(--wu-huo-light)',
+  wealth: 'var(--wu-mu-light)',
+  health: 'var(--wu-shui-light)',
+}
+
 // 格式化日期 YYYY-MM-DD → M/D
 function fmtDate(d: string): string {
   const parts = d.split('-')
   if (parts.length !== 3) return d
   return `${parseInt(parts[1])}/${parseInt(parts[2])}`
+}
+
+function fmtMonthLabel(d: string): string {
+  const parts = d.split('-')
+  if (parts.length !== 3) return d
+  return `${parseInt(parts[1])}月`
 }
 
 export default function LiuYueDrawer({
@@ -45,11 +82,14 @@ export default function LiuYueDrawer({
   dayGan,
   liuNianGanZhi,
   chartId,
+  gender,
 }: LiuYueDrawerProps) {
   const [year, setYear] = useState(initialYear)
   const [data, setData] = useState<LiuYueResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activeTrendKey, setActiveTrendKey] = useState<LiuYueTrendKey>('overall')
+  const [focusedMonthIndex, setFocusedMonthIndex] = useState<number | null>(null)
 
   // 流年 AI 报告状态
   const [report, setReport] = useState<LiuNianReport | null>(null)
@@ -88,6 +128,7 @@ export default function LiuYueDrawer({
     // 换年份时清空已有的报告
     setReport(null)
     setReportError(null)
+    setFocusedMonthIndex(null)
   }, [year]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGenerateReport = async () => {
@@ -117,10 +158,13 @@ export default function LiuYueDrawer({
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  if (!open) return null
-
-  const items: LiuYueItem[] = data?.liu_yue ?? []
+  const items = useMemo<LiuYueItem[]>(() => data?.liu_yue ?? [], [data?.liu_yue])
   const currentIndex = data?.current_month_index ?? -1
+  const trendSeries = useMemo(() => buildLiuYueTrendSeries(items, gender), [items, gender])
+  const activeTrendSeries = trendSeries.find(series => series.key === activeTrendKey) ?? trendSeries[0]
+  const focusedTrendPoint = activeTrendSeries?.points.find(point => point.index === focusedMonthIndex) ?? null
+
+  if (!open) return null
 
   return (
     <>
@@ -290,6 +334,216 @@ export default function LiuYueDrawer({
             )}
           </div>
 
+          {/* 年内流月趋势 */}
+          {!loading && !error && activeTrendSeries && (
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.035)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: '12px',
+              padding: '14px',
+              marginBottom: '20px',
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: 12,
+                marginBottom: 12,
+              }}>
+                <div>
+                  <div style={{ fontSize: 12, color: 'var(--text-accent)', fontWeight: 700, marginBottom: 4 }}>
+                    年内趋势
+                  </div>
+                  <div style={{ fontSize: 18, color: 'var(--text-primary)', fontWeight: 700, fontFamily: 'Noto Serif SC, serif' }}>
+                    {year} 流月起伏
+                  </div>
+                </div>
+                <div style={{
+                  color: 'var(--text-accent)',
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  textAlign: 'right',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {activeTrendSeries.summary}
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: 6,
+                padding: 3,
+                borderRadius: '999px',
+                background: 'rgba(0, 0, 0, 0.14)',
+                marginBottom: 12,
+                overflowX: 'auto',
+              }}>
+                {LIUYUE_TREND_TABS.map(tab => {
+                  const isActive = tab.key === activeTrendKey
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      aria-pressed={isActive}
+                      onClick={() => {
+                        setActiveTrendKey(tab.key)
+                        setFocusedMonthIndex(null)
+                      }}
+                      style={{
+                        flex: '1 0 auto',
+                        minWidth: 58,
+                        border: 'none',
+                        borderRadius: '999px',
+                        padding: '7px 10px',
+                        background: isActive ? 'rgba(201, 168, 76, 0.92)' : 'transparent',
+                        color: isActive ? '#121722' : 'var(--text-secondary)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <svg
+                viewBox="0 0 420 156"
+                role="img"
+                aria-label={`${activeTrendSeries.title}流月趋势图`}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: 'auto',
+                  borderRadius: 10,
+                  background: 'rgba(10, 14, 22, 0.26)',
+                }}
+              >
+                {[3, 2, 1].map(level => (
+                  <g key={level}>
+                    <text
+                      x="12"
+                      y={liuyueTrendY(level as LiuYueTrendLevel) + 4}
+                      fill="rgba(232, 228, 216, 0.62)"
+                      fontSize="11"
+                    >
+                      {level === 3 ? '顺势' : level === 2 ? '平稳' : '留意'}
+                    </text>
+                    <line
+                      x1="48"
+                      x2="360"
+                      y1={liuyueTrendY(level as LiuYueTrendLevel)}
+                      y2={liuyueTrendY(level as LiuYueTrendLevel)}
+                      stroke="rgba(255,255,255,0.08)"
+                      strokeWidth="1"
+                    />
+                  </g>
+                ))}
+
+                <path
+                  d={buildLiuYueTrendPath(activeTrendSeries.points)}
+                  fill="none"
+                  stroke={LIUYUE_TREND_LINE_COLORS[activeTrendSeries.key]}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+
+                {activeTrendSeries.points.map((point, pointIndex) => {
+                  const x = liuyueTrendX(pointIndex, activeTrendSeries.points.length)
+                  const y = liuyueTrendY(point.level)
+                  const isFocused = focusedMonthIndex === point.index
+                  const isCurrent = currentIndex === point.index
+                  return (
+                    <g key={point.index}>
+                      {(isFocused || isCurrent) && (
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={isFocused ? 14 : 11}
+                          fill={isFocused ? 'rgba(201, 168, 76, 0.22)' : 'rgba(255,255,255,0.12)'}
+                        />
+                      )}
+                      <g
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${point.monthName}${point.label}`}
+                        onClick={() => setFocusedMonthIndex(point.index)}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            setFocusedMonthIndex(point.index)
+                          }
+                        }}
+                      >
+                        <circle
+                          cx={x}
+                          cy={y}
+                          r={isFocused ? 6 : 5}
+                          fill="var(--bg-card)"
+                          stroke={LIUYUE_TREND_LEVEL_COLORS[point.level]}
+                          strokeWidth={isFocused ? 4 : 3}
+                          style={{ cursor: 'pointer' }}
+                        />
+                      </g>
+                      <text
+                        x={x}
+                        y="142"
+                        textAnchor="middle"
+                        fill={isFocused ? 'var(--text-primary)' : 'rgba(232, 228, 216, 0.42)'}
+                        fontSize="10"
+                        fontWeight={isFocused ? 700 : 500}
+                      >
+                        {fmtMonthLabel(point.startDate)}
+                      </text>
+                    </g>
+                  )
+                })}
+              </svg>
+
+              <div style={{
+                display: 'flex',
+                gap: 12,
+                marginTop: 10,
+                color: 'var(--text-secondary)',
+                fontSize: 12,
+              }}>
+                <span><i style={legendDotStyle('#8fd5a6')} />顺势</span>
+                <span><i style={legendDotStyle('#d8cca7')} />平稳</span>
+                <span><i style={legendDotStyle('#d58b79')} />留意</span>
+              </div>
+
+              {focusedTrendPoint && (
+                <div style={{
+                  marginTop: 10,
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  background: 'rgba(201, 168, 76, 0.08)',
+                  border: '1px solid rgba(201, 168, 76, 0.16)',
+                  color: 'rgba(232, 228, 216, 0.86)',
+                  fontSize: 12,
+                  lineHeight: 1.65,
+                }}>
+                  <strong style={{ color: 'var(--primary-hover)', marginRight: 6 }}>
+                    {fmtMonthLabel(focusedTrendPoint.startDate)} · {focusedTrendPoint.monthName} · {focusedTrendPoint.label}
+                  </strong>
+                  {focusedTrendPoint.detail}
+                </div>
+              )}
+
+              <p style={{
+                margin: '10px 0 0',
+                color: 'rgba(232, 228, 216, 0.68)',
+                fontSize: 12,
+                lineHeight: 1.65,
+              }}>
+                说明：月趋势只表示当前流年内部 12 个流月的相对起伏，不代表每个月的绝对好坏。同样上行，弱年里可能只是压力减轻，好年里可能是机会放大。
+              </p>
+            </div>
+          )}
+
           {/* 加载中：骨架屏 */}
           {loading && (
             <div style={{
@@ -344,6 +598,7 @@ export default function LiuYueDrawer({
             }}>
               {items.map(item => {
                 const isCurrent = item.index === currentIndex
+                const isFocused = item.index === focusedMonthIndex
                 const gan = item.gan_zhi.charAt(0)
                 const zhi = item.gan_zhi.charAt(1)
                 const wx = GAN_WUXING[gan] || 'jin'
@@ -354,16 +609,21 @@ export default function LiuYueDrawer({
                     style={{
                       position: 'relative',
                       padding: '12px 8px 10px',
-                      background: isCurrent ? 'rgba(201, 168, 76,0.08)' : 'var(--bg-elevated)',
-                      border: `1px solid ${isCurrent ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
+                      background: isFocused
+                        ? 'rgba(201, 168, 76,0.12)'
+                        : isCurrent ? 'rgba(201, 168, 76,0.08)' : 'var(--bg-elevated)',
+                      border: `1px solid ${isFocused || isCurrent ? 'var(--border-accent)' : 'var(--border-subtle)'}`,
                       borderRadius: 'var(--radius-sm)',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       gap: 3,
-                      boxShadow: isCurrent ? '0 0 12px rgba(201, 168, 76,0.12)' : 'none',
+                      boxShadow: isFocused
+                        ? '0 0 18px rgba(201, 168, 76,0.18)'
+                        : isCurrent ? '0 0 12px rgba(201, 168, 76,0.12)' : 'none',
                       transition: 'all 0.15s',
                     }}
+                    onClick={() => setFocusedMonthIndex(item.index)}
                   >
                     {/* 当前徽章 */}
                     {isCurrent && (
@@ -448,4 +708,16 @@ const navBtnStyle: React.CSSProperties = {
   fontSize: 16,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   transition: 'background 0.15s',
+}
+
+function legendDotStyle(color: string): React.CSSProperties {
+  return {
+    display: 'inline-block',
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    background: color,
+    marginRight: 5,
+    verticalAlign: '1px',
+  }
 }

@@ -2631,10 +2631,29 @@
 }
 
 .result-trend-note {
-  margin: 14px 0 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.7;
+  display: grid;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(var(--primary-rgb), 0.18);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(var(--primary-rgb), 0.12), rgba(var(--primary-rgb), 0.045)),
+    rgba(255, 255, 255, 0.025);
+  color: rgba(232, 228, 216, 0.82);
+  font-size: 13px;
+  line-height: 1.75;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.result-trend-note span {
+  color: var(--primary-hover);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.result-trend-note p {
+  margin: 0;
 }
 
 .result-evidence-panel {

@@ -334,6 +334,7 @@ export default function DayunTimeline({
         dayGan={dayGan}
         liuNianGanZhi={drawerGanZhi}
         chartId={chartId}
+        gender={gender}
       />
 
       {ssModalOpen && (() => {
