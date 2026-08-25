@@ -7,10 +7,10 @@
 }
 
 .compatibility-intro {
-  padding: 28px 30px;
+  padding: 26px 28px;
   margin-top: 26px;
   margin-bottom: 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
 }
 
 .compatibility-intro-title {
@@ -43,18 +43,18 @@
 .compatibility-forms {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 14px;
 }
 
 .compatibility-profile-panel {
   padding: 20px;
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
 }
 
 .compatibility-import-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -70,13 +70,13 @@
 }
 
 .compatibility-context-card {
-  padding: 24px;
+  padding: 22px;
   margin-bottom: 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
 }
 
 .compatibility-personality-consultation {
-  border-color: rgba(201, 168, 76, 0.24);
+  border-color: rgba(201, 168, 76, 0.18);
   background:
     linear-gradient(180deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0.03) 58%),
     rgba(18, 23, 36, 0.92);
@@ -101,8 +101,8 @@
   min-width: 0;
   padding: 14px 16px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .compatibility-step-item span {
@@ -140,35 +140,33 @@
 .compatibility-context-option {
   min-height: 38px;
   padding: 0 14px;
-  border: 1px solid var(--border-default);
+  border: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.055);
   color: var(--text-secondary);
   font-family: var(--font-sans);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 
 .compatibility-context-option:hover {
-  border-color: rgba(201, 168, 76, 0.35);
   color: var(--text-primary);
   background: rgba(201, 168, 76, 0.08);
 }
 
 .compatibility-context-option.active {
-  border-color: rgba(201, 168, 76, 0.5);
   background: rgba(201, 168, 76, 0.14);
   color: var(--primary);
-  box-shadow: 0 0 18px rgba(201, 168, 76, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.18);
 }
 
 .compatibility-personality-preview {
   margin-top: 22px;
   padding: 18px 20px;
   border-radius: 8px;
-  border: 1px solid rgba(201, 168, 76, 0.3);
+  border: 1px solid rgba(201, 168, 76, 0.16);
   background: rgba(201, 168, 76, 0.08);
 }
 
@@ -195,7 +193,7 @@
 .compatibility-personality-preview-list span {
   padding: 6px 10px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle);
+  border: 0;
   color: var(--text-secondary);
   background: rgba(255, 255, 255, 0.04);
   font-size: 12px;
@@ -231,8 +229,8 @@
   width: min(520px, 100%);
   max-height: min(620px, calc(100vh - 40px));
   overflow: hidden;
-  border: 1px solid var(--border-default);
-  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-dialog);
   background: var(--bg-card);
   box-shadow: var(--shadow-md);
 }
@@ -264,9 +262,9 @@
   gap: 5px;
   width: 100%;
   padding: 12px;
-  border: 1px solid var(--border-subtle);
+  border: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.055);
   color: var(--text-primary);
   font-family: var(--font-sans);
   text-align: left;
@@ -274,7 +272,6 @@
 }
 
 .compatibility-chart-picker-item:hover {
-  border-color: rgba(201, 168, 76, 0.5);
   background: rgba(201, 168, 76, 0.1);
 }
 
@@ -314,7 +311,7 @@
 .compatibility-chart-picker-search {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid transparent;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
@@ -338,7 +335,7 @@
 
 .compatibility-chart-picker-filter button {
   padding: 6px 14px;
-  border: 1px solid var(--border-subtle);
+  border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--text-muted);
@@ -348,7 +345,6 @@
 }
 
 .compatibility-chart-picker-filter button[aria-selected="true"] {
-  border-color: rgba(201, 168, 76, 0.6);
   background: rgba(201, 168, 76, 0.12);
   color: var(--text-primary);
 }

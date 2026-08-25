@@ -13,6 +13,31 @@ export function cleanReportText(s: string | undefined | null): string {
     .trim()
 }
 
+export function cleanLegacyReportContent(s: string | undefined | null): string {
+  return cleanReportText(s)
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => {
+      if (!line) return false
+      if (/^[-*_]{3,}$/.test(line)) return false
+      if (/^本报告由\s*AI\s*辅助生成，?内容仅供参考/.test(line)) return false
+      if (/^本报告内容仅供参考/.test(line)) return false
+      return true
+    })
+    .join('\n')
+    .trim()
+}
+
+export function hasMeaningfulReportContent(s: string | undefined | null): boolean {
+  return cleanLegacyReportContent(s)
+    .split('\n')
+    .filter(line => !/^【[^】]+】$/.test(line.trim()))
+    .join('\n')
+    .replace(/[【】#\s·。、，：:；;！!？?（）()《》"'“”‘’\-_*]/g, '')
+    .length > 0
+}
+
 /** 把已清理的文本按 \n\n 拆成多段，过滤空段。 */
 export function splitParagraphs(s: string | undefined | null): string[] {
   return cleanReportText(s)

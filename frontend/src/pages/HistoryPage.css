@@ -49,7 +49,7 @@
 .archive-switcher {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
@@ -60,33 +60,32 @@
   gap: 8px;
   min-height: 46px;
   padding: 10px 14px;
-  border: 1px solid var(--border-subtle);
+  border: 0;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.055);
   text-decoration: none;
 }
 
 .archive-switcher-item--active {
   color: var(--wu-jin);
-  border-color: rgba(201, 168, 76, 0.38);
   background: rgba(201, 168, 76, 0.12);
 }
 
 .history-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
 .history-stat-card {
   display: grid;
   gap: 8px;
   padding: 16px;
-  border: 1px solid var(--border-subtle);
+  border: 0;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .history-stat-card svg {
@@ -158,17 +157,18 @@
 .history-record-card {
   display: grid;
   gap: 14px;
-  padding: 18px;
+  padding: 18px 20px;
   color: inherit;
   text-decoration: none;
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
   cursor: pointer;
 }
 
 .history-record-card:hover,
 .history-record-card:focus-visible {
   transform: translateY(-2px);
-  border-color: rgba(201, 168, 76, 0.35);
+  background: color-mix(in srgb, var(--surface-panel) 86%, white 5%);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .history-record-card:focus-visible {
@@ -201,7 +201,7 @@
 }
 
 .history-inline-action {
-  border: 1px solid rgba(201, 168, 76, 0.28);
+  border: 0;
   border-radius: 8px;
   padding: 6px 10px;
   color: var(--wu-jin);
@@ -212,7 +212,6 @@
 }
 
 .history-inline-action:hover {
-  border-color: rgba(201, 168, 76, 0.48);
   background: rgba(201, 168, 76, 0.14);
 }
 
@@ -226,7 +225,7 @@
 
 .history-name-editor input {
   width: min(240px, 100%);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid transparent;
   border-radius: 8px;
   padding: 8px 10px;
   color: var(--text-primary);
@@ -269,7 +268,7 @@
 }
 
 .history-record-action-button {
-  border: 1px solid rgba(201, 168, 76, 0.32);
+  border: 0;
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--wu-jin);
@@ -281,7 +280,6 @@
 }
 
 .history-record-action-button:hover {
-  border-color: rgba(201, 168, 76, 0.52);
   background: rgba(201, 168, 76, 0.16);
 }
 
@@ -289,7 +287,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: 1px solid rgba(200, 60, 60, 0.32);
+  border: 0;
   border-radius: 8px;
   padding: 8px 12px;
   color: var(--wu-huo);
@@ -301,7 +299,6 @@
 }
 
 .history-record-delete-button:hover {
-  border-color: rgba(200, 60, 60, 0.55);
   background: rgba(200, 60, 60, 0.18);
 }
 

@@ -1,13 +1,13 @@
 .ui-segmented-tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
+  gap: 4px;
+  padding: 5px;
   overflow-x: auto;
   scrollbar-width: none;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: var(--radius-control);
-  background: var(--surface-muted);
+  background: rgba(255, 255, 255, 0.055);
 }
 
 .ui-segmented-tabs::-webkit-scrollbar {
@@ -16,7 +16,7 @@
 
 .ui-segmented-tabs__item {
   flex: 0 0 auto;
-  padding: 9px 14px;
+  padding: 9px 15px;
   border-radius: var(--radius-control);
   color: var(--text-subtle);
   font-size: 14px;

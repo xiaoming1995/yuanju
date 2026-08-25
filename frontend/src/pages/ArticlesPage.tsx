@@ -32,7 +32,7 @@ export default function ArticlesPage() {
 
   useEffect(() => {
     if (!user) return
-    setModuleClosed(false)
+    queueMicrotask(() => setModuleClosed(false))
     queueMicrotask(() => setLoading(true))
     articleAPI.list(params)
       .then(res => {

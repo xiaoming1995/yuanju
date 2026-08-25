@@ -1,5 +1,7 @@
 import type { ShenshaAnnotation, ExportBrand } from '../lib/api'
 import type { PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
+import type { DayunTrendSeries } from '../lib/dayunTrend'
+import { buildTrendNote, buildTrendPath, trendX, trendY } from '../lib/dayunTrend'
 import { PastEventsPrintSection } from './PastEventsPrintLayout'
 import { cleanReportText, splitParagraphs } from '../lib/reportText'
 import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
@@ -77,6 +79,9 @@ interface PrintLayoutProps {
   polishedUserSituation?: string
   brand?: ExportBrand | null
   pastEventsExportSegments?: PastEventsExportReadySegment[]
+  dayunTrendSeries?: DayunTrendSeries[]
+  dayunTrendLabel?: string
+  dayunTrendPeriod?: string
 }
 
 const gold = '#b8952a'
@@ -101,6 +106,95 @@ const sectionTitle = (text: string) => (
   </div>
 )
 
+function DayunTrendPrintSection({
+  series,
+  label,
+  period,
+}: {
+  series: DayunTrendSeries[]
+  label?: string
+  period?: string
+}) {
+  if (!series.length) return null
+
+  return (
+    <div style={{ marginBottom: 16, breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+      {sectionTitle('大运十年趋势')}
+      {(label || period) && (
+        <div style={{
+          margin: '-2px 0 9px',
+          textAlign: 'center',
+          color: midBrown,
+          fontSize: 11,
+        }}>
+          {label && <strong style={{ marginRight: 8, color: gold }}>{label}</strong>}
+          {period && <span>{period}</span>}
+        </div>
+      )}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 10,
+      }}>
+        {series.map(item => (
+          <div key={item.key} style={{
+            padding: '9px 10px 8px',
+            background: '#fdfaf2',
+            border: `1px solid ${borderColor}`,
+            borderRadius: 3,
+            breakInside: 'avoid',
+            pageBreakInside: 'avoid',
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'baseline',
+              gap: 8,
+              marginBottom: 5,
+            }}>
+              <strong style={{ color: midBrown, fontSize: 12, letterSpacing: 1 }}>{item.title}</strong>
+              <span style={{ color: gold, fontSize: 10, fontWeight: 700 }}>{item.summary}</span>
+            </div>
+            <svg viewBox="0 0 420 150" width="100%" height="106" role="img" aria-label={`${item.title}趋势`}>
+              <line x1="54" y1="28" x2="394" y2="28" stroke="#ead8b8" strokeWidth="1" strokeDasharray="4 6" />
+              <line x1="54" y1="70" x2="394" y2="70" stroke="#ead8b8" strokeWidth="1" />
+              <line x1="54" y1="112" x2="394" y2="112" stroke="#ead8b8" strokeWidth="1" strokeDasharray="4 6" />
+              <text x="16" y="32" fill="#9b815c" fontSize="12">顺势</text>
+              <text x="16" y="74" fill="#9b815c" fontSize="12">平稳</text>
+              <text x="16" y="116" fill="#9b815c" fontSize="12">留意</text>
+              <path d={buildTrendPath(item.points)} fill="none" stroke="#b8952a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              {item.points.map((point, index) => {
+                const x = trendX(index, item.points.length)
+                const y = trendY(point.level)
+                return (
+                  <g key={`${item.key}-${point.year}`}>
+                    <circle cx={x} cy={y} r="5" fill="#fffaf0" stroke="#b8952a" strokeWidth="2" />
+                    {index === 0 || index === item.points.length - 1 ? (
+                      <text x={x} y="140" textAnchor="middle" fill="#9b815c" fontSize="11">{point.year}</text>
+                    ) : null}
+                  </g>
+                )
+              })}
+            </svg>
+            <p style={{
+              margin: '2px 0 0',
+              color: '#5a3a1a',
+              fontSize: 10,
+              lineHeight: 1.6,
+              fontFamily: '"Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif',
+            }}>
+              {buildTrendNote(item)}
+            </p>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginTop: 8, fontSize: 10, color: '#888', textAlign: 'center', fontStyle: 'italic' }}>
+        趋势根据当前大运内流年十神信号整理，仅作节奏参考，不重新计算命盘算法。
+      </div>
+    </div>
+  )
+}
+
 export default function PrintLayout({
   birthYear, birthMonth, birthDay, birthHour, gender,
   mingGe, mingGeDesc, pillars, dayun, structured, shenshaMap,
@@ -108,6 +202,9 @@ export default function PrintLayout({
   polishedUserSituation,
   brand,
   pastEventsExportSegments = [],
+  dayunTrendSeries = [],
+  dayunTrendLabel,
+  dayunTrendPeriod,
 }: PrintLayoutProps) {
   const chapters = structured?.chapters ?? []
   const analysis = structured?.analysis ?? null
@@ -678,6 +775,8 @@ export default function PrintLayout({
           </tbody>
         </table>
       </div>
+
+      <DayunTrendPrintSection series={dayunTrendSeries} label={dayunTrendLabel} period={dayunTrendPeriod} />
 
       {pastEventsExportSegments.length > 0 && (
         <PastEventsPrintSection segments={pastEventsExportSegments} compact />

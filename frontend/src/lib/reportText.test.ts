@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanReportText, splitParagraphs } from './reportText'
+import { cleanLegacyReportContent, cleanReportText, hasMeaningfulReportContent, splitParagraphs } from './reportText'
 
 describe('cleanReportText', () => {
   it('空值返回空串', () => {
@@ -37,5 +37,22 @@ describe('splitParagraphs', () => {
   it('空值返回空数组', () => {
     expect(splitParagraphs(undefined)).toEqual([])
     expect(splitParagraphs('')).toEqual([])
+  })
+})
+
+describe('cleanLegacyReportContent', () => {
+  it('过滤旧报告里的分隔线与免责声明', () => {
+    expect(cleanLegacyReportContent('正文\n\n---\n*本报告由 AI 辅助生成，内容仅供参考，不构成任何决策建议。*')).toBe('正文')
+  })
+
+  it('只剩分隔线和免责声明时视为无正文', () => {
+    const content = '---\n*本报告由 AI 辅助生成，内容仅供参考，不构成任何决策建议。*'
+
+    expect(cleanLegacyReportContent(content)).toBe('')
+    expect(hasMeaningfulReportContent(content)).toBe(false)
+  })
+
+  it('只剩章节标题时视为无正文', () => {
+    expect(hasMeaningfulReportContent('【命局概要】\n\n---')).toBe(false)
   })
 })

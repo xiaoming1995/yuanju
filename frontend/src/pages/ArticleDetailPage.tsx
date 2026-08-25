@@ -34,7 +34,7 @@ export default function ArticleDetailPage() {
 
   useEffect(() => {
     if (!user || !id) return
-    setModuleClosed(false)
+    queueMicrotask(() => setModuleClosed(false))
     articleAPI.detail(id)
       .then(res => setArticle(res.data.article))
       .catch(err => {

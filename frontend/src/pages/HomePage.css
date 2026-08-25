@@ -1,7 +1,7 @@
-.home-page { padding-bottom: 80px; }
+.home-page { padding-bottom: 88px; }
 
 /* Hero */
-.hero { padding: 60px 0 40px; text-align: center; }
+.hero { padding: 54px 0 34px; text-align: center; }
 
 .hero-badge {
   display: inline-block;
@@ -9,9 +9,10 @@
   color: var(--text-accent);
   letter-spacing: 3px;
   margin-bottom: 20px;
-  padding: 6px 18px;
-  border: 1px solid var(--border-accent);
+  padding: 6px 16px;
+  border: 0;
   border-radius: var(--radius-full);
+  background: rgba(201, 168, 76, 0.1);
 }
 
 .hero-title {
@@ -35,21 +36,21 @@
 .home-intent-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  max-width: 520px;
+  gap: 8px;
+  max-width: 500px;
   margin: 24px auto 0;
 }
 
 .home-intent-card {
-  min-height: 48px;
+  min-height: 46px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-subtle);
+  padding: 0 12px;
+  border: 0;
   border-radius: var(--radius-md);
-  background: var(--bg-elevated);
+  background: rgba(255, 255, 255, 0.065);
   color: var(--text-primary);
   text-decoration: none;
   font-size: 13px;
@@ -57,16 +58,32 @@
 }
 
 .home-intent-card:hover {
-  border-color: var(--border-accent);
+  background: rgba(201, 168, 76, 0.12);
   color: var(--text-accent);
 }
 
 /* 表单卡片 */
-.form-section { padding: 20px 0 60px; }
+.form-section { padding: 16px 0 58px; }
 
-.form-card { max-width: 560px; margin: 0 auto; }
+.form-card {
+  max-width: 560px;
+  margin: 0 auto;
+}
 
-.form-card-header { margin-bottom: 28px; }
+.form-card.card {
+  padding: 26px 26px 28px;
+  background: rgba(23, 29, 43, 0.72);
+  border-color: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+
+.form-card.card:hover {
+  background: rgba(23, 29, 43, 0.76);
+  border-color: rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+.form-card-header { margin-bottom: 24px; }
 
 .form-card-title {
   font-size: 20px;
@@ -79,8 +96,24 @@
   color: var(--text-secondary);
 }
 
+#bazi-form > .birth-profile-form {
+  margin-bottom: 24px;
+}
+
+#bazi-form > .form-group {
+  gap: 10px;
+}
+
+#bazi-form > .form-group .form-label {
+  line-height: 1.35;
+}
+
+#bazi-form > .form-group .field-note {
+  margin-top: 6px;
+}
+
 .advanced-calibration {
-  margin-top: 18px;
+  margin-top: 22px;
 }
 
 .advanced-calibration-toggle {
@@ -90,9 +123,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 14px;
-  background: transparent;
-  border: 1px solid var(--border-default);
+  padding: 0 14px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 0;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-family: var(--font-sans);
@@ -103,15 +136,14 @@
 
 .advanced-calibration-toggle:hover {
   color: var(--text-primary);
-  border-color: var(--border-accent);
-  background: var(--bg-elevated);
+  background: rgba(255, 255, 255, 0.085);
 }
 
 .advanced-calibration-panel {
   margin-top: 12px;
   padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.045);
+  border: 0;
   border-radius: var(--radius-md);
 }
 
@@ -127,7 +159,8 @@
 /* 提交按钮 */
 .submit-btn {
   width: 100%;
-  margin-top: 28px;
+  min-height: 50px;
+  margin-top: 24px;
   position: relative;
 }
 
@@ -162,12 +195,12 @@
 .features-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: 14px;
   max-width: 800px;
   margin: 0 auto;
 }
 
-.feature-card { text-align: center; padding: 32px 24px; }
+.feature-card { text-align: center; padding: 26px 22px; }
 
 .feature-icon {
   font-size: 32px;
@@ -234,16 +267,16 @@
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
-  border: 1px solid var(--border-default, #333);
-  border-radius: 8px;
-  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.055);
   cursor: pointer;
   text-align: left;
   color: inherit;
 }
 
 .candidate-item:hover {
-  border-color: var(--border-accent, #c9a45b);
+  background: rgba(201, 168, 76, 0.1);
 }
 
 .candidate-item:disabled {
@@ -281,7 +314,9 @@
     margin-top: 14px;
   }
   .form-section { padding: 8px 0 36px; }
-  .form-card-header { margin-bottom: 22px; }
+  .form-card.card { padding: 22px 18px 24px; }
+  .form-card-header { margin-bottom: 20px; }
+  #bazi-form > .birth-profile-form { margin-bottom: 22px; }
   .submit-btn { margin-top: 22px; min-height: 52px; }
   .guest-hint { padding-bottom: 8px; }
 }

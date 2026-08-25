@@ -4,7 +4,7 @@ import { Diamond, X, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI, baziAPI, brandAPI, fetchShenshaAnnotations } from '../lib/api'
 import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, ExportBrand, CalculateInput } from '../lib/api'
-import { cleanReportText } from '../lib/reportText'
+import { cleanLegacyReportContent, cleanReportText, hasMeaningfulReportContent, splitParagraphs } from '../lib/reportText'
 import { buildAuthPath } from '../lib/authRedirect'
 import { createPendingBaziJourney, savePendingJourney } from '../lib/pendingJourney'
 import { buildBaziResultRoute } from '../lib/resultRoute'
@@ -20,6 +20,7 @@ import GongJiaPanel, { type GongJiaItem } from '../components/GongJiaPanel'
 import { SegmentedTabs } from '../components/ui/SegmentedTabs'
 import { useToast } from '../components/ui/useToast'
 import { filterPastEventsExportSegments, type PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
+import { buildDayunTrendSeries, buildTrendNote, buildTrendPath, trendX, trendY } from '../lib/dayunTrend'
 import './ResultPage.css'
 
 // 特性开关 (Feature Flags)
@@ -343,6 +344,102 @@ function buildTenGodRelationMatrix(result: BaziResult): TenGodRelationMatrix {
   }
 }
 
+type ReadingMode = 'simple' | 'professional'
+type DayunPeriod = BaziResult['dayun'][number]
+
+const WUXING_LABELS: Record<keyof BaziResult['wuxing'], string> = {
+  mu: '木',
+  huo: '火',
+  tu: '土',
+  jin: '金',
+  shui: '水',
+}
+
+const WUXING_KEYS = ['mu', 'huo', 'tu', 'jin', 'shui'] as const
+
+function scrollToResultSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function getCurrentDayun(dayun: DayunPeriod[] = []) {
+  const currentYear = new Date().getFullYear()
+  return dayun.find(item => currentYear >= item.start_year && currentYear <= item.end_year) || dayun[0] || null
+}
+
+function getCurrentDayunIndex(dayun: DayunPeriod[] = []) {
+  const currentYear = new Date().getFullYear()
+  const current = dayun.find(item => currentYear >= item.start_year && currentYear <= item.end_year)
+  return current?.index ?? dayun[0]?.index ?? null
+}
+
+function getWuxingExtremes(wuxing: BaziResult['wuxing']) {
+  const items = WUXING_KEYS
+    .map((key) => ({ key, label: WUXING_LABELS[key], value: Number(wuxing[key] ?? 0) }))
+    .sort((a, b) => b.value - a.value)
+  return {
+    strongest: items[0],
+    weakest: items[items.length - 1],
+  }
+}
+
+function buildChartKeywords(result: BaziResult, relation: TenGodRelationMatrix) {
+  const groups = relation.heavenly_stems
+    .map(item => item.group_label)
+    .filter((label): label is string => Boolean(label))
+  const uniqueGroups = Array.from(new Set(groups)).slice(0, 2)
+  return [
+    result.ming_ge,
+    result.yongshen ? `喜${result.yongshen}` : '',
+    result.jishen ? `忌${result.jishen}` : '',
+    ...uniqueGroups,
+  ].filter(Boolean).slice(0, 5)
+}
+
+function buildChartVerdict(result: BaziResult, relation: TenGodRelationMatrix) {
+  const dayMaster = relation.day_master.label || `${result.day_gan}${result.day_gan_wuxing || ''}`
+  const yongshenText = result.yongshen
+    ? `喜用${result.yongshen}${result.jishen ? `，忌${result.jishen}` : ''}`
+    : '喜忌待结合解读确认'
+  const minggeText = result.ming_ge ? `，格局线索为「${result.ming_ge}」` : ''
+  return `日主${dayMaster}为命局参照，${yongshenText}${minggeText}。建议先看当前大运与用神依据，再进入专业命盘和完整命理解读。`
+}
+
+function buildYongshenEvidence(result: BaziResult, relation: TenGodRelationMatrix) {
+  const { strongest, weakest } = getWuxingExtremes(result.wuxing)
+  const tenGodGroups = Array.from(new Set(
+    relation.heavenly_stems
+      .map(item => item.group_label)
+      .filter((label): label is string => Boolean(label)),
+  ))
+  const tiaohouExpected = result.tiaohou?.expected?.filter(Boolean) || []
+  const tiaohouHit = [...(result.tiaohou?.tou || []), ...(result.tiaohou?.cang || [])].filter(Boolean)
+
+  return [
+    {
+      title: '日主与月令',
+      detail: `以${result.day_gan}${result.day_zhi}日柱为参照，结合${result.month_zhi}月令判断命局底色。`,
+    },
+    {
+      title: '五行分布',
+      detail: strongest && weakest
+        ? `${strongest.label}相对更显，${weakest.label}相对不足，用神展示用于帮助观察命局平衡。`
+        : '结合五行分布观察命局偏性与补益方向。',
+    },
+    {
+      title: '调候线索',
+      detail: tiaohouExpected.length > 0
+        ? `调候优先参考${tiaohouExpected.join('、')}${tiaohouHit.length ? `，命盘中可见${tiaohouHit.join('、')}` : '，命盘显现程度需结合藏干与透干观察'}。`
+        : '当前命盘未展示明确调候命中项，优先结合五行与十神结构阅读。',
+    },
+    {
+      title: '十神结构',
+      detail: tenGodGroups.length > 0
+        ? `天干关系中可见${tenGodGroups.join('、')}等线索，专业模式可继续查看每柱关系。`
+        : '专业模式可查看天干与藏干相对日主的十神关系。',
+    },
+  ]
+}
+
 
 export default function ResultPage() {
   const location = useLocation()
@@ -357,6 +454,8 @@ export default function ResultPage() {
   const [registration_enabled, setRegistrationEnabled] = useState(false)
   const [loading, setLoading] = useState(!result && !!id)
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('detail')
+  const [readingMode, setReadingMode] = useState<ReadingMode>('simple')
+  const [trendDayunIndex, setTrendDayunIndex] = useState<number | null>(null)
   const [reportTab, setReportTab] = useState<'original' | 'polished'>('original')
   const reportTabRowRef = useRef<HTMLDivElement | null>(null)
 
@@ -379,6 +478,10 @@ export default function ResultPage() {
   const pendingInput = location.state?.input as CalculateInput | undefined
   // 页面当前命盘 id：历史 URL、起盘 state 都会汇入这里。
   const targetId = id || location.state?.chartId
+
+  useEffect(() => {
+    setTrendDayunIndex(null)
+  }, [targetId, result?.birth_year, result?.birth_month, result?.birth_day, result?.birth_hour, result?.gender])
 
   // 神煞注解状态
   const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
@@ -421,6 +524,10 @@ export default function ResultPage() {
 
   const handleSaveImage = async () => {
     if (!shareCardRef.current) return
+    if (!report?.content_structured && !hasMeaningfulReportContent(report?.content)) {
+      showToast('当前报告没有可保存的正文，请先重新生成命理解读', 'error')
+      return
+    }
     setSavingImage(true)
 
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
@@ -526,6 +633,10 @@ export default function ResultPage() {
     }
     if (reportTab !== 'polished' && !report) {
       showToast('请先生成命理解读，再导出 PDF 报告', 'error')
+      return
+    }
+    if (reportTab !== 'polished' && !report?.content_structured && !hasMeaningfulReportContent(report?.content)) {
+      showToast('当前报告没有可导出的正文，请先重新生成命理解读', 'error')
       return
     }
     setExportingPDF(true)
@@ -782,18 +893,47 @@ export default function ResultPage() {
   const hiddenStemGroups = relation.hidden_stems.filter(group => group.items.length > 0)
   const dayPillarCellClass = (index: number) => index === 2 ? ' is-day-pillar-cell' : ''
   const dayunPillarsLabel = `${result.year_gan}${result.year_zhi} ${result.month_gan}${result.month_zhi} ${result.day_gan}${result.day_zhi} ${result.hour_gan}${result.hour_zhi}`
+  const currentYear = new Date().getFullYear()
+  const currentDayun = getCurrentDayun(result.dayun)
+  const currentLiuNian = currentDayun?.liu_nian?.find(item => item.year === currentYear)
+  const currentDayunIndex = getCurrentDayunIndex(result.dayun)
+  const selectedDayunIndex = trendDayunIndex ?? currentDayunIndex
+  const selectedDayun = result.dayun.find(item => item.index === selectedDayunIndex) || currentDayun || result.dayun[0] || null
+  const selectedDayunTrendSeries = buildDayunTrendSeries(selectedDayun, result.gender)
+  const isSelectedCurrentDayun = Boolean(selectedDayun && currentDayun && selectedDayun.index === currentDayun.index)
+  const selectedDayunTitle = selectedDayun ? `${selectedDayun.gan}${selectedDayun.zhi}大运` : '大运趋势'
+  const selectedDayunPeriod = selectedDayun
+    ? `${selectedDayun.start_age} - ${selectedDayun.start_age + 9} 岁 · 公历 ${selectedDayun.start_year} - ${selectedDayun.end_year}`
+    : ''
+  const chartKeywords = buildChartKeywords(result, relation)
+  const chartVerdict = buildChartVerdict(result, relation)
+  const yongshenEvidence = buildYongshenEvidence(result, relation)
+  const resultQuickSummary = result.yongshen || result.jishen
+    ? `日主${result.day_gan}${result.day_zhi}为命局参照，喜用${result.yongshen || '待生成'}${result.jishen ? `，忌${result.jishen}` : ''}。先确认四柱主盘与命局结构，再阅读命理解读和大运走势。`
+    : `日主${result.day_gan}${result.day_zhi}为命局参照。先确认四柱主盘，再查看五行结构、大运走势与命理解读。`
 
   const structured = report?.content_structured ?? null
   const reportDigestItems = structured ? buildReportDigestItems(structured, result) : []
   // 旧报告降级：解析纯文字 content
+  const legacyReportContent = structured ? '' : cleanLegacyReportContent(report?.content || '')
   const reportSections = structured ? [] : parseReport(report?.content || '')
-  const resultSegments = [
-    { id: 'result-section-overview', label: '总览' },
-    { id: 'result-section-chart', label: '命盘' },
-    { id: 'result-section-yongshen', label: '用神' },
-    { id: 'result-section-dayun', label: '大运' },
-    { id: 'result-section-ai', label: 'AI 解读' },
-  ]
+  const hasLegacyReportContent = hasMeaningfulReportContent(legacyReportContent)
+  const hasRenderableOriginalReport = Boolean(structured || reportSections.length > 0 || hasLegacyReportContent)
+  const canExportActiveReport = reportTab === 'polished' ? Boolean(polishedReport) : hasRenderableOriginalReport
+  const resultSegments = readingMode === 'professional'
+    ? [
+      { id: 'result-section-overview', label: '总览' },
+      { id: 'result-section-chart', label: '命盘' },
+      { id: 'result-section-yongshen', label: '用神' },
+      { id: 'result-section-dayun', label: '大运' },
+      { id: 'result-section-ai', label: 'AI 解读' },
+    ]
+    : [
+      { id: 'result-section-overview', label: '总览' },
+      { id: 'result-section-current', label: '当前阶段' },
+      { id: 'result-section-trend', label: '趋势' },
+      { id: 'result-section-ai', label: 'AI 解读' },
+    ]
 
   return (
     <>
@@ -826,7 +966,26 @@ export default function ResultPage() {
                 </span>
               )}
             </div>
+            <p className="result-quick-summary">{resultQuickSummary}</p>
           </div>
+
+          <div className="result-reading-mode" aria-label="原局阅读模式">
+            <button
+              type="button"
+              className={readingMode === 'simple' ? 'is-active' : ''}
+              onClick={() => setReadingMode('simple')}
+            >
+              小白模式
+            </button>
+            <button
+              type="button"
+              className={readingMode === 'professional' ? 'is-active' : ''}
+              onClick={() => setReadingMode('professional')}
+            >
+              专业模式
+            </button>
+          </div>
+
           {targetId && !isGuest && (
             <div className="chart-archive-tools">
               <div className="chart-archive-name">
@@ -854,12 +1013,190 @@ export default function ResultPage() {
               </div>
             </div>
           )}
+
+          <div className="result-product-overview">
+            <article className="result-verdict-card">
+              <div className="result-product-card-head">
+                <div>
+                  <span className="result-product-kicker">命盘总评</span>
+                  <h2 className="serif">先看结论</h2>
+                </div>
+                {result.yongshen && <span className="result-product-pill">喜用：{result.yongshen}</span>}
+              </div>
+              <p>{chartVerdict}</p>
+              {chartKeywords.length > 0 && (
+                <div className="result-keyword-row">
+                  {chartKeywords.map(keyword => (
+                    <span key={keyword}>{keyword}</span>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                className="result-inline-link"
+                onClick={() => readingMode === 'professional' ? scrollToResultSection('result-section-yongshen') : scrollToResultSection('result-section-evidence')}
+              >
+                查看判断依据
+              </button>
+            </article>
+
+            <article id="result-section-current" className="result-current-card">
+              <div className="result-product-card-head">
+                <div>
+                  <span className="result-product-kicker">当前阶段</span>
+                  <h2 className="serif">{currentDayun ? `${currentDayun.gan}${currentDayun.zhi}大运` : '大运待确认'}</h2>
+                </div>
+                <span className="result-product-pill">当前</span>
+              </div>
+              {currentDayun ? (
+                <>
+                  <p>
+                    {currentDayun.start_age} - {currentDayun.start_age + 9} 岁 · 公历 {currentDayun.start_year} - {currentDayun.end_year}
+                  </p>
+                  <div className="result-current-year">
+                    <span>{currentYear} 年</span>
+                    <strong>{currentLiuNian?.gan_zhi || '流年待排'}</strong>
+                    <em>{currentLiuNian ? `${currentLiuNian.gan_shishen} / ${currentLiuNian.zhi_shishen}` : '进入大运区查看逐年走势'}</em>
+                  </div>
+                </>
+              ) : (
+                <p>当前命盘暂未返回大运数据，可先阅读命盘结构与 AI 解读。</p>
+              )}
+              <button
+                type="button"
+                className="result-inline-link"
+                onClick={() => targetId && !isGuest ? navigate(`/bazi/${targetId}/past-events`) : scrollToResultSection('result-section-ai')}
+              >
+                {targetId && !isGuest ? '查看过往年运回看' : '登录后查看年运回看'}
+              </button>
+            </article>
+          </div>
+
+          {selectedDayun && selectedDayunTrendSeries.length > 0 && (
+            <section id="result-section-trend" className="result-trend-panel" aria-labelledby="result-trend-title">
+              <div className="result-section-heading">
+                <div>
+                  <span className="result-section-kicker">趋势图</span>
+                  <h2 id="result-trend-title" className="section-title serif">大运十年趋势</h2>
+                </div>
+                <p>
+                  {selectedDayunTitle} · {selectedDayunPeriod}
+                </p>
+              </div>
+
+              <div className="result-trend-dayun-switcher" aria-label="切换大运趋势">
+                {result.dayun.map(item => {
+                  const isCurrent = currentDayun?.index === item.index
+                  const isActive = selectedDayun.index === item.index
+                  return (
+                    <button
+                      key={item.index}
+                      type="button"
+                      className={isActive ? 'is-active' : ''}
+                      onClick={() => setTrendDayunIndex(item.index)}
+                    >
+                      <strong>{item.gan}{item.zhi}</strong>
+                      <span>{item.start_age}-{item.start_age + 9}岁</span>
+                      {isCurrent && <em>当前</em>}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="result-trend-legend" aria-label="趋势等级">
+                <span><i className="result-trend-dot result-trend-dot--good" />顺势</span>
+                <span><i className="result-trend-dot result-trend-dot--flat" />平稳</span>
+                <span><i className="result-trend-dot result-trend-dot--watch" />留意</span>
+              </div>
+
+              <div className="result-trend-grid">
+                {selectedDayunTrendSeries.map(series => (
+                  <article key={series.key} className={`result-trend-card result-trend-card--${series.key}`}>
+                    <div className="result-trend-card-head">
+                      <h3><span />{series.title}</h3>
+                      <em>{series.summary}</em>
+                    </div>
+                    <svg className="result-trend-chart" viewBox="0 0 420 150" role="img" aria-label={`${series.title}十年趋势点线图`}>
+                      <line className="result-trend-grid-line" x1="54" y1="28" x2="394" y2="28" />
+                      <line className="result-trend-grid-line" x1="54" y1="70" x2="394" y2="70" />
+                      <line className="result-trend-grid-line" x1="54" y1="112" x2="394" y2="112" />
+                      <text className="result-trend-axis-label" x="16" y="32">顺势</text>
+                      <text className="result-trend-axis-label" x="16" y="74">平稳</text>
+                      <text className="result-trend-axis-label" x="16" y="116">留意</text>
+                      <path className="result-trend-path" d={buildTrendPath(series.points)} />
+                      {series.points.map((point, index) => {
+                        const x = trendX(index, series.points.length)
+                        const y = trendY(point.level)
+                        const isCurrent = isSelectedCurrentDayun && point.year === currentYear
+                        return (
+                          <g key={`${series.key}-${point.year}`} className={isCurrent ? 'is-current' : ''}>
+                            {isCurrent && <circle className="result-trend-focus-ring" cx={x} cy={y} r="13" />}
+                            <circle
+                              className={`result-trend-point result-trend-point--level-${point.level}`}
+                              cx={x}
+                              cy={y}
+                              r="5.5"
+                            />
+                            <title>{point.year}年 · {point.ganZhi} · {point.label}：{point.detail}</title>
+                          </g>
+                        )
+                      })}
+                      {series.points.length > 0 && (
+                        <>
+                          <text className="result-trend-year-label" x={trendX(0, series.points.length)} y="140" textAnchor="middle">
+                            {series.points[0].year}
+                          </text>
+                          <text className="result-trend-year-label" x={trendX(Math.floor((series.points.length - 1) / 2), series.points.length)} y="140" textAnchor="middle">
+                            {series.points[Math.floor((series.points.length - 1) / 2)].year}
+                          </text>
+                          <text className="result-trend-year-label" x={trendX(series.points.length - 1, series.points.length)} y="140" textAnchor="middle">
+                            {series.points[series.points.length - 1].year}
+                          </text>
+                        </>
+                      )}
+                    </svg>
+                    <p>{buildTrendNote(series)}</p>
+                  </article>
+                ))}
+              </div>
+
+              <p className="result-trend-note">
+                试用版基于当前大运流年十神做轻量归类，不使用分数或百分比；完整判断仍以 AI 解读与专业命盘为准。
+              </p>
+            </section>
+          )}
+
+          {readingMode === 'simple' && (
+            <section id="result-section-evidence" className="result-evidence-panel" aria-labelledby="simple-evidence-title">
+              <div className="result-section-heading">
+                <span className="result-section-kicker">判断依据</span>
+                <h2 id="simple-evidence-title" className="section-title serif">为什么这样看</h2>
+                <p>这里不重新计算算法，只把现有命盘数据整理成更容易理解的依据链。</p>
+              </div>
+              <div className="result-evidence-grid">
+                {yongshenEvidence.map((item, index) => (
+                  <article key={item.title} className="result-evidence-item">
+                    <span>{index + 1}</span>
+                    <div>
+                      <h3>{item.title}</h3>
+                      <p>{item.detail}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <button type="button" className="result-professional-cta" onClick={() => setReadingMode('professional')}>
+                展开专业命盘
+              </button>
+            </section>
+          )}
+
           <div className="result-segment-nav">
             <SegmentedTabs items={resultSegments} ariaLabel="结果页分段导航" />
           </div>
         </section>
 
         {/* 命盘详情 */}
+        {readingMode === 'professional' && (
         <section id="result-section-chart" className="professional-view animate-fade-up">
 
             {/* 四柱数据网格 (Professional Data Grid) */}
@@ -1111,6 +1448,7 @@ export default function ResultPage() {
               )}
             </section>
           </section>
+        )}
 
         {/* AI 解读区域 */}
         <section id="result-section-ai" className="report-section card animate-fade-up">
@@ -1123,7 +1461,7 @@ export default function ResultPage() {
                     id="save-card-btn"
                     className="btn btn-ghost btn-sm"
                     onClick={handleSaveImage}
-                    disabled={savingImage}
+                    disabled={savingImage || !hasRenderableOriginalReport}
                   >
                     {savingImage ? '生成中...' : '保存分享图'}
                   </button>
@@ -1131,7 +1469,7 @@ export default function ResultPage() {
                     id="export-report-btn"
                     className="btn btn-ghost btn-sm"
                     onClick={handleExportPDF}
-                    disabled={exportingPDF}
+                    disabled={exportingPDF || !canExportActiveReport}
                   >
                     {exportingPDF ? '生成中...' : (reportTab === 'polished' && polishedReport ? '导出润色版 PDF' : '导出 PDF')}
                   </button>
@@ -1247,15 +1585,34 @@ export default function ResultPage() {
                 reportSections.length > 0 ? reportSections.map((sec, i) => (
                   <div key={i} className="report-block">
                     <h3 className="report-block-title serif">{sec.title}</h3>
-                    <p className="report-block-content">{cleanReportText(sec.content)}</p>
+                    <div className="report-block-content">
+                      {splitParagraphs(sec.content).map((para, idx) => <p key={idx}>{para}</p>)}
+                    </div>
                   </div>
-                )) : (
-                  <div className="report-content">{cleanReportText(report.content)}</div>
+                )) : hasLegacyReportContent ? (
+                  <div className="report-content">
+                    {splitParagraphs(legacyReportContent).map((para, idx) => <p key={idx}>{para}</p>)}
+                  </div>
+                ) : (
+                  <div className="report-empty-state">
+                    <strong>当前历史记录没有可展示的命理解读</strong>
+                    <p>这条报告只保存了分隔线或免责声明，建议重新生成一版完整解读。</p>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={handleGenerateReport}
+                      disabled={reportLoading || isStreaming || isThinking}
+                    >
+                      重新生成命理解读
+                    </button>
+                  </div>
                 )
               )}
-              <p className="report-disclaimer">
-                本报告内容仅供参考，不构成任何决策建议。
-              </p>
+              {(structured || reportSections.length > 0 || hasLegacyReportContent) && (
+                <p className="report-disclaimer">
+                  本报告内容仅供参考，不构成任何决策建议。
+                </p>
+              )}
             </div>
           )}
 
@@ -1384,7 +1741,7 @@ export default function ResultPage() {
               <button
                 className="btn btn-ghost"
                 onClick={handleExportPDF}
-                disabled={exportingPDF}
+                disabled={exportingPDF || !canExportActiveReport}
               >
                 {exportingPDF ? '生成中...' : '导出 PDF'}
               </button>
@@ -1413,6 +1770,9 @@ export default function ResultPage() {
           structured={report?.content_structured ?? null}
           brand={brand}
           pastEventsExportSegments={pastEventsExportSegments}
+          dayunTrendSeries={selectedDayunTrendSeries}
+          dayunTrendLabel={selectedDayunTitle}
+          dayunTrendPeriod={selectedDayunPeriod}
         />
       </div>
 
@@ -1512,6 +1872,9 @@ export default function ResultPage() {
             polishedUserSituation={isPolishedExport ? polishedReport.user_situation : undefined}
             brand={brand}
             pastEventsExportSegments={pastEventsExportSegments}
+            dayunTrendSeries={selectedDayunTrendSeries}
+            dayunTrendLabel={selectedDayunTitle}
+            dayunTrendPeriod={selectedDayunPeriod}
           />
         )
       })()}
@@ -1521,9 +1884,13 @@ export default function ResultPage() {
 
 function parseReport(content: string) {
   const sections: { title: string; content: string }[] = []
-  const matches = content.matchAll(/【(.+?)】\n?([\s\S]*?)(?=【|$)/g)
+  const normalized = cleanLegacyReportContent(content)
+  const matches = normalized.matchAll(/【(.+?)】\n?([\s\S]*?)(?=【|$)/g)
   for (const m of matches) {
-    sections.push({ title: `【${m[1]}】`, content: m[2].trim() })
+    const sectionContent = cleanLegacyReportContent(m[2])
+    if (hasMeaningfulReportContent(sectionContent)) {
+      sections.push({ title: `【${m[1]}】`, content: sectionContent })
+    }
   }
   return sections
 }

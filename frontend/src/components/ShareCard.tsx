@@ -1,6 +1,8 @@
 import { forwardRef } from 'react'
 import type { StructuredReport, ExportBrand } from '../lib/api'
 import type { PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
+import type { DayunTrendSeries } from '../lib/dayunTrend'
+import { buildTrendNote } from '../lib/dayunTrend'
 import { resolveFooter, showDiagonalWatermark } from '../lib/brandText'
 
 // ── 天干地支专属 Google Fonts 子集（仅22字，< 20KB，保障截图字体渲染） ──
@@ -198,6 +200,92 @@ function PastEventsShareSection({ segments }: { segments: PastEventsExportReadyS
   )
 }
 
+function DayunTrendShareSection({
+  series,
+  label,
+  period,
+}: {
+  series: DayunTrendSeries[]
+  label?: string
+  period?: string
+}) {
+  if (!series.length) return null
+
+  return (
+    <>
+      <Divider />
+      <div style={{
+        padding: '16px 24px 14px',
+        background: '#fffaf2',
+      }}>
+        <div style={{
+          fontSize: 11,
+          color: '#a08060',
+          letterSpacing: 4,
+          textAlign: 'center',
+          fontFamily: '"Noto Serif SC", serif',
+          marginBottom: 12,
+        }}>
+          ── 大 运 趋 势 ──
+        </div>
+        {(label || period) && (
+          <div style={{
+            marginBottom: 10,
+            textAlign: 'center',
+            color: '#7a5c3a',
+            fontFamily: '"Noto Sans SC", sans-serif',
+          }}>
+            {label && <strong style={{ display: 'block', fontSize: 13 }}>{label}</strong>}
+            {period && <span style={{ display: 'block', marginTop: 2, fontSize: 10, color: '#a08060' }}>{period}</span>}
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {series.map(item => (
+            <div key={item.key} style={{
+              display: 'grid',
+              gridTemplateColumns: '48px 1fr',
+              columnGap: 10,
+              alignItems: 'start',
+              padding: '8px 10px',
+              background: '#fdf8f0',
+              borderRadius: 6,
+            }}>
+              <div style={{
+                color: '#7a5c3a',
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: '"Noto Serif SC", serif',
+                letterSpacing: 1,
+              }}>
+                {item.title}
+              </div>
+              <div style={{
+                color: '#4a3728',
+                fontSize: 10,
+                lineHeight: 1.65,
+                fontFamily: '"Noto Sans SC", "PingFang SC", sans-serif',
+              }}>
+                <span style={{ color: '#9b6b1f', fontWeight: 700 }}>{item.summary}</span>
+                <span> · {buildTrendNote(item)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p style={{
+          margin: '10px 0 0',
+          color: '#a08060',
+          fontSize: 9,
+          lineHeight: 1.6,
+          textAlign: 'center',
+          fontFamily: '"Noto Sans SC", sans-serif',
+        }}>
+          趋势根据当前大运内流年十神信号整理，仅作节奏参考。
+        </p>
+      </div>
+    </>
+  )
+}
+
 export interface ShareCardProps {
   birthYear: number
   birthMonth: number
@@ -215,6 +303,9 @@ export interface ShareCardProps {
   structured: StructuredReport | null
   brand?: ExportBrand | null
   pastEventsExportSegments?: PastEventsExportReadySegment[]
+  dayunTrendSeries?: DayunTrendSeries[]
+  dayunTrendLabel?: string
+  dayunTrendPeriod?: string
 }
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
@@ -226,6 +317,9 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
     structured,
     brand,
     pastEventsExportSegments = [],
+    dayunTrendSeries = [],
+    dayunTrendLabel,
+    dayunTrendPeriod,
   } = props
 
   const pillars = [
@@ -445,6 +539,8 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           命盘尚未生成命理解读，请先生成报告后再保存图片
         </div>
       )}
+
+      <DayunTrendShareSection series={dayunTrendSeries} label={dayunTrendLabel} period={dayunTrendPeriod} />
 
       <PastEventsShareSection segments={pastEventsExportSegments} />
 
