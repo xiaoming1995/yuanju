@@ -173,6 +173,45 @@ interface TenGodRelationMatrix {
   hidden_stems: TenGodHiddenStemGroup[]
 }
 
+interface ProfileEvidence {
+  source: string
+  label: string
+  impact: string
+  delta: number
+  detail: string
+}
+
+interface VehicleProfile {
+  grade: string
+  grade_label: string
+  score: number
+  vehicle_type: string
+  summary: string
+  tags: string[]
+  evidences: ProfileEvidence[]
+}
+
+interface RoadPhase {
+  key: string
+  label: string
+  score: number
+  summary: string
+  detail?: string
+}
+
+interface DayunRoad {
+  dayun_index: number
+  gan_zhi: string
+  score: number
+  road_type: string
+  road_label: string
+  qian_road: RoadPhase
+  hou_road: RoadPhase
+  summary: string
+  tags: string[]
+  evidences: ProfileEvidence[]
+}
+
 interface BaziResult {
   display_name?: string
   year_gan: string; year_zhi: string
@@ -234,7 +273,30 @@ interface BaziResult {
   ming_ge_desc?: string
   ten_god_relation?: TenGodRelationMatrix
   gong_jia?: GongJiaItem[]
+  vehicle_profile?: VehicleProfile
+  dayun_roadmap?: DayunRoad[]
 }
+
+const VEHICLE_GRADE_GUIDE = [
+  { grade: 'S', label: '协同型配置', summary: '优势较易整合发挥。', detail: '原局主线较清晰，优势之间更容易形成配合。' },
+  { grade: 'A', label: '稳健型配置', summary: '基础扎实，顺运时更省力。', detail: '具备稳定的发挥基础，遇到支持条件时更容易推进。' },
+  { grade: 'B', label: '实用型配置', summary: '能力稳定，适合顺势经营。', detail: '有可持续使用的长处，节奏和环境匹配时能稳步发挥。' },
+  { grade: 'C', label: '特性型配置', summary: '优势与限制都明显，更看选择。', detail: '特点鲜明，对赛道、方法和时机的匹配要求更高。' },
+  { grade: 'D', label: '调校型配置', summary: '对环境与策略更敏感。', detail: '更依赖后天调整与支持条件，适合先处理基础问题再推进。' },
+] as const
+
+const ROAD_GUIDE = [
+  { type: 'highway', label: '高速路', summary: '外部支持更集中，适合推进重点目标。' },
+  { type: 'main_road', label: '城市主路', summary: '总体较顺畅，按节奏执行更容易见效。' },
+  { type: 'mountain_road', label: '山路', summary: '有空间也有弯道，更重选择与节奏。' },
+  { type: 'muddy_road', label: '泥路', summary: '阻力较多，适合稳住、调整并减少冒进。' },
+  { type: 'construction', label: '施工路段', summary: '变化或修整较强，适合先处理基础问题。' },
+] as const
+
+const VEHICLE_GRADE_TAGS = new Set([
+  ...VEHICLE_GRADE_GUIDE.map(item => item.label),
+  '顶配', '高配', '实用', '偏科', '需调校',
+])
 
 function getShiShen(dayGan: string, targetGan: string) {
   const dayWx = GAN_WUXING[dayGan]
@@ -370,6 +432,24 @@ function getCurrentDayunIndex(dayun: DayunPeriod[] = []) {
   const currentYear = new Date().getFullYear()
   const current = dayun.find(item => currentYear >= item.start_year && currentYear <= item.end_year)
   return current?.index ?? dayun[0]?.index ?? null
+}
+
+function findDayunRoad(roadmap: DayunRoad[] | undefined, dayun: DayunPeriod | null) {
+  if (!roadmap?.length || !dayun) return null
+  return roadmap.find(item => item.dayun_index === dayun.index) ?? null
+}
+
+function formatEvidenceDelta(delta: number) {
+  if (delta > 0) return `+${delta}`
+  return String(delta)
+}
+
+function findVehicleGradeGuide(grade: string | undefined) {
+  return VEHICLE_GRADE_GUIDE.find(item => item.grade === grade)
+}
+
+function findRoadGuide(roadType: string | undefined) {
+  return ROAD_GUIDE.find(item => item.type === roadType)
 }
 
 function getWuxingExtremes(wuxing: BaziResult['wuxing']) {
@@ -919,6 +999,11 @@ export default function ResultPage() {
   const currentDayunIndex = getCurrentDayunIndex(result.dayun)
   const selectedDayunIndex = trendDayunIndex ?? currentDayunIndex
   const selectedDayun = result.dayun.find(item => item.index === selectedDayunIndex) || currentDayun || result.dayun[0] || null
+  const currentDayunRoad = findDayunRoad(result.dayun_roadmap, currentDayun)
+  const currentRoadEvidences = currentDayunRoad?.evidences ?? []
+  const vehicleGradeGuide = findVehicleGradeGuide(result.vehicle_profile?.grade)
+  const currentRoadGuide = findRoadGuide(currentDayunRoad?.road_type)
+  const vehicleProfileTags = result.vehicle_profile?.tags?.filter(tag => !VEHICLE_GRADE_TAGS.has(tag)) ?? []
   const selectedDayunTrendSeries = buildDayunTrendSeries(selectedDayun, result.gender)
   const isSelectedCurrentDayun = Boolean(selectedDayun && currentDayun && selectedDayun.index === currentDayun.index)
   const selectedDayunTitle = selectedDayun ? `${selectedDayun.gan}${selectedDayun.zhi}大运` : '大运趋势'
@@ -1078,24 +1163,115 @@ export default function ResultPage() {
               </button>
             </article>
 
+            {result.vehicle_profile && (
+              <article className="result-vehicle-card">
+                <div className="result-product-card-head">
+                  <div>
+                    <span className="result-product-kicker">命盘座驾</span>
+                    <h2 className="serif">
+                      {vehicleGradeGuide?.label || result.vehicle_profile.grade_label} · {result.vehicle_profile.vehicle_type}
+                    </h2>
+                  </div>
+                  <span className="result-product-pill">{result.vehicle_profile.grade} 级</span>
+                </div>
+                <div className="result-vehicle-meter" aria-label={`命盘座驾分 ${result.vehicle_profile.score}`}>
+                  <span style={{ width: `${Math.max(0, Math.min(100, result.vehicle_profile.score))}%` }} />
+                </div>
+                {vehicleGradeGuide && (
+                  <p className="result-profile-plain-note">配置完整度：{vehicleGradeGuide.summary}</p>
+                )}
+                <p>{result.vehicle_profile.summary}</p>
+                {vehicleProfileTags.length > 0 && (
+                  <div className="result-keyword-row">
+                    {vehicleProfileTags.map(tag => <span key={tag}>{tag}</span>)}
+                  </div>
+                )}
+                <section className="result-grade-guide" aria-labelledby="result-grade-guide-title">
+                  <div className="result-grade-guide-heading">
+                    <h3 id="result-grade-guide-title">等级说明</h3>
+                    <p>S 到 D 衡量的是命盘配置完整度与驾驭难度，不代表人生高低。</p>
+                  </div>
+                  <ul>
+                    {VEHICLE_GRADE_GUIDE.map(item => (
+                      <li key={item.grade} className={item.grade === result.vehicle_profile?.grade ? 'is-current' : ''}>
+                        <strong>{item.grade} · {item.label}</strong>
+                        <span>{item.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+                <details className="result-road-guide">
+                  <summary>大运路况说明</summary>
+                  <p>车代表命盘的基础配置与驾驭难度，路代表每十年大运带来的外部支持与阻力。车好不等于一路顺，路顺也能让普通配置发挥得更好。</p>
+                  <ul>
+                    {ROAD_GUIDE.map(item => (
+                      <li key={item.type}>
+                        <strong>{item.label}</strong>
+                        <span>{item.summary}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+                {readingMode === 'professional' && result.vehicle_profile.evidences?.length > 0 && (
+                  <details className="result-profile-evidence">
+                    <summary>查看座驾依据</summary>
+                    <ul>
+                      {result.vehicle_profile.evidences.map((item, index) => (
+                        <li key={`${item.source}-${index}`}>
+                          <strong>{item.source}</strong>
+                          <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
+                          <em>{item.detail}</em>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </article>
+            )}
+
             <article id="result-section-current" className="result-current-card">
               <div className="result-product-card-head">
                 <div>
-                  <span className="result-product-kicker">当前阶段</span>
-                  <h2 className="serif">{currentDayun ? `${currentDayun.gan}${currentDayun.zhi}大运` : '大运待确认'}</h2>
+                  <span className="result-product-kicker">{currentDayunRoad ? '当前路况' : '当前阶段'}</span>
+                  <h2 className="serif">
+                    {currentDayunRoad
+                      ? `${currentDayunRoad.gan_zhi}大运 · ${currentDayunRoad.road_label}`
+                      : currentDayun ? `${currentDayun.gan}${currentDayun.zhi}大运` : '大运待确认'}
+                  </h2>
                 </div>
                 <span className="result-product-pill">当前</span>
               </div>
               {currentDayun ? (
                 <>
-                  <p>
-                    {currentDayun.start_age} - {currentDayun.start_age + 9} 岁 · 公历 {currentDayun.start_year} - {currentDayun.end_year}
-                  </p>
+                  <p>{currentDayunRoad?.summary || `${currentDayun.start_age} - ${currentDayun.start_age + 9} 岁 · 公历 ${currentDayun.start_year} - ${currentDayun.end_year}`}</p>
+                  {currentDayunRoad && currentRoadGuide && (
+                    <p className="result-profile-plain-note"><strong>{currentRoadGuide.label}</strong>：{currentRoadGuide.summary}</p>
+                  )}
+                  {currentDayunRoad && (
+                    <div className="result-road-phase-row">
+                      <span>前五年：{currentDayunRoad.qian_road.label}</span>
+                      <span>后五年：{currentDayunRoad.hou_road.label}</span>
+                    </div>
+                  )}
                   <div className="result-current-year">
                     <span>{currentYear} 年</span>
                     <strong>{currentLiuNian?.gan_zhi || '流年待排'}</strong>
                     <em>{currentLiuNian ? `${currentLiuNian.gan_shishen} / ${currentLiuNian.zhi_shishen}` : '进入大运区查看逐年走势'}</em>
                   </div>
+                  {readingMode === 'professional' && currentRoadEvidences.length > 0 && (
+                    <details className="result-profile-evidence">
+                      <summary>查看路况依据</summary>
+                      <ul>
+                        {currentRoadEvidences.map((item, index) => (
+                          <li key={`${item.source}-${index}`}>
+                            <strong>{item.source}</strong>
+                            <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
+                            <em>{item.detail}</em>
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
                 </>
               ) : (
                 <p>当前命盘暂未返回大运数据，可先阅读命盘结构与 AI 解读。</p>
@@ -1543,6 +1719,7 @@ export default function ResultPage() {
                 jishen={result.jishen || ''}
                 wuxing={result.wuxing}
                 tiaohou={result.tiaohou ?? null}
+                dayunRoadmap={result.dayun_roadmap}
               />
               {(isGuest || targetId) && (
                 <button

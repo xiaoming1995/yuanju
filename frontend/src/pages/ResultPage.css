@@ -970,6 +970,42 @@
   font-size: 13px;
 }
 
+.dayun-road-badge {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.dayun-road-badge--highway {
+  background: rgba(83, 180, 132, 0.14);
+  color: #79d8a5;
+}
+
+.dayun-road-badge--main_road {
+  background: rgba(92, 142, 214, 0.14);
+  color: #9bb9e8;
+}
+
+.dayun-road-badge--mountain_road {
+  background: rgba(201, 168, 76, 0.14);
+  color: var(--wu-jin);
+}
+
+.dayun-road-badge--muddy_road,
+.dayun-road-badge--construction {
+  background: rgba(224, 117, 82, 0.13);
+  color: #e7a085;
+}
+
 .dayun-step-ganzhi {
   display: flex;
   gap: 2px;
@@ -1181,6 +1217,26 @@
   background: rgba(201, 168, 76, 0.06);
   font-size: 12px;
   white-space: nowrap;
+}
+
+.dayun-road-phase-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.dayun-road-phase-strip span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  background: rgba(92, 142, 214, 0.11);
+  color: #9bb9e8;
+  font-size: 12px;
+  font-weight: 650;
 }
 
 .dayun-disclaimer {
@@ -2275,6 +2331,7 @@
 }
 
 .result-verdict-card,
+.result-vehicle-card,
 .result-current-card,
 .result-evidence-panel {
   border: 1px solid var(--border-subtle);
@@ -2284,14 +2341,28 @@
 }
 
 .result-verdict-card,
+.result-vehicle-card,
 .result-current-card {
   padding: 22px;
 }
 
 .result-verdict-card {
+  order: 3;
+  grid-column: 1 / -1;
   background:
     linear-gradient(180deg, rgba(201, 168, 76, 0.075), rgba(255, 255, 255, 0.025) 58%),
     rgba(23, 29, 43, 0.86);
+}
+
+.result-vehicle-card {
+  order: 1;
+  background:
+    linear-gradient(145deg, rgba(92, 142, 214, 0.08), rgba(201, 168, 76, 0.04)),
+    rgba(23, 29, 43, 0.84);
+}
+
+.result-current-card {
+  order: 2;
 }
 
 .result-product-card-head {
@@ -2330,10 +2401,185 @@
 }
 
 .result-verdict-card p,
+.result-vehicle-card p,
 .result-current-card p {
   color: var(--text-secondary);
   font-size: 15px;
   line-height: 1.8;
+}
+
+.result-vehicle-meter {
+  position: relative;
+  height: 8px;
+  margin: 0 0 14px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.result-vehicle-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(92, 142, 214, 0.88), rgba(201, 168, 76, 0.95));
+}
+
+.result-profile-plain-note {
+  margin: 0 0 10px;
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+}
+
+.result-profile-plain-note strong {
+  color: var(--wu-jin);
+  font-weight: 650;
+}
+
+.result-grade-guide,
+.result-road-guide {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.result-grade-guide-heading {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.result-grade-guide h3 {
+  margin: 0;
+  color: var(--wu-jin);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.result-grade-guide-heading p,
+.result-road-guide p {
+  margin: 0 !important;
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  line-height: 1.65 !important;
+}
+
+.result-grade-guide ul,
+.result-road-guide ul {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result-grade-guide li,
+.result-road-guide li {
+  display: grid;
+  gap: 3px;
+  padding: 9px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.result-grade-guide li.is-current {
+  margin: 0 -10px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  border-top-color: transparent;
+  background: rgba(201, 168, 76, 0.09);
+}
+
+.result-grade-guide li strong,
+.result-road-guide li strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.result-grade-guide li.is-current strong {
+  color: var(--wu-jin);
+}
+
+.result-grade-guide li span,
+.result-road-guide li span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.result-road-guide summary {
+  width: fit-content;
+  color: var(--wu-jin);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.result-road-guide p {
+  margin-top: 12px !important;
+}
+
+.result-road-guide ul {
+  margin-top: 12px;
+}
+
+.result-road-phase-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.result-road-phase-row span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  background: rgba(92, 142, 214, 0.12);
+  color: #9bb9e8;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.result-profile-evidence {
+  margin-top: 16px;
+  color: var(--text-secondary);
+}
+
+.result-profile-evidence summary {
+  width: fit-content;
+  color: var(--wu-jin);
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.result-profile-evidence ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.result-profile-evidence li {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.result-profile-evidence li strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.result-profile-evidence li span,
+.result-profile-evidence li em {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.6;
 }
 
 .result-keyword-row {
@@ -3297,6 +3543,7 @@
   }
 
   .result-verdict-card,
+  .result-vehicle-card,
   .result-current-card,
   .result-trend-panel,
   .result-evidence-panel {

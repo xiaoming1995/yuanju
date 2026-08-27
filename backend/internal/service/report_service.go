@@ -191,6 +191,17 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 				)
 				backfilled = true
 			}
+			if cached.VehicleProfile == nil || (len(cached.Dayun) > 0 && len(cached.DayunRoadmap) == 0) {
+				vehicleProfile, dayunRoadmap := bazi.BuildVehicleRoadProfile(&cached)
+				if cached.VehicleProfile == nil {
+					cached.VehicleProfile = vehicleProfile
+					backfilled = true
+				}
+				if len(cached.Dayun) > 0 && len(cached.DayunRoadmap) == 0 {
+					cached.DayunRoadmap = dayunRoadmap
+					backfilled = true
+				}
+			}
 			// 回写升级后的 snapshot，避免下次读取再做同样的 backfill
 			if backfilled {
 				if marshalled, mErr := json.Marshal(&cached); mErr == nil {
@@ -281,6 +292,72 @@ func formatGongJiaSummary(result *bazi.BaziResult) string {
 			joinOrNone(item.ShenSha),
 		))
 	}
+	return b.String()
+}
+
+func formatVehicleRoadPromptContext(result *bazi.BaziResult, currentYear int) string {
+	if result == nil || result.VehicleProfile == nil || len(result.DayunRoadmap) == 0 {
+		return ""
+	}
+
+	join := func(items []string) string {
+		if len(items) == 0 {
+			return "无"
+		}
+		return strings.Join(items, "、")
+	}
+
+	formatEvidence := func(items []bazi.ProfileEvidence, limit int) string {
+		if len(items) == 0 {
+			return "无"
+		}
+		var parts []string
+		for i, item := range items {
+			if limit > 0 && i >= limit {
+				break
+			}
+			delta := ""
+			if item.Delta > 0 {
+				delta = fmt.Sprintf("+%d", item.Delta)
+			} else {
+				delta = fmt.Sprintf("%d", item.Delta)
+			}
+			parts = append(parts, fmt.Sprintf("%s:%s(%s)", item.Source, item.Label, delta))
+		}
+		return strings.Join(parts, "；")
+	}
+
+	currentRoad := (*bazi.DayunRoad)(nil)
+	for i := range result.DayunRoadmap {
+		road := &result.DayunRoadmap[i]
+		for _, dy := range result.Dayun {
+			if dy.Index == road.DayunIndex && currentYear >= dy.StartYear && currentYear <= dy.EndYear {
+				currentRoad = road
+				break
+			}
+		}
+		if currentRoad != nil {
+			break
+		}
+	}
+	if currentRoad == nil {
+		currentRoad = &result.DayunRoadmap[0]
+	}
+
+	var b strings.Builder
+	v := result.VehicleProfile
+	b.WriteString("\n[命盘座驾与大运路况-算法精算]\n")
+	b.WriteString("以下为后端算法已计算的比喻化解释层，你只能解释其含义，不得重新打分、改判等级或输出相互矛盾的座驾/路况结论。\n")
+	b.WriteString("座驾等级必须理解为“原局配置完整度与驾驭难度”，不是社会阶层、贵贱或确定命运。\n")
+	b.WriteString(fmt.Sprintf("命盘座驾：%s级（%s），车型=%s，分数=%d，标签=%s。\n",
+		v.Grade, v.GradeLabel, v.VehicleType, v.Score, join(v.Tags)))
+	b.WriteString(fmt.Sprintf("座驾摘要：%s\n", v.Summary))
+	b.WriteString(fmt.Sprintf("座驾依据：%s\n", formatEvidence(v.Evidences, 5)))
+	b.WriteString(fmt.Sprintf("当前路况：%s大运，%s，分数=%d，前五年=%s，后五年=%s。\n",
+		currentRoad.GanZhi, currentRoad.RoadLabel, currentRoad.Score, currentRoad.QianRoad.Label, currentRoad.HouRoad.Label))
+	b.WriteString(fmt.Sprintf("当前路况摘要：%s\n", currentRoad.Summary))
+	b.WriteString(fmt.Sprintf("当前路况依据：%s\n", formatEvidence(currentRoad.Evidences, 5)))
+	b.WriteString("表达边界：只能写“更适合主动推进、需要控速、宜稳住风险、等待顺运补足”等策略性语言，禁止写必富、必败、注定、阶层高低等绝对判断。\n")
 	return b.String()
 }
 
@@ -392,6 +469,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		dayunStr = "（暂无大运数据）\n"
 	}
 	gongJiaStr := formatGongJiaSummary(r)
+	vehicleRoadStr := formatVehicleRoadPromptContext(r, currentYear)
 
 	// ===引擎五行统计初步参考===
 	yongshenHint := ""
@@ -592,6 +670,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 			gongJiaStr,
 			dayunStr,
 		) +
+		vehicleRoadStr +
 		yongshenHint +
 		tiaohouStr +
 		minggeStr +

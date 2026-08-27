@@ -38,6 +38,26 @@ interface DayunItem {
   liu_nian: LiuNianItem[]
 }
 
+interface RoadPhase {
+  key: string
+  label: string
+  score: number
+  summary: string
+  detail?: string
+}
+
+interface DayunRoad {
+  dayun_index: number
+  gan_zhi: string
+  score: number
+  road_type: string
+  road_label: string
+  qian_road: RoadPhase
+  hou_road: RoadPhase
+  summary: string
+  tags: string[]
+}
+
 interface DayunTimelineProps {
   dayun: DayunItem[]
   birthYear: number
@@ -50,6 +70,7 @@ interface DayunTimelineProps {
   jishen?: string
   wuxing?: { mu: number; huo: number; tu: number; jin: number; shui: number }
   tiaohou?: { expected: string[]; tou: string[]; cang: string[]; text: string } | null
+  dayunRoadmap?: DayunRoad[]
 }
 
 const GAN_WUXING: Record<string, string> = {
@@ -94,7 +115,7 @@ function getGenderLabel(gender?: string) {
 
 export default function DayunTimeline({
   dayun, birthYear, startYunSolar, dayGan, gender, pillarsLabel, chartId,
-  yongshen, jishen, wuxing, tiaohou,
+  yongshen, jishen, wuxing, tiaohou, dayunRoadmap,
 }: DayunTimelineProps) {
   const currentYear = new Date().getFullYear()
   const displayDayun = dayun.slice(0, 10)
@@ -103,6 +124,8 @@ export default function DayunTimeline({
   const [activeIndex, setActiveIndex] = useState(defaultActiveIndex)
   const resolvedActiveIndex = displayDayun[activeIndex] ? activeIndex : defaultActiveIndex
   const activeDayun = displayDayun[resolvedActiveIndex]
+  const roadByDayunIndex = new Map((dayunRoadmap ?? []).map(item => [item.dayun_index, item]))
+  const activeRoad = activeDayun ? roadByDayunIndex.get(activeDayun.index) : null
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [showExpert, setShowExpert] = useState(false)
@@ -159,6 +182,7 @@ export default function DayunTimeline({
               const isCurrent = currentYear >= d.start_year && currentYear <= d.end_year
               const isActive = i === resolvedActiveIndex
               const wx = GAN_WUXING[d.gan] || 'jin'
+              const road = roadByDayunIndex.get(d.index)
               return (
                 <button
                   key={d.index}
@@ -174,6 +198,7 @@ export default function DayunTimeline({
                     <span>{d.zhi}</span>
                   </span>
                   <span className="dayun-step-ten-god">{d.gan_shishen}</span>
+                  {road && <span className={`dayun-road-badge dayun-road-badge--${road.road_type}`}>{road.road_label}</span>}
 
                   {d.shen_sha && d.shen_sha.length > 0 && (
                     <span className="dayun-shensha-list">
@@ -318,7 +343,15 @@ export default function DayunTimeline({
                   <span>十神主气：{activeDayun.gan_shishen}</span>
                   <span>五行主气：{WUXING_LABEL[GAN_WUXING[activeDayun.gan] || 'jin']}</span>
                   <span>趋势关键词：{overview.trendKeywords}</span>
+                  {activeRoad && <span>路况：{activeRoad.road_label}</span>}
+                  {activeRoad && <span>前后五年：{activeRoad.qian_road.label} / {activeRoad.hou_road.label}</span>}
                 </div>
+                {activeRoad && (
+                  <div className="dayun-road-phase-strip" aria-label="大运前后五年路况">
+                    <span>{activeRoad.qian_road.summary}</span>
+                    <span>{activeRoad.hou_road.summary}</span>
+                  </div>
+                )}
               </div>
             )
           })()}

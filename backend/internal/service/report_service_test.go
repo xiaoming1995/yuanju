@@ -464,6 +464,62 @@ func TestLoadOrCalculateResultBackfillsGongJiaSnapshot(t *testing.T) {
 	}
 }
 
+func TestLoadOrCalculateResultBackfillsVehicleRoadSnapshot(t *testing.T) {
+	cached := bazi.Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
+	cached.VehicleProfile = nil
+	cached.DayunRoadmap = nil
+	raw, err := json.Marshal(cached)
+	if err != nil {
+		t.Fatalf("marshal cached result: %v", err)
+	}
+
+	originalGet := getChartResultJSON
+	originalSave := saveChartResultJSON
+	t.Cleanup(func() {
+		getChartResultJSON = originalGet
+		saveChartResultJSON = originalSave
+	})
+
+	getChartResultJSON = func(chartID string) ([]byte, error) {
+		if chartID != "chart-vehicle-road-backfill" {
+			t.Fatalf("unexpected chart id for get: %s", chartID)
+		}
+		return raw, nil
+	}
+	var saved []byte
+	saveChartResultJSON = func(chartID string, resultJSON []byte) error {
+		if chartID != "chart-vehicle-road-backfill" {
+			t.Fatalf("unexpected chart id for save: %s", chartID)
+		}
+		saved = append([]byte(nil), resultJSON...)
+		return nil
+	}
+
+	result, err := LoadOrCalculateResult(&model.BaziChart{ID: "chart-vehicle-road-backfill"})
+	if err != nil {
+		t.Fatalf("LoadOrCalculateResult returned error: %v", err)
+	}
+	if result.VehicleProfile == nil {
+		t.Fatalf("expected result to be backfilled with vehicle_profile")
+	}
+	if len(result.DayunRoadmap) != len(result.Dayun) {
+		t.Fatalf("expected dayun_roadmap length %d, got %d", len(result.Dayun), len(result.DayunRoadmap))
+	}
+	if len(saved) == 0 {
+		t.Fatalf("expected upgraded cached snapshot to be persisted")
+	}
+	var persisted bazi.BaziResult
+	if err := json.Unmarshal(saved, &persisted); err != nil {
+		t.Fatalf("saved snapshot should be valid JSON: %v", err)
+	}
+	if persisted.VehicleProfile == nil {
+		t.Fatalf("saved snapshot should contain vehicle_profile")
+	}
+	if len(persisted.DayunRoadmap) != len(persisted.Dayun) {
+		t.Fatalf("saved snapshot should contain dayun_roadmap")
+	}
+}
+
 func TestBuildBaziPrompt_UsesSystemMingGeAsPrimarySource(t *testing.T) {
 	result := &bazi.BaziResult{
 		YearGan:         "甲",
@@ -629,6 +685,79 @@ func TestBuildBaziPrompt_ReadabilityDepthConstraints(t *testing.T) {
 	}
 	if strings.Contains(prompt, "写一段整体分析（300-500字）") {
 		t.Fatalf("prompt should no longer keep the terse 300-500 character analysis limit")
+	}
+}
+
+func TestBuildBaziPromptIncludesVehicleRoadContext(t *testing.T) {
+	result := bazi.Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
+	prompt := buildBaziPrompt(result)
+
+	for _, want := range []string{
+		"[命盘座驾与大运路况-算法精算]",
+		"命盘座驾：",
+		"座驾等级必须理解为“原局配置完整度与驾驭难度”",
+		"当前路况：",
+		"不得重新打分、改判等级",
+		"禁止写必富、必败、注定、阶层高低",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("expected prompt to contain %q", want)
+		}
+	}
+	if result.VehicleProfile == nil || result.VehicleProfile.Grade == "" {
+		t.Fatalf("test fixture should contain vehicle profile: %+v", result.VehicleProfile)
+	}
+	if !strings.Contains(prompt, result.VehicleProfile.VehicleType) {
+		t.Fatalf("expected prompt to include vehicle type %q", result.VehicleProfile.VehicleType)
+	}
+}
+
+func TestBuildBaziPromptOmitsVehicleRoadContextWhenMissing(t *testing.T) {
+	result := &bazi.BaziResult{
+		YearGan:         "甲",
+		YearZhi:         "子",
+		MonthGan:        "丙",
+		MonthZhi:        "寅",
+		DayGan:          "戊",
+		DayZhi:          "辰",
+		HourGan:         "庚",
+		HourZhi:         "午",
+		YearGanWuxing:   "木",
+		YearZhiWuxing:   "水",
+		MonthGanWuxing:  "火",
+		MonthZhiWuxing:  "木",
+		DayGanWuxing:    "土",
+		DayZhiWuxing:    "土",
+		HourGanWuxing:   "金",
+		HourZhiWuxing:   "火",
+		YearGanShiShen:  "七杀",
+		MonthGanShiShen: "偏印",
+		HourGanShiShen:  "食神",
+		YearZhiShiShen:  []string{"正财"},
+		MonthZhiShiShen: []string{"偏印"},
+		DayZhiShiShen:   []string{"比肩"},
+		HourZhiShiShen:  []string{"正印"},
+		YearDiShi:       "胎",
+		MonthDiShi:      "长生",
+		DayDiShi:        "冠带",
+		HourDiShi:       "临官",
+		YearHideGan:     []string{"癸"},
+		MonthHideGan:    []string{"甲", "丙", "戊"},
+		DayHideGan:      []string{"戊", "乙", "癸"},
+		HourHideGan:     []string{"丁", "己"},
+		Wuxing:          bazi.WuxingStats{Mu: 2, Huo: 2, Tu: 2, Jin: 1, Shui: 1},
+		Yongshen:        "火土",
+		Jishen:          "水木",
+		Gender:          "male",
+		Dayun:           []bazi.DayunItem{{Index: 1, Gan: "辛", Zhi: "卯", StartAge: 3, StartYear: 2000, EndYear: 2009, GanShiShen: "伤官", ZhiShiShen: "正官", DiShi: "沐浴"}},
+	}
+
+	prompt := buildBaziPrompt(result)
+	if strings.Contains(prompt, "[命盘座驾与大运路况-算法精算]") {
+		t.Fatalf("prompt should omit vehicle-road context when structured fields are missing")
+	}
+	if strings.Contains(prompt, "重新生成座驾") || strings.Contains(prompt, "自行判断座驾") {
+		t.Fatalf("prompt should not ask AI to invent missing vehicle-road labels")
 	}
 }
 
