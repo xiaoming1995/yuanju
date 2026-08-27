@@ -31,7 +31,10 @@ func CreateLiunianReport(chartID string, targetYear int, dayunGanzhi string, con
 		`INSERT INTO ai_liunian_reports (chart_id, target_year, dayun_ganzhi, content_structured, model)
 		 VALUES ($1, $2, $3, $4, $5)
 		 ON CONFLICT (chart_id, target_year) DO UPDATE 
-		 SET content_structured = EXCLUDED.content_structured, model = EXCLUDED.model
+		 SET dayun_ganzhi = EXCLUDED.dayun_ganzhi,
+		     content_structured = EXCLUDED.content_structured,
+		     model = EXCLUDED.model,
+		     created_at = NOW()
 		 RETURNING id, chart_id, target_year, dayun_ganzhi, content_structured, model, created_at`,
 		chartID, targetYear, dayunGanzhi, contentStructured, modelName,
 	).Scan(&report.ID, &report.ChartID, &report.TargetYear, &report.DayunGanzhi, &report.ContentStructured, &report.Model, &report.CreatedAt)

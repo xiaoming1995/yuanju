@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { AlertTriangle, X } from 'lucide-react'
+import { AlertTriangle, FileDown, ImageDown, X } from 'lucide-react'
 import { baziAPI, errorMessage } from '../lib/api'
 import type { LiuYueItem, LiuYueResponse } from '../lib/api'
+import LiunianExportLayout from './LiunianExportLayout'
 import {
   buildLiuYueTrendPath,
   buildLiuYueTrendSeries,
@@ -26,12 +27,25 @@ interface LiuNianReportContent {
   romance?: string
   health?: string
   advice?: string
+  monthly_notes?: LiuNianMonthlyNote[]
+}
+
+interface LiuNianMonthlyNote {
+  index: number
+  month_label?: string
+  liuyue_name?: string
+  gan_zhi?: string
+  summary?: string
+  career?: string
+  romance?: string
+  health?: string
 }
 
 interface LiuNianReport {
   content_structured?: LiuNianReportContent | null
   content?: string
   model?: string
+  dayun_ganzhi?: string
   created_at?: string
 }
 
@@ -75,6 +89,10 @@ function fmtMonthLabel(d: string): string {
   return `${parseInt(parts[1])}月`
 }
 
+function noteForMonth(notes: LiuNianMonthlyNote[] | undefined, item: LiuYueItem) {
+  return notes?.find(note => note.index === item.index)
+}
+
 export default function LiuYueDrawer({
   open,
   onClose,
@@ -93,11 +111,18 @@ export default function LiuYueDrawer({
 
   // 流年 AI 报告状态
   const [report, setReport] = useState<LiuNianReport | null>(null)
+  const [reportChecking, setReportChecking] = useState(false)
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState<string | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [savingImage, setSavingImage] = useState(false)
+  const [exportingPDF, setExportingPDF] = useState(false)
+  const exportImageRef = useRef<HTMLDivElement>(null)
+  const exportPdfRef = useRef<HTMLDivElement>(null)
 
   // 请求序号守卫：快速切换年份时丢弃过期响应，避免后到的旧数据覆盖新年份
   const requestSeqRef = useRef(0)
+  const reportRequestSeqRef = useRef(0)
 
   const fetchData = useCallback(async (y: number) => {
     const requestId = ++requestSeqRef.current
@@ -115,37 +140,67 @@ export default function LiuYueDrawer({
     }
   }, [dayGan])
 
-  // 每次打开或年份变化时重新请求
+  const fetchCachedReport = useCallback(async (y: number) => {
+    const requestId = ++reportRequestSeqRef.current
+    setReport(null)
+    setReportError(null)
+    setExportError(null)
+
+    if (!chartId) {
+      setReportChecking(false)
+      return
+    }
+
+    setReportChecking(true)
+    try {
+      const { data } = await baziAPI.getLiunianReport(chartId, y)
+      if (requestId !== reportRequestSeqRef.current) return
+      setReport(data.report ?? null)
+    } catch (e: unknown) {
+      if (requestId !== reportRequestSeqRef.current) return
+      setReportError(errorMessage(e, '读取已生成报告失败'))
+    } finally {
+      if (requestId === reportRequestSeqRef.current) setReportChecking(false)
+    }
+  }, [chartId])
+
   useEffect(() => {
     if (open) {
       setYear(initialYear)
-      fetchData(initialYear)
     }
-  }, [open, initialYear, fetchData])
+  }, [open, initialYear])
 
   useEffect(() => {
-    if (open) fetchData(year)
-    // 换年份时清空已有的报告
-    setReport(null)
-    setReportError(null)
+    if (!open) return
+    fetchData(year)
+    fetchCachedReport(year)
     setFocusedMonthIndex(null)
-  }, [year]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [open, year, fetchData, fetchCachedReport])
 
-  const handleGenerateReport = async () => {
+  const handleGenerateReport = async (forceRegenerate = false) => {
     if (!chartId) {
       setReportError('需登录且在专属排盘页方可生成AI报告')
       return
     }
+    const requestId = ++reportRequestSeqRef.current
     setReportLoading(true)
     setReportError(null)
+    setExportError(null)
     try {
-      const { data } = await baziAPI.generateLiunianReport(chartId, year)
+      const { data } = await baziAPI.generateLiunianReport(chartId, year, forceRegenerate)
+      if (requestId !== reportRequestSeqRef.current) return
       setReport(data.report)
     } catch (e: unknown) {
+      if (requestId !== reportRequestSeqRef.current) return
       setReportError(errorMessage(e, '生成失败'))
     } finally {
-      setReportLoading(false)
+      if (requestId === reportRequestSeqRef.current) setReportLoading(false)
     }
+  }
+
+  const handleRegenerateReport = () => {
+    const confirmed = window.confirm('重新生成会再次消耗 AI，并覆盖当前缓存报告。确认继续？')
+    if (confirmed) handleGenerateReport(true)
   }
 
   // 防止 body 滚动
@@ -163,6 +218,82 @@ export default function LiuYueDrawer({
   const trendSeries = useMemo(() => buildLiuYueTrendSeries(items, gender), [items, gender])
   const activeTrendSeries = trendSeries.find(series => series.key === activeTrendKey) ?? trendSeries[0]
   const focusedTrendPoint = activeTrendSeries?.points.find(point => point.index === focusedMonthIndex) ?? null
+  const canExportLiunian = Boolean(report?.content_structured)
+  const dayunExportLabel = report?.dayun_ganzhi ? `${report.dayun_ganzhi}大运` : undefined
+  const monthlyNotes = report?.content_structured?.monthly_notes ?? []
+
+  const waitForExportLayout = () => new Promise<void>((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+  })
+
+  const liunianFileBase = () => `缘聚流年-${year}${liuNianGanZhi || ''}`
+
+  const downloadBlob = (blob: Blob, fileName: string) => {
+    const objectUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = objectUrl
+    link.download = fileName
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 5000)
+  }
+
+  const handleSaveLiunianImage = async () => {
+    if (!exportImageRef.current || !report?.content_structured) return
+    setSavingImage(true)
+    setExportError(null)
+    try {
+      await waitForExportLayout()
+      const { toBlob } = await import('html-to-image')
+      await document.fonts.ready
+      const blob = await toBlob(exportImageRef.current, {
+        quality: 0.98,
+        pixelRatio: 2.5,
+        cacheBust: true,
+      })
+      if (!blob) throw new Error('生成图片失败')
+      downloadBlob(blob, `${liunianFileBase()}.png`)
+    } catch {
+      setExportError('生成图片失败，请稍后重试')
+    } finally {
+      setSavingImage(false)
+    }
+  }
+
+  const handleExportLiunianPDF = async () => {
+    if (!exportPdfRef.current || !report?.content_structured) return
+    setExportingPDF(true)
+    setExportError(null)
+    try {
+      await waitForExportLayout()
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
+      await document.fonts.ready
+      const pages = Array.from(exportPdfRef.current.querySelectorAll<HTMLElement>('.liunian-export-page'))
+      if (!pages.length) throw new Error('没有可导出的页面')
+
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      for (const [index, page] of pages.entries()) {
+        const canvas = await html2canvas(page, {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#fbf8ef',
+        })
+        const imgData = canvas.toDataURL('image/jpeg', 0.94)
+        if (index > 0) pdf.addPage()
+        pdf.addImage(imgData, 'JPEG', 0, 0, pageW, pageH)
+      }
+      pdf.save(`${liunianFileBase()}.pdf`)
+    } catch {
+      setExportError('生成 PDF 失败，请稍后重试')
+    } finally {
+      setExportingPDF(false)
+    }
+  }
 
   if (!open) return null
 
@@ -280,17 +411,56 @@ export default function LiuYueDrawer({
             position: 'relative',
             overflow: 'hidden'
           }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {year}年运势精批
-            </h3>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginBottom: 12,
+            }}>
+              <h3 style={{ margin: 0, fontSize: '15px', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {year}年运势精批
+              </h3>
+              {canExportLiunian && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={handleSaveLiunianImage}
+                    disabled={savingImage || exportingPDF}
+                    title="保存流年分享图"
+                    style={exportBtnStyle}
+                  >
+                    <ImageDown size={13} />
+                    {savingImage ? '生成中' : '图片'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportLiunianPDF}
+                    disabled={savingImage || exportingPDF}
+                    title="导出流年 PDF"
+                    style={exportBtnStyle}
+                  >
+                    <FileDown size={13} />
+                    {exportingPDF ? '生成中' : 'PDF'}
+                  </button>
+                </div>
+              )}
+            </div>
             
-            {!report && !reportLoading && (
+            {!report && reportChecking && !reportLoading && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '18px 0' }}>
+                <div className="spinner" style={{ width: 22, height: 22, borderColor: 'var(--color-primary) transparent var(--color-primary) transparent' }}></div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>正在读取已生成报告...</div>
+              </div>
+            )}
+
+            {!report && !reportChecking && !reportLoading && (
               <div style={{ textAlign: 'center', padding: '10px 0' }}>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 12px 0' }}>
-                  结合原局喜忌，详细推演本年运势全景
+                  首次生成后会自动保存，再次打开直接读取，不重复消耗 AI。
                 </p>
                 <button
-                  onClick={handleGenerateReport}
+                  onClick={() => handleGenerateReport()}
                   className="btn btn-primary btn-sm"
                   style={{ width: '100%' }}
                 >
@@ -312,8 +482,44 @@ export default function LiuYueDrawer({
               </div>
             )}
 
+            {exportError && (
+              <div style={{ fontSize: '12px', color: 'var(--wu-huo)', textAlign: 'right', marginBottom: '10px' }}>
+                {exportError}
+              </div>
+            )}
+
             {report && report.content_structured && (
               <div style={{ fontSize: '13.5px', lineHeight: 1.6, color: 'var(--text-primary)' }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 10,
+                  marginBottom: 14,
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  background: 'rgba(255,255,255,0.04)',
+                }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    已保存，重复打开不会再次消耗 AI
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleRegenerateReport}
+                    disabled={reportLoading || reportChecking}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: 'var(--text-accent)',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: reportLoading || reportChecking ? 'not-allowed' : 'pointer',
+                      opacity: reportLoading || reportChecking ? 0.5 : 1,
+                    }}
+                  >
+                    重新生成
+                  </button>
+                </div>
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>事业财运</div>
                   <div>{report.content_structured.career}</div>
@@ -330,6 +536,84 @@ export default function LiuYueDrawer({
                   <div style={{ fontSize: '12px', color: 'var(--color-primary)', marginBottom: '2px', fontWeight: 'bold' }}>年度锦囊</div>
                   <div style={{ fontStyle: 'italic' }}>{report.content_structured.advice}</div>
                 </div>
+
+                {monthlyNotes.length > 0 && items.length > 0 && (
+                  <div style={{ marginTop: 18 }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'baseline',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      marginBottom: 10,
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 12, color: 'var(--text-accent)', fontWeight: 700, marginBottom: 3 }}>
+                          月度重点
+                        </div>
+                        <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700 }}>
+                          十二流月注意点
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        事业 · 感情 · 健康
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {items.map(item => {
+                        const note = noteForMonth(monthlyNotes, item)
+                        if (!note) return null
+                        const isCurrent = item.index === currentIndex
+                        return (
+                          <div
+                            key={item.index}
+                            style={{
+                              borderRadius: 10,
+                              padding: '12px 13px',
+                              background: isCurrent ? 'rgba(201, 168, 76, 0.1)' : 'rgba(255,255,255,0.04)',
+                              border: `1px solid ${isCurrent ? 'rgba(201, 168, 76, 0.26)' : 'var(--border-subtle)'}`,
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 10,
+                              marginBottom: 7,
+                            }}>
+                              <strong style={{ color: 'var(--text-primary)', fontSize: 13.5 }}>
+                                {note.month_label || fmtMonthLabel(item.start_date)} · {note.liuyue_name || item.month_name} · {note.gan_zhi || item.gan_zhi}
+                              </strong>
+                              {isCurrent && (
+                                <span style={{
+                                  flex: '0 0 auto',
+                                  borderRadius: 999,
+                                  padding: '1px 7px',
+                                  background: 'rgba(201, 168, 76, 0.18)',
+                                  color: 'var(--text-accent)',
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                }}>
+                                  当前
+                                </span>
+                              )}
+                            </div>
+                            {note.summary && (
+                              <div style={{ color: 'rgba(232, 228, 216, 0.84)', fontSize: 12.5, lineHeight: 1.7, marginBottom: 8 }}>
+                                {note.summary}
+                              </div>
+                            )}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 5, color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.6 }}>
+                              {note.career && <div><span style={{ color: 'var(--text-accent)', fontWeight: 700 }}>事业：</span>{note.career}</div>}
+                              {note.romance && <div><span style={{ color: 'var(--text-accent)', fontWeight: 700 }}>感情：</span>{note.romance}</div>}
+                              {note.health && <div><span style={{ color: 'var(--text-accent)', fontWeight: 700 }}>健康：</span>{note.health}</div>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -668,6 +952,49 @@ export default function LiuYueDrawer({
         </div>
       </div>
 
+      {report?.content_structured && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            top: -12000,
+            left: -12000,
+            zIndex: -1,
+            pointerEvents: 'none',
+            opacity: 1,
+          }}
+        >
+          <div ref={exportImageRef}>
+            <LiunianExportLayout
+              variant="image"
+              year={year}
+              liuNianGanZhi={liuNianGanZhi}
+              gender={gender}
+              dayGan={dayGan}
+              dayunLabel={dayunExportLabel}
+              report={report.content_structured}
+              trendSeries={trendSeries}
+              months={items}
+              currentMonthIndex={currentIndex}
+            />
+          </div>
+          <div ref={exportPdfRef} style={{ marginTop: 40 }}>
+            <LiunianExportLayout
+              variant="pdf"
+              year={year}
+              liuNianGanZhi={liuNianGanZhi}
+              gender={gender}
+              dayGan={dayGan}
+              dayunLabel={dayunExportLabel}
+              report={report.content_structured}
+              trendSeries={trendSeries}
+              months={items}
+              currentMonthIndex={currentIndex}
+            />
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0 }
@@ -708,6 +1035,21 @@ const navBtnStyle: React.CSSProperties = {
   fontSize: 16,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   transition: 'background 0.15s',
+}
+
+const exportBtnStyle: React.CSSProperties = {
+  border: 'none',
+  borderRadius: '999px',
+  padding: '7px 10px',
+  background: 'rgba(255, 255, 255, 0.08)',
+  color: 'var(--text-secondary)',
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1,
 }
 
 function legendDotStyle(color: string): React.CSSProperties {

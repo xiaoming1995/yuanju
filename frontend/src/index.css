@@ -121,6 +121,9 @@
   /* UX foundation rhythm */
   --space-page-x: 24px;
   --space-page-y: 92px;
+  --container-max: 1120px;
+  --container-wide-max: 1280px;
+  --container-reading-max: 960px;
   --space-section: 28px;
   --space-card: 22px;
   --space-field: 12px;
@@ -166,9 +169,10 @@ body {
 
 /* ======= 布局工具 ======= */
 .container {
-  max-width: 1100px;
+  width: min(100% - (var(--space-page-x) * 2), var(--container-max));
+  max-width: var(--container-max);
   margin: 0 auto;
-  padding: 0 var(--space-page-x);
+  padding: 0;
 }
 
 .page {
@@ -409,7 +413,9 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: var(--border-accent); }
 
 @media (max-width: 768px) {
-  .container { padding: 0 16px; }
+  .container {
+    width: calc(100% - 32px);
+  }
   .card { padding: 20px; }
   .btn-lg { padding: 14px 32px; font-size: 16px; }
 }

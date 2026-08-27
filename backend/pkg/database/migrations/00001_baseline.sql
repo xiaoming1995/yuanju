@@ -158,16 +158,39 @@ INSERT INTO ai_prompts (module, content, description)
 VALUES ('liunian', $liunian_prompt$你是一个权威的八字命理大师。该用户的原局分析：
 {{.NatalAnalysisLogic}}
 
+命主信息：
+- 性别：{{.GenderLabel}}
+- 日主：{{.DayGan}}
+- 婚恋取象规则：{{.RelationshipStarRule}}
+- 性别一致性硬性约束：{{.GenderGuardRule}}
+
 目前正行【{{.CurrentDayunGanZhi}}】大运（干十神={{.CurrentDayunGanShiShen}} 支十神={{.CurrentDayunZhiShiShen}}）。
-请为他详细批断【{{.TargetYear}} {{.TargetYearGanZhi}}流年】运程（流年干十神={{.TargetYearGanShiShen}} 支十神={{.TargetYearZhiShiShen}}）。
+请为命主详细批断【{{.TargetYear}} {{.TargetYearGanZhi}}流年】运程（流年干十神={{.TargetYearGanShiShen}} 支十神={{.TargetYearZhiShiShen}}）。
+
+本年 12 个流月信息（用于生成月度注意点，请按 index 原样返回）：
+{{range .LiuYue}}- index={{.Index}} {{.MonthLabel}} {{.MonthName}} {{.GanZhi}}（{{.JieQiName}}，{{.StartDate}} 至 {{.EndDate}}，干十神={{.GanShiShen}}，支十神={{.ZhiShiShen}}）
+{{end}}
 
 要求直接输出以下JSON结构，不要包含多余Markdown标记：
 {
   "career": "事业财运分析（不少于150字）",
   "romance": "感情桃花分析（不少于150字）",
   "health": "健康风险与预警（不少于150字）",
-  "advice": "年度锦囊（一句话点睛）"
-}$liunian_prompt$, '流年运势分析（二分流年节点动态调用）')
+  "advice": "年度锦囊（一句话点睛）",
+  "monthly_notes": [
+    {
+      "index": 0,
+      "month_label": "2月",
+      "liuyue_name": "寅月",
+      "gan_zhi": "庚寅",
+      "summary": "围绕本月整体节奏写 50-80 字，说明主要机会、压力和处理原则。",
+      "career": "事业财运注意点，20-40字。",
+      "romance": "感情桃花注意点，20-40字。",
+      "health": "健康风险注意点，20-40字。"
+    }
+  ]
+}
+monthly_notes 必须包含 12 条，index 从 0 到 11，与上方流月信息一一对应；month_label、liuyue_name、gan_zhi 必须使用上方给定值，不要自行推算。$liunian_prompt$, '流年运势分析（二分流年节点动态调用）')
 ON CONFLICT (module) DO NOTHING;
 
 -- ============================================================

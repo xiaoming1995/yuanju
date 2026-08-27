@@ -16,6 +16,10 @@
   align-items: center;
   justify-content: space-between;
   height: 100%;
+  width: min(100% - (var(--space-page-x) * 2), var(--container-wide-max));
+  max-width: var(--container-wide-max);
+  margin: 0 auto;
+  padding: 0;
 }
 
 .navbar-logo {
@@ -149,6 +153,10 @@
 }
 
 @media (max-width: 640px) {
+  .navbar-inner {
+    width: calc(100% - 32px);
+  }
+
   .navbar-links { display: none; }
   .navbar-nickname { display: none; }
 }

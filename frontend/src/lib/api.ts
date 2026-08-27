@@ -722,8 +722,14 @@ export const baziAPI = {
       onError(errorMessage(err))
     }
   },
-  generateLiunianReport: (chartId: string, targetYear: number) =>
-    api.post(`/api/bazi/liunian-report/${chartId}`, { target_year: targetYear }, { timeout: 300000 }),
+  getLiunianReport: (chartId: string, targetYear: number) =>
+    api.get(`/api/bazi/liunian-report/${chartId}`, { params: { target_year: targetYear } }),
+  generateLiunianReport: (chartId: string, targetYear: number, forceRegenerate = false) =>
+    api.post(
+      `/api/bazi/liunian-report/${chartId}`,
+      { target_year: targetYear, force_regenerate: forceRegenerate },
+      { timeout: 300000 },
+    ),
   // 思路 E：即时返回所有年份算法叙述（无 AI）
   fetchPastEventsYears: (chartId: string) =>
     api.post(`/api/bazi/past-events/years/${chartId}`),

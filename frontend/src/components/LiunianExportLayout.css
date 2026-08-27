@@ -1,0 +1,398 @@
+.liunian-export-layout {
+  width: 794px;
+  box-sizing: border-box;
+  background: #fbf8ef;
+  color: #231f17;
+  font-family: "Noto Sans SC", "Inter", system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+.liunian-export-layout--image {
+  padding: 34px 36px 30px;
+}
+
+.liunian-export-layout--pdf {
+  padding: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.liunian-export-page {
+  position: relative;
+  width: 794px;
+  height: 1123px;
+  box-sizing: border-box;
+  padding: 42px 46px 44px;
+  background: #fbf8ef;
+  overflow: hidden;
+}
+
+.liunian-export-page-footer {
+  position: absolute;
+  right: 46px;
+  bottom: 24px;
+  color: #b3a78f;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.liunian-export-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(110, 85, 34, 0.22);
+}
+
+.liunian-export-kicker,
+.liunian-export-section-kicker {
+  color: #b18a28;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.liunian-export-title {
+  margin-top: 8px;
+  font-family: "Noto Serif SC", serif;
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 800;
+  color: #1d1a14;
+}
+
+.liunian-export-meta {
+  margin-top: 10px;
+  color: #6f6554;
+  font-size: 14px;
+}
+
+.liunian-export-badge {
+  align-self: flex-start;
+  min-width: 126px;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #c9a84c;
+  color: #191714;
+  text-align: center;
+  font-weight: 800;
+  box-shadow: 0 12px 26px rgba(150, 112, 28, 0.18);
+}
+
+.liunian-export-advice {
+  margin-top: 24px;
+  border-radius: 14px;
+  padding: 18px 20px;
+  background: #27241d;
+  color: #f7efd7;
+}
+
+.liunian-export-page .liunian-export-advice {
+  margin-top: 22px;
+}
+
+.liunian-export-advice-label {
+  color: #d7b957;
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.liunian-export-advice-text {
+  font-size: 18px;
+  line-height: 1.75;
+  font-weight: 700;
+}
+
+.liunian-export-section {
+  margin-top: 24px;
+}
+
+.liunian-export-section--compact {
+  margin-top: 22px;
+}
+
+.liunian-export-section-title {
+  margin-top: 5px;
+  font-family: "Noto Serif SC", serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #241f18;
+}
+
+.liunian-export-chapters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.liunian-export-page .liunian-export-chapters {
+  gap: 12px;
+}
+
+.liunian-export-chapter {
+  border-radius: 12px;
+  padding: 16px 18px;
+  background: #fffaf0;
+  border: 1px solid rgba(116, 91, 44, 0.16);
+  page-break-inside: avoid;
+}
+
+.liunian-export-page .liunian-export-chapter {
+  padding: 14px 16px;
+}
+
+.liunian-export-chapter-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #a37a1b;
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.liunian-export-chapter-title::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #c9a84c;
+}
+
+.liunian-export-chapter-text {
+  color: #4d4638;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.liunian-export-page .liunian-export-chapter-text {
+  font-size: 12.5px;
+  line-height: 1.68;
+}
+
+.liunian-export-trend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.liunian-export-page--trends .liunian-export-trend-grid {
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.liunian-export-trend-card {
+  border-radius: 12px;
+  padding: 15px 16px 12px;
+  background: #fffaf0;
+  border: 1px solid rgba(116, 91, 44, 0.14);
+  page-break-inside: avoid;
+}
+
+.liunian-export-page--trends .liunian-export-trend-card {
+  padding: 12px 14px 9px;
+}
+
+.liunian-export-trend-card--wide {
+  grid-column: 1 / -1;
+}
+
+.liunian-export-trend-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.liunian-export-trend-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #2a251d;
+}
+
+.liunian-export-trend-summary {
+  font-size: 12px;
+  color: #a37a1b;
+  font-weight: 800;
+}
+
+.liunian-export-trend-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.liunian-export-page--trends .liunian-export-trend-card--wide .liunian-export-trend-svg {
+  max-height: 222px;
+}
+
+.liunian-export-page--trends .liunian-export-trend-card:not(.liunian-export-trend-card--wide) .liunian-export-trend-svg {
+  max-height: 156px;
+}
+
+.liunian-export-months {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.liunian-export-months--pdf {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.liunian-export-month {
+  border-radius: 10px;
+  padding: 12px 13px;
+  background: #fffaf0;
+  border: 1px solid rgba(116, 91, 44, 0.14);
+}
+
+.liunian-export-months--pdf .liunian-export-month {
+  min-height: 122px;
+  padding: 13px 14px;
+}
+
+.liunian-export-month-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.liunian-export-month-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.liunian-export-month-name {
+  font-weight: 800;
+  color: #2c261d;
+  font-size: 14px;
+}
+
+.liunian-export-month-range {
+  color: #8b806e;
+  font-size: 11px;
+}
+
+.liunian-export-month-current {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: rgba(201, 168, 76, 0.16);
+  color: #9a761f;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.liunian-export-month-gz {
+  font-family: "Noto Serif SC", serif;
+  color: #b18a28;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.liunian-export-month-gods {
+  margin-top: 3px;
+  color: #776c5a;
+  font-size: 12px;
+}
+
+.liunian-export-month-note-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.liunian-export-month-note-grid--image {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.liunian-export-month-note {
+  border-radius: 12px;
+  padding: 14px 15px;
+  background: #fffaf0;
+  border: 1px solid rgba(116, 91, 44, 0.14);
+  page-break-inside: avoid;
+}
+
+.liunian-export-page--month-notes .liunian-export-month-note {
+  min-height: 184px;
+  padding: 13px 14px;
+}
+
+.liunian-export-month-note-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.liunian-export-month-note-title {
+  color: #2c261d;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.liunian-export-month-note-meta {
+  margin-top: 3px;
+  color: #8b806e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.liunian-export-month-note-summary {
+  color: #4d4638;
+  font-size: 12.4px;
+  line-height: 1.65;
+}
+
+.liunian-export-month-note-dims {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+  color: #665d4e;
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.liunian-export-month-note-dims span {
+  display: inline-block;
+  margin-right: 6px;
+  color: #a37a1b;
+  font-weight: 800;
+}
+
+.liunian-export-note {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(110, 85, 34, 0.16);
+  color: #756c5d;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.liunian-export-page--months .liunian-export-note {
+  margin-top: 20px;
+}
+
+.liunian-export-footer {
+  margin-top: 22px;
+  color: #9b8c75;
+  font-size: 12px;
+  text-align: center;
+}

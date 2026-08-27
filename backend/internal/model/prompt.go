@@ -34,6 +34,12 @@ type LiunianTemplateData struct {
 	// 原局分析总结
 	NatalAnalysisLogic string
 
+	// 命主基础信息
+	GenderLabel          string
+	DayGan               string
+	RelationshipStarRule string
+	GenderGuardRule      string
+
 	// 当前大运信息
 	CurrentDayunGanZhi     string
 	CurrentDayunGanShiShen string
@@ -44,4 +50,19 @@ type LiunianTemplateData struct {
 	TargetYearGanZhi     string
 	TargetYearGanShiShen string
 	TargetYearZhiShiShen string
+
+	// 12 个流月信息（寅月到丑月），用于生成月度注意点
+	LiuYue []LiunianLiuYueTemplateData
+}
+
+type LiunianLiuYueTemplateData struct {
+	Index      int
+	MonthLabel string
+	MonthName  string
+	GanZhi     string
+	GanShiShen string
+	ZhiShiShen string
+	JieQiName  string
+	StartDate  string
+	EndDate    string
 }

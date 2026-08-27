@@ -173,6 +173,101 @@ func TestHandlePastEventsExport_RejectsForeignChartWithoutGenerating(t *testing.
 	}
 }
 
+func TestGetLiunianReport_ReturnsCachedReportForOwnedChart(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	owner := "user-1"
+	origGetChart := getBaziChartByIDForLiunianReport
+	origGetReport := getLiunianReportForHandler
+	raw := json.RawMessage(`{"career":"已缓存"}`)
+	getBaziChartByIDForLiunianReport = func(chartID string) (*model.BaziChart, error) {
+		if chartID != "chart-1" {
+			t.Fatalf("unexpected chart id %q", chartID)
+		}
+		return &model.BaziChart{ID: chartID, UserID: &owner}, nil
+	}
+	getLiunianReportForHandler = func(chartID string, targetYear int) (*model.AILiunianReport, error) {
+		if chartID != "chart-1" || targetYear != 2026 {
+			t.Fatalf("unexpected cache key chart=%s year=%d", chartID, targetYear)
+		}
+		return &model.AILiunianReport{
+			ID:                "liunian-1",
+			ChartID:           chartID,
+			TargetYear:        targetYear,
+			ContentStructured: &raw,
+		}, nil
+	}
+	t.Cleanup(func() {
+		getBaziChartByIDForLiunianReport = origGetChart
+		getLiunianReportForHandler = origGetReport
+	})
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set("user_id", owner) })
+	router.GET("/liunian-report/:chart_id", GetLiunianReport)
+	req := httptest.NewRequest(http.MethodGet, "/liunian-report/chart-1?target_year=2026", nil)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), `"cached":true`) {
+		t.Fatalf("expected cached response, got %s", recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), `"career":"已缓存"`) {
+		t.Fatalf("expected cached content, got %s", recorder.Body.String())
+	}
+}
+
+func TestGenerateLiunianReport_PassesForceRegenerateFlag(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	owner := "user-1"
+	origGetChart := getBaziChartByIDForLiunianReport
+	origGenerate := generateLiunianReportForHandler
+	raw := json.RawMessage(`{"career":"重新生成"}`)
+	getBaziChartByIDForLiunianReport = func(chartID string) (*model.BaziChart, error) {
+		return &model.BaziChart{ID: chartID, UserID: &owner}, nil
+	}
+	generateLiunianReportForHandler = func(chartID string, targetYear int, userID *string, forceRegenerate bool) (*model.AILiunianReport, bool, error) {
+		if chartID != "chart-1" || targetYear != 2026 {
+			t.Fatalf("unexpected request chart=%s year=%d", chartID, targetYear)
+		}
+		if userID == nil || *userID != owner {
+			t.Fatalf("unexpected user id: %v", userID)
+		}
+		if !forceRegenerate {
+			t.Fatal("expected forceRegenerate=true")
+		}
+		return &model.AILiunianReport{
+			ID:                "liunian-2",
+			ChartID:           chartID,
+			TargetYear:        targetYear,
+			ContentStructured: &raw,
+		}, false, nil
+	}
+	t.Cleanup(func() {
+		getBaziChartByIDForLiunianReport = origGetChart
+		generateLiunianReportForHandler = origGenerate
+	})
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) { c.Set("user_id", owner) })
+	router.POST("/liunian-report/:chart_id", GenerateLiunianReport)
+	req := httptest.NewRequest(http.MethodPost, "/liunian-report/chart-1", bytes.NewBufferString(`{"target_year":2026,"force_regenerate":true}`))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), `"cached":false`) {
+		t.Fatalf("expected generated response, got %s", recorder.Body.String())
+	}
+}
+
 func performUpdateHistoryDisplayNameRequest(t *testing.T, body string) *httptest.ResponseRecorder {
 	return performUpdateHistoryDisplayNameRequestAtPath(t, "/history/chart-1/display-name", body)
 }

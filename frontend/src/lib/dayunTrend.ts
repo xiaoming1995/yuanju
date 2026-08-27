@@ -17,9 +17,12 @@ export interface DayunTrendPoint {
   year: number
   age?: number
   ganZhi: string
+  ganShishen?: string
+  zhiShishen?: string
   level: TrendLevel
   label: string
   detail: string
+  action: string
 }
 
 export interface DayunTrendSeries {
@@ -101,6 +104,32 @@ function buildTrendDetail(key: TrendKey, item: LiuNianTrendInput, level: TrendLe
   return `${prefix}${ending[key][level]}`
 }
 
+function buildTrendAction(key: TrendKey, level: TrendLevel) {
+  const action: Record<TrendKey, Record<TrendLevel, string>> = {
+    career: {
+      3: '可主动争取项目、岗位机会或资源支持。',
+      2: '保持既定节奏，重点做好交付、沟通与复盘。',
+      1: '先稳合作边界、合同流程和职责分工，避免硬碰硬。',
+    },
+    marriage: {
+      3: '适合主动沟通、推进关系或修复承诺。',
+      2: '维持稳定表达，避免过度试探或急于定性。',
+      1: '降低情绪化表达，重大关系决定放慢确认。',
+    },
+    wealth: {
+      3: '可评估收入机会、合作回报和资源变现。',
+      2: '整理现金流，控制投入节奏，保留安全垫。',
+      1: '避免激进投资或高风险合作，优先守住现金流。',
+    },
+    health: {
+      3: '适合建立规律作息和长期恢复计划。',
+      2: '保持睡眠、饮食与运动节律，减少透支。',
+      1: '减少过劳，留意情绪压力、出行安全和体检指标。',
+    },
+  }
+  return action[key][level]
+}
+
 function summarizeTrend(points: DayunTrendPoint[]) {
   const good = points.filter(point => point.level === 3).length
   const watch = points.filter(point => point.level === 1).length
@@ -126,9 +155,12 @@ export function buildDayunTrendSeries(dayun: DayunTrendInput | null | undefined,
         year: item.year,
         age: item.age,
         ganZhi: item.gan_zhi,
+        ganShishen: item.gan_shishen,
+        zhiShishen: item.zhi_shishen,
         level,
         label: trendLabel(level),
         detail: buildTrendDetail(config.key, item, level),
+        action: buildTrendAction(config.key, level),
       }
     })
     return {

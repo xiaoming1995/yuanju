@@ -45,6 +45,122 @@ func TestCachedDayunSummaryToStreamItemReturnsCachedItem(t *testing.T) {
 	}
 }
 
+func TestBuildLiunianGenderPromptContextFemaleUsesFuXingRule(t *testing.T) {
+	genderLabel, relationshipRule, guardRule := buildLiunianGenderPromptContext("female")
+
+	if genderLabel != "女命" {
+		t.Fatalf("gender label = %q, want 女命", genderLabel)
+	}
+	for _, want := range []string{"官杀", "夫星"} {
+		if !strings.Contains(relationshipRule, want) {
+			t.Fatalf("female relationship rule missing %q: %s", want, relationshipRule)
+		}
+	}
+	for _, forbidden := range []string{"男命以财为妻星", "妻星"} {
+		if !strings.Contains(guardRule, forbidden) {
+			t.Fatalf("female guard rule should explicitly forbid %q: %s", forbidden, guardRule)
+		}
+	}
+}
+
+func TestPrependLiunianGenderGuardKeepsFemaleContextWithLegacyPrompt(t *testing.T) {
+	data := model.LiunianTemplateData{
+		NatalAnalysisLogic:     "原局分析",
+		GenderLabel:            "女命",
+		DayGan:                 "壬",
+		RelationshipStarRule:   "女命婚恋以官杀为夫星。",
+		GenderGuardRule:        "严禁出现男命以财为妻星。",
+		CurrentDayunGanZhi:     "丙子",
+		CurrentDayunGanShiShen: "偏财",
+		CurrentDayunZhiShiShen: "劫财",
+		TargetYear:             2026,
+		TargetYearGanZhi:       "丙午",
+		TargetYearGanShiShen:   "偏财",
+		TargetYearZhiShiShen:   "正财",
+	}
+	tpl := `该用户的原局分析：
+{{.NatalAnalysisLogic}}
+
+请为他详细批断【{{.TargetYear}} {{.TargetYearGanZhi}}流年】运程。`
+	parsed, err := template.New("legacy_liunian").Parse(tpl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rendered strings.Builder
+	if err := parsed.Execute(&rendered, data); err != nil {
+		t.Fatal(err)
+	}
+
+	prompt := prependLiunianGenderGuard(rendered.String(), data)
+	for _, want := range []string{"性别：女命", "日主：壬", "女命婚恋以官杀为夫星", "严禁出现男命以财为妻星"} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("prompt missing %q:\n%s", want, prompt)
+		}
+	}
+}
+
+func TestValidateLiunianGenderConsistencyRejectsOppositeGenderTerms(t *testing.T) {
+	if err := validateLiunianGenderConsistency("female", `{"romance":"男命以财为妻星，桃花运明显。"}`); err == nil {
+		t.Fatal("expected female report with male spouse-star wording to be rejected")
+	}
+	if err := validateLiunianGenderConsistency("male", `{"romance":"女命以官杀为夫星，关系推进。"}`); err == nil {
+		t.Fatal("expected male report with female spouse-star wording to be rejected")
+	}
+	if err := validateLiunianGenderConsistency("female", `{"romance":"女命本年宜看官杀与夫妻宫互动。"}`); err != nil {
+		t.Fatalf("expected valid female report, got %v", err)
+	}
+}
+
+func TestGenerateLiunianReportReturnsCachedReportByDefault(t *testing.T) {
+	origGet := getLiunianReport
+	defer func() { getLiunianReport = origGet }()
+
+	raw := json.RawMessage(`{"career":"已缓存"}`)
+	getCalled := false
+	getLiunianReport = func(chartID string, targetYear int) (*model.AILiunianReport, error) {
+		getCalled = true
+		if chartID != "chart-1" || targetYear != 2026 {
+			t.Fatalf("unexpected cache key chart=%s year=%d", chartID, targetYear)
+		}
+		return &model.AILiunianReport{
+			ID:                "report-1",
+			ChartID:           chartID,
+			TargetYear:        targetYear,
+			ContentStructured: &raw,
+		}, nil
+	}
+
+	report, cached, err := GenerateLiunianReport("chart-1", 2026, nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !getCalled {
+		t.Fatal("expected cache lookup")
+	}
+	if !cached {
+		t.Fatal("expected cached=true")
+	}
+	if report == nil || report.ID != "report-1" {
+		t.Fatalf("unexpected report: %+v", report)
+	}
+}
+
+func TestBuildLiunianLiuYueTemplateDataReturnsTwelveMonths(t *testing.T) {
+	months := buildLiunianLiuYueTemplateData(2026, "甲")
+
+	if len(months) != 12 {
+		t.Fatalf("expected 12 liuyue months, got %d", len(months))
+	}
+	first := months[0]
+	if first.Index != 0 || first.MonthLabel != "2月" || first.MonthName != "寅月" || first.GanZhi == "" {
+		t.Fatalf("unexpected first month: %+v", first)
+	}
+	last := months[11]
+	if last.Index != 11 || last.MonthLabel != "1月" || last.MonthName != "丑月" || last.GanZhi == "" {
+		t.Fatalf("unexpected last month: %+v", last)
+	}
+}
+
 func TestBuildBaziPrompt_ExcludesCelebritySectionAndPersonaChapter(t *testing.T) {
 	result := &bazi.BaziResult{
 		YearGan:         "甲",

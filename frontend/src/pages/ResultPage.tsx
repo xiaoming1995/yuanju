@@ -456,6 +456,7 @@ export default function ResultPage() {
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('detail')
   const [readingMode, setReadingMode] = useState<ReadingMode>('simple')
   const [trendDayunIndex, setTrendDayunIndex] = useState<number | null>(null)
+  const [activeTrendYear, setActiveTrendYear] = useState<number | null>(null)
   const [reportTab, setReportTab] = useState<'original' | 'polished'>('original')
   const reportTabRowRef = useRef<HTMLDivElement | null>(null)
 
@@ -481,7 +482,26 @@ export default function ResultPage() {
 
   useEffect(() => {
     setTrendDayunIndex(null)
+    setActiveTrendYear(null)
   }, [targetId, result?.birth_year, result?.birth_month, result?.birth_day, result?.birth_hour, result?.gender])
+
+  useEffect(() => {
+    if (activeTrendYear == null) return
+    const previousOverflow = document.body.style.overflow
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveTrendYear(null)
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [activeTrendYear])
 
   // 神煞注解状态
   const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
@@ -905,6 +925,24 @@ export default function ResultPage() {
   const selectedDayunPeriod = selectedDayun
     ? `${selectedDayun.start_age} - ${selectedDayun.start_age + 9} 岁 · 公历 ${selectedDayun.start_year} - ${selectedDayun.end_year}`
     : ''
+  const activeTrendYearItems = activeTrendYear == null
+    ? []
+    : selectedDayunTrendSeries.flatMap(series => {
+      const point = series.points.find(item => item.year === activeTrendYear)
+      return point ? [{ series, point }] : []
+    })
+  const activeTrendYearMeta = activeTrendYearItems[0]?.point
+  const activeTrendYearSummary = activeTrendYearItems.length
+    ? (() => {
+      const good = activeTrendYearItems.filter(item => item.point.level === 3).length
+      const watch = activeTrendYearItems.filter(item => item.point.level === 1).length
+      if (good >= 2 && watch >= 2) return '机会与压力并存，适合分清主次后推进。'
+      if (good >= 3) return '顺势维度较多，适合主动推进关键事务。'
+      if (watch >= 3) return '需留意维度较多，建议放缓节奏并先稳风险。'
+      if (watch >= 1) return '整体有推进空间，但部分事项需要提前留意。'
+      return '整体较平稳，适合按既定节奏推进。'
+    })()
+    : ''
   const chartKeywords = buildChartKeywords(result, relation)
   const chartVerdict = buildChartVerdict(result, relation)
   const yongshenEvidence = buildYongshenEvidence(result, relation)
@@ -1093,7 +1131,10 @@ export default function ResultPage() {
                       key={item.index}
                       type="button"
                       className={isActive ? 'is-active' : ''}
-                      onClick={() => setTrendDayunIndex(item.index)}
+                      onClick={() => {
+                        setTrendDayunIndex(item.index)
+                        setActiveTrendYear(null)
+                      }}
                     >
                       <strong>{item.gan}{item.zhi}</strong>
                       <span>{item.start_age}-{item.start_age + 9}岁</span>
@@ -1111,52 +1152,67 @@ export default function ResultPage() {
 
               <div className="result-trend-grid">
                 {selectedDayunTrendSeries.map(series => (
-                  <article key={series.key} className={`result-trend-card result-trend-card--${series.key}`}>
-                    <div className="result-trend-card-head">
-                      <h3><span />{series.title}</h3>
-                      <em>{series.summary}</em>
-                    </div>
-                    <svg className="result-trend-chart" viewBox="0 0 420 150" role="img" aria-label={`${series.title}十年趋势点线图`}>
-                      <line className="result-trend-grid-line" x1="54" y1="28" x2="394" y2="28" />
-                      <line className="result-trend-grid-line" x1="54" y1="70" x2="394" y2="70" />
-                      <line className="result-trend-grid-line" x1="54" y1="112" x2="394" y2="112" />
-                      <text className="result-trend-axis-label" x="16" y="32">顺势</text>
-                      <text className="result-trend-axis-label" x="16" y="74">平稳</text>
-                      <text className="result-trend-axis-label" x="16" y="116">留意</text>
-                      <path className="result-trend-path" d={buildTrendPath(series.points)} />
-                      {series.points.map((point, index) => {
-                        const x = trendX(index, series.points.length)
-                        const y = trendY(point.level)
-                        const isCurrent = isSelectedCurrentDayun && point.year === currentYear
-                        return (
-                          <g key={`${series.key}-${point.year}`} className={isCurrent ? 'is-current' : ''}>
-                            {isCurrent && <circle className="result-trend-focus-ring" cx={x} cy={y} r="13" />}
-                            <circle
-                              className={`result-trend-point result-trend-point--level-${point.level}`}
-                              cx={x}
-                              cy={y}
-                              r="5.5"
-                            />
-                            <title>{point.year}年 · {point.ganZhi} · {point.label}：{point.detail}</title>
-                          </g>
-                        )
-                      })}
-                      {series.points.length > 0 && (
-                        <>
-                          <text className="result-trend-year-label" x={trendX(0, series.points.length)} y="140" textAnchor="middle">
-                            {series.points[0].year}
-                          </text>
-                          <text className="result-trend-year-label" x={trendX(Math.floor((series.points.length - 1) / 2), series.points.length)} y="140" textAnchor="middle">
-                            {series.points[Math.floor((series.points.length - 1) / 2)].year}
-                          </text>
-                          <text className="result-trend-year-label" x={trendX(series.points.length - 1, series.points.length)} y="140" textAnchor="middle">
-                            {series.points[series.points.length - 1].year}
-                          </text>
-                        </>
-                      )}
-                    </svg>
-                    <p>{buildTrendNote(series)}</p>
-                  </article>
+                    <article key={series.key} className={`result-trend-card result-trend-card--${series.key}`}>
+                      <div className="result-trend-card-head">
+                        <h3><span />{series.title}</h3>
+                        <em>{series.summary}</em>
+                      </div>
+                      <svg className="result-trend-chart" viewBox="0 0 420 150" role="img" aria-label={`${series.title}十年趋势点线图，点击年份节点查看依据`}>
+                        <line className="result-trend-grid-line" x1="54" y1="28" x2="394" y2="28" />
+                        <line className="result-trend-grid-line" x1="54" y1="70" x2="394" y2="70" />
+                        <line className="result-trend-grid-line" x1="54" y1="112" x2="394" y2="112" />
+                        <text className="result-trend-axis-label" x="16" y="32">顺势</text>
+                        <text className="result-trend-axis-label" x="16" y="74">平稳</text>
+                        <text className="result-trend-axis-label" x="16" y="116">留意</text>
+                        <path className="result-trend-path" d={buildTrendPath(series.points)} />
+                        {series.points.map((point, index) => {
+                          const x = trendX(index, series.points.length)
+                          const y = trendY(point.level)
+                          const isCurrent = isSelectedCurrentDayun && point.year === currentYear
+                          const isSelected = activeTrendYear === point.year
+                          return (
+                            <g
+                              key={`${series.key}-${point.year}`}
+                              role="button"
+                              tabIndex={0}
+                              className={[isCurrent ? 'is-current' : '', isSelected ? 'is-selected' : ''].filter(Boolean).join(' ')}
+                              aria-label={`${point.year}年${series.title}${point.label}，点击查看依据`}
+                              onClick={() => setActiveTrendYear(point.year)}
+                              onKeyDown={event => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault()
+                                  setActiveTrendYear(point.year)
+                                }
+                              }}
+                            >
+                              {isCurrent && <circle className="result-trend-focus-ring" cx={x} cy={y} r="13" />}
+                              {isSelected && <circle className="result-trend-selected-ring" cx={x} cy={y} r="15" />}
+                              <circle
+                                className={`result-trend-point result-trend-point--level-${point.level}`}
+                                cx={x}
+                                cy={y}
+                                r="5.5"
+                              />
+                              <title>{point.year}年 · {point.ganZhi} · {point.label}：{point.detail}</title>
+                            </g>
+                          )
+                        })}
+                        {series.points.length > 0 && (
+                          <>
+                            <text className="result-trend-year-label" x={trendX(0, series.points.length)} y="140" textAnchor="middle">
+                              {series.points[0].year}
+                            </text>
+                            <text className="result-trend-year-label" x={trendX(Math.floor((series.points.length - 1) / 2), series.points.length)} y="140" textAnchor="middle">
+                              {series.points[Math.floor((series.points.length - 1) / 2)].year}
+                            </text>
+                            <text className="result-trend-year-label" x={trendX(series.points.length - 1, series.points.length)} y="140" textAnchor="middle">
+                              {series.points[series.points.length - 1].year}
+                            </text>
+                          </>
+                        )}
+                      </svg>
+                      <p>{buildTrendNote(series)}</p>
+                    </article>
                 ))}
               </div>
 
@@ -1166,6 +1222,65 @@ export default function ResultPage() {
                   曲线表示本段大运内部的相对趋势，不代表不同大运的绝对层级。同样上行，坏运可能只是从 50 到 100，好运可能是从 500 到 1000；请结合命局喜忌、大运整体强弱与 AI 解读判断。
                 </p>
               </div>
+
+              {activeTrendYearMeta && (
+                <div
+                  className="result-trend-modal-overlay"
+                  onClick={() => setActiveTrendYear(null)}
+                >
+                  <div
+                    className="result-trend-modal"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="result-trend-modal-title"
+                    onClick={event => event.stopPropagation()}
+                  >
+                    <div className="result-trend-year-detail-head">
+                      <div>
+                        <span>年度依据</span>
+                        <h3 id="result-trend-modal-title">{activeTrendYearMeta.year}年 · {activeTrendYearMeta.ganZhi}</h3>
+                        <p>{selectedDayunTitle} · {selectedDayunPeriod}</p>
+                      </div>
+                      <div className="result-trend-modal-actions">
+                        {activeTrendYearMeta.age && <em>{activeTrendYearMeta.age}岁</em>}
+                        <button
+                          type="button"
+                          className="result-trend-modal-close"
+                          onClick={() => setActiveTrendYear(null)}
+                          aria-label="关闭年度依据"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="result-trend-year-summary">{activeTrendYearSummary}</p>
+                    <div className="result-trend-year-detail-grid">
+                      {activeTrendYearItems.map(({ series, point }) => (
+                        <article key={`${series.key}-${point.year}`} className={`result-trend-year-item result-trend-year-item--${series.key}`}>
+                          <div className="result-trend-year-item-head">
+                            <strong>{series.title}</strong>
+                            <span className={`result-trend-level result-trend-level--${point.level}`}>{point.label}</span>
+                          </div>
+                          <dl>
+                            <div>
+                              <dt>十神依据</dt>
+                              <dd>{point.ganShishen || '待排'} / {point.zhiShishen || '待排'}</dd>
+                            </div>
+                            <div>
+                              <dt>判断说明</dt>
+                              <dd>{point.detail}</dd>
+                            </div>
+                            <div>
+                              <dt>行动建议</dt>
+                              <dd>{point.action}</dd>
+                            </div>
+                          </dl>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 

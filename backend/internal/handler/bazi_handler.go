@@ -34,6 +34,9 @@ type CalculateInput struct {
 var (
 	getBaziChartByIDForPastEventsExport     = repository.GetChartByID
 	generatePastEventsExportForChartHandler = service.GeneratePastEventsExportForChart
+	getBaziChartByIDForLiunianReport        = repository.GetChartByID
+	getLiunianReportForHandler              = repository.GetLiunianReport
+	generateLiunianReportForHandler         = service.GenerateLiunianReport
 )
 
 // Calculate 计算八字（无需登录，但若是已登录用户起盘，则自动落库保存历史）
@@ -229,6 +232,58 @@ func GenerateReportStream(c *gin.Context) {
 	}
 }
 
+func authorizeLiunianChart(c *gin.Context, chartID string) (*model.BaziChart, string, bool) {
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return nil, "", false
+	}
+
+	chart, err := getBaziChartByIDForLiunianReport(chartID)
+	if err != nil || chart == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		return nil, "", false
+	}
+
+	userID, _ := c.Get("user_id")
+	userIDStr := userID.(string)
+
+	if chart.UserID == nil || *chart.UserID != userIDStr {
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		return nil, "", false
+	}
+	return chart, userIDStr, true
+}
+
+// GetLiunianReport 获取已生成的 AI 流年精批报告缓存（需登录）
+func GetLiunianReport(c *gin.Context) {
+	chartID := c.Param("chart_id")
+	if chartID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的排盘ID"})
+		return
+	}
+
+	targetYear, err := strconv.Atoi(c.Query("target_year"))
+	if err != nil || targetYear <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "需要有效的 target_year 参数"})
+		return
+	}
+
+	if _, _, ok := authorizeLiunianChart(c, chartID); !ok {
+		return
+	}
+
+	report, err := getLiunianReportForHandler(chartID, targetYear)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取流年报告缓存失败"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"report": report,
+		"cached": report != nil,
+	})
+}
+
 // GenerateLiunianReport 生成 AI 流年精批报告（需登录）
 func GenerateLiunianReport(c *gin.Context) {
 	chartID := c.Param("chart_id")
@@ -238,30 +293,21 @@ func GenerateLiunianReport(c *gin.Context) {
 	}
 
 	var req struct {
-		TargetYear int `json:"target_year" binding:"required"`
+		TargetYear      int  `json:"target_year" binding:"required"`
+		ForceRegenerate bool `json:"force_regenerate"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "需要 target_year 参数"})
 		return
 	}
 
-	// 1. 获取命盘并验证归属
-	chart, err := repository.GetChartByID(chartID)
-	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+	chart, userIDStr, ok := authorizeLiunianChart(c, chartID)
+	if !ok {
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	userIDStr := userID.(string)
-
-	if chart.UserID == nil || *chart.UserID != userIDStr {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
-		return
-	}
-
-	log.Printf("[AI Liunian Report] 开始生成流年报告 chart_id=%s year=%d", chart.ID, req.TargetYear)
-	report, err := service.GenerateLiunianReport(chart.ID, req.TargetYear, &userIDStr)
+	log.Printf("[AI Liunian Report] 处理流年报告 chart_id=%s year=%d force=%t", chart.ID, req.TargetYear, req.ForceRegenerate)
+	report, cached, err := generateLiunianReportForHandler(chart.ID, req.TargetYear, &userIDStr, req.ForceRegenerate)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -269,6 +315,7 @@ func GenerateLiunianReport(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"report": report,
+		"cached": cached,
 	})
 }
 

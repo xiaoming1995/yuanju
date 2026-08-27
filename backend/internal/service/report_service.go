@@ -26,6 +26,8 @@ type BaziReportInput struct {
 var (
 	getChartResultJSON  = repository.GetChartResultJSON
 	saveChartResultJSON = repository.SaveChartResultJSON
+	getLiunianReport    = repository.GetLiunianReport
+	createLiunianReport = repository.CreateLiunianReport
 )
 
 const dayunSummaryPromptTpl = `你是一位资深八字命理师。请只为下列单段大运撰写整体总结和该段 10 年的逐年评述。
@@ -70,6 +72,79 @@ const dayunSummaryPromptTpl = `你是一位资深八字命理师。请只为下�
 
 4. 严格输出以下 JSON，不要 Markdown 围栏：
 {"themes":["主题1","主题2"],"summary":"...","years":[{"year":2005,"ganzhi":"乙酉","narrative":"..."},{"year":2006,"ganzhi":"丙戌","narrative":"..."}]}`
+
+func buildLiunianGenderPromptContext(gender string) (genderLabel, relationshipRule, guardRule string) {
+	if gender == "female" {
+		return "女命",
+			"女命婚恋以官杀为夫星/情感压力与关系对象取象，财星只能用于财运与资源分析，不得把财星称为妻星。",
+			"本命为女命，严禁出现「男命以财为妻星」「财为妻星」「妻星」等男命婚恋表述；如需分析婚恋，请围绕官杀、夫星、夫妻宫与桃花互动。"
+	}
+	return "男命",
+		"男命婚恋以财星为妻星/关系对象取象，官杀主要用于事业压力、规则与职位分析。",
+		"本命为男命，严禁出现「女命以官杀为夫星」「官杀为夫星」「夫星」等女命婚恋表述；如需分析婚恋，请围绕财星、妻星、夫妻宫与桃花互动。"
+}
+
+func prependLiunianGenderGuard(prompt string, data model.LiunianTemplateData) string {
+	guard := fmt.Sprintf(`【命主固定信息】
+- 性别：%s
+- 日主：%s
+- 婚恋取象规则：%s
+- 性别一致性硬性约束：%s
+
+`, data.GenderLabel, data.DayGan, data.RelationshipStarRule, data.GenderGuardRule)
+	return guard + strings.TrimSpace(prompt)
+}
+
+func validateLiunianGenderConsistency(gender, content string) error {
+	var forbidden []string
+	if gender == "female" {
+		forbidden = []string{"男命以财为妻星", "财为妻星", "财星为妻星", "妻星", "男命"}
+	} else {
+		forbidden = []string{"女命以官杀为夫星", "官杀为夫星", "官星为夫星", "夫星", "女命"}
+	}
+	for _, phrase := range forbidden {
+		if strings.Contains(content, phrase) {
+			return fmt.Errorf("AI流年输出与命盘性别不一致，包含不应出现的表述：%s", phrase)
+		}
+	}
+	return nil
+}
+
+func formatLiunianMonthLabel(startDate string) string {
+	parts := strings.Split(startDate, "-")
+	if len(parts) != 3 {
+		return startDate
+	}
+	month := strings.TrimLeft(parts[1], "0")
+	if month == "" {
+		month = parts[1]
+	}
+	return month + "月"
+}
+
+func buildLiunianLiuYueTemplateData(targetYear int, dayGan string) []model.LiunianLiuYueTemplateData {
+	items, _, err := bazi.CalcLiuYue(targetYear, dayGan)
+	if err != nil {
+		log.Printf("[Liunian] 构造流月 Prompt 数据失败 year=%d dayGan=%s: %v", targetYear, dayGan, err)
+		return nil
+	}
+
+	data := make([]model.LiunianLiuYueTemplateData, 0, len(items))
+	for _, item := range items {
+		data = append(data, model.LiunianLiuYueTemplateData{
+			Index:      item.Index,
+			MonthLabel: formatLiunianMonthLabel(item.StartDate),
+			MonthName:  item.MonthName,
+			GanZhi:     item.GanZhi,
+			GanShiShen: item.GanShiShen,
+			ZhiShiShen: item.ZhiShiShen,
+			JieQiName:  item.JieQiName,
+			StartDate:  item.StartDate,
+			EndDate:    item.EndDate,
+		})
+	}
+	return data
+}
 
 // buildLifeStageHint 按"该段大运 age<18 的年份占比"生成 prompt 提示词
 // youngCount=0 → 空（成人期不附加）
@@ -878,12 +953,22 @@ func stripTrailingCommas(s string) string {
 	return buf.String()
 }
 
-// GenerateLiunianReport 生成流年运势分析（始终调 LLM，生成后 upsert 存库）
-func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*model.AILiunianReport, error) {
+// GenerateLiunianReport 生成流年运势分析。默认优先复用缓存，forceRegenerate 为 true 时才重新调用 LLM 并覆盖缓存。
+func GenerateLiunianReport(chartID string, targetYear int, userID *string, forceRegenerate bool) (*model.AILiunianReport, bool, error) {
+	if !forceRegenerate {
+		cached, err := getLiunianReport(chartID, targetYear)
+		if err != nil {
+			return nil, false, fmt.Errorf("读取流年报告缓存失败: %v", err)
+		}
+		if cached != nil {
+			return cached, true, nil
+		}
+	}
+
 	// 1. 读取排盘
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		return nil, fmt.Errorf("无此排盘记录")
+		return nil, false, fmt.Errorf("无此排盘记录")
 	}
 
 	// 读取原局分析文本（如果生成过原局报告）
@@ -898,8 +983,16 @@ func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*mod
 
 	result, err := LoadOrCalculateResult(chart)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
+	dayGan := strings.TrimSpace(result.DayGan)
+	if dayGan == "" {
+		dayGan = strings.TrimSpace(chart.DayGan)
+	}
+	if dayGan == "" {
+		dayGan = "未知"
+	}
+	genderLabel, relationshipRule, guardRule := buildLiunianGenderPromptContext(chart.Gender)
 
 	var currentDayun string
 	var currentDayunGSS string
@@ -929,6 +1022,10 @@ func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*mod
 	// 构造模板数据
 	tplData := model.LiunianTemplateData{
 		NatalAnalysisLogic:     natalLogic,
+		GenderLabel:            genderLabel,
+		DayGan:                 dayGan,
+		RelationshipStarRule:   relationshipRule,
+		GenderGuardRule:        guardRule,
 		CurrentDayunGanZhi:     currentDayun,
 		CurrentDayunGanShiShen: currentDayunGSS,
 		CurrentDayunZhiShiShen: currentDayunZSS,
@@ -936,40 +1033,46 @@ func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*mod
 		TargetYearGanZhi:       lnGanZhi,
 		TargetYearGanShiShen:   lnGanShiShen,
 		TargetYearZhiShiShen:   lnZhiShiShen,
+		LiuYue:                 buildLiunianLiuYueTemplateData(targetYear, dayGan),
 	}
 
 	// 3. 读取 Prompt 模板
 	promptConfig, err := repository.GetPromptByModule("liunian")
 	if err != nil || promptConfig == nil {
-		return nil, fmt.Errorf("未找到系统预设的流年Prompt")
+		return nil, false, fmt.Errorf("未找到系统预设的流年Prompt")
 	}
 
 	tmpl, err := template.New("liunian").Parse(promptConfig.Content)
 	if err != nil {
-		return nil, fmt.Errorf("后台Prompt模板语法错误: %v", err)
+		return nil, false, fmt.Errorf("后台Prompt模板语法错误: %v", err)
 	}
 
 	var parsedPrompt bytes.Buffer
 	if err := tmpl.Execute(&parsedPrompt, tplData); err != nil {
-		return nil, fmt.Errorf("拼接Prompt上下文失败: %v", err)
+		return nil, false, fmt.Errorf("拼接Prompt上下文失败: %v", err)
 	}
+	finalPrompt := prependLiunianGenderGuard(parsedPrompt.String(), tplData)
 
 	// 4. 调用 AI（使用知识库增强的 System Prompt）
-	rawContent, modelName, providerID, durationMs, usage, aiErr := callAIWithSystem(parsedPrompt.String())
+	rawContent, modelName, providerID, durationMs, usage, aiErr := callAIWithSystem(finalPrompt)
 	status, errMsg := "success", ""
 	if aiErr != nil {
 		status, errMsg = "error", aiErr.Error()
 		repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
-		return nil, aiErr
+		return nil, false, aiErr
 	}
 	repository.CreateAIRequestLog(chartID, providerID, modelName, durationMs, status, errMsg)
 	go func() {
 		if logErr := repository.CreateTokenUsageLog(userID, &chartID, "liunian", modelName, providerID,
 			usage.PromptTokens, usage.CompletionTokens, usage.TotalTokens, usage.ReasoningTokens, usage.CacheHitTokens, usage.CacheMissTokens,
-			parsedPrompt.String(), rawContent); logErr != nil {
+			finalPrompt, rawContent); logErr != nil {
 			log.Printf("[TokenUsage] 写入失败: %v", logErr)
 		}
 	}()
+
+	if err := validateLiunianGenderConsistency(chart.Gender, rawContent); err != nil {
+		return nil, false, err
+	}
 
 	// 解析 JSON
 	cleanJSON := extractJSON(rawContent)
@@ -980,7 +1083,7 @@ func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*mod
 		// 尝试修复换行符
 		fixedJSON := fixJSONStrings(cleanJSON)
 		if errFix := json.Unmarshal([]byte(fixedJSON), &reportData); errFix != nil {
-			return nil, fmt.Errorf("解析AI流年输出失败: %v", errFix)
+			return nil, false, fmt.Errorf("解析AI流年输出失败: %v", errFix)
 		}
 		cleanJSON = fixedJSON
 	}
@@ -988,7 +1091,8 @@ func GenerateLiunianReport(chartID string, targetYear int, userID *string) (*mod
 	rawMsg := json.RawMessage(cleanJSON)
 
 	// 5. 存入数据库
-	return repository.CreateLiunianReport(chartID, targetYear, currentDayun, &rawMsg, modelName)
+	report, err := createLiunianReport(chartID, targetYear, currentDayun, &rawMsg, modelName)
+	return report, false, err
 }
 
 // GeneratePastEventsStream 过往年份事件推算 SSE 流式生成（始终调 LLM，生成后 upsert 存库）
