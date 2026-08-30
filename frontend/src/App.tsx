@@ -33,6 +33,7 @@ const AdminChartsPage = lazy(() => import('./pages/admin/AdminChartsPage'))
 const AdminChartDetailPage = lazy(() => import('./pages/admin/AdminChartDetailPage'))
 const AdminCompatPage = lazy(() => import('./pages/admin/AdminCompatPage'))
 const AdminCelebritiesPage = lazy(() => import('./pages/admin/AdminCelebritiesPage'))
+const AdminMingGeHistoricalFiguresPage = lazy(() => import('./pages/admin/AdminMingGeHistoricalFiguresPage'))
 const PromptSettings = lazy(() => import('./pages/admin/PromptSettings'))
 const AlgoConfigPage = lazy(() => import('./pages/admin/AlgoConfigPage'))
 const CleanupConfigPage = lazy(() => import('./pages/admin/CleanupConfigPage'))
@@ -95,6 +96,7 @@ export default function App() {
                 <Route path="llm" element={<AdminLLMPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="celebrities" element={<AdminCelebritiesPage />} />
+                <Route path="mingge-historical-figures" element={<AdminMingGeHistoricalFiguresPage />} />
                 <Route path="charts" element={<AdminChartsPage />} />
                 <Route path="charts/:chartId" element={<AdminChartDetailPage />} />
                 <Route path="compatibility" element={<AdminCompatPage />} />

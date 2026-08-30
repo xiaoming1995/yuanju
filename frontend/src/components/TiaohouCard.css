@@ -23,6 +23,27 @@
   margin-bottom: 12px;
 }
 
+.tiaohou-score {
+  margin-left: auto;
+  color: var(--wuxing-jin-color, #e0be75);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tiaohou-formation {
+  margin-left: auto;
+  color: var(--wu-jin, var(--wuxing-jin-color, #e0be75));
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.tiaohou-formation-note {
+  margin: 0 0 14px;
+  color: var(--text-secondary, #aaa);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .tiaohou-label {
   font-size: 14px;
   color: var(--text-secondary, #aaa);

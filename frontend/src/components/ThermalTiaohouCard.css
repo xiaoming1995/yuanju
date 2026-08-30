@@ -1,0 +1,48 @@
+.thermal-tiaohou-card {
+  padding: 16px;
+}
+
+.thermal-tiaohou-card__header,
+.thermal-tiaohou-card__facts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.thermal-tiaohou-card__header {
+  justify-content: space-between;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.thermal-tiaohou-card__header span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.thermal-tiaohou-card__header strong {
+  color: var(--text-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.thermal-tiaohou-card__facts {
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.thermal-tiaohou-card__facts span {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(224, 190, 117, 0.1);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.thermal-tiaohou-card p {
+  margin: 14px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}

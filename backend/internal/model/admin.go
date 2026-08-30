@@ -96,6 +96,30 @@ type CelebrityRecord struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
+// MingGeHistoricalFigure 是按命格归类、经过人工审核的古人映照内容。
+// 它与 legacy celebrity_records 分离，不能作为 AI 自动生成内容直接发布。
+type MingGeHistoricalFigure struct {
+	ID                   string    `json:"id"`
+	MingGe               string    `json:"ming_ge"`
+	FigureName           string    `json:"figure_name"`
+	Era                  string    `json:"era"`
+	Identity             string    `json:"identity"`
+	HistoricalMemory     string    `json:"historical_memory"`
+	TurningPoint         string    `json:"turning_point"`
+	TurningPointYear     string    `json:"turning_point_year"`
+	SourceTitle          string    `json:"source_title"`
+	SourceURL            string    `json:"source_url"`
+	BirthDataPrecision   string    `json:"birth_data_precision"`
+	BaziVerificationNote string    `json:"bazi_verification_note,omitempty"`
+	DayunPeriod          string    `json:"dayun_period,omitempty"`
+	DayunExplanation     string    `json:"dayun_explanation,omitempty"`
+	ShowDayun            bool      `json:"show_dayun"`
+	DisplayOrder         int       `json:"display_order"`
+	ReviewStatus         string    `json:"review_status"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+}
+
 // AdminCompatListItem 后台合盘明细列表行
 type AdminCompatListItem struct {
 	ID                string    `json:"id"`

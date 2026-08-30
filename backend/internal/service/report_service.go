@@ -35,6 +35,7 @@ const dayunSummaryPromptTpl = `你是一位资深八字命理师。请只为下�
 命主：性别{{.Gender}} / 日干{{.DayGan}}
 原局：{{.NatalSummary}}
 {{if .StrengthDetail}}身强弱：{{.StrengthDetail}}{{end}}
+{{if .NatalAssessment}}原局结构定位：{{.NatalAssessment}}{{end}}
 
 当前大运：{{.DayunInfo}}
 {{if .HuaheTag}}合化：{{.HuaheTag}}{{end}}
@@ -179,19 +180,29 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 		if err := json.Unmarshal(raw, &cached); err == nil {
 			bazi.EnsureTenGodRelation(&cached)
 			backfilled := false
+			// Historical snapshots created before Ming Ge support remain otherwise valid.
+			// Backfill only the absent fields to avoid recalculating unrelated result data.
+			if cached.MingGe == "" || cached.MingGeDesc == "" {
+				cached.MingGe, cached.MingGeDesc = bazi.DetectMingGe(&cached)
+				backfilled = true
+			}
 			if bazi.EnsureGongJia(&cached) {
 				backfilled = true
 			}
-			// 老 chart 的 result_json 没有 ShishenConfidence — 幂等回填
-			// （字段值由 Yongshen/Jishen/strength 推算，跨版本可重算）
-			if cached.ShishenConfidence == "" {
-				strengthLevel, _, _ := bazi.GetStrengthDetail(&cached)
+			assessmentBackfilled := bazi.EnsureNatalAssessment(&cached)
+			// 喜忌十神与命盘评估同源。评估升级时必须同步刷新，避免旧调候
+			// 结果继续作为扶抑十神基底。
+			if cached.ShishenConfidence == "" || assessmentBackfilled {
+				fuyi := bazi.AssessFuyiStrength(&cached)
 				cached.FavorableShishen, cached.AdverseShishen, cached.ShishenConfidence = bazi.BuildFavorableShishen(
-					cached.DayGan, cached.Yongshen, cached.Jishen, strengthLevel,
+					cached.DayGan, fuyi.Yongshen, fuyi.Jishen, fuyi.Level,
 				)
 				backfilled = true
 			}
-			if cached.VehicleProfile == nil || (len(cached.Dayun) > 0 && len(cached.DayunRoadmap) == 0) {
+			if assessmentBackfilled {
+				backfilled = true
+				cached.VehicleProfile, cached.DayunRoadmap = bazi.BuildVehicleRoadProfile(&cached)
+			} else if cached.VehicleProfile == nil || (len(cached.Dayun) > 0 && len(cached.DayunRoadmap) == 0) {
 				vehicleProfile, dayunRoadmap := bazi.BuildVehicleRoadProfile(&cached)
 				if cached.VehicleProfile == nil {
 					cached.VehicleProfile = vehicleProfile
@@ -348,17 +359,79 @@ func formatVehicleRoadPromptContext(result *bazi.BaziResult, currentYear int) st
 	v := result.VehicleProfile
 	b.WriteString("\n[命盘座驾与大运路况-算法精算]\n")
 	b.WriteString("以下为后端算法已计算的比喻化解释层，你只能解释其含义，不得重新打分、改判等级或输出相互矛盾的座驾/路况结论。\n")
-	b.WriteString("座驾等级必须理解为“原局配置完整度与驾驭难度”，不是社会阶层、贵贱或确定命运。\n")
+	b.WriteString("座驾等级表示原局基础层次：调候急需优先；无急需时以扶抑为基线，再看日干调候成格、主格结构、制化与流通；不是社会阶层、人的贵贱或确定命运。\n")
 	b.WriteString(fmt.Sprintf("命盘座驾：%s级（%s），车型=%s，分数=%d，标签=%s。\n",
 		v.Grade, v.GradeLabel, v.VehicleType, v.Score, join(v.Tags)))
 	b.WriteString(fmt.Sprintf("座驾摘要：%s\n", v.Summary))
 	b.WriteString(fmt.Sprintf("座驾依据：%s\n", formatEvidence(v.Evidences, 5)))
+	if assessment := result.NatalAssessment; assessment != nil {
+		dayStem := assessment.Tiaohou.DayStem
+		thermal := assessment.Tiaohou.Thermal
+		thermalStatus := thermal.Status
+		if thermalStatus == "" {
+			thermalStatus = assessment.Climate.Status
+		}
+		b.WriteString(fmt.Sprintf("原局结构：日干调候可用性=%s（得分=%d，所需=%s，透=%s，藏=%s），日干调候成格=%s/%s（基础加成=%d），寒热调候=%s/%s，扶抑喜用=%s，主格结构=%s/%s，制化配合=%s，流通=%s；请以这些已算结论解释，不得另行改判。\n",
+			dayStem.Status,
+			dayStem.Score,
+			join(dayStem.RequiredStems),
+			join(dayStem.VisibleStems),
+			join(dayStem.HiddenStems),
+			dayStem.Formation,
+			dayStem.FoundationTier,
+			dayStem.FoundationScore,
+			thermal.Condition,
+			thermalStatus,
+			assessment.Fuyi.Yongshen,
+			assessment.Pattern.Name,
+			assessment.Pattern.Quality,
+			join(append(append([]string{}, assessment.Pattern.Formations...), assessment.Pattern.Breaks...)),
+			assessment.Relations.Flow,
+		))
+		if len(assessment.YongshenAlignment.Elements) > 0 {
+			b.WriteString(assessment.YongshenAlignment.Detail + " 此为共同优先次序，不替代完整扶抑喜用。\n")
+		}
+		b.WriteString("解释边界：日干调候天透地藏成格代表高格基础；主格结构及制化配合仍须按其独立证据说明，不得互相否定或把高格基础说成无条件的最终等级。\n")
+	}
 	b.WriteString(fmt.Sprintf("当前路况：%s大运，%s，分数=%d，前五年=%s，后五年=%s。\n",
 		currentRoad.GanZhi, currentRoad.RoadLabel, currentRoad.Score, currentRoad.QianRoad.Label, currentRoad.HouRoad.Label))
 	b.WriteString(fmt.Sprintf("当前路况摘要：%s\n", currentRoad.Summary))
 	b.WriteString(fmt.Sprintf("当前路况依据：%s\n", formatEvidence(currentRoad.Evidences, 5)))
 	b.WriteString("表达边界：只能写“更适合主动推进、需要控速、宜稳住风险、等待顺运补足”等策略性语言，禁止写必富、必败、注定、阶层高低等绝对判断。\n")
 	return b.String()
+}
+
+func formatDayunNatalAssessment(result *bazi.BaziResult) string {
+	if result == nil || result.NatalAssessment == nil {
+		return ""
+	}
+	assessment := result.NatalAssessment
+	dayStem := assessment.Tiaohou.DayStem
+	parts := make([]string, 0, 4)
+	if dayStem.Formation == "formed" {
+		parts = append(parts, fmt.Sprintf("日干调候天透地藏成格，为高格基础（所需%s；透%s；藏%s）", formatPromptList(dayStem.RequiredStems), formatPromptList(dayStem.VisibleStems), formatPromptList(dayStem.HiddenStems)))
+	} else if dayStem.Formation != "" {
+		parts = append(parts, fmt.Sprintf("日干调候%s（所需%s；透%s；藏%s）", dayStem.Formation, formatPromptList(dayStem.RequiredStems), formatPromptList(dayStem.VisibleStems), formatPromptList(dayStem.HiddenStems)))
+	}
+	parts = append(parts, fmt.Sprintf("主格结构%s/%s", assessment.Pattern.Name, assessment.Pattern.Quality))
+	if formations := formatPromptList(assessment.Pattern.Formations); formations != "无" {
+		parts = append(parts, "制化配合"+formations)
+	}
+	if breaks := formatPromptList(assessment.Pattern.Breaks); breaks != "无" {
+		parts = append(parts, "格局需留意"+breaks)
+	}
+	parts = append(parts, "扶抑喜用"+assessment.Fuyi.Yongshen)
+	if len(assessment.YongshenAlignment.Elements) > 0 {
+		parts = append(parts, assessment.YongshenAlignment.Detail)
+	}
+	return strings.Join(parts, "；") + "。日干调候高格基础不替代主格结构、制化或扶抑结论。"
+}
+
+func formatPromptList(items []string) string {
+	if len(items) == 0 {
+		return "无"
+	}
+	return strings.Join(items, "、")
 }
 
 // formatYongshenInfo 将 BaziResult 的 yongshen 字段格式化为 prompt 可读的文案
@@ -482,7 +555,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		)
 	}
 
-	// ===调候用神===
+	// ===日干调候用神===
 	tiaohouStr := ""
 	if r.Tiaohou != nil {
 		// 构建透出/藏干状态描述
@@ -504,7 +577,9 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		touCount := len(r.Tiaohou.Tou)
 		cangCount := len(r.Tiaohou.Cang)
 		expectedCount := len(r.Tiaohou.Expected)
-		if touCount > 0 && touCount >= expectedCount {
+		if assessment := r.NatalAssessment; assessment != nil && assessment.Tiaohou.DayStem.Formation == "formed" {
+			satisfyNote = "→ 日干调候用神天透地藏成格，为高格基础；主格结构、制化配合、寒热调候与扶抑仍须分别说明。"
+		} else if touCount > 0 && touCount >= expectedCount {
 			satisfyNote = "→ 调候用神透干齐全，寒暖燥湿均衡，命局完整度高。"
 		} else if touCount > 0 {
 			satisfyNote = fmt.Sprintf("→ 调候用神部分透干（%d/%d），有一定调候基础。", touCount, expectedCount)
@@ -515,12 +590,13 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		}
 
 		tiaohouStr = fmt.Sprintf(
-			"\n[调候用神-穷通宝鉴精算]\n"+
+			"\n[日干调候-穷通宝鉴精算]\n"+
 				"日主[%s]生于[%s月]，调候理论指出：%s\n"+
 				"理论调候用神：%s\n"+
 				"本命局透干：%s\n"+
 				"本命局藏干：%s\n"+
-				"%s\n",
+				"%s\n"+
+				"说明：此项是日干与月令的字典取用，须与下方寒热调候及扶抑喜用分开解释，不得互相替代。\n",
 			r.DayGan, r.MonthZhi, r.Tiaohou.Text,
 			expectedDesc,
 			touDesc,
@@ -1940,14 +2016,15 @@ func GenerateDayunSummariesStream(chartID string, userID *string, dayunIndexes [
 		// 按 Q1=A 决策：不传 YongshenInfo / FavorableShishen / AdverseShishen / ShishenConfidence / TiaohouSummary
 		// AI 仅看身强弱 + 大运信息 + 算法信号 evidence，自行判吉凶
 		tplData := model.DayunSummaryTemplateData{
-			Gender:         genderLabel,
-			DayGan:         result.DayGan,
-			NatalSummary:   natalSummary,
-			StrengthDetail: strengthDetail,
-			DayunInfo:      dayunInfo,
-			HuaheTag:       huaheMap[gz],
-			YearsData:      string(dySigsJSON),
-			LifeStageHint:  lifeStageHint,
+			Gender:          genderLabel,
+			DayGan:          result.DayGan,
+			NatalSummary:    natalSummary,
+			StrengthDetail:  strengthDetail,
+			NatalAssessment: formatDayunNatalAssessment(result),
+			DayunInfo:       dayunInfo,
+			HuaheTag:        huaheMap[gz],
+			YearsData:       string(dySigsJSON),
+			LifeStageHint:   lifeStageHint,
 		}
 		var pbuf bytes.Buffer
 		if err := tmpl.Execute(&pbuf, tplData); err != nil {

@@ -56,30 +56,27 @@ func calcTiaohou(bazi *BaziResult) *TiaohouResult {
 
 	touStems := []string{bazi.YearGan, bazi.MonthGan, bazi.HourGan} // 排除日干自身
 	for _, ys := range rule.Yongshen {
-		isTou := false
 		for _, s := range touStems {
 			if s == ys {
 				tou = append(tou, ys)
-				isTou = true
 				break
 			}
 		}
 
-		if !isTou {
-			// 在藏干中寻找
-			isCang := false
-			cangStems := [][]string{bazi.YearHideGan, bazi.MonthHideGan, bazi.DayHideGan, bazi.HourHideGan}
-			for _, branchCangs := range cangStems {
-				for _, s := range branchCangs {
-					if s == ys {
-						cang = append(cang, ys)
-						isCang = true
-						break
-					}
-				}
-				if isCang {
+		// 透干与藏支是两项独立证据。即使同一用神已透干，也必须
+		// 继续记录其藏支，供“天透地藏成格”判定使用。
+		isCang := false
+		cangStems := [][]string{bazi.YearHideGan, bazi.MonthHideGan, bazi.DayHideGan, bazi.HourHideGan}
+		for _, branchCangs := range cangStems {
+			for _, s := range branchCangs {
+				if s == ys {
+					cang = append(cang, ys)
+					isCang = true
 					break
 				}
+			}
+			if isCang {
+				break
 			}
 		}
 	}

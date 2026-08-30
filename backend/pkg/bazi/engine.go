@@ -118,6 +118,9 @@ type BaziResult struct {
 	// 原局夹拱虚支（中性信号层，不参与五行强弱与用忌计算）
 	GongJia []GongJiaItem `json:"gong_jia,omitempty"`
 
+	// 原局结构评估：调候急需、扶抑、格局成败与流通的版本化判断上下文。
+	NatalAssessment *NatalAssessment `json:"natal_assessment,omitempty"`
+
 	// 命盘座驾与大运路况（确定性算法解释层）
 	VehicleProfile *VehicleProfile `json:"vehicle_profile,omitempty"`
 	DayunRoadmap   []DayunRoad     `json:"dayun_roadmap,omitempty"`
@@ -480,11 +483,12 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 	EnsureTenGodRelation(res)
 	EnsureGongJia(res)
 
-	// 喜忌十神（古法映射）— 必须在 Yongshen/Jishen 已就位后
-	strengthLevel, _, _ := dayMasterStrengthLevel(res)
+	// 喜忌十神使用完整原局的扶抑结论；调候字段仍独立保留在 res.Yongshen/Jishen。
+	globalFuyi := AssessFuyiStrength(res)
 	res.FavorableShishen, res.AdverseShishen, res.ShishenConfidence = BuildFavorableShishen(
-		res.DayGan, res.Yongshen, res.Jishen, strengthLevel,
+		res.DayGan, globalFuyi.Yongshen, globalFuyi.Jishen, globalFuyi.Level,
 	)
+	EnsureNatalAssessment(res)
 	res.VehicleProfile, res.DayunRoadmap = BuildVehicleRoadProfile(res)
 
 	return res

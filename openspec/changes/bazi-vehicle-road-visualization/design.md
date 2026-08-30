@@ -64,35 +64,42 @@ Rationale:
 
 Alternative considered: a single `fortune_score`. Rejected because it encourages oversimplified "命好/命差" conclusions and makes evidence harder to audit.
 
-### Decision 3: Use S/A/B/C/D as configuration completeness, not human value
+### Decision 3: Use S/A/B/C/D as natal-chart tiers, not human value
 
-Vehicle grades will be mapped from a 0-100 score:
+Vehicle grades represent the relative carrying capacity of the natal chart itself. They intentionally distinguish stronger and weaker base configurations, while never describing the worth of a person or guaranteeing an outcome:
 
-- `S`: 90-100, 协同型配置，主线清晰，优势较易整合发挥。
-- `A`: 75-89, 稳健型配置，基础扎实，顺运时通常更省力。
-- `B`: 60-74, 实用型配置，能力稳定，适合顺势经营。
-- `C`: 45-59, 特性型配置，优势与限制都明显，更看选择与路况。
-- `D`: 0-44, 调校型配置，对环境与策略更敏感，需要更多后天调校和支持条件。
+- `S`: 上格配置。调候急需已充分解决，扶抑用神得力，结构稳定。
+- `A`: 中上格配置。调候和扶抑主线成立，但仍有局部瑕疵。
+- `B`: 中格配置。原局可用但短板明确，发挥更依赖顺运。
+- `C`: 中下格配置。调候或扶抑至少一项关键不足，基础承载力偏弱。
+- `D`: 下格配置。调候急病未解且扶抑无力，或原局风险显著集中。
 
-The UI and report copy must avoid "贵贱", "高低人等", "必富", "必败", and similar absolute or status-loaded wording.
+The UI and report copy must distinguish natal-chart tiers from a person's value, social class, wealth, or a guaranteed life outcome.
 
-Alternative considered: labels such as "上等命/中等命/下等命". Rejected because they are harsh, commercially risky, and less useful than a capability-oriented metaphor.
+### Decision 4: Use a gated, Tiaohou-first natal scoring model
 
-### Decision 4: Score natal vehicle from existing explainable signals
+Natal score inputs are evaluated in this order:
 
-Initial natal score inputs:
-
-| Signal | Weight | Direction |
+| Signal | Weight | Role |
 | --- | ---: | --- |
-| Day-master strength balance | 25 | Neutral to moderately strong/weak is easier to use; extreme strength or weakness requires more correction. |
-| Tiaohou completeness | 25 | Expected Tiaohou stems appearing in exposed or hidden form increase configuration completeness. |
-| Ming Ge clarity | 20 | Clear classical pattern increases structure clarity; "杂气格" is treated as complex rather than bad. |
-| Yongshen/Jishen and Ten God confidence | 15 | Clear hard/medium confidence improves explainability. |
-| Natal risk modifiers | 15 | Severe collision/void/harsh Shen Sha density can lower ease-of-use; auspicious support can soften. |
+| Urgent Tiaohou condition | 35 | First gate. For an extreme cold/hot chart, exposed relief is fully resolved, hidden relief is partial, and absence is an unresolved urgent condition. Non-urgent charts receive a neutral baseline rather than a bonus for merely matching a dictionary entry. |
+| Fuyi Yongshen effectiveness | 30 | Second gate. Independently derive the Fuyi Yongshen, then assess whether it is exposed, rooted in hidden stems, or outweighed by exposed Jishen. |
+| Day-master condition | 12 | Moderate strength is easier to use than extreme strength or weakness, but cannot override the first two gates. |
+| Ming Ge clarity | 15 | A clear pattern can lift a chart after the two primary conditions are met; a complex or absent pattern receives less support. |
+| Natal risk modifier | 8 | Harsh Shen Sha density can pull a tier down; helpful stars can only provide a small lift. |
 
-The output evidence must include source, label, impact, score delta, and detail so users can see why a profile received its grade.
+Hard ceilings prevent unrelated positive signals from masking a core defect:
 
-Alternative considered: base the vehicle grade mostly on Ming Ge. Rejected because Ming Ge alone cannot evaluate climate adjustment, body strength, or whether the chart is easy to drive in practice.
+- An unresolved urgent Tiaohou condition caps the grade at `C`.
+- A hidden-only urgent Tiaohou relief caps the grade at `A`.
+- When Fuyi Yongshen has no usable support, the grade caps at `B`.
+- Risk modifiers may lower the score but cannot raise a chart above its Tiaohou/Fuyi ceiling.
+
+`ShishenConfidence` remains explanatory metadata. It must not add to the natal grade because confidence in an algorithmic inference is not a measure of chart quality.
+
+The output evidence must include source, label, impact, score delta, and detail so users can see the Tiaohou gate, Fuyi assessment, and any applied ceiling.
+
+Alternative considered: a base score with parallel positive additions from every existing signal. Rejected because it makes ordinary charts cluster at S/A and leaves C/D unreachable.
 
 ### Decision 5: Score Dayun roads from phase-aware Dayun evidence
 
@@ -137,7 +144,7 @@ Alternative considered: make a full-screen animated vehicle-road scene. Deferred
 
 ## Risks / Trade-offs
 
-- [Risk] Users may read grades as social rank or deterministic destiny. -> Mitigation: copy must frame grades as "配置完整度/驾驭难度" and avoid value-loaded labels.
+- [Risk] Users may read natal-chart tiers as social rank or deterministic destiny. -> Mitigation: copy must distinguish the base chart from a person's value and from guaranteed outcomes.
 - [Risk] Scoring weights may feel arbitrary. -> Mitigation: expose evidence deltas, add focused tests, and keep weights in one backend module for later tuning.
 - [Risk] Frontend and backend duplicate interpretive logic. -> Mitigation: move authoritative scoring and summary labels to backend; frontend only renders and lightly degrades old data.
 - [Risk] Old chart snapshots lack new fields. -> Mitigation: feature-detect fields, display old overview normally, and derive only limited fallback labels where reliable.
@@ -168,7 +175,25 @@ Rationale:
 
 - A bare letter grade or words such as "顶配" do not explain what is being evaluated.
 - Making the grade scale visible in context ensures users do not have to discover a collapsed control before they understand their own result.
-- Neutral labels such as "特性型" and "调校型" are less likely to be read as social ranking than "偏科" or "需调校".
+- Tier labels such as "上格配置" and "中下格配置" make the natal-chart distinction explicit, while the surrounding copy keeps it separate from a judgement of the person.
+
+### Decision 9: Make the visible grade scale explain the tier criteria
+
+The visible S-D guide will describe the same Tiaohou-first and Fuyi-second criteria used by the backend. It will call the output a natal-chart tier, clarify that it is not a judgement of the person, and explain that Dayun road conditions remain a separate external variable.
+
+### Decision 10: Vehicle class follows natal tier; Ming Ge is professional driving context
+
+The primary `vehicle_type` is a direct, stable mapping from the final natal grade:
+
+- `S`: 超跑级座驾
+- `A`: 高性能车级座驾
+- `B`: 标准轿车级座驾
+- `C`: 实用 MPV 级座驾
+- `D`: 基础代步单车级
+
+This makes the metaphor readable: the tier answers how capable the base vehicle is, while Dayun still answers what road it receives. The system must not infer the primary vehicle class from a Ming Ge, because no single Ming Ge is inherently high or low and the existing detection has a complex fallback.
+
+Ming Ge may produce an optional `driving_style` explanation in professional mode only, such as stability-oriented, responsiveness-oriented, or high-control-demand. This is an interpretive aid, not a primary vehicle class or a social-status label. Brand names and model names are excluded because they do not form a stable or unambiguous hierarchy.
 
 ## Open Questions
 

@@ -637,6 +637,26 @@ export interface PastEventsExportResponse {
   generated_by: string
 }
 
+export interface MingGeHistoricalFigure {
+  id: string
+  ming_ge: string
+  figure_name: string
+  era: string
+  identity: string
+  historical_memory: string
+  turning_point: string
+  turning_point_year: string
+  source_title: string
+  source_url: string
+  birth_data_precision: 'unknown' | 'date_only' | 'exact_hour'
+  bazi_verification_note?: string
+  dayun_period?: string
+  dayun_explanation?: string
+  show_dayun: boolean
+  display_order: number
+  review_status: 'draft' | 'reviewed' | 'published' | 'archived'
+}
+
 export const baziAPI = {
   calculate: (data: CalculateInput) => api.post('/api/bazi/calculate', data),
   resolvePillars: (data: ResolvePillarsInput) =>
@@ -921,6 +941,8 @@ export const baziAPI = {
     ),
   deleteHistory: (id: string) =>
     api.delete<{ data: { id: string } }>(`/api/bazi/history/${id}`),
+  getMingGeHistoricalFigures: (mingGe: string) =>
+    api.get<{ data: MingGeHistoricalFigure[] }>(`/api/mingge-historical-figures/${encodeURIComponent(mingGe)}`),
   fetchLiuYue: (liuNianYear: number, dayGan: string) =>
     api.post('/api/bazi/liu-yue', { liu_nian_year: liuNianYear, day_gan: dayGan }),
 }

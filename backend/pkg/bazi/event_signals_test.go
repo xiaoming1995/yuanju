@@ -82,11 +82,11 @@ func TestStrengthLevel_VWeak(t *testing.T) {
 }
 
 func TestStrengthLevel_Neutral(t *testing.T) {
-	// 月支克我，其他得地，预期落在中和
-	natal := makeNatal("甲寅", "壬子", "丙寅", "甲午", "", "")
+	// 月令子水克丙火，月令的独立克身证据可使原局落入偏弱。
+	natal := makeNatal("甲寅", "壬子", "丙寅", "庚申", "", "")
 	level, _, _ := dayMasterStrengthLevel(natal)
-	if level != "neutral" && level != "weak" && level != "strong" {
-		t.Fatalf("expected one of neutral/weak/strong, got %s", level)
+	if level != "neutral" && level != "weak" && level != "vweak" {
+		t.Fatalf("expected neutral/weak/vweak, got %s", level)
 	}
 }
 

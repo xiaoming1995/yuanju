@@ -61,32 +61,27 @@ func ComputeClassicalYongshen(natal *BaziResult) ClassicalYongshenResult {
 		return buildTiaohouResult(natal, "hot")
 	}
 
-	// Step 2+3: 扶抑
-	dayGanWx := ganWuxing[natal.DayGan]
-	monthZhiWx := zhiWuxing[natal.MonthZhi]
-
-	helpElements, opposeElements := getHelpOpposeElements(dayGanWx)
-	if helpElements == "" {
+	// Step 2+3: 扶抑 uses the same full natal assessment as profiles and roads.
+	fuyi := AssessFuyiStrength(natal)
+	if fuyi.Yongshen == "" || fuyi.Jishen == "" {
 		return ClassicalYongshenResult{
-			Reason: fmt.Sprintf("无法识别日主五行: dayGan=%s", natal.DayGan),
+			Reason: fmt.Sprintf("扶抑强弱中和或无法识别: dayGan=%s", natal.DayGan),
 		}
 	}
 
-	isStrong := calcIsStrongByMonthWeight(dayGanWx, monthZhiWx, natal.Wuxing)
+	isStrong := fuyi.Level == "strong" || fuyi.Level == "vstrong"
 
 	var wuxingSet, jishenSet, strategy, reason string
 	if isStrong {
-		wuxingSet = opposeElements
-		jishenSet = helpElements
+		wuxingSet = fuyi.Yongshen
+		jishenSet = fuyi.Jishen
 		strategy = ClassicalStrategyFuyiStrong
-		reason = fmt.Sprintf("身强 (月令%s+权重计算)，扶抑取克泄耗: 用神=%s 忌神=%s",
-			monthZhiWx, wuxingSet, jishenSet)
+		reason = fmt.Sprintf("%s，扶抑取克泄耗: 用神=%s 忌神=%s", fuyi.Reason, wuxingSet, jishenSet)
 	} else {
-		wuxingSet = helpElements
-		jishenSet = opposeElements
+		wuxingSet = fuyi.Yongshen
+		jishenSet = fuyi.Jishen
 		strategy = ClassicalStrategyFuyiWeak
-		reason = fmt.Sprintf("身弱 (月令%s+权重计算)，扶抑取生扶: 用神=%s 忌神=%s",
-			monthZhiWx, wuxingSet, jishenSet)
+		reason = fmt.Sprintf("%s，扶抑取生扶: 用神=%s 忌神=%s", fuyi.Reason, wuxingSet, jishenSet)
 	}
 
 	primaryGan := selectPrimaryGan(natal, wuxingSet)

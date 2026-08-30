@@ -1205,14 +1205,22 @@ func applyPolarity(sig *EventSignal, signalSelf, baseline string, source string)
 	}
 }
 
-// dayMasterStrengthLevel 加权身强弱评分（5 档），返回档位、评分与说明明细
+// dayMasterStrengthLevel returns the shared global Fuyi result. The legacy
+// scorer remains below for reference while all production consumers use this
+// complete natal-chart assessment.
+func dayMasterStrengthLevel(natal *BaziResult) (level string, score int, detail string) {
+	assessment := AssessFuyiStrength(natal)
+	return assessment.Level, assessment.Score, assessment.Reason
+}
+
+// legacyDayMasterStrengthLevel 加权身强弱评分（5 档），返回档位、评分与说明明细
 // 权重规则：
 //   - 月支与日干关系（得令）：×5
 //   - 其余地支本气与日干关系（得地）：×3
 //   - 藏干透出 + 天干生扶/克泄（得势）：×2
 //
 // 返回档位：vstrong / strong / neutral / weak / vweak
-func dayMasterStrengthLevel(natal *BaziResult) (level string, score int, detail string) {
+func legacyDayMasterStrengthLevel(natal *BaziResult) (level string, score int, detail string) {
 	if natal == nil {
 		return "neutral", 0, ""
 	}

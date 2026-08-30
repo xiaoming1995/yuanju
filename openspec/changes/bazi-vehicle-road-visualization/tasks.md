@@ -48,3 +48,19 @@
 - [x] 7.1 Render the full S-D grade scale and ordinary-user explanations directly in the vehicle card, with the current grade identified.
 - [x] 7.2 Keep Dayun road definitions available as secondary detail without hiding the grade scale.
 - [x] 7.3 Update focused frontend assertions and verify the production build and responsive result layout.
+
+## 8. Tiaohou-First Natal Tiering
+
+- [x] 8.1 Replace the natal base-score model with a Tiaohou-first gate and an independently evaluated Fuyi Yongshen score; remove Ten God confidence as a score input.
+- [x] 8.2 Apply deterministic grade ceilings for unresolved or hidden-only urgent Tiaohou and unusable Fuyi Yongshen, then map grades to S/A/B/C/D natal-chart tier labels.
+- [x] 8.3 Update vehicle summaries, report context, and the visible grade guide to describe the revised natal-chart tiers and their criteria.
+- [x] 8.4 Add backend regression tests for Tiaohou/Fuyi gates, grade ceilings, and score bounds; update frontend assertions for the new labels and guidance.
+- [x] 8.5 Run focused backend/frontend tests, production build, strict OpenSpec validation, and inspect result rendering.
+
+## 9. Grade-Mapped Vehicle Classes
+
+- [x] 9.1 Map the final natal grade to a stable primary vehicle class and remove Ming Ge or day-master conditions from primary vehicle-type selection.
+- [x] 9.2 Add an optional Ming Ge-derived driving-style field for professional evidence without using it as the primary vehicle class.
+- [x] 9.3 Update result-page types and rendering so the grade-mapped vehicle class is primary and the driving style appears only in professional mode.
+- [x] 9.4 Add focused backend and frontend tests for grade-to-vehicle mapping, Ming Ge isolation, and professional driving-style rendering.
+- [x] 9.5 Run focused tests, production build, strict OpenSpec validation, and inspect desktop/mobile result rendering.

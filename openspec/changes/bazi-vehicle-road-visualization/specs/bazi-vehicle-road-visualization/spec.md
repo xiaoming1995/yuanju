@@ -14,6 +14,44 @@ The system SHALL compute a deterministic vehicle profile for each newly calculat
 - **THEN** its `evidences` include source labels and score impacts for the major contributing signals
 - **AND** the evidence references deterministic inputs such as Ming Ge, day-master strength, Tiaohou, Yongshen/Jishen, Ten God confidence, or natal risk modifiers
 
+### Requirement: Natal chart tiers prioritize Tiaohou and Fuyi Yongshen
+The system SHALL determine the natal vehicle tier from a Tiaohou-first, Fuyi-second evaluation instead of a parallel positive-addition model.
+
+#### Scenario: Urgent Tiaohou condition is unresolved
+- **WHEN** an extreme cold or hot natal chart lacks the required Tiaohou relief in its exposed or hidden stems
+- **THEN** its vehicle grade MUST NOT exceed `C`
+- **AND** the vehicle evidence identifies the unresolved Tiaohou condition
+
+#### Scenario: Urgent Tiaohou condition is only hidden
+- **WHEN** an extreme cold or hot natal chart has the required Tiaohou relief only in hidden stems
+- **THEN** its vehicle grade MUST NOT exceed `A`
+
+#### Scenario: Tiaohou is resolved and Fuyi Yongshen is effective
+- **WHEN** the urgent Tiaohou condition is resolved, or no urgent Tiaohou condition exists, and the independently derived Fuyi Yongshen is exposed or rooted without dominant exposed Jishen
+- **THEN** the profile MAY qualify for `A` or `S` according to its remaining deterministic evidence
+- **AND** the evidence identifies the Fuyi Yongshen assessment separately from Tiaohou
+
+#### Scenario: Inference confidence does not inflate tier
+- **WHEN** a profile is scored
+- **THEN** Ten God inference confidence MAY be displayed as diagnostic evidence
+- **BUT** it MUST NOT add points to the natal vehicle score
+
+### Requirement: Primary vehicle class follows natal tier
+The system SHALL derive the primary vehicle class from the final S/A/B/C/D natal tier, not from Ming Ge.
+
+#### Scenario: Vehicle class is deterministic for every grade
+- **WHEN** a profile has a final natal grade
+- **THEN** its primary `vehicle_type` MUST be one of the grade-mapped classes: 超跑级座驾, 高性能车级座驾, 标准轿车级座驾, 实用 MPV 级座驾, or 基础代步单车级
+
+#### Scenario: Ming Ge does not change primary vehicle class
+- **WHEN** two profiles have the same final natal grade but different Ming Ge values
+- **THEN** they MUST have the same primary `vehicle_type`
+
+#### Scenario: Professional view exposes driving style separately
+- **WHEN** a professional-mode vehicle profile has Ming Ge data
+- **THEN** the profile MAY display a `driving_style` explanation derived from the Ming Ge
+- **AND** the explanation MUST state that it is a handling or usage tendency, not a basis for the grade or primary vehicle class
+
 ### Requirement: Dayun road map
 The system SHALL compute deterministic road-condition data for each Dayun period in a newly calculated Bazi result.
 
@@ -42,10 +80,15 @@ The system SHALL provide an in-context explanation of the vehicle grade scale an
 
 #### Scenario: User views a vehicle profile
 - **WHEN** the result page displays `vehicle_profile`
-- **THEN** the primary grade name is a Chinese configuration label and the `S/A/B/C/D` value is only an algorithmic marker
+- **THEN** the primary grade name is a Chinese natal-chart tier label and the `S/A/B/C/D` value is only an algorithmic marker
 - **AND** the page visibly displays every vehicle grade and its ordinary-user explanation without requiring interaction
 - **AND** the page identifies the current result's grade in that visible scale
 - **AND** the page provides a secondary explanation of the relationship between natal vehicle and Dayun road
+
+#### Scenario: User views a professional vehicle profile
+- **WHEN** the result page is in professional mode and `driving_style` is present
+- **THEN** it displays the driving style inside the professional evidence area
+- **AND** ordinary mode does not use the Ming Ge-derived style as the primary vehicle name
 
 #### Scenario: User views the current Dayun road
 - **WHEN** the result page resolves a current Dayun road

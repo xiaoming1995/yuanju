@@ -466,6 +466,7 @@ func TestLoadOrCalculateResultBackfillsGongJiaSnapshot(t *testing.T) {
 
 func TestLoadOrCalculateResultBackfillsVehicleRoadSnapshot(t *testing.T) {
 	cached := bazi.Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
+	cached.NatalAssessment = nil
 	cached.VehicleProfile = nil
 	cached.DayunRoadmap = nil
 	raw, err := json.Marshal(cached)
@@ -502,6 +503,9 @@ func TestLoadOrCalculateResultBackfillsVehicleRoadSnapshot(t *testing.T) {
 	if result.VehicleProfile == nil {
 		t.Fatalf("expected result to be backfilled with vehicle_profile")
 	}
+	if result.NatalAssessment == nil || result.NatalAssessment.Version != bazi.NatalAssessmentVersion {
+		t.Fatalf("expected result to be backfilled with natal assessment, got %+v", result.NatalAssessment)
+	}
 	if len(result.DayunRoadmap) != len(result.Dayun) {
 		t.Fatalf("expected dayun_roadmap length %d, got %d", len(result.Dayun), len(result.DayunRoadmap))
 	}
@@ -515,8 +519,53 @@ func TestLoadOrCalculateResultBackfillsVehicleRoadSnapshot(t *testing.T) {
 	if persisted.VehicleProfile == nil {
 		t.Fatalf("saved snapshot should contain vehicle_profile")
 	}
+	if persisted.NatalAssessment == nil || persisted.NatalAssessment.Version != bazi.NatalAssessmentVersion {
+		t.Fatalf("saved snapshot should contain current natal assessment, got %+v", persisted.NatalAssessment)
+	}
 	if len(persisted.DayunRoadmap) != len(persisted.Dayun) {
 		t.Fatalf("saved snapshot should contain dayun_roadmap")
+	}
+}
+
+func TestLoadOrCalculateResultBackfillsMingGeSnapshot(t *testing.T) {
+	cached := bazi.Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
+	expectedVehicleScore := cached.VehicleProfile.Score
+	cached.MingGe = ""
+	cached.MingGeDesc = ""
+	raw, err := json.Marshal(cached)
+	if err != nil {
+		t.Fatalf("marshal cached result: %v", err)
+	}
+
+	originalGet := getChartResultJSON
+	originalSave := saveChartResultJSON
+	t.Cleanup(func() {
+		getChartResultJSON = originalGet
+		saveChartResultJSON = originalSave
+	})
+	getChartResultJSON = func(chartID string) ([]byte, error) { return raw, nil }
+	var saved []byte
+	saveChartResultJSON = func(_ string, resultJSON []byte) error {
+		saved = append([]byte(nil), resultJSON...)
+		return nil
+	}
+
+	result, err := LoadOrCalculateResult(&model.BaziChart{ID: "chart-mingge-backfill"})
+	if err != nil {
+		t.Fatalf("LoadOrCalculateResult returned error: %v", err)
+	}
+	if result.MingGe == "" || result.MingGeDesc == "" {
+		t.Fatalf("expected Ming Ge fields to be backfilled, got %+v", result)
+	}
+	if result.VehicleProfile == nil || result.VehicleProfile.Score != expectedVehicleScore {
+		t.Fatal("Ming Ge backfill must preserve unrelated snapshot data")
+	}
+	var persisted bazi.BaziResult
+	if err := json.Unmarshal(saved, &persisted); err != nil {
+		t.Fatalf("saved snapshot should be valid JSON: %v", err)
+	}
+	if persisted.MingGe != result.MingGe || persisted.MingGeDesc != result.MingGeDesc {
+		t.Fatalf("saved snapshot missing Ming Ge backfill: %+v", persisted)
 	}
 }
 
@@ -695,7 +744,13 @@ func TestBuildBaziPromptIncludesVehicleRoadContext(t *testing.T) {
 	for _, want := range []string{
 		"[命盘座驾与大运路况-算法精算]",
 		"命盘座驾：",
-		"座驾等级必须理解为“原局配置完整度与驾驭难度”",
+		"座驾等级表示原局基础层次：调候急需优先；无急需时以扶抑为基线，再看日干调候成格、主格结构、制化与流通",
+		"日干调候可用性=resolved（得分=12，所需=甲、壬，透=甲，藏=甲、壬）",
+		"日干调候成格=formed/high（基础加成=24）",
+		"主格结构=偏印格/partial",
+		"解释边界：日干调候天透地藏成格代表高格基础",
+		"寒热调候=偏燥/seasonal_partial",
+		"扶抑喜用=水金",
 		"当前路况：",
 		"不得重新打分、改判等级",
 		"禁止写必富、必败、注定、阶层高低",
@@ -709,6 +764,36 @@ func TestBuildBaziPromptIncludesVehicleRoadContext(t *testing.T) {
 	}
 	if !strings.Contains(prompt, result.VehicleProfile.VehicleType) {
 		t.Fatalf("expected prompt to include vehicle type %q", result.VehicleProfile.VehicleType)
+	}
+}
+
+func TestFormatDayunNatalAssessmentSeparatesHighFoundationAndPrimaryPattern(t *testing.T) {
+	result := bazi.Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
+	context := formatDayunNatalAssessment(result)
+	for _, want := range []string{
+		"日干调候天透地藏成格，为高格基础",
+		"所需甲、壬",
+		"透甲",
+		"藏甲、壬",
+		"主格结构偏印格/partial",
+		"扶抑喜用水金",
+		"不替代主格结构、制化或扶抑结论",
+	} {
+		if !strings.Contains(context, want) {
+			t.Fatalf("expected dayun natal context to contain %q, got %s", want, context)
+		}
+	}
+}
+
+func TestNatalPromptIncludesSharedPriorityYongshen(t *testing.T) {
+	result := bazi.Calculate(1996, 2, 8, 20, "male", false, 0, "solar", false)
+	context := formatDayunNatalAssessment(result)
+	if !strings.Contains(context, "扶抑喜用金土火") || !strings.Contains(context, "共同优先用神：火（寒热调候 + 扶抑）") {
+		t.Fatalf("expected complete Fuyi and shared fire priority in dayun context, got %s", context)
+	}
+	prompt := buildBaziPrompt(result)
+	if !strings.Contains(prompt, "共同优先用神：火（寒热调候 + 扶抑）") {
+		t.Fatalf("expected report prompt to include shared fire priority, got %s", prompt)
 	}
 }
 

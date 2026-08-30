@@ -189,6 +189,7 @@ func main() {
 
 		// 神煞注解（公开）
 		api.GET("/shensha/annotations", handler.GetShenshaAnnotations)
+		api.GET("/mingge-historical-figures/:ming_ge", handler.GetMingGeHistoricalFigures)
 
 		// Admin 路由组（独立鉴权）
 		admin := api.Group("/admin")
@@ -248,6 +249,12 @@ func main() {
 				adminAuth.PUT("/celebrities/:id", handler.AdminUpdateCelebrity)
 				adminAuth.DELETE("/celebrities/:id", handler.AdminDeleteCelebrity)
 				adminAuth.POST("/celebrities/ai-generate", handler.AdminAIGenerateCelebrities)
+
+				// 命格古人映照（人工审核内容，独立于 AI 名人库）
+				adminAuth.GET("/mingge-historical-figures", handler.AdminListMingGeHistoricalFigures)
+				adminAuth.POST("/mingge-historical-figures", handler.AdminCreateMingGeHistoricalFigure)
+				adminAuth.PUT("/mingge-historical-figures/:id", handler.AdminUpdateMingGeHistoricalFigure)
+				adminAuth.DELETE("/mingge-historical-figures/:id", handler.AdminArchiveMingGeHistoricalFigure)
 
 				// Prompt 管理
 				adminAuth.GET("/prompts", handler.GetPrompts)

@@ -71,6 +71,91 @@
   transform: translateY(-1px);
 }
 
+.result-historical-figures {
+  margin: 32px 0 28px;
+  padding: 28px 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.result-historical-figures-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.result-historical-figures-heading span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.result-historical-figures-heading h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 21px;
+}
+
+.result-historical-figures-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.result-historical-figure {
+  min-width: 0;
+  padding-right: 20px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.result-historical-figure:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.result-historical-figure-title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result-historical-figure h3 {
+  margin: 0;
+  color: var(--text-accent);
+  font-size: 19px;
+}
+
+.result-historical-figure-title span,
+.result-historical-figure p,
+.result-historical-boundary {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.result-historical-figure p { margin: 8px 0 0; }
+
+.result-historical-evidence {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.result-historical-evidence p { margin-top: 4px; }
+.result-historical-evidence strong { color: var(--text-muted); font-weight: 600; }
+.result-historical-evidence a { color: var(--text-accent); }
+
+.result-historical-boundary {
+  margin: 16px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
 /* 命格 Modal 点缀元素 */
 .mingge-modal-dot {
   width: 10px;
@@ -776,6 +861,125 @@
 .structure-card--yongshen .yongshen-badge {
   height: 100%;
   box-sizing: border-box;
+}
+
+.structure-card--stem-guidance {
+  grid-column: 1 / -1;
+}
+
+.stem-guidance-panel {
+  padding: 20px;
+}
+
+.stem-guidance-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stem-guidance-heading > div {
+  display: grid;
+  gap: 4px;
+}
+
+.stem-guidance-heading > div > span {
+  color: var(--text-accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.stem-guidance-heading h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+}
+
+.stem-guidance-heading p {
+  max-width: 300px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: right;
+}
+
+.stem-guidance-groups {
+  display: grid;
+  gap: 14px;
+}
+
+.stem-guidance-group {
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.stem-guidance-group-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stem-guidance-group-heading strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.stem-guidance-group--primary .stem-guidance-group-heading strong {
+  color: var(--wu-jin);
+}
+
+.stem-guidance-group--adverse .stem-guidance-group-heading strong {
+  color: var(--status-danger);
+}
+
+.stem-guidance-group-heading span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.stem-guidance-group ul {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stem-guidance-group li {
+  display: grid;
+  gap: 4px;
+}
+
+.stem-guidance-stem {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stem-guidance-stem strong {
+  font-size: 16px;
+}
+
+.stem-guidance-stem span,
+.stem-guidance-stem em {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.stem-guidance-stem em {
+  color: var(--text-muted);
+}
+
+.stem-guidance-group p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
 }
 
 .structure-card--tiaohou {
@@ -1657,6 +1861,17 @@
     grid-template-columns: 1fr;
   }
 
+  .stem-guidance-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stem-guidance-heading p {
+    max-width: none;
+    text-align: left;
+  }
+
   /* 基本排盘极端窄屏适配（挤干水分） */
   .bazi-data-grid {
     grid-template-columns: 36px repeat(4, minmax(0, 1fr));
@@ -2263,6 +2478,68 @@
   margin-bottom: 18px;
 }
 
+.result-stem-summary {
+  width: min(100%, 760px);
+  display: grid;
+  gap: 7px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.result-stem-summary-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  column-gap: 9px;
+  row-gap: 3px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.result-stem-summary-label {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.result-stem-summary-row--primary {
+  color: var(--text-primary);
+}
+
+.result-stem-summary-row--primary .result-stem-summary-label {
+  color: var(--wu-jin);
+}
+
+.result-stem-summary-row--primary > strong {
+  font-size: 16px;
+}
+
+.result-stem-summary-row em,
+.result-stem-summary-row small {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.result-stem-summary-list {
+  color: var(--text-secondary);
+}
+
+.result-stem-summary-list strong {
+  font-weight: 650;
+}
+
+.result-stem-summary-row--adverse .result-stem-summary-label {
+  color: var(--status-danger);
+}
+
+.result-stem-summary-row--conditioning .result-stem-summary-label {
+  color: var(--text-accent);
+}
+
 .result-tags .wuxing-badge,
 .result-tags .mingge-badge {
   min-height: 28px;
@@ -2323,16 +2600,20 @@
   background: var(--primary);
 }
 
-.result-product-overview {
+.result-summary-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.85fr);
-  gap: 16px;
-  margin-bottom: 16px;
+  align-items: start;
+  gap: 32px;
+  margin: 0 0 30px;
+  padding: 0 0 28px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.result-verdict-card,
-.result-vehicle-card,
-.result-current-card,
+.result-summary-grid.is-single-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .result-evidence-panel {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -2340,29 +2621,135 @@
   box-shadow: none;
 }
 
-.result-verdict-card,
-.result-vehicle-card,
-.result-current-card {
-  padding: 22px;
+.result-summary-card {
+  min-width: 0;
+  padding: 2px 0 0;
 }
 
 .result-verdict-card {
-  order: 3;
-  grid-column: 1 / -1;
-  background:
-    linear-gradient(180deg, rgba(201, 168, 76, 0.075), rgba(255, 255, 255, 0.025) 58%),
-    rgba(23, 29, 43, 0.86);
+  margin: 4px 0 30px;
+  padding: 22px 0 24px;
+  border-top: 1px solid rgba(201, 168, 76, 0.32);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.result-vehicle-card {
-  order: 1;
-  background:
-    linear-gradient(145deg, rgba(92, 142, 214, 0.08), rgba(201, 168, 76, 0.04)),
-    rgba(23, 29, 43, 0.84);
+.result-summary-card--vehicle {
+  padding-right: 32px;
+  border-right: 1px solid var(--border-subtle);
 }
 
-.result-current-card {
-  order: 2;
+.result-overview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.result-overview-modal-trigger {
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  color: var(--wu-jin);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.result-overview-modal-trigger:hover {
+  color: var(--text-primary);
+}
+
+.result-overview-modal-trigger:focus-visible,
+.result-overview-modal__close:focus-visible {
+  outline: 2px solid var(--wu-jin);
+  outline-offset: 3px;
+}
+
+.result-overview-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 7, 14, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: shensha-fade-in 0.18s ease;
+}
+
+.result-overview-modal__dialog {
+  width: min(680px, 100%);
+  max-height: min(760px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(145deg, rgba(31, 38, 56, 0.99), rgba(20, 26, 39, 0.99)),
+    rgba(23, 29, 43, 0.99);
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  animation: shensha-slide-up 0.2s ease;
+}
+
+.result-overview-modal__header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.result-overview-modal__header span {
+  display: block;
+  color: var(--wu-jin);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.result-overview-modal__header h3 {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.result-overview-modal__close {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+}
+
+.result-overview-modal__close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.result-overview-modal__body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 18px 20px 20px;
+}
+
+.result-grade-guide-body,
+.result-road-guide-body,
+.result-profile-evidence-body {
+  min-width: 0;
 }
 
 .result-product-card-head {
@@ -2370,19 +2757,19 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .result-product-kicker {
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   color: var(--wu-jin);
   font-size: 13px;
 }
 
 .result-product-card-head h2 {
   color: var(--text-primary);
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 650;
 }
 
@@ -2391,7 +2778,7 @@
   min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 11px;
+  padding: 0 10px;
   border-radius: var(--radius-full);
   background: rgba(201, 168, 76, 0.13);
   color: var(--wu-jin);
@@ -2405,7 +2792,7 @@
 .result-current-card p {
   color: var(--text-secondary);
   font-size: 15px;
-  line-height: 1.8;
+  line-height: 1.75;
 }
 
 .result-vehicle-meter {
@@ -2436,36 +2823,55 @@
   font-weight: 650;
 }
 
-.result-grade-guide,
-.result-road-guide {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.result-grade-guide-heading {
+.result-pattern-foundation {
   display: grid;
   gap: 4px;
-  margin-bottom: 8px;
+  margin: 0 0 10px;
+  padding: 2px 0 2px 12px;
+  border-left: 3px solid var(--wu-jin);
 }
 
-.result-grade-guide h3 {
-  margin: 0;
+.result-pattern-foundation strong {
   color: var(--wu-jin);
   font-size: 14px;
-  font-weight: 650;
 }
 
-.result-grade-guide-heading p,
-.result-road-guide p {
+.result-pattern-foundation span,
+.result-pattern-structure {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.result-shared-yongshen {
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.result-shared-yongshen strong {
+  color: var(--text-accent);
+}
+
+.result-shared-yongshen span {
+  margin-left: 8px;
+}
+
+.result-pattern-structure {
+  margin: 0 0 10px;
+}
+
+.result-grade-guide-body > p,
+.result-road-guide-body > p {
   margin: 0 !important;
   color: var(--text-secondary) !important;
   font-size: 12px !important;
   line-height: 1.65 !important;
 }
 
-.result-grade-guide ul,
-.result-road-guide ul {
+.result-grade-guide,
+.result-road-guide {
   display: grid;
   margin: 0;
   padding: 0;
@@ -2480,7 +2886,8 @@
   border-top: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.result-grade-guide li.is-current {
+.result-grade-guide li.is-current,
+.result-road-guide li.is-current {
   margin: 0 -10px;
   padding: 9px 10px;
   border-radius: var(--radius-sm);
@@ -2494,7 +2901,8 @@
   font-size: 13px;
 }
 
-.result-grade-guide li.is-current strong {
+.result-grade-guide li.is-current strong,
+.result-road-guide li.is-current strong {
   color: var(--wu-jin);
 }
 
@@ -2505,19 +2913,7 @@
   line-height: 1.6;
 }
 
-.result-road-guide summary {
-  width: fit-content;
-  color: var(--wu-jin);
-  font-size: 14px;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.result-road-guide p {
-  margin-top: 12px !important;
-}
-
-.result-road-guide ul {
+.result-road-guide {
   margin-top: 12px;
 }
 
@@ -2541,24 +2937,29 @@
 }
 
 .result-profile-evidence {
-  margin-top: 16px;
-  color: var(--text-secondary);
-}
-
-.result-profile-evidence summary {
-  width: fit-content;
-  color: var(--wu-jin);
-  font-size: 14px;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.result-profile-evidence ul {
   display: grid;
   gap: 8px;
   margin: 12px 0 0;
   padding: 0;
   list-style: none;
+}
+
+.result-profile-driving-style {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.result-profile-driving-style strong {
+  color: var(--gold);
+}
+
+.result-profile-driving-style em {
+  color: var(--text-muted);
+  font-style: normal;
 }
 
 .result-profile-evidence li {
@@ -2582,20 +2983,57 @@
   line-height: 1.6;
 }
 
+.result-road-evidence-aggregate,
+.result-road-evidence-phase {
+  min-width: 0;
+}
+
+.result-road-evidence-aggregate {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.result-road-evidence-aggregate h4,
+.result-road-evidence-phase h4 {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.result-road-evidence-phases {
+  display: grid;
+  gap: 18px;
+}
+
+.result-road-evidence-phase-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.result-road-evidence-phase-heading span {
+  color: var(--wu-jin);
+  font-size: 12px;
+  font-weight: 650;
+}
+
 .result-keyword-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 14px;
 }
 
 .result-keyword-row span {
   min-height: 28px;
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 9px;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.035);
   color: var(--text-secondary);
   font-size: 13px;
 }
@@ -2620,10 +3058,10 @@
 .result-current-year {
   display: grid;
   gap: 4px;
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.045);
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .result-current-year span {
@@ -3494,6 +3932,20 @@
     font-size: 14px;
   }
 
+  .result-stem-summary {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .result-stem-summary-row {
+    justify-content: flex-start;
+    font-size: 13px;
+  }
+
+  .result-stem-summary-row--primary > strong {
+    font-size: 15px;
+  }
+
   .result-reading-mode {
     width: 100%;
   }
@@ -3502,15 +3954,57 @@
     flex: 1;
   }
 
-  .result-product-overview,
+  .result-summary-grid,
   .result-trend-grid,
   .result-trend-year-detail-grid,
-  .result-evidence-grid {
+  .result-evidence-grid,
+  .result-historical-figures-list {
     grid-template-columns: 1fr;
+  }
+
+  .result-historical-figure {
+    padding: 0 0 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .result-historical-figure:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
   .result-product-card-head {
     display: grid;
+  }
+
+  .result-summary-grid {
+    gap: 26px;
+    margin-bottom: 26px;
+    padding-bottom: 24px;
+  }
+
+  .result-summary-card--vehicle {
+    padding-right: 0;
+    padding-bottom: 26px;
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .result-overview-modal {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .result-overview-modal__dialog {
+    width: 100%;
+    max-height: calc(100vh - 24px);
+    border-radius: 14px 14px var(--radius-lg) var(--radius-lg);
+  }
+
+  .result-overview-modal__header,
+  .result-overview-modal__body {
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .result-trend-dayun-switcher {
@@ -3543,8 +4037,6 @@
   }
 
   .result-verdict-card,
-  .result-vehicle-card,
-  .result-current-card,
   .result-trend-panel,
   .result-evidence-panel {
     padding: 18px;
@@ -3716,4 +4208,15 @@
   .past-events-entry-cta {
     display: none;
   }
+}
+
+/* Result-page hierarchy: utilities remain available without competing with the conclusion. */
+.result-utility-bar {
+  margin: 0 0 28px;
+  padding: 14px 0;
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  border-radius: 0;
+  background: transparent;
 }

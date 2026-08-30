@@ -1,9 +1,9 @@
 import { useLocation, useParams, useNavigate } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Diamond, X, History } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { authAPI, baziAPI, brandAPI, fetchShenshaAnnotations } from '../lib/api'
-import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, ExportBrand, CalculateInput } from '../lib/api'
+import type { AIReport, ShenshaAnnotation, StructuredReport, PolishedReport, ExportBrand, CalculateInput, MingGeHistoricalFigure } from '../lib/api'
 import { cleanLegacyReportContent, cleanReportText, hasMeaningfulReportContent, splitParagraphs } from '../lib/reportText'
 import { buildAuthPath } from '../lib/authRedirect'
 import { createPendingBaziJourney, savePendingJourney } from '../lib/pendingJourney'
@@ -13,6 +13,7 @@ import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
 import MingpanAvatar from '../components/MingpanAvatar'
 import TiaohouCard from '../components/TiaohouCard'
+import ThermalTiaohouCard from '../components/ThermalTiaohouCard'
 import ShareCard from '../components/ShareCard'
 import PrintLayout from '../components/PrintLayout'
 import PolishedPanel from '../components/PolishedPanel'
@@ -186,6 +187,7 @@ interface VehicleProfile {
   grade_label: string
   score: number
   vehicle_type: string
+  driving_style?: string
   summary: string
   tags: string[]
   evidences: ProfileEvidence[]
@@ -199,6 +201,35 @@ interface RoadPhase {
   detail?: string
 }
 
+interface DayunPhaseEvidence {
+  phase: 'front' | 'back'
+  label: string
+  delta: number
+  evidences: ProfileEvidence[]
+}
+
+interface NatalStemGuidanceItem {
+  stem: string
+  element: string
+  ten_god: string
+  source_layers: string[]
+  detail: string
+}
+
+interface NatalStemGuidance {
+  primary_favorable: NatalStemGuidanceItem[]
+  secondary_favorable: NatalStemGuidanceItem[]
+  conditioning_only: NatalStemGuidanceItem[]
+  adverse: NatalStemGuidanceItem[]
+}
+
+interface StemLevelYongshenSummary {
+  primary?: NatalStemGuidanceItem
+  usable: NatalStemGuidanceItem[]
+  adverse: NatalStemGuidanceItem[]
+  conditioning_reference: NatalStemGuidanceItem[]
+}
+
 interface DayunRoad {
   dayun_index: number
   gan_zhi: string
@@ -209,6 +240,23 @@ interface DayunRoad {
   hou_road: RoadPhase
   summary: string
   tags: string[]
+  evidences: ProfileEvidence[]
+  phase_evidences?: DayunPhaseEvidence[]
+}
+
+interface NatalAssessment {
+  version: string
+  climate: { status: string; required_elements?: string; score: number; grade_ceiling: string }
+  tiaohou?: {
+    day_stem: { status: string; formation?: string; foundation_tier?: string; foundation_score?: number; required_stems: string[]; visible_stems: string[]; hidden_stems: string[]; score: number; detail: string }
+    thermal: { status: string; condition: string; required_elements?: string; visible_support: string[]; hidden_support: string[]; detail: string }
+  }
+  fuyi: { day_master_strength: string; yongshen: string; jishen: string; support_level: string; score: number; strength_score?: number; evidence?: string }
+  yongshen_alignment?: { elements: string[]; source_layers: string[]; detail?: string }
+  stem_guidance?: NatalStemGuidance
+  pattern: { name: string; quality: string; foundation_source?: string; foundation_label?: string; foundation_tier?: string; formations: string[]; breaks: string[] }
+  relations: { flow: string; combinations: string[]; disruptions: string[] }
+  grade: { score: number; grade: string; label: string; grade_ceiling: string }
   evidences: ProfileEvidence[]
 }
 
@@ -273,16 +321,17 @@ interface BaziResult {
   ming_ge_desc?: string
   ten_god_relation?: TenGodRelationMatrix
   gong_jia?: GongJiaItem[]
+  natal_assessment?: NatalAssessment
   vehicle_profile?: VehicleProfile
   dayun_roadmap?: DayunRoad[]
 }
 
 const VEHICLE_GRADE_GUIDE = [
-  { grade: 'S', label: '协同型配置', summary: '优势较易整合发挥。', detail: '原局主线较清晰，优势之间更容易形成配合。' },
-  { grade: 'A', label: '稳健型配置', summary: '基础扎实，顺运时更省力。', detail: '具备稳定的发挥基础，遇到支持条件时更容易推进。' },
-  { grade: 'B', label: '实用型配置', summary: '能力稳定，适合顺势经营。', detail: '有可持续使用的长处，节奏和环境匹配时能稳步发挥。' },
-  { grade: 'C', label: '特性型配置', summary: '优势与限制都明显，更看选择。', detail: '特点鲜明，对赛道、方法和时机的匹配要求更高。' },
-  { grade: 'D', label: '调校型配置', summary: '对环境与策略更敏感。', detail: '更依赖后天调整与支持条件，适合先处理基础问题再推进。' },
+  { grade: 'S', label: '上格配置', vehicle: '超跑级座驾', summary: '扶抑、格局与流通协同。', detail: '调候急需已解或并不急，扶抑用神得力，格局制化和原局流通也能承接。' },
+  { grade: 'A', label: '中上格配置', vehicle: '高性能车级座驾', summary: '主线成立，局部仍有瑕疵。', detail: '扶抑可用，格局大体成立；用神力量、制化或流通仍有局部限制。' },
+  { grade: 'B', label: '中格配置', vehicle: '标准轿车级座驾', summary: '原局可用，短板明确。', detail: '扶抑有支撑，但格局仅部分成立或流通有限，顺运时更容易发挥。' },
+  { grade: 'C', label: '中下格配置', vehicle: '实用 MPV 级座驾', summary: '关键条件至少一项不足。', detail: '调候急需未解、扶抑支撑不足，或格局出现关键破损，基础发挥更依赖大运补足。' },
+  { grade: 'D', label: '下格配置', vehicle: '基础代步单车级', summary: '原局需要优先补救短板。', detail: '调候急需与扶抑不足同时存在，且结构承载薄弱，更需要后天调整和顺运支持。' },
 ] as const
 
 const ROAD_GUIDE = [
@@ -296,6 +345,18 @@ const ROAD_GUIDE = [
 const VEHICLE_GRADE_TAGS = new Set([
   ...VEHICLE_GRADE_GUIDE.map(item => item.label),
   '顶配', '高配', '实用', '偏科', '需调校',
+])
+
+// Older saved charts stored a Ming Ge-derived vehicle type. The final grade is
+// now the sole source of the primary vehicle class, including for old snapshots.
+const LEGACY_VEHICLE_TYPE_TAGS = new Set([
+  '基础通勤型',
+  '高扭矩越野型',
+  '稳定商务型',
+  '灵感跑车型',
+  '资源运营型',
+  '重载工程型',
+  '均衡通勤型',
 ])
 
 function getShiShen(dayGan: string, targetGan: string) {
@@ -407,6 +468,7 @@ function buildTenGodRelationMatrix(result: BaziResult): TenGodRelationMatrix {
 }
 
 type ReadingMode = 'simple' | 'professional'
+type OverviewModalKind = 'grade' | 'road' | 'vehicle-evidence' | 'road-evidence'
 type DayunPeriod = BaziResult['dayun'][number]
 
 const WUXING_LABELS: Record<keyof BaziResult['wuxing'], string> = {
@@ -462,25 +524,123 @@ function getWuxingExtremes(wuxing: BaziResult['wuxing']) {
   }
 }
 
+function getFuyiYongshen(result: BaziResult) {
+  return result.natal_assessment?.fuyi.yongshen || result.yongshen || ''
+}
+
+function getFuyiJishen(result: BaziResult) {
+  return result.natal_assessment?.fuyi.jishen || result.jishen || ''
+}
+
+function buildStemLevelYongshenSummary(result: BaziResult): StemLevelYongshenSummary | null {
+  const guidance = result.natal_assessment?.stem_guidance
+  if (!guidance) return null
+
+  const primary = guidance.primary_favorable[0]
+  const usable = guidance.secondary_favorable
+  const adverse = guidance.adverse
+  if (primary || usable.length > 0 || adverse.length > 0) {
+    return { primary, usable, adverse, conditioning_reference: [] }
+  }
+  if (guidance.conditioning_only.length > 0) {
+    return { usable: [], adverse: [], conditioning_reference: guidance.conditioning_only }
+  }
+  return null
+}
+
+function formatStemGuidanceItems(items: NatalStemGuidanceItem[]) {
+  return items.map(item => `${item.stem}${item.element}`).join('、')
+}
+
+function StemGuidanceInlineList({ items }: { items: NatalStemGuidanceItem[] }) {
+  return (
+    <span className="result-stem-summary-list">
+      {items.map((item, index) => (
+        <Fragment key={item.stem}>
+          {index > 0 && '、'}
+          <strong className={`wuxing-text-${WUXING_MAP[item.element] || 'jin'}`}>{item.stem}{item.element}</strong>
+        </Fragment>
+      ))}
+    </span>
+  )
+}
+
+function StemLevelYongshenSummaryPanel({ summary }: { summary: StemLevelYongshenSummary }) {
+  return (
+    <div className="result-stem-summary" aria-label="天干级喜忌摘要">
+      {summary.primary && (
+        <div className="result-stem-summary-row result-stem-summary-row--primary">
+          <span className="result-stem-summary-label">首取</span>
+          <strong className={`wuxing-text-${WUXING_MAP[summary.primary.element] || 'jin'}`}>
+            {summary.primary.stem}{summary.primary.element}
+          </strong>
+          {summary.primary.ten_god && <em>{summary.primary.ten_god}</em>}
+          <small>{summary.primary.source_layers.join(' + ')}</small>
+        </div>
+      )}
+      {summary.usable.length > 0 && (
+        <div className="result-stem-summary-row">
+          <span className="result-stem-summary-label">扶抑可用</span>
+          <StemGuidanceInlineList items={summary.usable} />
+        </div>
+      )}
+      {summary.adverse.length > 0 && (
+        <div className="result-stem-summary-row result-stem-summary-row--adverse">
+          <span className="result-stem-summary-label">扶抑慎用</span>
+          <StemGuidanceInlineList items={summary.adverse} />
+        </div>
+      )}
+      {summary.conditioning_reference.length > 0 && (
+        <div className="result-stem-summary-row result-stem-summary-row--conditioning">
+          <span className="result-stem-summary-label">调候参考</span>
+          <StemGuidanceInlineList items={summary.conditioning_reference} />
+          <small>原局调候结构，不等同后天通用喜神</small>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function buildChartKeywords(result: BaziResult, relation: TenGodRelationMatrix) {
   const groups = relation.heavenly_stems
     .map(item => item.group_label)
     .filter((label): label is string => Boolean(label))
   const uniqueGroups = Array.from(new Set(groups)).slice(0, 2)
+  const stemSummary = buildStemLevelYongshenSummary(result)
+  if (stemSummary) {
+    return [
+      result.ming_ge,
+      stemSummary.primary ? `首取${stemSummary.primary.stem}${stemSummary.primary.element}` : '',
+      stemSummary.usable.length > 0 ? `扶抑可用${formatStemGuidanceItems(stemSummary.usable)}` : '',
+      stemSummary.adverse.length > 0 ? `扶抑慎用${formatStemGuidanceItems(stemSummary.adverse)}` : '',
+      ...uniqueGroups,
+    ].filter(Boolean).slice(0, 5)
+  }
+  const yongshen = getFuyiYongshen(result)
+  const jishen = getFuyiJishen(result)
   return [
     result.ming_ge,
-    result.yongshen ? `喜${result.yongshen}` : '',
-    result.jishen ? `忌${result.jishen}` : '',
+    yongshen ? `扶抑喜${yongshen}` : '',
+    jishen ? `扶抑忌${jishen}` : '',
     ...uniqueGroups,
   ].filter(Boolean).slice(0, 5)
 }
 
 function buildChartVerdict(result: BaziResult, relation: TenGodRelationMatrix) {
   const dayMaster = relation.day_master.label || `${result.day_gan}${result.day_gan_wuxing || ''}`
-  const yongshenText = result.yongshen
-    ? `喜用${result.yongshen}${result.jishen ? `，忌${result.jishen}` : ''}`
-    : '喜忌待结合解读确认'
+  const stemSummary = buildStemLevelYongshenSummary(result)
   const minggeText = result.ming_ge ? `，格局线索为「${result.ming_ge}」` : ''
+  if (stemSummary) {
+    const yongshenText = stemSummary.primary
+      ? `首取${stemSummary.primary.stem}${stemSummary.primary.element}，扶抑可用${formatStemGuidanceItems(stemSummary.usable) || '待结合全局判断'}${stemSummary.adverse.length > 0 ? `，慎用${formatStemGuidanceItems(stemSummary.adverse)}` : ''}`
+      : `扶抑可用${formatStemGuidanceItems(stemSummary.usable) || '待结合全局判断'}${stemSummary.adverse.length > 0 ? `，慎用${formatStemGuidanceItems(stemSummary.adverse)}` : ''}`
+    return `日主${dayMaster}为命局参照，${yongshenText}${minggeText}。建议先看当前大运与用神依据，再进入专业命盘和完整命理解读。`
+  }
+  const yongshen = getFuyiYongshen(result)
+  const jishen = getFuyiJishen(result)
+  const yongshenText = yongshen
+    ? `扶抑喜用${yongshen}${jishen ? `，忌${jishen}` : ''}`
+    : '喜忌待结合解读确认'
   return `日主${dayMaster}为命局参照，${yongshenText}${minggeText}。建议先看当前大运与用神依据，再进入专业命盘和完整命理解读。`
 }
 
@@ -493,8 +653,9 @@ function buildYongshenEvidence(result: BaziResult, relation: TenGodRelationMatri
   ))
   const tiaohouExpected = result.tiaohou?.expected?.filter(Boolean) || []
   const tiaohouHit = [...(result.tiaohou?.tou || []), ...(result.tiaohou?.cang || [])].filter(Boolean)
+  const primaryStem = result.natal_assessment?.stem_guidance?.primary_favorable?.[0]
 
-  return [
+  const evidences = [
     {
       title: '日主与月令',
       detail: `以${result.day_gan}${result.day_zhi}日柱为参照，结合${result.month_zhi}月令判断命局底色。`,
@@ -518,6 +679,59 @@ function buildYongshenEvidence(result: BaziResult, relation: TenGodRelationMatri
         : '专业模式可查看天干与藏干相对日主的十神关系。',
     },
   ]
+  if (primaryStem) {
+    evidences.splice(3, 0, {
+      title: '天干优先',
+      detail: `${primaryStem.stem}${primaryStem.element}为共同优先，兼具${primaryStem.source_layers.join('与')}方向，对应${primaryStem.ten_god}；其余天干需结合扶抑与调候分别理解。`,
+    })
+  }
+  return evidences
+}
+
+function StemGuidancePanel({ guidance }: { guidance?: NatalStemGuidance }) {
+  if (!guidance) return null
+  const groups = [
+    { key: 'primary', title: '主喜', note: '日干调候与扶抑共同支持', items: guidance.primary_favorable, tone: 'primary' },
+    { key: 'secondary', title: '扶抑可用', note: '符合扶抑方向', items: guidance.secondary_favorable, tone: 'secondary' },
+    { key: 'conditioning', title: '调候结构', note: '原局调候参考，不等同后天通用喜神', items: guidance.conditioning_only, tone: 'conditioning' },
+    { key: 'adverse', title: '扶抑忌神', note: '后天遇此天干需结合全局谨慎判断', items: guidance.adverse, tone: 'adverse' },
+  ] as const
+  const hasGuidance = groups.some(group => group.items.length > 0)
+  if (!hasGuidance) return null
+
+  return (
+    <section className="stem-guidance-panel" aria-labelledby="stem-guidance-title">
+      <div className="stem-guidance-heading">
+        <div>
+          <span>天干级喜忌</span>
+          <h3 id="stem-guidance-title" className="serif">天干优先</h3>
+        </div>
+        <p>五行说明方向，天干说明具体落点。</p>
+      </div>
+      <div className="stem-guidance-groups">
+        {groups.filter(group => group.items.length > 0).map(group => (
+          <section key={group.key} className={`stem-guidance-group stem-guidance-group--${group.tone}`}>
+            <div className="stem-guidance-group-heading">
+              <strong>{group.title}</strong>
+              <span>{group.note}</span>
+            </div>
+            <ul>
+              {group.items.map(item => (
+                <li key={`${group.key}-${item.stem}`}>
+                  <div className="stem-guidance-stem">
+                    <strong className={`wuxing-text-${WUXING_MAP[item.element] || 'jin'}`}>{item.stem}{item.element}</strong>
+                    {item.ten_god && <span>{item.ten_god}</span>}
+                    <em>{item.source_layers.join(' + ')}</em>
+                  </div>
+                  <p>{item.detail}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </section>
+  )
 }
 
 
@@ -535,10 +749,43 @@ export default function ResultPage() {
   const [loading, setLoading] = useState(!result && !!id)
   const [reportMode, setReportMode] = useState<'brief' | 'detail'>('detail')
   const [readingMode, setReadingMode] = useState<ReadingMode>('simple')
+  const [overviewModal, setOverviewModal] = useState<OverviewModalKind | null>(null)
   const [trendDayunIndex, setTrendDayunIndex] = useState<number | null>(null)
   const [activeTrendYear, setActiveTrendYear] = useState<number | null>(null)
   const [reportTab, setReportTab] = useState<'original' | 'polished'>('original')
   const reportTabRowRef = useRef<HTMLDivElement | null>(null)
+  const overviewModalDialogRef = useRef<HTMLDivElement | null>(null)
+  const overviewModalTriggerRef = useRef<HTMLButtonElement | null>(null)
+
+  const openOverviewModal = (kind: OverviewModalKind, trigger: HTMLButtonElement) => {
+    overviewModalTriggerRef.current = trigger
+    setOverviewModal(kind)
+  }
+
+  const closeOverviewModal = () => setOverviewModal(null)
+
+  useEffect(() => {
+    if (!overviewModal) return
+
+    const previousOverflow = document.body.style.overflow
+    const focusDialog = window.requestAnimationFrame(() => overviewModalDialogRef.current?.focus())
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeOverviewModal()
+      }
+    }
+
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      window.cancelAnimationFrame(focusDialog)
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+      overviewModalTriggerRef.current?.focus()
+    }
+  }, [overviewModal])
 
   // 切换原版/润色版后把视口拉回报告区顶部，避免停留在另一版的中部位置
   const switchReportTab = (tab: 'original' | 'polished') => {
@@ -587,6 +834,7 @@ export default function ResultPage() {
   const [shenshaMap, setShenshaMap] = useState<Map<string, ShenshaAnnotation>>(new Map())
   const [activeAnnotation, setActiveAnnotation] = useState<ShenshaAnnotation | null>(null)
   const [activeMingGe, setActiveMingGe] = useState<{ name: string; desc: string } | null>(null)
+  const [historicalFigures, setHistoricalFigures] = useState<MingGeHistoricalFigure[]>([])
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 导出品牌定制
@@ -606,6 +854,26 @@ export default function ResultPage() {
         console.warn('[shensha] 注解加载失败', err)
       })
   }, [])
+
+  useEffect(() => {
+    const mingGe = result?.ming_ge?.trim()
+    if (!mingGe) {
+      setHistoricalFigures([])
+      return
+    }
+
+    let cancelled = false
+    baziAPI.getMingGeHistoricalFigures(mingGe)
+      .then((response) => {
+        if (!cancelled) setHistoricalFigures(response.data.data || [])
+      })
+      .catch(() => {
+        // 古人映照是补充阅读，读取失败不能影响排盘主结果。
+        if (!cancelled) setHistoricalFigures([])
+      })
+
+    return () => { cancelled = true }
+  }, [result?.ming_ge])
 
   useEffect(() => {
     if (!isGuest) return
@@ -1001,9 +1269,33 @@ export default function ResultPage() {
   const selectedDayun = result.dayun.find(item => item.index === selectedDayunIndex) || currentDayun || result.dayun[0] || null
   const currentDayunRoad = findDayunRoad(result.dayun_roadmap, currentDayun)
   const currentRoadEvidences = currentDayunRoad?.evidences ?? []
+  const currentRoadPhaseEvidences = currentDayunRoad?.phase_evidences ?? []
+  const hasCurrentRoadEvidence = currentRoadEvidences.length > 0 || currentRoadPhaseEvidences.length > 0
+  const vehicleEvidences = result.vehicle_profile?.evidences ?? []
+  const vehicleDrivingStyle = result.vehicle_profile?.driving_style
+  const stemGuidance = result.natal_assessment?.stem_guidance
+  const stemLevelYongshenSummary = buildStemLevelYongshenSummary(result)
   const vehicleGradeGuide = findVehicleGradeGuide(result.vehicle_profile?.grade)
   const currentRoadGuide = findRoadGuide(currentDayunRoad?.road_type)
-  const vehicleProfileTags = result.vehicle_profile?.tags?.filter(tag => !VEHICLE_GRADE_TAGS.has(tag)) ?? []
+  const overviewModalTitle = overviewModal === 'grade'
+    ? '等级说明'
+    : overviewModal === 'road'
+      ? '大运路况说明'
+      : overviewModal === 'vehicle-evidence'
+        ? '座驾依据'
+        : overviewModal === 'road-evidence'
+          ? '路况依据'
+          : ''
+  const overviewModalKicker = overviewModal === 'grade' || overviewModal === 'vehicle-evidence'
+    ? '命盘座驾'
+    : '当前路况'
+  const vehicleType = vehicleGradeGuide?.vehicle || result.vehicle_profile?.vehicle_type || ''
+  const vehicleProfileTags = result.vehicle_profile?.tags?.filter(tag => (
+    !VEHICLE_GRADE_TAGS.has(tag)
+    && !LEGACY_VEHICLE_TYPE_TAGS.has(tag)
+    && tag !== vehicleType
+    && tag !== result.ming_ge
+  )) ?? []
   const selectedDayunTrendSeries = buildDayunTrendSeries(selectedDayun, result.gender)
   const isSelectedCurrentDayun = Boolean(selectedDayun && currentDayun && selectedDayun.index === currentDayun.index)
   const selectedDayunTitle = selectedDayun ? `${selectedDayun.gan}${selectedDayun.zhi}大运` : '大运趋势'
@@ -1031,8 +1323,12 @@ export default function ResultPage() {
   const chartKeywords = buildChartKeywords(result, relation)
   const chartVerdict = buildChartVerdict(result, relation)
   const yongshenEvidence = buildYongshenEvidence(result, relation)
-  const resultQuickSummary = result.yongshen || result.jishen
-    ? `日主${result.day_gan}${result.day_zhi}为命局参照，喜用${result.yongshen || '待生成'}${result.jishen ? `，忌${result.jishen}` : ''}。先确认四柱主盘与命局结构，再阅读命理解读和大运走势。`
+  const fuyiYongshen = getFuyiYongshen(result)
+  const fuyiJishen = getFuyiJishen(result)
+  const resultQuickSummary = stemLevelYongshenSummary
+    ? `日主${result.day_gan}${result.day_zhi}为命局参照，${stemLevelYongshenSummary.primary ? `首取${stemLevelYongshenSummary.primary.stem}${stemLevelYongshenSummary.primary.element}` : '以扶抑方向为主'}${stemLevelYongshenSummary.usable.length > 0 ? `，扶抑可用${formatStemGuidanceItems(stemLevelYongshenSummary.usable)}` : ''}${stemLevelYongshenSummary.adverse.length > 0 ? `，慎用${formatStemGuidanceItems(stemLevelYongshenSummary.adverse)}` : ''}。先确认四柱主盘与命局结构，再阅读命理解读和大运走势。`
+    : fuyiYongshen || fuyiJishen
+      ? `日主${result.day_gan}${result.day_zhi}为命局参照，扶抑喜用${fuyiYongshen || '待生成'}${fuyiJishen ? `，忌${fuyiJishen}` : ''}。先确认四柱主盘与命局结构，再阅读命理解读和大运走势。`
     : `日主${result.day_gan}${result.day_zhi}为命局参照。先确认四柱主盘，再查看五行结构、大运走势与命理解读。`
 
   const structured = report?.content_structured ?? null
@@ -1057,6 +1353,37 @@ export default function ResultPage() {
       { id: 'result-section-trend', label: '趋势' },
       { id: 'result-section-ai', label: 'AI 解读' },
     ]
+  const historicalFiguresSection = result.ming_ge && historicalFigures.length > 0 ? (
+    <section className="result-historical-figures" aria-labelledby="historical-figures-title">
+      <div className="result-historical-figures-heading">
+        <div>
+          <span>命格参考</span>
+          <h2 id="historical-figures-title" className="serif">{result.ming_ge} · 古人映照</h2>
+        </div>
+      </div>
+      <div className="result-historical-figures-list">
+        {historicalFigures.map((figure) => (
+          <article key={figure.id} className="result-historical-figure">
+            <div className="result-historical-figure-title">
+              <h3 className="serif">{figure.figure_name}</h3>
+              <span>{figure.era} · {figure.identity}</span>
+            </div>
+            <p>{figure.historical_memory}</p>
+            {readingMode === 'professional' && (
+              <div className="result-historical-evidence">
+                <p><strong>历史资料：</strong><a href={figure.source_url} target="_blank" rel="noreferrer">{figure.source_title}</a></p>
+                {figure.turning_point && <p><strong>人生转折：</strong>{figure.turning_point}{figure.turning_point_year ? `（${figure.turning_point_year}）` : ''}</p>}
+                {figure.show_dayun && figure.dayun_period && figure.dayun_explanation && (
+                  <p><strong>大运呼应：</strong>{figure.dayun_period}，{figure.dayun_explanation}</p>
+                )}
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+      <p className="result-historical-boundary">古人映照用于理解格局可能的发挥方向，不代表你与其相似，也不构成个人结果预测。</p>
+    </section>
+  ) : null
 
   return (
     <>
@@ -1073,12 +1400,18 @@ export default function ResultPage() {
               {pillars.map(p => `${p.gan}${p.zhi}`).join('·')}
             </h1>
             <div className="result-tags">
-              <span className={`wuxing-badge ${result.yongshen ? 'wuxing-' + (WUXING_MAP[result.yongshen?.charAt(0)] || 'jin') : 'wuxing-unknown'}`}>
-                喜用：{result.yongshen || (reportLoading ? '测算中...' : '待生成')}
-              </span>
-              <span className={`wuxing-badge ${result.jishen ? 'wuxing-' + (WUXING_MAP[result.jishen?.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
-                忌：{result.jishen || (reportLoading ? '测算中...' : '待生成')}
-              </span>
+              {stemLevelYongshenSummary ? (
+                <StemLevelYongshenSummaryPanel summary={stemLevelYongshenSummary} />
+              ) : (
+                <>
+                  <span className={`wuxing-badge ${fuyiYongshen ? 'wuxing-' + (WUXING_MAP[fuyiYongshen.charAt(0)] || 'jin') : 'wuxing-unknown'}`}>
+                    扶抑喜用：{fuyiYongshen || (reportLoading ? '测算中...' : '待生成')}
+                  </span>
+                  <span className={`wuxing-badge ${fuyiJishen ? 'wuxing-' + (WUXING_MAP[fuyiJishen.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
+                    扶抑忌：{fuyiJishen || (reportLoading ? '测算中...' : '待生成')}
+                  </span>
+                </>
+              )}
               {result.ming_ge && (
                 <span
                   className="mingge-badge"
@@ -1109,67 +1442,39 @@ export default function ResultPage() {
             </button>
           </div>
 
-          {targetId && !isGuest && (
-            <div className="chart-archive-tools">
-              <div className="chart-archive-name">
-                <label htmlFor="result-chart-display-name">命盘称呼</label>
-                <input
-                  id="result-chart-display-name"
-                  value={chartDisplayNameDraft}
-                  onChange={(event) => setChartDisplayNameDraft(event.target.value)}
-                  maxLength={20}
-                  placeholder={`${result.birth_year}年${result.birth_month}月${result.birth_day}日`}
-                />
-                <button type="button" className="btn btn-secondary" onClick={handleSaveChartDisplayName}>
-                  保存称呼
-                </button>
+          <article className="result-verdict-card">
+            <div className="result-product-card-head">
+              <div>
+                <span className="result-product-kicker">命盘总评</span>
+                <h2 className="serif">先看结论</h2>
               </div>
-              {chartDisplayNameError && <div className="chart-archive-error">{chartDisplayNameError}</div>}
-              <div className="chart-archive-compatibility">
-                <span>用此命盘发起合盘</span>
-                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=self`)}>
-                  作为我
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=partner`)}>
-                  作为对方
-                </button>
-              </div>
+              {fuyiYongshen && <span className="result-product-pill">扶抑喜用：{fuyiYongshen}</span>}
             </div>
-          )}
-
-          <div className="result-product-overview">
-            <article className="result-verdict-card">
-              <div className="result-product-card-head">
-                <div>
-                  <span className="result-product-kicker">命盘总评</span>
-                  <h2 className="serif">先看结论</h2>
-                </div>
-                {result.yongshen && <span className="result-product-pill">喜用：{result.yongshen}</span>}
+            <p>{chartVerdict}</p>
+            {chartKeywords.length > 0 && (
+              <div className="result-keyword-row">
+                {chartKeywords.map(keyword => (
+                  <span key={keyword}>{keyword}</span>
+                ))}
               </div>
-              <p>{chartVerdict}</p>
-              {chartKeywords.length > 0 && (
-                <div className="result-keyword-row">
-                  {chartKeywords.map(keyword => (
-                    <span key={keyword}>{keyword}</span>
-                  ))}
-                </div>
-              )}
-              <button
-                type="button"
-                className="result-inline-link"
-                onClick={() => readingMode === 'professional' ? scrollToResultSection('result-section-yongshen') : scrollToResultSection('result-section-evidence')}
-              >
-                查看判断依据
-              </button>
-            </article>
+            )}
+            <button
+              type="button"
+              className="result-inline-link"
+              onClick={() => readingMode === 'professional' ? scrollToResultSection('result-section-yongshen') : scrollToResultSection('result-section-evidence')}
+            >
+              查看判断依据
+            </button>
+          </article>
 
+          <div className={`result-summary-grid${result.vehicle_profile ? '' : ' is-single-panel'}`}>
             {result.vehicle_profile && (
-              <article className="result-vehicle-card">
+              <article className="result-vehicle-card result-summary-card result-summary-card--vehicle">
                 <div className="result-product-card-head">
                   <div>
                     <span className="result-product-kicker">命盘座驾</span>
                     <h2 className="serif">
-                      {vehicleGradeGuide?.label || result.vehicle_profile.grade_label} · {result.vehicle_profile.vehicle_type}
+                      {vehicleGradeGuide?.label || result.vehicle_profile.grade_label} · {vehicleType}
                     </h2>
                   </div>
                   <span className="result-product-pill">{result.vehicle_profile.grade} 级</span>
@@ -1178,58 +1483,55 @@ export default function ResultPage() {
                   <span style={{ width: `${Math.max(0, Math.min(100, result.vehicle_profile.score))}%` }} />
                 </div>
                 {vehicleGradeGuide && (
-                  <p className="result-profile-plain-note">配置完整度：{vehicleGradeGuide.summary}</p>
+                  <p className="result-profile-plain-note">基础盘定位：{vehicleGradeGuide.summary}</p>
                 )}
+                {result.natal_assessment?.pattern.foundation_tier === 'high' && (
+                  <section className="result-pattern-foundation" aria-label="格局基础说明">
+                    <strong>{result.natal_assessment.pattern.foundation_source || '日干调候成格'} · {result.natal_assessment.pattern.foundation_label || '高格基础'}</strong>
+                    <span>日干调候用神天透地藏，构成原局的高格基础；主格结构与制化配合仍另行判断。</span>
+                  </section>
+                )}
+                {result.natal_assessment?.pattern && (
+                  <p className="result-pattern-structure">
+                    主格结构：{result.natal_assessment.pattern.name} · {result.natal_assessment.pattern.quality === 'formed' ? '成格' : result.natal_assessment.pattern.quality === 'usable' ? '可用' : result.natal_assessment.pattern.quality === 'partial' ? '部分成立' : result.natal_assessment.pattern.quality === 'broken' ? '受损' : '待定'}
+                    {result.natal_assessment.pattern.formations.length > 0 && `；制化配合：${result.natal_assessment.pattern.formations.join('、')}`}
+                    {result.natal_assessment.pattern.breaks.length > 0 && `；需留意：${result.natal_assessment.pattern.breaks.join('、')}`}
+                  </p>
+                )}
+                {result.natal_assessment?.yongshen_alignment?.elements.length ? (
+                  <p className="result-shared-yongshen">
+                    <strong>共同优先用神：</strong>{result.natal_assessment.yongshen_alignment.elements.join('、')}
+                    <span>同时属于寒热调候与扶抑；不替代完整扶抑喜用。</span>
+                  </p>
+                ) : null}
                 <p>{result.vehicle_profile.summary}</p>
                 {vehicleProfileTags.length > 0 && (
                   <div className="result-keyword-row">
                     {vehicleProfileTags.map(tag => <span key={tag}>{tag}</span>)}
                   </div>
                 )}
-                <section className="result-grade-guide" aria-labelledby="result-grade-guide-title">
-                  <div className="result-grade-guide-heading">
-                    <h3 id="result-grade-guide-title">等级说明</h3>
-                    <p>S 到 D 衡量的是命盘配置完整度与驾驭难度，不代表人生高低。</p>
-                  </div>
-                  <ul>
-                    {VEHICLE_GRADE_GUIDE.map(item => (
-                      <li key={item.grade} className={item.grade === result.vehicle_profile?.grade ? 'is-current' : ''}>
-                        <strong>{item.grade} · {item.label}</strong>
-                        <span>{item.detail}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-                <details className="result-road-guide">
-                  <summary>大运路况说明</summary>
-                  <p>车代表命盘的基础配置与驾驭难度，路代表每十年大运带来的外部支持与阻力。车好不等于一路顺，路顺也能让普通配置发挥得更好。</p>
-                  <ul>
-                    {ROAD_GUIDE.map(item => (
-                      <li key={item.type}>
-                        <strong>{item.label}</strong>
-                        <span>{item.summary}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-                {readingMode === 'professional' && result.vehicle_profile.evidences?.length > 0 && (
-                  <details className="result-profile-evidence">
-                    <summary>查看座驾依据</summary>
-                    <ul>
-                      {result.vehicle_profile.evidences.map((item, index) => (
-                        <li key={`${item.source}-${index}`}>
-                          <strong>{item.source}</strong>
-                          <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
-                          <em>{item.detail}</em>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
+                <div className="result-overview-actions">
+                  <button
+                    type="button"
+                    className="result-overview-modal-trigger"
+                    onClick={event => openOverviewModal('grade', event.currentTarget)}
+                  >
+                    等级说明
+                  </button>
+                  {readingMode === 'professional' && vehicleEvidences.length > 0 && (
+                    <button
+                      type="button"
+                      className="result-overview-modal-trigger"
+                      onClick={event => openOverviewModal('vehicle-evidence', event.currentTarget)}
+                    >
+                      查看座驾依据
+                    </button>
+                  )}
+                </div>
               </article>
             )}
 
-            <article id="result-section-current" className="result-current-card">
+            <article id="result-section-current" className="result-current-card result-summary-card result-summary-card--road">
               <div className="result-product-card-head">
                 <div>
                   <span className="result-product-kicker">{currentDayunRoad ? '当前路况' : '当前阶段'}</span>
@@ -1258,23 +1560,29 @@ export default function ResultPage() {
                     <strong>{currentLiuNian?.gan_zhi || '流年待排'}</strong>
                     <em>{currentLiuNian ? `${currentLiuNian.gan_shishen} / ${currentLiuNian.zhi_shishen}` : '进入大运区查看逐年走势'}</em>
                   </div>
-                  {readingMode === 'professional' && currentRoadEvidences.length > 0 && (
-                    <details className="result-profile-evidence">
-                      <summary>查看路况依据</summary>
-                      <ul>
-                        {currentRoadEvidences.map((item, index) => (
-                          <li key={`${item.source}-${index}`}>
-                            <strong>{item.source}</strong>
-                            <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
-                            <em>{item.detail}</em>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
                 </>
               ) : (
                 <p>当前命盘暂未返回大运数据，可先阅读命盘结构与 AI 解读。</p>
+              )}
+              {currentDayunRoad && (
+                <div className="result-overview-actions">
+                  <button
+                    type="button"
+                    className="result-overview-modal-trigger"
+                    onClick={event => openOverviewModal('road', event.currentTarget)}
+                  >
+                    大运路况说明
+                  </button>
+                  {readingMode === 'professional' && hasCurrentRoadEvidence && (
+                    <button
+                      type="button"
+                      className="result-overview-modal-trigger"
+                      onClick={event => openOverviewModal('road-evidence', event.currentTarget)}
+                    >
+                      查看路况依据
+                    </button>
+                  )}
+                </div>
               )}
               <button
                 type="button"
@@ -1285,6 +1593,34 @@ export default function ResultPage() {
               </button>
             </article>
           </div>
+
+          {targetId && !isGuest && (
+            <div className="chart-archive-tools result-utility-bar">
+              <div className="chart-archive-name">
+                <label htmlFor="result-chart-display-name">命盘称呼</label>
+                <input
+                  id="result-chart-display-name"
+                  value={chartDisplayNameDraft}
+                  onChange={(event) => setChartDisplayNameDraft(event.target.value)}
+                  maxLength={20}
+                  placeholder={`${result.birth_year}年${result.birth_month}月${result.birth_day}日`}
+                />
+                <button type="button" className="btn btn-secondary" onClick={handleSaveChartDisplayName}>
+                  保存称呼
+                </button>
+              </div>
+              {chartDisplayNameError && <div className="chart-archive-error">{chartDisplayNameError}</div>}
+              <div className="chart-archive-compatibility">
+                <span>用此命盘发起合盘</span>
+                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=self`)}>
+                  作为我
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=partner`)}>
+                  作为对方
+                </button>
+              </div>
+            </div>
+          )}
 
           {selectedDayun && selectedDayunTrendSeries.length > 0 && (
             <section id="result-section-trend" className="result-trend-panel" aria-labelledby="result-trend-title">
@@ -1459,6 +1795,8 @@ export default function ResultPage() {
               )}
             </section>
           )}
+
+          {historicalFiguresSection}
 
           {readingMode === 'simple' && (
             <section id="result-section-evidence" className="result-evidence-panel" aria-labelledby="simple-evidence-title">
@@ -1666,7 +2004,7 @@ export default function ResultPage() {
               <div className="result-section-heading">
                 <span className="result-section-kicker">结构判断</span>
                 <h2 id="structure-title" className="section-title serif">命局结构</h2>
-                <p>把五行强弱、喜忌倾向与调候线索放在同一组里看，信息更集中。</p>
+                <p>扶抑、日干调候与寒热调候分别呈现，避免把不同判断混为一个结论。</p>
               </div>
 
               <div className="result-structure-grid">
@@ -1676,16 +2014,32 @@ export default function ResultPage() {
                 </div>
 
                 <div className="structure-card structure-card--yongshen">
-                  <YongshenBadge yongshen={result.yongshen || ''} jishen={result.jishen || ''} />
+                  <YongshenBadge yongshen={fuyiYongshen} jishen={fuyiJishen} />
                 </div>
+
+                {stemGuidance && (
+                  <div className="structure-card structure-card--stem-guidance">
+                    <StemGuidancePanel guidance={stemGuidance} />
+                  </div>
+                )}
 
                 {result.tiaohou && (
                   <div className="structure-card structure-card--tiaohou card">
                     <TiaohouCard
                       dayGan={result.day_gan}
                       monthZhi={result.month_zhi}
+                      score={result.natal_assessment?.tiaohou?.day_stem.score}
+                      formation={result.natal_assessment?.tiaohou?.day_stem.formation}
+                      foundationTier={result.natal_assessment?.tiaohou?.day_stem.foundation_tier}
+                      foundationScore={result.natal_assessment?.tiaohou?.day_stem.foundation_score}
                       tiaohou={result.tiaohou}
                     />
+                  </div>
+                )}
+
+                {result.natal_assessment?.tiaohou?.thermal && (
+                  <div className="structure-card structure-card--tiaohou card">
+                    <ThermalTiaohouCard thermal={result.natal_assessment.tiaohou.thermal} />
                   </div>
                 )}
               </div>
@@ -1715,8 +2069,8 @@ export default function ResultPage() {
                 gender={result.gender}
                 pillarsLabel={dayunPillarsLabel}
                 chartId={targetId}
-                yongshen={result.yongshen || ''}
-                jishen={result.jishen || ''}
+                yongshen={fuyiYongshen}
+                jishen={fuyiJishen}
                 wuxing={result.wuxing}
                 tiaohou={result.tiaohou ?? null}
                 dayunRoadmap={result.dayun_roadmap}
@@ -2044,6 +2398,143 @@ export default function ResultPage() {
           )}
         </section>
       </div>
+
+      {overviewModal && (
+        <div
+          className="result-overview-modal"
+          onMouseDown={event => {
+            if (event.target === event.currentTarget) closeOverviewModal()
+          }}
+        >
+          <div
+            ref={overviewModalDialogRef}
+            className="result-overview-modal__dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="result-overview-modal-title"
+            tabIndex={-1}
+          >
+            <div className="result-overview-modal__header">
+              <div>
+                <span>{overviewModalKicker}</span>
+                <h3 id="result-overview-modal-title" className="serif">{overviewModalTitle}</h3>
+              </div>
+              <button
+                type="button"
+                className="result-overview-modal__close"
+                onClick={closeOverviewModal}
+                aria-label={`关闭${overviewModalTitle}`}
+                title="关闭"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="result-overview-modal__body">
+              {overviewModal === 'grade' && (
+                <div className="result-grade-guide-body">
+                  <p>S 到 D 区分原局基础层次：调候急需优先；无急需时以扶抑为基线，再看日干调候成格、主格结构、制化与流通；不等同于人的高低或人生结局。</p>
+                  <ul className="result-grade-guide">
+                    {VEHICLE_GRADE_GUIDE.map(item => (
+                      <li key={item.grade} className={item.grade === result.vehicle_profile?.grade ? 'is-current' : ''}>
+                        <strong>{item.grade} · {item.label} · {item.vehicle}</strong>
+                        <span>{item.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {overviewModal === 'road' && (
+                <div className="result-road-guide-body">
+                  <p>车代表命盘的基础配置与驾驭难度，路代表每十年大运带来的外部支持与阻力。车好不等于一路顺，路顺也能让普通配置发挥得更好。</p>
+                  <ul className="result-road-guide">
+                    {ROAD_GUIDE.map(item => (
+                      <li key={item.type} className={item.type === currentDayunRoad?.road_type ? 'is-current' : ''}>
+                        <strong>{item.label}</strong>
+                        <span>{item.summary}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {overviewModal === 'vehicle-evidence' && vehicleEvidences.length > 0 && (
+                <div className="result-profile-evidence-body">
+                  {vehicleDrivingStyle && (
+                    <p className="result-profile-driving-style">
+                      <strong>驾驶特性</strong>
+                      <span>{vehicleDrivingStyle}</span>
+                      <em>由命格辅助说明，不参与基础盘等级或主车型判定。</em>
+                    </p>
+                  )}
+                  <ul className="result-profile-evidence">
+                    {vehicleEvidences.map((item, index) => (
+                      <li key={`${item.source}-${index}`}>
+                        <strong>{item.source}</strong>
+                        <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
+                        <em>{item.detail}</em>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {overviewModal === 'road-evidence' && hasCurrentRoadEvidence && (
+                <div className="result-profile-evidence-body">
+                  {currentRoadPhaseEvidences.length > 0 ? (
+                    <>
+                      {currentRoadEvidences.length > 0 && (
+                        <section className="result-road-evidence-aggregate" aria-labelledby="road-evidence-aggregate-title">
+                          <h4 id="road-evidence-aggregate-title">十年合计</h4>
+                          <ul className="result-profile-evidence">
+                            {currentRoadEvidences.map((item, index) => (
+                              <li key={`${item.source}-${index}`}>
+                                <strong>{item.source}</strong>
+                                <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
+                                <em>{item.detail}</em>
+                              </li>
+                            ))}
+                          </ul>
+                        </section>
+                      )}
+                      <div className="result-road-evidence-phases">
+                        {currentRoadPhaseEvidences.map((phase) => (
+                          <section key={phase.phase} className="result-road-evidence-phase" aria-labelledby={`road-evidence-${phase.phase}`}>
+                            <div className="result-road-evidence-phase-heading">
+                              <h4 id={`road-evidence-${phase.phase}`}>{phase.label}</h4>
+                              <span>阶段合计 {formatEvidenceDelta(phase.delta)}</span>
+                            </div>
+                            <ul className="result-profile-evidence">
+                              {phase.evidences.map((item, index) => (
+                                <li key={`${phase.phase}-${item.source}-${index}`}>
+                                  <strong>{item.source}</strong>
+                                  <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
+                                  <em>{item.detail}</em>
+                                </li>
+                              ))}
+                            </ul>
+                          </section>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <ul className="result-profile-evidence">
+                      {currentRoadEvidences.map((item, index) => (
+                        <li key={`${item.source}-${index}`}>
+                          <strong>{item.source}</strong>
+                          <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
+                          <em>{item.detail}</em>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 隐藏的分享卡片（用于生成图片，不可见） */}
       <div style={{ position: 'fixed', top: -9999, left: -9999, zIndex: -1, pointerEvents: 'none' }}>

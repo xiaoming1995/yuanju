@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
-import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen, SlidersHorizontal, BarChart2, Star, Trash2, Heart, Newspaper } from 'lucide-react'
+import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen, SlidersHorizontal, BarChart2, Star, Trash2, Heart, Newspaper, Landmark } from 'lucide-react'
 import { useAdminAuth } from '../contexts/AdminAuthContext'
 import './AdminLayout.css'
 
@@ -33,6 +33,9 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/celebrities" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Users size={18} /></span> 名人库管理
+          </NavLink>
+          <NavLink to="/admin/mingge-historical-figures" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><Landmark size={18} /></span> 命格古人映照
           </NavLink>
           <NavLink to="/admin/charts" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><BookOpen size={18} /></span> 起盘明细

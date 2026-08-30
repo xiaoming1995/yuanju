@@ -6,11 +6,11 @@ import (
 )
 
 type User struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	Nickname     string    `json:"nickname"`
-	Source       string    `json:"source"`
+	ID           string     `json:"id"`
+	Email        string     `json:"email"`
+	PasswordHash string     `json:"-"`
+	Nickname     string     `json:"nickname"`
+	Source       string     `json:"source"`
 	CreatedAt    time.Time  `json:"created_at"`
 	DisabledAt   *time.Time `json:"disabled_at,omitempty"`
 }
@@ -121,15 +121,16 @@ type AIDayunSummary struct {
 
 // DayunSummaryTemplateData 单段大运 AI prompt 模板上下文
 type DayunSummaryTemplateData struct {
-	Gender         string
-	DayGan         string
-	NatalSummary   string
-	YongshenInfo   string
-	StrengthDetail string
-	DayunInfo      string // 当前大运："大运 戊戌 30-39岁（2025-2034年）[偏财/伤官]"
-	HuaheTag       string // 合化标签（若有）
-	YearsData      string // 仅这段大运 10 年的 signals JSON
-	LifeStageHint  string // 读书期/跨界期 prompt 提示（按 youngRatio 三档）
+	Gender          string
+	DayGan          string
+	NatalSummary    string
+	YongshenInfo    string
+	StrengthDetail  string
+	NatalAssessment string // 日干调候成格、主格结构与制化的分层结论
+	DayunInfo       string // 当前大运："大运 戊戌 30-39岁（2025-2034年）[偏财/伤官]"
+	HuaheTag        string // 合化标签（若有）
+	YearsData       string // 仅这段大运 10 年的 signals JSON
+	LifeStageHint   string // 读书期/跨界期 prompt 提示（按 youngRatio 三档）
 
 	// 喜忌十神（古法映射）— soft 置信度时 FavorableShishen/AdverseShishen 为空
 	FavorableShishen  []string

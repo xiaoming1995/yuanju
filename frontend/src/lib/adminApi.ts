@@ -115,6 +115,38 @@ export const adminCelebritiesAPI = {
     adminApi.post('/api/admin/celebrities/ai-generate', data, { timeout: 120000 }), // 覆盖默认 15s 超时
 }
 
+export interface AdminMingGeHistoricalFigure {
+  id: string
+  ming_ge: string
+  figure_name: string
+  era: string
+  identity: string
+  historical_memory: string
+  turning_point: string
+  turning_point_year: string
+  source_title: string
+  source_url: string
+  birth_data_precision: 'unknown' | 'date_only' | 'exact_hour'
+  bazi_verification_note?: string
+  dayun_period?: string
+  dayun_explanation?: string
+  show_dayun: boolean
+  display_order: number
+  review_status: 'draft' | 'reviewed' | 'published' | 'archived'
+}
+
+export type AdminMingGeHistoricalFigureInput = Omit<AdminMingGeHistoricalFigure, 'id'>
+
+export const adminMingGeHistoricalFiguresAPI = {
+  list: () => adminApi.get<{ data: AdminMingGeHistoricalFigure[] }>('/api/admin/mingge-historical-figures'),
+  create: (data: AdminMingGeHistoricalFigureInput) =>
+    adminApi.post<{ data: AdminMingGeHistoricalFigure }>('/api/admin/mingge-historical-figures', data),
+  update: (id: string, data: AdminMingGeHistoricalFigureInput) =>
+    adminApi.put<{ data: AdminMingGeHistoricalFigure }>(`/api/admin/mingge-historical-figures/${id}`, data),
+  archive: (id: string) =>
+    adminApi.delete(`/api/admin/mingge-historical-figures/${id}`),
+}
+
 export const adminPromptsAPI = {
   list: () => adminApi.get('/api/admin/prompts'),
   update: (module: string, data: { content: string }) =>

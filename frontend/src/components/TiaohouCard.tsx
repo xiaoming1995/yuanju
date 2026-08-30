@@ -5,6 +5,10 @@ import './TiaohouCard.css'
 interface TiaohouCardProps {
   dayGan: string
   monthZhi: string
+  score?: number
+  formation?: string
+  foundationTier?: string
+  foundationScore?: number
   tiaohou: {
     expected: string[]
     tou: string[]
@@ -13,7 +17,7 @@ interface TiaohouCardProps {
   }
 }
 
-const TiaohouCard: React.FC<TiaohouCardProps> = ({ dayGan, monthZhi, tiaohou }) => {
+const TiaohouCard: React.FC<TiaohouCardProps> = ({ dayGan, monthZhi, score, formation, foundationTier, foundationScore, tiaohou }) => {
   const [expanded, setExpanded] = useState(true)
 
   if (!tiaohou || !tiaohou.expected || tiaohou.expected.length === 0) {
@@ -27,7 +31,10 @@ const TiaohouCard: React.FC<TiaohouCardProps> = ({ dayGan, monthZhi, tiaohou }) 
     <div className="tiaohou-card-container">
       <div className="tiaohou-header-section">
         <div className="tiaohou-expected-row">
-          <span className="tiaohou-label"><Diamond size={14} className="title-diamond-icon" />调候用神提示 <span className="tiaohou-question-mark">?</span></span>
+          <span className="tiaohou-label"><Diamond size={14} className="title-diamond-icon" />日干调候 <span className="tiaohou-question-mark">?</span></span>
+          {formation === 'formed' ? (
+            <span className="tiaohou-formation">日干调候成格 · 高格基础 {typeof foundationScore === 'number' && `+${foundationScore} 分`}</span>
+          ) : typeof score === 'number' && <span className="tiaohou-score">+{score} 分</span>}
           <span className="tiaohou-expected-values">
             {tiaohou.expected.map((ys, idx) => (
               <span key={`expected-${idx}`} className={isMatched(ys) ? 'matched-text' : 'unmatched-text'}>
@@ -56,6 +63,10 @@ const TiaohouCard: React.FC<TiaohouCardProps> = ({ dayGan, monthZhi, tiaohou }) 
           </div>
         </div>
       </div>
+
+      {formation === 'formed' && (
+        <p className="tiaohou-formation-note">所需调候用神同时见于天干与地支藏干，故为天透地藏成格。{foundationTier === 'high' ? '此项构成原局的高格基础。' : ''}</p>
+      )}
 
       <div className="tiaohou-detail-section">
         <div className="tiaohou-detail-title" onClick={() => setExpanded(!expanded)}>

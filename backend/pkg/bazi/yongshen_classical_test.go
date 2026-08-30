@@ -16,10 +16,9 @@ import (
 //   3. 透干优先选 primary_gan
 // ──────────────────────────────────────────────────────────────────────
 
-// 主测试盘：1996-02-08 20:00 男
-// 四柱：丙子 庚寅 乙亥 丙戌
-// 应得 strategy=fuyi_strong, IsStrong=true, WuxingSet="金土火", JishenSet="水木", PrimaryGan="丙"
-func TestComputeClassicalYongshen_身强寅月乙木(t *testing.T) {
+// 主测试盘：1996-02-08 20:00 男。
+// 四柱：丙子 庚寅 乙亥 丙戌。乙木得寅月令，月令得令须参与全局扶抑。
+func TestComputeClassicalYongshen_寅月乙木得令取扶抑(t *testing.T) {
 	natal := &BaziResult{
 		YearGan: "丙", YearZhi: "子",
 		MonthGan: "庚", MonthZhi: "寅",
@@ -36,20 +35,17 @@ func TestComputeClassicalYongshen_身强寅月乙木(t *testing.T) {
 
 	got := ComputeClassicalYongshen(natal)
 
-	if got.Strategy != "fuyi_strong" {
-		t.Errorf("Strategy = %q, want fuyi_strong", got.Strategy)
+	if got.Strategy != ClassicalStrategyFuyiStrong {
+		t.Errorf("Strategy = %q, want %q", got.Strategy, ClassicalStrategyFuyiStrong)
 	}
 	if !got.IsStrong {
-		t.Errorf("IsStrong = false, want true (乙木寅月建禄+亥子双印=身强)")
+		t.Errorf("IsStrong = false, want true for month-command supported Fuyi")
 	}
 	if got.WuxingSet != "金土火" {
-		t.Errorf("WuxingSet = %q, want 金土火 (身强→克泄耗)", got.WuxingSet)
+		t.Errorf("WuxingSet = %q, want 金土火", got.WuxingSet)
 	}
-	if got.JishenSet != "水木" {
-		t.Errorf("JishenSet = %q, want 水木", got.JishenSet)
-	}
-	if got.PrimaryGan != "丙" {
-		t.Errorf("PrimaryGan = %q, want 丙 (火土金候选中丙最早透干)", got.PrimaryGan)
+	if got.JishenSet != "水木" || got.PrimaryGan != "丙" {
+		t.Errorf("month-command Fuyi result mismatch: %+v", got)
 	}
 }
 

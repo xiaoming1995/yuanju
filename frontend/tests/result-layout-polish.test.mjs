@@ -15,9 +15,9 @@ test('result page presents the basic chart as the primary panel before relation 
   assert.match(page, /bazi-primary-panel/)
   assert.match(page, /bazi-data-grid--primary/)
 
-  const chart = page.indexOf('基本排盘')
-  const relation = page.indexOf('命主十神关系')
-  const structure = page.indexOf('命局结构')
+  const chart = page.indexOf('className="pillars-section card bazi-primary-panel">')
+  const relation = page.indexOf('className="ten-god-relation-section"')
+  const structure = page.indexOf('className="result-structure-section"')
 
   assert.ok(chart > -1, 'basic chart heading should exist')
   assert.ok(relation > -1, 'ten god relation heading should exist')
@@ -62,4 +62,13 @@ test('hidden stems use their own five-element color mapping instead of placehold
 
   assert.doesNotMatch(page, /WUXING_MAP\['TODO'\]/)
   assert.match(page, /GAN_WUXING\[g\]/)
+})
+
+test('result overview uses a concise summary hierarchy and a mobile single column', () => {
+  const css = read('src/pages/ResultPage.css')
+
+  assert.match(css, /\.result-summary-grid\s*\{[\s\S]*border-bottom:/)
+  assert.match(css, /\.result-summary-card--vehicle\s*\{[\s\S]*border-right:/)
+  assert.match(css, /\.result-utility-bar\s*\{[\s\S]*background:\s*transparent;/)
+  assert.match(css, /@media \(max-width: 760px\)\s*\{[\s\S]*\.result-summary-grid\s*\{[\s\S]*grid-template-columns:\s*1fr;/)
 })
