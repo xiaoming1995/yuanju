@@ -64,11 +64,17 @@ test('hidden stems use their own five-element color mapping instead of placehold
   assert.match(page, /GAN_WUXING\[g\]/)
 })
 
-test('result overview uses a concise summary hierarchy and a mobile single column', () => {
+test('result overview uses bounded primary regions and a mobile single column', () => {
+  const page = read('src/pages/ResultPage.tsx')
   const css = read('src/pages/ResultPage.css')
 
-  assert.match(css, /\.result-summary-grid\s*\{[\s\S]*border-bottom:/)
-  assert.match(css, /\.result-summary-card--vehicle\s*\{[\s\S]*border-right:/)
-  assert.match(css, /\.result-utility-bar\s*\{[\s\S]*background:\s*transparent;/)
+  assert.match(page, /className="result-identity-panel animate-fade-up"/)
+  assert.match(page, /className="result-verdict-card result-conclusion-panel"/)
+  assert.match(page, /className="result-summary-region" aria-label="本命与当下"/)
+  assert.match(page, /className="chart-archive-tools result-utility-bar result-identity-utility"/)
+  assert.match(css, /\.result-identity-panel,\s*\.result-conclusion-panel,\s*\.result-summary-card\s*\{[\s\S]*border:/)
+  assert.match(css, /\.result-summary-card\s*\{[\s\S]*padding:\s*24px;/)
+  assert.match(css, /\.result-summary-card--vehicle\s*\{[\s\S]*border-color:/)
+  assert.match(css, /\.result-summary-card--wealth\s*\{[\s\S]*border-color:/)
   assert.match(css, /@media \(max-width: 760px\)\s*\{[\s\S]*\.result-summary-grid\s*\{[\s\S]*grid-template-columns:\s*1fr;/)
 })

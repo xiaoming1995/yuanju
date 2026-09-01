@@ -22,6 +22,7 @@ import { SegmentedTabs } from '../components/ui/SegmentedTabs'
 import { useToast } from '../components/ui/useToast'
 import { filterPastEventsExportSegments, type PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
 import { buildDayunTrendSeries, buildTrendNote, buildTrendPath, trendX, trendY } from '../lib/dayunTrend'
+import { DAYUN_ROAD_SCOPE_EXPLANATION, getDayunPhasePrompt } from '../lib/dayunRoadPresentation'
 import './ResultPage.css'
 import './WealthProfile.css'
 
@@ -260,8 +261,8 @@ interface DayunRoad {
   score: number
   road_type: string
   road_label: string
-  qian_road: RoadPhase
-  hou_road: RoadPhase
+  qian_road?: RoadPhase
+  hou_road?: RoadPhase
   summary: string
   tags: string[]
   evidences: ProfileEvidence[]
@@ -1307,6 +1308,12 @@ export default function ResultPage() {
   const stemLevelYongshenSummary = buildStemLevelYongshenSummary(result)
   const vehicleGradeGuide = findVehicleGradeGuide(result.vehicle_profile?.grade)
   const currentRoadGuide = findRoadGuide(currentDayunRoad?.road_type)
+  const currentRoadPhasePrompts = currentDayun && currentDayunRoad
+    ? [
+      getDayunPhasePrompt(currentDayun, currentDayunRoad.qian_road, 'front'),
+      getDayunPhasePrompt(currentDayun, currentDayunRoad.hou_road, 'back'),
+    ].filter((prompt): prompt is NonNullable<typeof prompt> => Boolean(prompt))
+    : []
   const overviewModalTitle = overviewModal === 'grade'
     ? '等级说明'
     : overviewModal === 'road'
@@ -1425,58 +1432,95 @@ export default function ResultPage() {
         <div className="container">
 
         <section id="result-section-overview" className="result-overview-section">
-          <div className="result-header animate-fade-up">
-            <div className="result-birth-info">
-              {result.birth_year}年{result.birth_month}月{result.birth_day}日 {result.birth_hour}时
-              &nbsp;·&nbsp;{result.gender === 'male' ? '男命' : '女命'}
+          <section className="result-identity-panel animate-fade-up" aria-label="命盘身份信息">
+            <div className="result-identity-main">
+              <div className="result-header">
+                <div className="result-birth-info">
+                  {result.birth_year}年{result.birth_month}月{result.birth_day}日 {result.birth_hour}时
+                  &nbsp;·&nbsp;{result.gender === 'male' ? '男命' : '女命'}
+                </div>
+                <h1 className="result-pillars serif">
+                  {pillars.map(p => `${p.gan}${p.zhi}`).join('·')}
+                </h1>
+                <div className="result-tags">
+                  {stemLevelYongshenSummary ? (
+                    <StemLevelYongshenSummaryPanel summary={stemLevelYongshenSummary} />
+                  ) : (
+                    <>
+                      <span className={`wuxing-badge ${fuyiYongshen ? 'wuxing-' + (WUXING_MAP[fuyiYongshen.charAt(0)] || 'jin') : 'wuxing-unknown'}`}>
+                        扶抑喜用：{fuyiYongshen || (reportLoading ? '测算中...' : '待生成')}
+                      </span>
+                      <span className={`wuxing-badge ${fuyiJishen ? 'wuxing-' + (WUXING_MAP[fuyiJishen.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
+                        扶抑忌：{fuyiJishen || (reportLoading ? '测算中...' : '待生成')}
+                      </span>
+                    </>
+                  )}
+                  {result.ming_ge && (
+                    <button
+                      type="button"
+                      className="mingge-badge"
+                      onClick={() => setActiveMingGe({ name: result.ming_ge!, desc: result.ming_ge_desc || '' })}
+                      aria-label={`查看${result.ming_ge}格局说明`}
+                      aria-haspopup="dialog"
+                    >
+                      <span className="mingge-badge-label">格局</span>
+                      <span>{result.ming_ge}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-            <h1 className="result-pillars serif">
-              {pillars.map(p => `${p.gan}${p.zhi}`).join('·')}
-            </h1>
-            <div className="result-tags">
-              {stemLevelYongshenSummary ? (
-                <StemLevelYongshenSummaryPanel summary={stemLevelYongshenSummary} />
-              ) : (
-                <>
-                  <span className={`wuxing-badge ${fuyiYongshen ? 'wuxing-' + (WUXING_MAP[fuyiYongshen.charAt(0)] || 'jin') : 'wuxing-unknown'}`}>
-                    扶抑喜用：{fuyiYongshen || (reportLoading ? '测算中...' : '待生成')}
-                  </span>
-                  <span className={`wuxing-badge ${fuyiJishen ? 'wuxing-' + (WUXING_MAP[fuyiJishen.charAt(0)] || 'huo') : 'wuxing-unknown'}`}>
-                    扶抑忌：{fuyiJishen || (reportLoading ? '测算中...' : '待生成')}
-                  </span>
-                </>
-              )}
-              {result.ming_ge && (
-                <span
-                  className="mingge-badge"
-                  onClick={() => setActiveMingGe({ name: result.ming_ge!, desc: result.ming_ge_desc || '' })}
-                  title="点击查看格局说明"
+
+            <div className="result-identity-side">
+              <span className="result-identity-side-label">阅读视图</span>
+              <div className="result-reading-mode" aria-label="原局阅读模式">
+                <button
+                  type="button"
+                  className={readingMode === 'simple' ? 'is-active' : ''}
+                  onClick={() => setReadingMode('simple')}
                 >
-                  {result.ming_ge}
-                </span>
-              )}
+                  小白模式
+                </button>
+                <button
+                  type="button"
+                  className={readingMode === 'professional' ? 'is-active' : ''}
+                  onClick={() => setReadingMode('professional')}
+                >
+                  专业模式
+                </button>
+              </div>
             </div>
-            <p className="result-quick-summary">{resultQuickSummary}</p>
-          </div>
 
-          <div className="result-reading-mode" aria-label="原局阅读模式">
-            <button
-              type="button"
-              className={readingMode === 'simple' ? 'is-active' : ''}
-              onClick={() => setReadingMode('simple')}
-            >
-              小白模式
-            </button>
-            <button
-              type="button"
-              className={readingMode === 'professional' ? 'is-active' : ''}
-              onClick={() => setReadingMode('professional')}
-            >
-              专业模式
-            </button>
-          </div>
+            {targetId && !isGuest && (
+              <div className="chart-archive-tools result-utility-bar result-identity-utility">
+                <div className="chart-archive-name">
+                  <label htmlFor="result-chart-display-name">命盘称呼</label>
+                  <input
+                    id="result-chart-display-name"
+                    value={chartDisplayNameDraft}
+                    onChange={(event) => setChartDisplayNameDraft(event.target.value)}
+                    maxLength={20}
+                    placeholder={`${result.birth_year}年${result.birth_month}月${result.birth_day}日`}
+                  />
+                  <button type="button" className="btn btn-secondary" onClick={handleSaveChartDisplayName}>
+                    保存称呼
+                  </button>
+                </div>
+                {chartDisplayNameError && <div className="chart-archive-error">{chartDisplayNameError}</div>}
+                <div className="chart-archive-compatibility">
+                  <span>用此命盘发起合盘</span>
+                  <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=self`)}>
+                    作为我
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=partner`)}>
+                    作为对方
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
 
-          <article className="result-verdict-card">
+          <article className="result-verdict-card result-conclusion-panel">
             <div className="result-product-card-head">
               <div>
                 <span className="result-product-kicker">命盘总评</span>
@@ -1484,6 +1528,7 @@ export default function ResultPage() {
               </div>
               {fuyiYongshen && <span className="result-product-pill">扶抑喜用：{fuyiYongshen}</span>}
             </div>
+            <p className="result-quick-summary">{resultQuickSummary}</p>
             <p>{chartVerdict}</p>
             {chartKeywords.length > 0 && (
               <div className="result-keyword-row">
@@ -1501,6 +1546,7 @@ export default function ResultPage() {
             </button>
           </article>
 
+          <section className="result-summary-region" aria-label="本命与当下">
           <div className={`result-summary-grid${result.vehicle_profile ? '' : ' is-single-panel'}`}>
             {result.vehicle_profile && (
               <article className="result-vehicle-card result-summary-card result-summary-card--vehicle">
@@ -1617,7 +1663,7 @@ export default function ResultPage() {
                   <span className="result-product-kicker">{currentDayunRoad ? '当前路况' : '当前阶段'}</span>
                   <h2 className="serif">
                     {currentDayunRoad
-                      ? `${currentDayunRoad.gan_zhi}大运 · ${currentDayunRoad.road_label}`
+                      ? `${currentDayunRoad.gan_zhi}大运`
                       : currentDayun ? `${currentDayun.gan}${currentDayun.zhi}大运` : '大运待确认'}
                   </h2>
                 </div>
@@ -1625,15 +1671,34 @@ export default function ResultPage() {
               </div>
               {currentDayun ? (
                 <>
-                  <p>{currentDayunRoad?.summary || `${currentDayun.start_age} - ${currentDayun.start_age + 9} 岁 · 公历 ${currentDayun.start_year} - ${currentDayun.end_year}`}</p>
+                  <p className="result-dayun-period-meta">{currentDayun.start_age} - {currentDayun.start_age + 9} 岁 · 公历 {currentDayun.start_year} - {currentDayun.end_year}</p>
                   {currentDayunRoad && currentRoadGuide && (
-                    <p className="result-profile-plain-note"><strong>{currentRoadGuide.label}</strong>：{currentRoadGuide.summary}</p>
+                    <section className="result-road-composite" aria-label="十年综合路况">
+                      <div>
+                        <span>十年综合路况</span>
+                        <strong>{currentRoadGuide.label}</strong>
+                      </div>
+                      <p>{currentRoadGuide.summary}</p>
+                    </section>
                   )}
-                  {currentDayunRoad && (
-                    <div className="result-road-phase-row">
-                      <span>前五年：{currentDayunRoad.qian_road.label}</span>
-                      <span>后五年：{currentDayunRoad.hou_road.label}</span>
-                    </div>
+                  {currentRoadPhasePrompts.length > 0 && (
+                    <section className="result-road-phase-prompts" aria-labelledby="result-road-phase-prompts-title">
+                      <div className="result-road-phase-prompts-heading">
+                        <span id="result-road-phase-prompts-title">前后五年阶段指引</span>
+                        <small>每一段分别说明所处路况与行动主题</small>
+                      </div>
+                      <div className="result-road-phase-prompts-grid">
+                        {currentRoadPhasePrompts.map(prompt => (
+                          <div className="result-road-phase-prompt" key={prompt.phaseLabel}>
+                            <span>{prompt.phaseLabel} · {prompt.timeRange}</span>
+                            <strong>{prompt.roadLabel}</strong>
+                            <b className={`result-road-phase-theme is-${prompt.ratingTone}`}>主题：{prompt.theme}</b>
+                            <small>{prompt.governingLabel} · 金不换 {prompt.rating}</small>
+                            <p>{prompt.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   )}
                   <div className="result-current-year">
                     <span>{currentYear} 年</span>
@@ -1651,7 +1716,7 @@ export default function ResultPage() {
                     className="result-overview-modal-trigger"
                     onClick={event => openOverviewModal('road', event.currentTarget)}
                   >
-                    大运路况说明
+                    查看路况与阶段提示说明
                   </button>
                   {readingMode === 'professional' && hasCurrentRoadEvidence && (
                     <button
@@ -1673,34 +1738,7 @@ export default function ResultPage() {
               </button>
             </article>
           </div>
-
-          {targetId && !isGuest && (
-            <div className="chart-archive-tools result-utility-bar">
-              <div className="chart-archive-name">
-                <label htmlFor="result-chart-display-name">命盘称呼</label>
-                <input
-                  id="result-chart-display-name"
-                  value={chartDisplayNameDraft}
-                  onChange={(event) => setChartDisplayNameDraft(event.target.value)}
-                  maxLength={20}
-                  placeholder={`${result.birth_year}年${result.birth_month}月${result.birth_day}日`}
-                />
-                <button type="button" className="btn btn-secondary" onClick={handleSaveChartDisplayName}>
-                  保存称呼
-                </button>
-              </div>
-              {chartDisplayNameError && <div className="chart-archive-error">{chartDisplayNameError}</div>}
-              <div className="chart-archive-compatibility">
-                <span>用此命盘发起合盘</span>
-                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=self`)}>
-                  作为我
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=partner`)}>
-                  作为对方
-                </button>
-              </div>
-            </div>
-          )}
+          </section>
 
           {selectedDayun && selectedDayunTrendSeries.length > 0 && (
             <section id="result-section-trend" className="result-trend-panel" aria-labelledby="result-trend-title">
@@ -2151,7 +2189,7 @@ export default function ResultPage() {
                 chartId={targetId}
                 yongshen={fuyiYongshen}
                 jishen={fuyiJishen}
-                wuxing={result.wuxing}
+                natalDayMasterStrength={result.natal_assessment?.fuyi.day_master_strength}
                 tiaohou={result.tiaohou ?? null}
                 dayunRoadmap={result.dayun_roadmap}
               />
@@ -2528,6 +2566,7 @@ export default function ResultPage() {
               {overviewModal === 'road' && (
                 <div className="result-road-guide-body">
                   <p>车代表命盘的基础配置与驾驭难度，路代表每十年大运带来的外部支持与阻力。车好不等于一路顺，路顺也能让普通配置发挥得更好。</p>
+                  <p className="result-road-scope-note">{DAYUN_ROAD_SCOPE_EXPLANATION}</p>
                   <ul className="result-road-guide">
                     {ROAD_GUIDE.map(item => (
                       <li key={item.type} className={item.type === currentDayunRoad?.road_type ? 'is-current' : ''}>

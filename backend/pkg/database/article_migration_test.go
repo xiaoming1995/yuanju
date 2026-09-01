@@ -151,3 +151,20 @@ func TestArticleModuleEnabledSettingMigrationDeclaresDefault(t *testing.T) {
 		}
 	}
 }
+
+func TestMingGeHistoricalFigureMigrationsDeclareReviewAndSeedData(t *testing.T) {
+	schema, err := os.ReadFile("migrations/00025_mingge_historical_figures.sql")
+	if err != nil {
+		t.Fatalf("read historical figure schema migration: %v", err)
+	}
+	if !strings.Contains(string(schema), "mingge_historical_figures") || !strings.Contains(string(schema), "review_status") {
+		t.Fatalf("historical figure schema migration missing table or review status: %s", schema)
+	}
+	seed, err := os.ReadFile("migrations/00026_seed_mingge_historical_figures.sql")
+	if err != nil {
+		t.Fatalf("read historical figure seed migration: %v", err)
+	}
+	if !strings.Contains(string(seed), "伤官格") || !strings.Contains(string(seed), "show_dayun") {
+		t.Fatalf("historical figure seed migration missing reviewed reference data: %s", seed)
+	}
+}

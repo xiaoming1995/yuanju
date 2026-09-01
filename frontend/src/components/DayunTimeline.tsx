@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import LiuYueDrawer from './LiuYueDrawer'
 import { fetchShenshaAnnotations, type ShenshaAnnotation } from '../lib/api'
 import { buildDayunOverview } from '../lib/dayunOverview'
+import { getDayunPhasePrompt } from '../lib/dayunRoadPresentation'
 
 interface LiuNianItem {
   year: number
@@ -52,8 +53,8 @@ interface DayunRoad {
   score: number
   road_type: string
   road_label: string
-  qian_road: RoadPhase
-  hou_road: RoadPhase
+  qian_road?: RoadPhase
+  hou_road?: RoadPhase
   summary: string
   tags: string[]
 }
@@ -68,7 +69,7 @@ interface DayunTimelineProps {
   chartId?: string
   yongshen?: string
   jishen?: string
-  wuxing?: { mu: number; huo: number; tu: number; jin: number; shui: number }
+  natalDayMasterStrength?: string
   tiaohou?: { expected: string[]; tou: string[]; cang: string[]; text: string } | null
   dayunRoadmap?: DayunRoad[]
 }
@@ -76,6 +77,11 @@ interface DayunTimelineProps {
 const GAN_WUXING: Record<string, string> = {
   甲: 'mu', 乙: 'mu', 丙: 'huo', 丁: 'huo', 戊: 'tu',
   己: 'tu', 庚: 'jin', 辛: 'jin', 壬: 'shui', 癸: 'shui',
+}
+
+const ZHI_WUXING: Record<string, string> = {
+  子: 'shui', 丑: 'tu', 寅: 'mu', 卯: 'mu', 辰: 'tu', 巳: 'huo',
+  午: 'huo', 未: 'tu', 申: 'jin', 酉: 'jin', 戌: 'tu', 亥: 'shui',
 }
 
 const WUXING_LABEL: Record<string, string> = {
@@ -115,7 +121,7 @@ function getGenderLabel(gender?: string) {
 
 export default function DayunTimeline({
   dayun, birthYear, startYunSolar, dayGan, gender, pillarsLabel, chartId,
-  yongshen, jishen, wuxing, tiaohou, dayunRoadmap,
+  yongshen, jishen, natalDayMasterStrength, tiaohou, dayunRoadmap,
 }: DayunTimelineProps) {
   const currentYear = new Date().getFullYear()
   const displayDayun = dayun.slice(0, 10)
@@ -181,7 +187,8 @@ export default function DayunTimeline({
             {displayDayun.map((d, i) => {
               const isCurrent = currentYear >= d.start_year && currentYear <= d.end_year
               const isActive = i === resolvedActiveIndex
-              const wx = GAN_WUXING[d.gan] || 'jin'
+              const ganWuxing = GAN_WUXING[d.gan] || 'jin'
+              const zhiWuxing = ZHI_WUXING[d.zhi]
               const road = roadByDayunIndex.get(d.index)
               return (
                 <button
@@ -194,10 +201,15 @@ export default function DayunTimeline({
                   <span className="dayun-step-index">{d.index}</span>
                   <span className="dayun-step-age">{d.start_age}岁-{d.start_age + 9}岁</span>
                   <span className="dayun-step-ganzhi">
-                    <span className={`wuxing-text-${wx}`}>{d.gan}</span>
-                    <span>{d.zhi}</span>
+                    <span className={`wuxing-text-${ganWuxing}`}>{d.gan}</span>
+                    <span className={zhiWuxing ? `wuxing-text-${zhiWuxing}` : undefined}>{d.zhi}</span>
                   </span>
-                  <span className="dayun-step-ten-god">{d.gan_shishen}</span>
+                  {(d.gan_shishen || d.zhi_shishen) && (
+                    <span className="dayun-step-ten-god">
+                      {d.gan_shishen && <span>干·{d.gan_shishen}</span>}
+                      {d.zhi_shishen && <span>支·{d.zhi_shishen}</span>}
+                    </span>
+                  )}
                   {road && <span className={`dayun-road-badge dayun-road-badge--${road.road_type}`}>{road.road_label}</span>}
 
                   {d.shen_sha && d.shen_sha.length > 0 && (
@@ -305,8 +317,6 @@ export default function DayunTimeline({
           )}
 
           {activeDayun && (() => {
-            const dayGanWx = GAN_WUXING[dayGan] ?? ''
-            const dayGanWxCn = WUXING_LABEL[dayGanWx] ?? ''
             const overview = buildDayunOverview({
               dayun: {
                 gan: activeDayun.gan,
@@ -317,10 +327,15 @@ export default function DayunTimeline({
               },
               yongshen: yongshen ?? '',
               jishen: jishen ?? '',
-              wuxing: wuxing ?? { mu: 20, huo: 20, tu: 20, jin: 20, shui: 20 },
-              dayGanWuxing: dayGanWxCn,
+              natalDayMasterStrength,
               tiaohou: tiaohou ?? null,
             })
+            const phasePrompts = activeRoad
+              ? [
+                getDayunPhasePrompt(activeDayun, activeRoad.qian_road, 'front'),
+                getDayunPhasePrompt(activeDayun, activeRoad.hou_road, 'back'),
+              ].filter((prompt): prompt is NonNullable<typeof prompt> => Boolean(prompt))
+              : []
             return (
               <div className="dayun-summary-strip">
                 <div className="dayun-summary-copy">
@@ -343,14 +358,32 @@ export default function DayunTimeline({
                   <span>十神主气：{activeDayun.gan_shishen}</span>
                   <span>五行主气：{WUXING_LABEL[GAN_WUXING[activeDayun.gan] || 'jin']}</span>
                   <span>趋势关键词：{overview.trendKeywords}</span>
-                  {activeRoad && <span>路况：{activeRoad.road_label}</span>}
-                  {activeRoad && <span>前后五年：{activeRoad.qian_road.label} / {activeRoad.hou_road.label}</span>}
                 </div>
                 {activeRoad && (
-                  <div className="dayun-road-phase-strip" aria-label="大运前后五年路况">
-                    <span>{activeRoad.qian_road.summary}</span>
-                    <span>{activeRoad.hou_road.summary}</span>
-                  </div>
+                  <section className="dayun-road-summary" aria-label="大运路况说明">
+                    <div className="dayun-road-composite">
+                      <span>十年综合路况</span>
+                      <strong className={`dayun-road-badge dayun-road-badge--${activeRoad.road_type}`}>{activeRoad.road_label}</strong>
+                    </div>
+                    {phasePrompts.length > 0 && (
+                      <div className="dayun-phase-prompts" aria-label="前后五年阶段指引">
+                        <div className="dayun-phase-prompts-heading">
+                          <span>前后五年阶段指引</span>
+                          <small>路况与主题一目了然</small>
+                        </div>
+                        <div className="dayun-phase-prompts-grid">
+                          {phasePrompts.map(prompt => (
+                            <div className="dayun-phase-prompt" key={prompt.phaseLabel}>
+                              <span>{prompt.phaseLabel} · {prompt.timeRange}</span>
+                              <strong>{prompt.roadLabel}</strong>
+                              <b className={`is-${prompt.ratingTone}`}>主题：{prompt.theme}</b>
+                              <small>{prompt.governingLabel} · 金不换 {prompt.rating}</small>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </section>
                 )}
               </div>
             )

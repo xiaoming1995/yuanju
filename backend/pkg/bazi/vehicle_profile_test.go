@@ -1,6 +1,9 @@
 package bazi
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func findRoadEvidence(evidences []ProfileEvidence, source string) *ProfileEvidence {
 	for i := range evidences {
@@ -366,5 +369,93 @@ func TestDayunRoadRepresentativeCases(t *testing.T) {
 	}
 	if roads[1].RoadType != RoadTypeConstruction && roads[1].RoadType != RoadTypeMuddyRoad {
 		t.Fatalf("adverse road should be construction/muddy road, got %s", roads[1].RoadType)
+	}
+}
+
+func TestDayunRoadSummarySeparatesCompositeRoadFromJinBuHuanPhases(t *testing.T) {
+	summary := dayunRoadSummary(
+		DayunItem{Gan: "癸", Zhi: "巳"},
+		"泥路",
+		RoadPhase{Label: "施工路段", Score: 35},
+		RoadPhase{Label: "施工路段", Score: 35},
+	)
+
+	for _, want := range []string{
+		"十年综合路况为泥路",
+		"金不换阶段提示",
+		"前五年由天干癸主事，评级凶",
+		"后五年由地支巳主事，评级凶",
+	} {
+		if !strings.Contains(summary, want) {
+			t.Fatalf("summary should contain %q, got %q", want, summary)
+		}
+	}
+	if strings.Contains(summary, "整体路况施工路段") {
+		t.Fatalf("summary must not present phase labels as the overall road condition: %q", summary)
+	}
+}
+
+func TestDayunRoadKeepsNatalStrengthAndAttributesDiShiToBranchPolarity(t *testing.T) {
+	// 1987-12-09 卯时：丁卯 壬子 壬辰 癸卯。壬水得令、透比劫且有根，原局身强。
+	r := Calculate(1987, 12, 9, 6, "male", false, 0, "solar", false)
+	if r.NatalAssessment == nil {
+		t.Fatal("expected natal assessment")
+	}
+	if got := r.NatalAssessment.Fuyi.DayMasterStrength; got != "strong" && got != "vstrong" {
+		t.Fatalf("expected natal strong assessment, got %q: %+v", got, r.NatalAssessment.Fuyi)
+	}
+	natalStrength := r.NatalAssessment.Fuyi.DayMasterStrength
+
+	var road *DayunRoad
+	for i := range r.DayunRoadmap {
+		if r.DayunRoadmap[i].GanZhi == "戊申" {
+			road = &r.DayunRoadmap[i]
+			break
+		}
+	}
+	if road == nil {
+		t.Fatalf("expected 戊申 Dayun in fixture: %+v", r.DayunRoadmap)
+	}
+	if r.NatalAssessment.Fuyi.DayMasterStrength != natalStrength {
+		t.Fatalf("Dayun evaluation must not change natal strength: before=%s after=%s", natalStrength, r.NatalAssessment.Fuyi.DayMasterStrength)
+	}
+
+	back := findRoadPhase(*road, "back")
+	if back == nil {
+		t.Fatalf("expected back phase evidence: %+v", road.PhaseEvidences)
+	}
+	diShi := findRoadEvidence(back.Evidences, "十二长生")
+	if diShi == nil || diShi.Delta >= 0 {
+		t.Fatalf("申金为扶抑忌且长生应加强忌神，不应给正分: %+v", diShi)
+	}
+	if !strings.Contains(diShi.Detail, "扶抑忌金") || !strings.Contains(diShi.Detail, "长生") {
+		t.Fatalf("expected branch polarity and stage detail, got %q", diShi.Detail)
+	}
+}
+
+func TestDayunBranchDiShiIntensityFollowsFuyiPolarity(t *testing.T) {
+	assessment := &NatalAssessment{Fuyi: NatalFuyiAssessment{Yongshen: "水", Jishen: "金"}}
+	cases := []struct {
+		name      string
+		dayun     DayunItem
+		wantDelta int
+		wantText  string
+	}{
+		{name: "vigorous favorable branch", dayun: DayunItem{Zhi: "子", DiShi: "长生"}, wantDelta: 5, wantText: "扶抑喜用水"},
+		{name: "vigorous adverse branch", dayun: DayunItem{Zhi: "申", DiShi: "长生"}, wantDelta: -5, wantText: "扶抑忌金"},
+		{name: "weak adverse branch is suppressed", dayun: DayunItem{Zhi: "申", DiShi: "绝"}, wantDelta: 0, wantText: "力量受限"},
+		{name: "neutral branch has no directional score", dayun: DayunItem{Zhi: "辰", DiShi: "长生"}, wantDelta: 0, wantText: "按原局扶抑喜忌判断"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			evidence := dayunBranchDiShiEvidence(&BaziResult{}, assessment, tc.dayun)
+			if evidence.Delta != tc.wantDelta {
+				t.Fatalf("delta=%d, want %d: %+v", evidence.Delta, tc.wantDelta, evidence)
+			}
+			if !strings.Contains(evidence.Detail, tc.wantText) {
+				t.Fatalf("detail %q should contain %q", evidence.Detail, tc.wantText)
+			}
+		})
 	}
 }

@@ -156,15 +156,8 @@ func buildDayunRoadmap(r *BaziResult) []DayunRoad {
 		score += tenGodDelta
 		evidences = append(evidences, aggregatePhaseEvidence("大运十神", dy.GanShiShen+"/"+dy.ZhiShiShen, frontTenGod, backTenGod))
 
-		diShiDelta := diShiRoadDelta(dy.DiShi)
-		score += diShiDelta
-		diShiEvidence := ProfileEvidence{
-			Source: "十二长生",
-			Label:  nonEmpty(dy.DiShi, "无"),
-			Impact: impactLabel(diShiDelta),
-			Delta:  diShiDelta,
-			Detail: "大运地支对应日主十二长生为" + nonEmpty(dy.DiShi, "无"),
-		}
+		diShiEvidence := dayunBranchDiShiEvidence(r, r.NatalAssessment, dy)
+		score += diShiEvidence.Delta
 		backEvidences = append(backEvidences, diShiEvidence)
 		evidences = append(evidences, diShiEvidence)
 
@@ -620,16 +613,63 @@ func dayunTenGodPhaseEvidence(r *BaziResult, tenGod string) ProfileEvidence {
 	return ProfileEvidence{Source: "大运十神", Label: tenGod, Impact: impactLabel(delta), Delta: clampInt(delta, -20, 20), Detail: detail}
 }
 
-func diShiRoadDelta(diShi string) int {
+func dayunBranchDiShiEvidence(r *BaziResult, assessment *NatalAssessment, dy DayunItem) ProfileEvidence {
+	stage := nonEmpty(dy.DiShi, "无")
+	branchElement := wxPinyin2CN[zhiWuxing[dy.Zhi]]
+	polarity := dayunBranchFuyiPolarity(r, assessment, branchElement)
+	strength, stageLabel := diShiBranchIntensity(dy.DiShi)
+
+	delta := 0
+	detail := "地支" + nonEmpty(dy.Zhi, "") + "的十二长生为" + stage + "，五行作用按原局扶抑喜忌判断。"
+	label := nonEmpty(dy.Zhi, "地支") + "·" + stage
+	switch polarity {
+	case "xi":
+		delta = strength
+		detail = fmt.Sprintf("地支%s为扶抑喜用%s，处于%s，%s。", dy.Zhi, branchElement, stage, stageLabel)
+	case "ji":
+		delta = -strength
+		detail = fmt.Sprintf("地支%s为扶抑忌%s，处于%s，%s。", dy.Zhi, branchElement, stage, stageLabel)
+	}
+
+	return ProfileEvidence{
+		Source: "十二长生",
+		Label:  label,
+		Impact: impactLabel(delta),
+		Delta:  delta,
+		Detail: detail,
+	}
+}
+
+func dayunBranchFuyiPolarity(r *BaziResult, assessment *NatalAssessment, element string) string {
+	if element == "" {
+		return "zhong"
+	}
+	yongshen, jishen := "", ""
+	if assessment != nil {
+		yongshen, jishen = assessment.Fuyi.Yongshen, assessment.Fuyi.Jishen
+	} else if r != nil {
+		yongshen, jishen = r.Yongshen, r.Jishen
+	}
+	switch {
+	case strings.Contains(yongshen, element):
+		return "xi"
+	case strings.Contains(jishen, element):
+		return "ji"
+	default:
+		return "zhong"
+	}
+}
+
+func diShiBranchIntensity(diShi string) (int, string) {
 	switch diShi {
 	case "帝旺", "临官", "长生", "冠带":
-		return 7
+		return 5, "该五行力量较显"
 	case "沐浴", "养", "胎", "墓":
-		return 2
+		return 2, "该五行作用平稳"
 	case "衰", "病", "死", "绝":
-		return -6
+		return 0, "该五行力量受限"
 	default:
-		return 0
+		return 0, "该五行力量未定"
 	}
 }
 
@@ -796,12 +836,19 @@ func relationFlowLabel(flow string) string {
 }
 
 func dayunRoadSummary(dy DayunItem, roadLabel string, qian, hou RoadPhase) string {
-	transition := qian.Label
-	if qian.Label != hou.Label {
-		transition = qian.Label + "接" + hou.Label
+	return fmt.Sprintf("%s%s大运十年综合路况为%s；金不换阶段提示：前五年由天干%s主事，评级%s；后五年由地支%s主事，评级%s。",
+		dy.Gan, dy.Zhi, roadLabel, dy.Gan, jinBuHuanPhaseRating(qian), dy.Zhi, jinBuHuanPhaseRating(hou))
+}
+
+func jinBuHuanPhaseRating(phase RoadPhase) string {
+	switch {
+	case phase.Score >= 70:
+		return "吉"
+	case phase.Score < 55:
+		return "凶"
+	default:
+		return "平"
 	}
-	return fmt.Sprintf("%s%s大运为%s，整体路况%s；前五年看天干%s，后五年看地支%s。",
-		dy.Gan, dy.Zhi, roadLabel, transition, dy.Gan, dy.Zhi)
 }
 
 func strengthLevelLabel(level string) string {

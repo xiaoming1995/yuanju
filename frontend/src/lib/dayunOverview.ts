@@ -1,5 +1,4 @@
 export type Polarity = 'xi' | 'ji' | 'zhong'
-type Strength = 'wang' | 'ruo'
 type Relation = 'tongGen' | 'gaiTou' | 'jieJiao' | 'none'
 type Fit = 'buZu' | 'weiDaoWei' | 'weiJi' | 'skip'
 
@@ -13,8 +12,7 @@ export interface DayunOverviewInput {
   }
   yongshen: string
   jishen: string
-  wuxing: { mu: number; huo: number; tu: number; jin: number; shui: number }
-  dayGanWuxing: string
+  natalDayMasterStrength?: string
   tiaohou?: {
     expected: string[]
     tou: string[]
@@ -55,37 +53,10 @@ const K_GRAPH: Record<string, string> = {
   木: '土', 土: '水', 水: '火', 火: '金', 金: '木',
 }
 
-const HELP_MAP: Record<string, Array<'mu' | 'huo' | 'tu' | 'jin' | 'shui'>> = {
-  木: ['mu', 'shui'],
-  火: ['huo', 'mu'],
-  土: ['tu', 'huo'],
-  金: ['jin', 'tu'],
-  水: ['shui', 'jin'],
-}
-
 const DI_SHI_BUCKET: Record<string, 'wang' | 'mid' | 'shuai'> = {
   帝旺: 'wang', 临官: 'wang', 长生: 'wang', 冠带: 'wang',
   沐浴: 'mid',  养: 'mid',     胎: 'mid',   墓: 'mid',
   衰: 'shuai',  病: 'shuai',   死: 'shuai', 绝: 'shuai',
-}
-
-const DI_SHI_LABEL: Record<'wang' | 'mid' | 'shuai', string> = {
-  wang: '得位有力',
-  mid: '态势中等',
-  shuai: '气势减弱',
-}
-
-const BODY1: Record<string, Record<Strength, string>> = {
-  比肩: { wang: '同行竞争分薄资源',     ruo: '兄弟朋友助身有力' },
-  劫财: { wang: '损财争夺、合作伤利',   ruo: '同道分担、压力有人共担' },
-  食神: { wang: '财源外吐、口腹之享',   ruo: '才华外泄、气力分散' },
-  伤官: { wang: '才名突破、敢破规则',   ruo: '才华伤身、易招是非' },
-  正财: { wang: '经营得利、稳定积累',   ruo: '财多身弱、力不从心' },
-  偏财: { wang: '偏门机会、流动资金',   ruo: '财来财去、难以聚守' },
-  正官: { wang: '事业晋升、责任加码',   ruo: '官杀压身、易受规则约束' },
-  七杀: { wang: '立威破局、事业突破',   ruo: '身弱遭杀克身，压力与突发事件增多' },
-  正印: { wang: '印重身旺反招迟滞',     ruo: '学习/贵人/资格类机会成形' },
-  偏印: { wang: '转型旁门、思虑成局',   ruo: '灵感/研究/孤独感提升' },
 }
 
 const TREND: Record<string, { xi: string; ji: string }> = {
@@ -116,26 +87,6 @@ const HEADING_TONE: Record<string, Record<Polarity, string>> = {
   偏印: { xi: '研究与转型的十年',   ji: '易孤独沉淀的十年',   zhong: '节奏中性的十年' },
 }
 
-const BODY1_LAY: Record<string, Record<Strength, string>> = {
-  比肩: { wang: '自我意识强，同辈之间易分薄资源',     ruo: '兄弟朋友能助你一臂之力' },
-  劫财: { wang: '竞争心强，合作中容易吃亏或起纠纷',   ruo: '有同道分担压力，但需提防资源被消耗' },
-  食神: { wang: '财源流动、口腹之享多',               ruo: '才华容易外泄、气力分散' },
-  伤官: { wang: '敢于打破规则、获得声名',             ruo: '锋芒外露易招是非' },
-  正财: { wang: '经营有方、稳定积累',                 ruo: '财务负担偏重，力不从心' },
-  偏财: { wang: '机会和流动资金多',                   ruo: '财来财去，难以聚守' },
-  正官: { wang: '事业晋升、责任加身',                 ruo: '易受规则和权威压制' },
-  七杀: { wang: '适合主动出击、立威破局',             ruo: '外部压力较大、突发事件多' },
-  正印: { wang: '印多反招迟滞，事不利速决',           ruo: '学习、贵人、资格类机会显现' },
-  偏印: { wang: '适合转型和跨界探索',                 ruo: '易感孤独，但灵感和研究有突破' },
-}
-
-const RELATION_LAY: Record<Relation, string> = {
-  tongGen: '天干和地支力量一致，能量集中',
-  gaiTou:  '地支有支撑但被天干压住，发挥受限',
-  jieJiao: '天干得不到地支配合，根基略浅',
-  none:    '天干与地支互补发力',
-}
-
 const WUXING_MEANING: Record<string, string> = {
   木: '生发 / 条理',
   火: '热情 / 行动',
@@ -149,16 +100,6 @@ function resolvePolarity(wuxing: string, yong: string, ji: string): Polarity {
   if (yong && yong.includes(wuxing)) return 'xi'
   if (ji && ji.includes(wuxing)) return 'ji'
   return 'zhong'
-}
-
-function resolveDayStrength(
-  wuxing: DayunOverviewInput['wuxing'] | undefined,
-  dayGanWuxing: string,
-): Strength {
-  if (!wuxing) return 'ruo'
-  const help = HELP_MAP[dayGanWuxing] ?? []
-  const helpPct = help.reduce((s, k) => s + (wuxing[k] ?? 0), 0)
-  return helpPct > 40 ? 'wang' : 'ruo'
 }
 
 function resolveGanZhiRelation(ganWx: string, zhiWx: string): Relation {
@@ -210,17 +151,79 @@ function resolveTiaohouFit(
   return { fit: 'buZu', missingWx: matchedWx, matchedGan }
 }
 
-function body2(diShi: string, gan: string, zhi: string, relation: Relation): string {
+const TEN_GOD_ROLE: Record<string, string> = {
+  比肩: '同辈协作与资源分配', 劫财: '合作竞争与资源取舍',
+  食神: '表达、作品与稳定输出', 伤官: '创新、表达与突破',
+  正财: '经营、责任与积累', 偏财: '机会、人脉与流动资源',
+  正官: '规则、职位与责任', 七杀: '执行、规制与决断',
+  正印: '学习、资质与支持', 偏印: '研究、资源与思虑',
+}
+
+const NATAL_STRENGTH_LABEL: Record<string, { expert: string; lay: string }> = {
+  vstrong: { expert: '原局身极强', lay: '原局底子偏强' },
+  strong: { expert: '原局身强', lay: '原局底子偏强' },
+  neutral: { expert: '原局中和', lay: '原局底子较均衡' },
+  weak: { expert: '原局身弱', lay: '原局底子偏弱' },
+  vweak: { expert: '原局身极弱', lay: '原局底子偏弱' },
+}
+
+function fuyiRoleText(
+  stemOrBranch: string,
+  wuxing: string,
+  tenGod: string,
+  polarity: Polarity,
+): string {
+  const role = TEN_GOD_ROLE[tenGod] ?? '阶段作用'
+  if (polarity === 'xi') return `${stemOrBranch}${wuxing}为扶抑喜用，${tenGod}主${role}`
+  if (polarity === 'ji') return `${stemOrBranch}${wuxing}为扶抑忌，${tenGod}主${role}`
+  return `${stemOrBranch}${wuxing}为扶抑中性，${tenGod}主${role}`
+}
+
+function fuyiRoleLayText(
+  stemOrBranch: string,
+  tenGod: string,
+  polarity: Polarity,
+): string {
+  const role = TEN_GOD_ROLE[tenGod] ?? '阶段作用'
+  if (polarity === 'xi') return `${stemOrBranch}带来的${role}可借力`
+  if (polarity === 'ji') return `${stemOrBranch}带来的${role}需要节制`
+  return `${stemOrBranch}带来${role}的中性影响`
+}
+
+function branchStageText(zhi: string, diShi: string, polarity: Polarity): string {
   const bucket = DI_SHI_BUCKET[diShi]
   if (!bucket) return ''
-  let base = `${zhi}${diShi}${DI_SHI_LABEL[bucket]}`
-  switch (relation) {
-    case 'tongGen': base += `，${gan}通根${zhi}得力`; break
-    case 'gaiTou':  base += `，但被${gan}盖头压制`; break
-    case 'jieJiao': base += `，反被${zhi}截脚虚浮`; break
-    case 'none': break
+  const stage = `${zhi}${diShi}`
+  if (polarity === 'xi') {
+    if (bucket === 'wang') return `${stage}，喜用力量更易发挥`
+    if (bucket === 'mid') return `${stage}，喜用作用平稳`
+    return `${stage}，喜用力量较弱`
   }
-  return base
+  if (polarity === 'ji') {
+    if (bucket === 'wang') return `${stage}，忌神力量较显`
+    if (bucket === 'mid') return `${stage}，忌神作用仍在`
+    return `${stage}，忌神力量受限`
+  }
+  if (bucket === 'wang') return `${stage}，地支作用较明显，仍以原局扶抑喜忌为准`
+  if (bucket === 'mid') return `${stage}，地支作用平稳，仍以原局扶抑喜忌为准`
+  return `${stage}，地支作用较弱，仍以原局扶抑喜忌为准`
+}
+
+function branchStageLayText(zhi: string, diShi: string, polarity: Polarity): string {
+  const bucket = DI_SHI_BUCKET[diShi]
+  if (!bucket) return ''
+  const stage = `${zhi}${diShi}`
+  if (polarity === 'xi') {
+    if (bucket === 'wang') return `${stage}，这股助力更明显`
+    if (bucket === 'mid') return `${stage}，这股助力较平稳`
+    return `${stage}，这股助力较弱`
+  }
+  if (polarity === 'ji') {
+    if (bucket === 'wang') return `${stage}，这部分压力较显`
+    if (bucket === 'mid') return `${stage}，这部分压力仍在`
+    return `${stage}，这部分压力受限`
+  }
+  return bucket === 'wang' ? `${stage}，影响较明显` : `${stage}，影响较平稳`
 }
 
 function body3(
@@ -264,10 +267,9 @@ export function buildDayunOverview(input: DayunOverviewInput): DayunOverviewOutp
   const { dayun } = input
   const ganWx = GAN_WUXING_CN[dayun.gan]
   const zhiWx = ZHI_MAIN_WUXING[dayun.zhi]
-  const inBody1 = !!BODY1[dayun.gan_shishen]
   const inBucket = !!DI_SHI_BUCKET[dayun.di_shi]
 
-  if (!ganWx || !zhiWx || !inBody1 || !inBucket) {
+  if (!ganWx || !zhiWx || !inBucket) {
     return {
       prose: FALLBACK_PROSE,
       proseLay: FALLBACK_PROSE,
@@ -279,7 +281,6 @@ export function buildDayunOverview(input: DayunOverviewInput): DayunOverviewOutp
 
   const ganPolarity = resolvePolarity(ganWx, input.yongshen, input.jishen)
   const zhiPolarity = resolvePolarity(zhiWx, input.yongshen, input.jishen)
-  const dayStrength = resolveDayStrength(input.wuxing, input.dayGanWuxing)
   const relation = resolveGanZhiRelation(ganWx, zhiWx)
   const { fit, missingWx, matchedGan, coverGan } = resolveTiaohouFit(input, relation)
 
@@ -288,22 +289,29 @@ export function buildDayunOverview(input: DayunOverviewInput): DayunOverviewOutp
     ? `${dayun.gan}${dayun.zhi}运（${dayun.gan_shishen}为${POL_LABEL[ganPolarity]}·${dayun.zhi_shishen}为${POL_LABEL[zhiPolarity]}）：`
     : `${dayun.gan}${dayun.zhi}运：`
 
-  const body1 = BODY1[dayun.gan_shishen][dayStrength]
-  const body2text = body2(dayun.di_shi, dayun.gan, dayun.zhi, relation)
+  const natalStrength = NATAL_STRENGTH_LABEL[input.natalDayMasterStrength ?? '']
+  const ganText = fuyiRoleText(dayun.gan, ganWx, dayun.gan_shishen, ganPolarity)
+  const zhiText = fuyiRoleText(dayun.zhi, zhiWx, dayun.zhi_shishen, zhiPolarity)
+  const stageText = branchStageText(dayun.zhi, dayun.di_shi, zhiPolarity)
   const body3text = body3(fit, missingWx, matchedGan, coverGan)
 
-  let prose = `${heading}${body1}；${body2text}。`
+  let prose = `${heading}${natalStrength?.expert ? `${natalStrength.expert}；` : ''}${ganText}；${zhiText}`
+  if (stageText) prose += `；${stageText}`
+  prose += '。'
   if (body3text) prose += `${body3text}。`
 
   const tone = HEADING_TONE[dayun.gan_shishen]?.[ganPolarity] ?? '节奏中性的十年'
   const headingLay = hasPolarity
     ? `${dayun.gan}${dayun.zhi}运（${tone}）：`
     : `${dayun.gan}${dayun.zhi}运：`
-  const body1Lay = BODY1_LAY[dayun.gan_shishen][dayStrength]
-  const body2LayText = RELATION_LAY[relation]
   const body3LayText = body3Lay(fit, missingWx, coverGan)
+  const ganLayText = fuyiRoleLayText(dayun.gan, dayun.gan_shishen, ganPolarity)
+  const zhiLayText = fuyiRoleLayText(dayun.zhi, dayun.zhi_shishen, zhiPolarity)
+  const stageLayText = branchStageLayText(dayun.zhi, dayun.di_shi, zhiPolarity)
 
-  let proseLay = `${headingLay}${body1Lay}；${body2LayText}。`
+  let proseLay = `${headingLay}${natalStrength?.lay ? `${natalStrength.lay}；` : ''}${ganLayText}；${zhiLayText}`
+  if (stageLayText) proseLay += `；${stageLayText}`
+  proseLay += '。'
   if (body3LayText) proseLay += `${body3LayText}。`
 
   const trendEntry = TREND[dayun.gan_shishen]

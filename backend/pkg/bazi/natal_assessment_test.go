@@ -139,8 +139,12 @@ func TestNatalStemGuidance1995SeparatesPriorityAndConflict(t *testing.T) {
 			break
 		}
 	}
-	if renWu == nil || renWu.Score != 69 || renWu.RoadType != "mountain_road" {
-		t.Fatalf("stem guidance must not change the established 壬午 road result, got %+v", renWu)
+	if renWu == nil || renWu.RoadType != "mountain_road" {
+		t.Fatalf("expected 壬午 to retain its mountain-road classification, got %+v", renWu)
+	}
+	diShi := findRoadEvidence(renWu.Evidences, "十二长生")
+	if diShi == nil || diShi.Delta >= 0 || !strings.Contains(diShi.Detail, "扶抑忌火") {
+		t.Fatalf("午火帝旺应加强地支忌神作用，got %+v", diShi)
 	}
 }
 
