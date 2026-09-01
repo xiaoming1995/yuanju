@@ -527,6 +527,55 @@ func TestLoadOrCalculateResultBackfillsVehicleRoadSnapshot(t *testing.T) {
 	}
 }
 
+func TestLoadOrCalculateResultBackfillsWealthProfileSnapshot(t *testing.T) {
+	cached := bazi.Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
+	cached.WealthProfile = nil
+	raw, err := json.Marshal(cached)
+	if err != nil {
+		t.Fatalf("marshal cached result: %v", err)
+	}
+
+	originalGet := getChartResultJSON
+	originalSave := saveChartResultJSON
+	t.Cleanup(func() {
+		getChartResultJSON = originalGet
+		saveChartResultJSON = originalSave
+	})
+
+	getChartResultJSON = func(chartID string) ([]byte, error) {
+		if chartID != "chart-wealth-backfill" {
+			t.Fatalf("unexpected chart id for get: %s", chartID)
+		}
+		return raw, nil
+	}
+	var saved []byte
+	saveChartResultJSON = func(chartID string, resultJSON []byte) error {
+		if chartID != "chart-wealth-backfill" {
+			t.Fatalf("unexpected chart id for save: %s", chartID)
+		}
+		saved = append([]byte(nil), resultJSON...)
+		return nil
+	}
+
+	result, err := LoadOrCalculateResult(&model.BaziChart{ID: "chart-wealth-backfill"})
+	if err != nil {
+		t.Fatalf("LoadOrCalculateResult returned error: %v", err)
+	}
+	if result.WealthProfile == nil || result.WealthProfile.Version != bazi.WealthProfileVersion {
+		t.Fatalf("expected result to be backfilled with current wealth profile, got %+v", result.WealthProfile)
+	}
+	if len(saved) == 0 {
+		t.Fatalf("expected upgraded cached snapshot to be persisted")
+	}
+	var persisted bazi.BaziResult
+	if err := json.Unmarshal(saved, &persisted); err != nil {
+		t.Fatalf("saved snapshot should be valid JSON: %v", err)
+	}
+	if persisted.WealthProfile == nil || persisted.WealthProfile.Version != bazi.WealthProfileVersion {
+		t.Fatalf("saved snapshot should contain current wealth profile, got %+v", persisted.WealthProfile)
+	}
+}
+
 func TestLoadOrCalculateResultBackfillsMingGeSnapshot(t *testing.T) {
 	cached := bazi.Calculate(1995, 10, 12, 12, "male", false, 0, "solar", false)
 	expectedVehicleScore := cached.VehicleProfile.Score
@@ -752,6 +801,12 @@ func TestBuildBaziPromptIncludesVehicleRoadContext(t *testing.T) {
 		"寒热调候=偏燥/seasonal_partial",
 		"扶抑喜用=水金",
 		"当前路况：",
+		"财富结构等级表示原局对钱财资源的显露、承载、流通和守成能力",
+		"不是现实资产、收入、社会阶层或投资建议",
+		"财富结构：",
+		"财富结构依据：",
+		"财富表达边界",
+		"禁止写保证发财、资产规模、收益时点或投资建议",
 		"不得重新打分、改判等级",
 		"禁止写必富、必败、注定、阶层高低",
 	} {
@@ -762,8 +817,14 @@ func TestBuildBaziPromptIncludesVehicleRoadContext(t *testing.T) {
 	if result.VehicleProfile == nil || result.VehicleProfile.Grade == "" {
 		t.Fatalf("test fixture should contain vehicle profile: %+v", result.VehicleProfile)
 	}
+	if result.WealthProfile == nil || result.WealthProfile.Grade == "" {
+		t.Fatalf("test fixture should contain wealth profile: %+v", result.WealthProfile)
+	}
 	if !strings.Contains(prompt, result.VehicleProfile.VehicleType) {
 		t.Fatalf("expected prompt to include vehicle type %q", result.VehicleProfile.VehicleType)
+	}
+	if !strings.Contains(prompt, result.WealthProfile.WealthType) {
+		t.Fatalf("expected prompt to include wealth type %q", result.WealthProfile.WealthType)
 	}
 }
 

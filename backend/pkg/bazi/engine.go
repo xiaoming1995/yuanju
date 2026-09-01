@@ -124,6 +124,7 @@ type BaziResult struct {
 	// 命盘座驾与大运路况（确定性算法解释层）
 	VehicleProfile *VehicleProfile `json:"vehicle_profile,omitempty"`
 	DayunRoadmap   []DayunRoad     `json:"dayun_roadmap,omitempty"`
+	WealthProfile  *WealthProfile  `json:"wealth_profile,omitempty"`
 
 	Dayun         []DayunItem `json:"dayun"`
 	StartYunSolar string      `json:"start_yun_solar"` // 例如："1995年4月5日 14:30"
@@ -490,6 +491,7 @@ func Calculate(year, month, day, hour int, gender string, isEarlyZishi bool, lon
 	)
 	EnsureNatalAssessment(res)
 	res.VehicleProfile, res.DayunRoadmap = BuildVehicleRoadProfile(res)
+	res.WealthProfile = BuildWealthProfile(res, currentGregorianYear())
 
 	return res
 }

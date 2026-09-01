@@ -1,0 +1,112 @@
+.result-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.result-summary-card {
+  min-height: 100%;
+  padding: 24px;
+}
+
+.result-summary-card--vehicle {
+  border-color: rgba(201, 168, 76, 0.22);
+  background: linear-gradient(160deg, rgba(201, 168, 76, 0.06), transparent 44%), rgba(18, 24, 37, 0.9);
+}
+
+.result-summary-card--wealth {
+  border-color: rgba(121, 216, 165, 0.2);
+  background: linear-gradient(160deg, rgba(121, 216, 165, 0.07), transparent 46%), rgba(18, 24, 37, 0.9);
+}
+
+.result-summary-card .result-product-card-head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.result-summary-card .result-product-card-head h2 {
+  font-size: 20px;
+}
+
+.result-wealth-card p {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.result-wealth-meter span {
+  background: linear-gradient(90deg, rgba(121, 216, 165, 0.95), rgba(201, 168, 76, 0.94));
+}
+
+.result-wealth-current-hint {
+  display: grid;
+  gap: 5px;
+  margin: 14px 0;
+  padding: 12px 13px;
+  border-left: 3px solid rgba(121, 216, 165, 0.72);
+  border-radius: 6px;
+  background: rgba(121, 216, 165, 0.08);
+}
+
+.result-wealth-current-hint.is-watch {
+  border-left-color: rgba(231, 160, 133, 0.72);
+  background: rgba(231, 160, 133, 0.08);
+}
+
+.result-wealth-current-hint > span,
+.result-wealth-current-hint > em {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.55;
+}
+
+.result-wealth-current-hint > strong {
+  color: #79d8a5;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.result-wealth-current-hint.is-watch > strong {
+  color: #e7a085;
+}
+
+.result-wealth-current-hint p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.result-wealth-current-hint--modal {
+  margin-top: 14px;
+}
+
+.result-wealth-risk-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.result-wealth-risk-list span {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border: 1px solid rgba(231, 160, 133, 0.22);
+  border-radius: var(--radius-full);
+  background: rgba(231, 160, 133, 0.09);
+  color: #e7a085;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.result-wealth-risk-list--modal {
+  margin: 0 0 14px;
+}
+
+@media (max-width: 760px) {
+  .result-summary-card {
+    padding: 20px;
+  }
+}

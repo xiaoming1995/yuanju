@@ -180,6 +180,7 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 		if err := json.Unmarshal(raw, &cached); err == nil {
 			bazi.EnsureTenGodRelation(&cached)
 			backfilled := false
+			currentYear := time.Now().Year()
 			// Historical snapshots created before Ming Ge support remain otherwise valid.
 			// Backfill only the absent fields to avoid recalculating unrelated result data.
 			if cached.MingGe == "" || cached.MingGeDesc == "" {
@@ -212,6 +213,9 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 					cached.DayunRoadmap = dayunRoadmap
 					backfilled = true
 				}
+			}
+			if bazi.EnsureWealthProfile(&cached, currentYear) {
+				backfilled = true
 			}
 			// 回写升级后的 snapshot，避免下次读取再做同样的 backfill
 			if backfilled {
@@ -307,7 +311,7 @@ func formatGongJiaSummary(result *bazi.BaziResult) string {
 }
 
 func formatVehicleRoadPromptContext(result *bazi.BaziResult, currentYear int) string {
-	if result == nil || result.VehicleProfile == nil || len(result.DayunRoadmap) == 0 {
+	if result == nil || (result.VehicleProfile == nil && result.WealthProfile == nil && len(result.DayunRoadmap) == 0) {
 		return ""
 	}
 
@@ -339,31 +343,46 @@ func formatVehicleRoadPromptContext(result *bazi.BaziResult, currentYear int) st
 	}
 
 	currentRoad := (*bazi.DayunRoad)(nil)
-	for i := range result.DayunRoadmap {
-		road := &result.DayunRoadmap[i]
-		for _, dy := range result.Dayun {
-			if dy.Index == road.DayunIndex && currentYear >= dy.StartYear && currentYear <= dy.EndYear {
-				currentRoad = road
+	if len(result.DayunRoadmap) > 0 {
+		for i := range result.DayunRoadmap {
+			road := &result.DayunRoadmap[i]
+			for _, dy := range result.Dayun {
+				if dy.Index == road.DayunIndex && currentYear >= dy.StartYear && currentYear <= dy.EndYear {
+					currentRoad = road
+					break
+				}
+			}
+			if currentRoad != nil {
 				break
 			}
 		}
-		if currentRoad != nil {
-			break
+		if currentRoad == nil {
+			currentRoad = &result.DayunRoadmap[0]
 		}
-	}
-	if currentRoad == nil {
-		currentRoad = &result.DayunRoadmap[0]
 	}
 
 	var b strings.Builder
-	v := result.VehicleProfile
 	b.WriteString("\n[命盘座驾与大运路况-算法精算]\n")
 	b.WriteString("以下为后端算法已计算的比喻化解释层，你只能解释其含义，不得重新打分、改判等级或输出相互矛盾的座驾/路况结论。\n")
-	b.WriteString("座驾等级表示原局基础层次：调候急需优先；无急需时以扶抑为基线，再看日干调候成格、主格结构、制化与流通；不是社会阶层、人的贵贱或确定命运。\n")
-	b.WriteString(fmt.Sprintf("命盘座驾：%s级（%s），车型=%s，分数=%d，标签=%s。\n",
-		v.Grade, v.GradeLabel, v.VehicleType, v.Score, join(v.Tags)))
-	b.WriteString(fmt.Sprintf("座驾摘要：%s\n", v.Summary))
-	b.WriteString(fmt.Sprintf("座驾依据：%s\n", formatEvidence(v.Evidences, 5)))
+	if v := result.VehicleProfile; v != nil {
+		b.WriteString("座驾等级表示原局基础层次：调候急需优先；无急需时以扶抑为基线，再看日干调候成格、主格结构、制化与流通；不是社会阶层、人的贵贱或确定命运。\n")
+		b.WriteString(fmt.Sprintf("命盘座驾：%s级（%s），车型=%s，分数=%d，标签=%s。\n",
+			v.Grade, v.GradeLabel, v.VehicleType, v.Score, join(v.Tags)))
+		b.WriteString(fmt.Sprintf("座驾摘要：%s\n", v.Summary))
+		b.WriteString(fmt.Sprintf("座驾依据：%s\n", formatEvidence(v.Evidences, 5)))
+	}
+	if w := result.WealthProfile; w != nil {
+		b.WriteString("财富结构等级表示原局对钱财资源的显露、承载、流通和守成能力；不是现实资产、收入、社会阶层或投资建议。\n")
+		b.WriteString(fmt.Sprintf("财富结构：%s级（%s），类型=%s，分数=%d，标签=%s，风险=%s。\n",
+			w.Grade, w.GradeLabel, w.WealthType, w.Score, join(w.Tags), join(w.RiskFlags)))
+		b.WriteString(fmt.Sprintf("财富结构摘要：%s\n", w.Summary))
+		b.WriteString(fmt.Sprintf("财富结构依据：%s\n", formatEvidence(w.Evidences, 5)))
+		if w.CurrentHint != nil {
+			b.WriteString(fmt.Sprintf("当前财富窗口：%d年%s大运，%s，%s；依据=%s。此提示不改变财富结构主等级。\n",
+				w.CurrentHint.Year, w.CurrentHint.GanZhi, w.CurrentHint.Label, w.CurrentHint.Summary, join(w.CurrentHint.Evidences)))
+		}
+		b.WriteString("财富表达边界：只能解释钱财资源、承载能力、流通与风险控制，禁止写保证发财、资产规模、收益时点或投资建议。\n")
+	}
 	if assessment := result.NatalAssessment; assessment != nil {
 		dayStem := assessment.Tiaohou.DayStem
 		thermal := assessment.Tiaohou.Thermal
@@ -393,10 +412,12 @@ func formatVehicleRoadPromptContext(result *bazi.BaziResult, currentYear int) st
 		}
 		b.WriteString("解释边界：日干调候天透地藏成格代表高格基础；主格结构及制化配合仍须按其独立证据说明，不得互相否定或把高格基础说成无条件的最终等级。\n")
 	}
-	b.WriteString(fmt.Sprintf("当前路况：%s大运，%s，分数=%d，前五年=%s，后五年=%s。\n",
-		currentRoad.GanZhi, currentRoad.RoadLabel, currentRoad.Score, currentRoad.QianRoad.Label, currentRoad.HouRoad.Label))
-	b.WriteString(fmt.Sprintf("当前路况摘要：%s\n", currentRoad.Summary))
-	b.WriteString(fmt.Sprintf("当前路况依据：%s\n", formatEvidence(currentRoad.Evidences, 5)))
+	if currentRoad != nil {
+		b.WriteString(fmt.Sprintf("当前路况：%s大运，%s，分数=%d，前五年=%s，后五年=%s。\n",
+			currentRoad.GanZhi, currentRoad.RoadLabel, currentRoad.Score, currentRoad.QianRoad.Label, currentRoad.HouRoad.Label))
+		b.WriteString(fmt.Sprintf("当前路况摘要：%s\n", currentRoad.Summary))
+		b.WriteString(fmt.Sprintf("当前路况依据：%s\n", formatEvidence(currentRoad.Evidences, 5)))
+	}
 	b.WriteString("表达边界：只能写“更适合主动推进、需要控速、宜稳住风险、等待顺运补足”等策略性语言，禁止写必富、必败、注定、阶层高低等绝对判断。\n")
 	return b.String()
 }

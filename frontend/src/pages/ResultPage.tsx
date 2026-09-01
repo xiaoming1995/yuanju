@@ -23,6 +23,7 @@ import { useToast } from '../components/ui/useToast'
 import { filterPastEventsExportSegments, type PastEventsExportReadySegment } from '../lib/pastEventsViewModel'
 import { buildDayunTrendSeries, buildTrendNote, buildTrendPath, trendX, trendY } from '../lib/dayunTrend'
 import './ResultPage.css'
+import './WealthProfile.css'
 
 // 特性开关 (Feature Flags)
 const ENABLE_MINGPAN_AVATAR = false // 暂时隐藏专属命理头像模块
@@ -193,6 +194,29 @@ interface VehicleProfile {
   evidences: ProfileEvidence[]
 }
 
+interface WealthWindowHint {
+  year: number
+  dayun_index: number
+  gan_zhi: string
+  level: string
+  label: string
+  summary: string
+  evidences: string[]
+}
+
+interface WealthProfile {
+  version?: string
+  grade: string
+  grade_label: string
+  score: number
+  wealth_type: string
+  summary: string
+  tags: string[]
+  risk_flags: string[]
+  evidences: ProfileEvidence[]
+  current_hint?: WealthWindowHint
+}
+
 interface RoadPhase {
   key: string
   label: string
@@ -323,6 +347,7 @@ interface BaziResult {
   gong_jia?: GongJiaItem[]
   natal_assessment?: NatalAssessment
   vehicle_profile?: VehicleProfile
+  wealth_profile?: WealthProfile
   dayun_roadmap?: DayunRoad[]
 }
 
@@ -468,7 +493,7 @@ function buildTenGodRelationMatrix(result: BaziResult): TenGodRelationMatrix {
 }
 
 type ReadingMode = 'simple' | 'professional'
-type OverviewModalKind = 'grade' | 'road' | 'vehicle-evidence' | 'road-evidence'
+type OverviewModalKind = 'grade' | 'road' | 'vehicle-evidence' | 'road-evidence' | 'wealth-evidence'
 type DayunPeriod = BaziResult['dayun'][number]
 
 const WUXING_LABELS: Record<keyof BaziResult['wuxing'], string> = {
@@ -1116,9 +1141,9 @@ export default function ResultPage() {
       .catch(() => setPolishedReport(null))
   }, [targetId, user])
 
-  // 从历史记录加载
+  // 历史详情始终以服务端结果为准，避免浏览器历史状态保留旧快照而跳过字段补齐。
   useEffect(() => {
-    if (id && !result) {
+    if (id) {
       baziAPI.getHistoryDetail(id)
         .then(res => {
           setResult(res.data.result || res.data.chart || null)
@@ -1273,6 +1298,11 @@ export default function ResultPage() {
   const hasCurrentRoadEvidence = currentRoadEvidences.length > 0 || currentRoadPhaseEvidences.length > 0
   const vehicleEvidences = result.vehicle_profile?.evidences ?? []
   const vehicleDrivingStyle = result.vehicle_profile?.driving_style
+  const wealthProfile = result.wealth_profile
+  const wealthEvidences = wealthProfile?.evidences ?? []
+  const wealthTags = wealthProfile?.tags ?? []
+  const wealthRisks = wealthProfile?.risk_flags ?? []
+  const wealthCurrentHint = wealthProfile?.current_hint?.year === currentYear ? wealthProfile.current_hint : null
   const stemGuidance = result.natal_assessment?.stem_guidance
   const stemLevelYongshenSummary = buildStemLevelYongshenSummary(result)
   const vehicleGradeGuide = findVehicleGradeGuide(result.vehicle_profile?.grade)
@@ -1285,10 +1315,14 @@ export default function ResultPage() {
         ? '座驾依据'
         : overviewModal === 'road-evidence'
           ? '路况依据'
-          : ''
+          : overviewModal === 'wealth-evidence'
+            ? '财富依据'
+            : ''
   const overviewModalKicker = overviewModal === 'grade' || overviewModal === 'vehicle-evidence'
     ? '命盘座驾'
-    : '当前路况'
+    : overviewModal === 'wealth-evidence'
+      ? '财富结构'
+      : '当前路况'
   const vehicleType = vehicleGradeGuide?.vehicle || result.vehicle_profile?.vehicle_type || ''
   const vehicleProfileTags = result.vehicle_profile?.tags?.filter(tag => (
     !VEHICLE_GRADE_TAGS.has(tag)
@@ -1528,6 +1562,52 @@ export default function ResultPage() {
                     </button>
                   )}
                 </div>
+              </article>
+            )}
+
+            {wealthProfile && (
+              <article className="result-wealth-card result-summary-card result-summary-card--wealth">
+                <div className="result-product-card-head">
+                  <div>
+                    <span className="result-product-kicker">财富结构</span>
+                    <h2 className="serif">
+                      {wealthProfile.grade_label} · {wealthProfile.wealth_type}
+                    </h2>
+                  </div>
+                  <span className="result-product-pill">{wealthProfile.grade} 级</span>
+                </div>
+                <div className="result-vehicle-meter result-wealth-meter" aria-label={`财富结构分 ${wealthProfile.score}`}>
+                  <span style={{ width: `${Math.max(0, Math.min(100, wealthProfile.score))}%` }} />
+                </div>
+                <p>{wealthProfile.summary}</p>
+                {wealthCurrentHint && (
+                  <section className={`result-wealth-current-hint is-${wealthCurrentHint.level}`} aria-label="当前财富窗口">
+                    <span>{wealthCurrentHint.year} 年 · {wealthCurrentHint.gan_zhi}大运</span>
+                    <strong>{wealthCurrentHint.label}</strong>
+                    <p>{wealthCurrentHint.summary}</p>
+                  </section>
+                )}
+                {wealthTags.length > 0 && (
+                  <div className="result-keyword-row">
+                    {wealthTags.map(tag => <span key={tag}>{tag}</span>)}
+                  </div>
+                )}
+                {wealthRisks.length > 0 && (
+                  <div className="result-wealth-risk-list" aria-label="财富结构风险提示">
+                    {wealthRisks.map(flag => <span key={flag}>{flag}</span>)}
+                  </div>
+                )}
+                {readingMode === 'professional' && wealthEvidences.length > 0 && (
+                  <div className="result-overview-actions">
+                    <button
+                      type="button"
+                      className="result-overview-modal-trigger"
+                      onClick={event => openOverviewModal('wealth-evidence', event.currentTarget)}
+                    >
+                      查看财富依据
+                    </button>
+                  </div>
+                )}
               </article>
             )}
 
@@ -2477,6 +2557,36 @@ export default function ResultPage() {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {overviewModal === 'wealth-evidence' && wealthEvidences.length > 0 && (
+                <div className="result-profile-evidence-body">
+                  <p className="result-profile-plain-note">
+                    财富结构只说明原局钱财资源的显露、承载、流通与守成风险，不等于现实资产、收入规模或投资建议。
+                  </p>
+                  {wealthRisks.length > 0 && (
+                    <div className="result-wealth-risk-list result-wealth-risk-list--modal" aria-label="财富结构风险">
+                      {wealthRisks.map(flag => <span key={flag}>{flag}</span>)}
+                    </div>
+                  )}
+                  <ul className="result-profile-evidence">
+                    {wealthEvidences.map((item, index) => (
+                      <li key={`${item.source}-${index}`}>
+                        <strong>{item.source}</strong>
+                        <span>{item.label} · {item.impact} {formatEvidenceDelta(item.delta)}</span>
+                        <em>{item.detail}</em>
+                      </li>
+                    ))}
+                  </ul>
+                  {wealthCurrentHint && (
+                    <section className="result-wealth-current-hint result-wealth-current-hint--modal" aria-label="当前财富窗口说明">
+                      <span>{wealthCurrentHint.year} 年 · {wealthCurrentHint.gan_zhi}大运</span>
+                      <strong>{wealthCurrentHint.label}</strong>
+                      <p>{wealthCurrentHint.summary}</p>
+                      {wealthCurrentHint.evidences.length > 0 && <em>依据：{wealthCurrentHint.evidences.join('、')}</em>}
+                    </section>
+                  )}
                 </div>
               )}
 
