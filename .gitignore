@@ -88,6 +88,7 @@ Thumbs.db
 .worktrees/
 
 # Go specific
+.gocache/
 /backend/.gocache/
 /backend/yuanju
 /backend/server

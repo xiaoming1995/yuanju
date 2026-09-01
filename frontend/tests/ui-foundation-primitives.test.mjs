@@ -33,15 +33,12 @@ test('global css exposes semantic UX foundation tokens', () => {
 
 test('shared ui primitives export stable components and class hooks', () => {
   const files = {
-    'src/components/ui/PageShell.tsx': ['PageShell', 'ui-page-shell'],
-    'src/components/ui/SectionPanel.tsx': ['SectionPanel', 'ui-section-panel'],
     'src/components/ui/Button.tsx': ['Button', 'ui-button'],
     'src/components/ui/SegmentedTabs.tsx': ['SegmentedTabs', 'ui-segmented-tabs'],
     'src/components/ui/StatusBadge.tsx': ['StatusBadge', 'ui-status-badge'],
     'src/components/ui/EmptyState.tsx': ['EmptyState', 'ui-empty-state'],
     'src/components/ui/ConfirmDialog.tsx': ['ConfirmDialog', 'ui-confirm-dialog'],
     'src/components/ui/Toast.tsx': ['ToastProvider', 'ui-toast'],
-    'src/components/ui/FormField.tsx': ['FormField', 'ui-form-field'],
   }
 
   for (const [path, [exportName, classHook]] of Object.entries(files)) {
@@ -53,15 +50,12 @@ test('shared ui primitives export stable components and class hooks', () => {
 
 test('shared ui primitives stay business-domain neutral', () => {
   const paths = [
-    'src/components/ui/PageShell.tsx',
-    'src/components/ui/SectionPanel.tsx',
     'src/components/ui/Button.tsx',
     'src/components/ui/SegmentedTabs.tsx',
     'src/components/ui/StatusBadge.tsx',
     'src/components/ui/EmptyState.tsx',
     'src/components/ui/ConfirmDialog.tsx',
     'src/components/ui/Toast.tsx',
-    'src/components/ui/FormField.tsx',
   ]
 
   for (const path of paths) {

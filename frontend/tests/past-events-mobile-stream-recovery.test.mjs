@@ -103,6 +103,6 @@ test('PastEventsPage derives header stream status from summary state', () => {
   const page = read('src/pages/PastEventsPage.tsx')
   assert.match(page, /const hasLoadingSummary\s*=/)
   assert.match(page, /const hasInterruptedSummary\s*=/)
-  assert.match(page, /hasLoadingSummary\s*\?\s*'年份已就绪 · 大运总结正在后台生成'/)
-  assert.match(page, /hasInterruptedSummary\s*\?\s*'部分大运总结生成中断，可点击重试'/)
+  assert.match(page, /hasLoadingSummary\s*\?\s*'年份已就绪 · 大运批语正在后台生成'/)
+  assert.match(page, /hasInterruptedSummary\s*\?\s*'部分大运批语生成中断，可点击重试'/)
 })

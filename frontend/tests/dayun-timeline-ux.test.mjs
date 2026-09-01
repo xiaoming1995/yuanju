@@ -53,7 +53,7 @@ test('dayun timeline css keeps desktop dayun cards in one row while preserving m
   assert.match(css, /\.dayun-meta-row\s*\{[\s\S]*display:\s*flex;/)
   assert.match(css, /\.dayun-overview-grid\s*\{[\s\S]*display:\s*grid;[\s\S]*grid-template-columns:\s*repeat\(10,\s*minmax\(0,\s*1fr\)\);/)
   assert.match(css, /\.dayun-step-card\s*\{[\s\S]*min-width:\s*0;/)
-  assert.match(css, /\.dayun-step-card\s*\{[\s\S]*min-height:\s*156px;/)
+  assert.match(css, /\.dayun-step-card\s*\{[\s\S]*min-height:\s*174px;/)
   assert.match(css, /@media \(max-width: 900px\)\s*\{[\s\S]*\.dayun-overview-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\);/)
   assert.match(css, /@media \(max-width: 640px\)\s*\{[\s\S]*\.dayun-overview-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/)
 })

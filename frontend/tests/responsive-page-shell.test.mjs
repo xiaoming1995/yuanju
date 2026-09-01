@@ -11,7 +11,7 @@ test('global page shell reserves fixed top and bottom navigation areas', () => {
   const css = read('src/index.css')
   assert.match(
     css,
-    /\.page\s*\{[^}]*padding-top:\s*96px;[^}]*padding-bottom:\s*calc\(140px \+ env\(safe-area-inset-bottom\)\);/s,
+    /\.page\s*\{[^}]*padding-top:\s*var\(--space-page-y\);[^}]*padding-bottom:\s*calc\(140px \+ env\(safe-area-inset-bottom\)\);/s,
   )
   assert.match(
     css,

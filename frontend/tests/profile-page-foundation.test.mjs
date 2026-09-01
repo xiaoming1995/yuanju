@@ -63,7 +63,7 @@ test('profile page reserves mobile bottom navigation safe area', () => {
   )
   assert.match(
     css,
-    /\.page\s*\{[^}]*padding-top:\s*96px;/s,
+    /\.page\s*\{[^}]*padding-top:\s*var\(--space-page-y\);/s,
   )
   assert.match(
     css,

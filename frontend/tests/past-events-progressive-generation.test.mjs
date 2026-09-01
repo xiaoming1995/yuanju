@@ -26,11 +26,12 @@ test('folded dayun segment renders expand button and no chips', () => {
   assert.match(page, /!dySum\?\.folded\s*&&/)
 })
 
-test('expanded uncached future dayun shows the "生成本段 AI 批语" button', () => {
+test('expanded uncached future dayun shows the generation button', () => {
   const page = read('src/pages/PastEventsPage.tsx')
   // 当 folded=false 且无 years 且无 loading/error 时显示生成按钮
-  assert.match(page, /dySum\?\.folded === false/)
-  assert.match(page, /生成本段 AI 批语/)
+  assert.match(page, /!dySum\?\.folded &&/)
+  assert.match(page, /segmentState\.canGenerateAi/)
+  assert.match(page, /生成本段批语/)
   // 按钮要 wire 到 handleGenerateSegment
   assert.match(page, /onClick=\{\(\)\s*=>\s*handleGenerateSegment\(meta\.index,\s*'manual'\)\}/)
 })

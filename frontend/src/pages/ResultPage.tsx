@@ -11,7 +11,6 @@ import { buildBaziResultRoute } from '../lib/resultRoute'
 import WuxingRadar from '../components/WuxingRadar'
 import DayunTimeline from '../components/DayunTimeline'
 import YongshenBadge from '../components/YongshenBadge'
-import MingpanAvatar from '../components/MingpanAvatar'
 import TiaohouCard from '../components/TiaohouCard'
 import ThermalTiaohouCard from '../components/ThermalTiaohouCard'
 import ShareCard from '../components/ShareCard'
@@ -25,9 +24,6 @@ import { buildDayunTrendSeries, buildTrendNote, buildTrendPath, trendX, trendY }
 import { DAYUN_ROAD_SCOPE_EXPLANATION, getDayunPhasePrompt } from '../lib/dayunRoadPresentation'
 import './ResultPage.css'
 import './WealthProfile.css'
-
-// 特性开关 (Feature Flags)
-const ENABLE_MINGPAN_AVATAR = false // 暂时隐藏专属命理头像模块
 
 const WUXING_MAP: Record<string, string> = {
   '木': 'mu', '火': 'huo', '土': 'tu', '金': 'jin', '水': 'shui'
@@ -2162,20 +2158,6 @@ export default function ResultPage() {
                 )}
               </div>
             </section>
-
-
-            {/* 命理专属头像 (Feature Flag 控制) */}
-            {ENABLE_MINGPAN_AVATAR && (
-              <div className="mingpan-avatar-section card">
-                <h2 className="section-title serif">专属命理头像</h2>
-                <p className="section-desc">根据你的喜用神五行，程序化生成专属命元图腾</p>
-                <MingpanAvatar
-                  yongshen={result.yongshen || ''}
-                  jishen={result.jishen || ''}
-                  dayGan={result.day_gan || ''}
-                />
-              </div>
-            )}
 
             {/* 大运时间轴 */}
             <section id="result-section-dayun" className="dayun-section">

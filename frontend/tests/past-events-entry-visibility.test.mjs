@@ -22,7 +22,7 @@ test('past-events entry renders for logged-in users and disabled for guests', ()
   assert.match(page, /past-events-entry/)
   assert.match(page, /isGuest/)
   assert.match(page, /登录后可查看/)
-  assert.match(page, /展开每个大运段，看年份信号与白话批语/)
+  assert.match(page, /查看大运分段、年份信号与 AI 批语/)
 })
 
 test('past-events entry navigates to /bazi/:chartId/past-events when enabled', () => {

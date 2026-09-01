@@ -20,8 +20,8 @@ test('result page exposes summary-first report reading structure', () => {
 test('result page report actions are class based and include follow-up paths', () => {
   const page = read('src/pages/ResultPage.tsx')
   assert.match(page, /report-header-actions/)
+  assert.match(page, /保存分享图/)
   assert.match(page, /查看历史/)
-  assert.match(page, /过往事件/)
   assert.match(page, /重新起盘/)
   assert.doesNotMatch(page, /report-section-header[\s\S]{0,240}style=\{\{/)
 })

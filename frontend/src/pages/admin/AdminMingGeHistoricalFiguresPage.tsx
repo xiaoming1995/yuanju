@@ -27,7 +27,8 @@ const emptyForm: AdminMingGeHistoricalFigureInput = {
 }
 
 function toForm(figure: AdminMingGeHistoricalFigure): AdminMingGeHistoricalFigureInput {
-  const { id: _id, ...form } = figure
+  const { id, ...form } = figure
+  void id
   return {
     ...emptyForm,
     ...form,

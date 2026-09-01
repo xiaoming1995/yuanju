@@ -995,16 +995,6 @@
   background: transparent;
 }
 
-/* 专属命理头像区块 */
-.mingpan-avatar-section {
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
-
 .section-desc {
   font-size: 13px;
   color: var(--text-muted);

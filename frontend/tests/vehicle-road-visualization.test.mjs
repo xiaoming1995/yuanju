@@ -216,7 +216,7 @@ test('ResultPage keeps the conclusion chain ahead of utility and reference readi
   assert.ok(trend > summary, 'trend reading should follow the concise summary')
   assert.ok(historicalReference > trend, 'historical reference should be progressive reading')
   assert.match(src, /const historicalFiguresSection = result\.ming_ge && historicalFigures\.length > 0/)
-  assert.match(src, /hasSummaryProfile \? '' : ' is-single-panel'/)
+  assert.match(src, /result\.vehicle_profile \? '' : ' is-single-panel'/)
 })
 
 test('ResultPage uses separate identity, conclusion, vehicle, and road boundaries', () => {
