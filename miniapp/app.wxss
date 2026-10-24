@@ -1,0 +1,119 @@
+page {
+  min-height: 100%;
+  background: #f7f6f4;
+  color: #262b29;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+}
+
+view, text, button, input, picker-view, picker-view-column {
+  box-sizing: border-box;
+}
+
+button::after {
+  border: 0;
+}
+
+.tap-pressed, .is-opening {
+  opacity: 0.72;
+}
+
+.navigation-status {
+  position: fixed;
+  top: 24rpx;
+  left: 50%;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 12rpx 20rpx;
+  border: 1rpx solid #eadbbf;
+  border-radius: 30rpx;
+  background: #fbf2dc;
+  color: #775119;
+  font-size: 23rpx;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6rpx 18rpx rgba(40, 42, 41, 0.09);
+  transform: translateX(-50%);
+}
+
+.navigation-spinner {
+  width: 21rpx;
+  height: 21rpx;
+  border: 3rpx solid #dec999;
+  border-top-color: #775119;
+  border-radius: 50%;
+  animation: navigation-spin 0.8s linear infinite;
+}
+
+@keyframes navigation-spin {
+  to { transform: rotate(360deg); }
+}
+
+.page-shell {
+  padding: 20rpx 28rpx 40rpx;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 24rpx 0 16rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #242a2d;
+}
+
+.section-heading::before {
+  display: block;
+  width: 8rpx;
+  height: 30rpx;
+  border-radius: 8rpx;
+  background: #d49b2c;
+  content: "";
+}
+
+.surface-card {
+  background: #fff;
+  border-radius: 28rpx;
+  box-shadow: 0 10rpx 38rpx rgba(40, 42, 41, 0.055);
+}
+
+.primary-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 76rpx;
+  padding: 0 20rpx;
+  border: 1rpx solid #eadbbf;
+  border-radius: 44rpx;
+  background: #fbf2dc;
+  color: #775119;
+  font-size: 29rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.demo-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 12rpx;
+  border-radius: 12rpx;
+  background: #fbf2dc;
+  color: #71500c;
+  font-size: 23rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.secondary-text {
+  color: #87909a;
+}
+
+.tone-earth { color: #8a5b09; }
+.tone-fire { color: #a82420; }
+.tone-water { color: #0c5f92; }
+.tone-wood { color: #0d6e52; }
+.tone-metal { color: #755d17; }

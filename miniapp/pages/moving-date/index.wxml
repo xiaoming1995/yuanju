@@ -1,0 +1,68 @@
+<view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
+<view class="page-shell moving-page">
+  <view class="moving-hero surface-card">
+    <view class="hero-top"><text class="hero-kicker">择日 · 前端演示</text><text class="demo-tag">演示数据</text></view>
+    <view class="hero-title">择日参考</view>
+    <view class="hero-copy">先选事项与范围，核对传统宜忌和固定示例命盘的通用关系；这里不判断真实适宜日期。</view>
+  </view>
+
+  <view class="activity-card surface-card">
+    <view class="section-heading">选择事项</view>
+    <view class="activity-grid">
+      <view wx:for="{{activityOptions}}" wx:key="id" class="activity-option {{item.selected ? 'is-active' : ''}}" data-activity="{{item.id}}" bindtap="changeActivity">{{item.label}}</view>
+    </view>
+    <view class="activity-note">{{activity.note}}</view>
+  </view>
+
+  <view wx:if="{{!enabled}}" class="preview-card surface-card">
+    <view class="section-heading">使用示例命盘体验</view>
+    <view class="preview-copy">当前没有绑定真实命盘。启用固定示例后，才能查看日期与示例命盘的关系。</view>
+    <button class="primary-button" bindtap="startPreview">使用示例命盘体验</button>
+  </view>
+
+  <view class="filter-card surface-card">
+    <view class="filter-heading"><view class="section-heading">选择日期范围</view><text>最多 90 天</text></view>
+    <view class="range-row">
+      <picker class="range-picker" mode="date" value="{{startDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="changeStartDate">
+        <view class="range-field"><text>开始日期</text><text>{{startDate || '请选择'}}</text></view>
+      </picker>
+      <text class="range-separator">—</text>
+      <picker class="range-picker" mode="date" value="{{endDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="changeEndDate">
+        <view class="range-field"><text>结束日期</text><text>{{endDate || '请选择'}}</text></view>
+      </picker>
+    </view>
+    <view class="range-hint">仅支持 2025—2027 年本地演示日历；起止日期均计入筛选。</view>
+  </view>
+
+  <view wx:if="{{enabled && resultRenderError}}" class="result-feedback surface-card">
+    <text>日期结果暂未显示，请重试。</text>
+    <button class="result-retry" bindtap="retryResults">重新显示</button>
+  </view>
+  <view wx:elif="{{enabled && resultUpdating}}" class="result-feedback surface-card">
+    <view class="navigation-spinner"></view><text>日期结果更新中…</text>
+  </view>
+  <view wx:elif="{{enabled && rangeError}}" class="range-error surface-card">{{rangeError}}</view>
+
+  <block wx:if="{{enabled && !resultUpdating && !resultRenderError && !rangeError}}">
+    <view class="result-summary surface-card">
+      <view><text class="result-kicker">{{activity.label}} · 演示筛选</text><text class="result-count">{{priorityCount}}<text> 天通用宜与示例关系同向</text></text></view>
+      <text class="result-total">共查看 {{total}} 天</text>
+    </view>
+    <view wx:if="{{priorityCount === 0}}" class="empty-priority surface-card">这段时间没有通用宜与示例关系同向的「{{activity.label}}」日期。其他日期及原因仍可逐日核对。</view>
+
+    <block wx:for="{{sections}}" wx:for-item="section" wx:key="id">
+      <view wx:if="{{section.days.length}}" class="result-section">
+        <view class="section-bar"><text class="section-title">{{section.label}}</text><text class="section-count">{{section.days.length}} 天</text></view>
+        <view class="moving-day surface-card group-{{section.id}} {{navigationKey === day.date ? 'is-opening' : ''}}" wx:for="{{section.visibleDays}}" wx:for-item="day" wx:key="date" data-date="{{day.date}}" hover-class="tap-pressed" bindtap="openDay">
+          <view class="day-header"><view><text class="day-date">{{day.date}}</text><text class="day-lunar">{{day.lunarFull}}</text></view><text class="day-arrow">›</text></view>
+          <view class="day-meta"><text>{{day.dayGanZhi}}日</text><text>建除 {{day.jianChu}} · 仅展示</text><text>示例命盘 · {{day.personalLabel}}</text></view>
+          <view class="day-tags"><text class="yi-tag">宜：{{day.yiText}}</text><text class="ji-tag">忌：{{day.jiText}}</text></view>
+          <view class="day-reason">{{day.reason}}</view>
+        </view>
+        <button wx:if="{{section.hasMore}}" class="show-more" data-section="{{section.id}}" bindtap="showMore">继续显示 7 天 · 已显示 {{section.visibleDays.length}} / {{section.days.length}}</button>
+      </view>
+    </block>
+  </block>
+
+  <view class="moving-note"><text class="demo-tag">原型说明</text><text>五种事项只按页面列出的传统标签演示；示例命盘关系是通用日干支参考，不是事项专属或完整择日结论。时辰、参与人及现实安排仍需另行核对；本页不提供投资买卖时机。</text></view>
+</view>

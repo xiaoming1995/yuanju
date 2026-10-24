@@ -1,0 +1,77 @@
+.calendar-page { padding-top: 7rpx; }
+.calendar-toolbar { display: flex; justify-content: space-between; align-items: center; height: 82rpx; padding: 0 4rpx; }
+.month-navigation { display: flex; align-items: center; gap: 15rpx; }
+.month-title { font-size: 30rpx; font-weight: 700; }
+.month-arrow { display: flex; align-items: center; justify-content: center; width: 60rpx; height: 70rpx; color: #5f6b74; font-size: 42rpx; }
+.calendar-actions { display: flex; align-items: center; gap: 12rpx; }
+.moving-shortcut { display: flex; align-items: center; justify-content: center; height: 68rpx; padding: 0 15rpx; border-radius: 34rpx; background: #fbf2df; color: #714d10; font-size: 24rpx; font-weight: 700; white-space: nowrap; }
+.today-control { display: flex; align-items: center; justify-content: center; width: 68rpx; height: 68rpx; border-radius: 50%; background: #fbf2dc; color: #775119; font-size: 26rpx; }
+.calendar-card { padding: 22rpx 13rpx 20rpx; }
+.weekday-row, .day-grid { display: flex; flex-wrap: wrap; }
+.weekday-row > text { display: block; width: 14.2857%; margin-bottom: 8rpx; color: #758294; font-size: 22rpx; text-align: center; }
+.day-cell { position: relative; display: flex; width: 14.2857%; height: 92rpx; align-items: flex-start; justify-content: center; }
+.day-inner { display: flex; width: 70rpx; height: 80rpx; flex-direction: column; align-items: center; justify-content: center; gap: 5rpx; border-radius: 17rpx; }
+.solar-day { font-size: 26rpx; font-weight: 700; }
+.lunar-day { max-width: 76rpx; overflow: hidden; color: #66717b; font-size: 22rpx; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.lunar-day.has-jieqi { color: #775119; font-weight: 700; }
+.day-cell.is-other .solar-day, .day-cell.is-other .lunar-day { color: #c8cbce; }
+.day-inner.is-selected { border: 1rpx solid #e5c68a; background: #fbf2dc; }
+.day-inner.is-selected .solar-day, .day-inner.is-selected .lunar-day { color: #775119; }
+.term-dot { position: absolute; bottom: 5rpx; width: 6rpx; height: 6rpx; border-radius: 50%; background: #d49c2a; }
+.selected-card { margin-top: 23rpx; padding: 25rpx 25rpx 21rpx; }
+.selected-head { display: flex; justify-content: space-between; align-items: center; font-size: 29rpx; font-weight: 700; }
+.selected-head > text:last-child { color: #775119; }
+.selected-foot { display: flex; justify-content: space-between; align-items: center; gap: 6rpx; flex-wrap: wrap; margin-top: 18rpx; font-size: 23rpx; }
+.selected-foot > text:first-child { flex-shrink: 0; color: #775119; }
+.selected-foot > text:last-child { padding: 6rpx 8rpx; border-radius: 8rpx; background: #fbf5e8; color: #775119; text-align: right; }
+.selected-term { margin-top: 10rpx; color: #a87620; font-size: 21rpx; }
+.selected-jianchu { display: flex; align-items: center; gap: 11rpx; flex-wrap: wrap; margin-top: 18rpx; padding-top: 15rpx; border-top: 1rpx solid #f0efeb; font-size: 21rpx; }
+.selected-jianchu > text:first-child { color: #89929a; }
+.selected-jianchu .jianchu-value { padding: 5rpx 11rpx; border-radius: 9rpx; background: #fbf2dc; color: #a97619; font-weight: 700; }
+.selected-jianchu .jianchu-meaning { color: #768189; }
+.moving-entry { display: flex; align-items: center; gap: 16rpx; margin-top: 23rpx; padding: 23rpx 25rpx; }
+.moving-entry-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 7rpx; }
+.moving-entry-title { color: #a7761d; font-size: 27rpx; font-weight: 700; }
+.moving-entry-subtitle { color: #5f6b74; font-size: 23rpx; line-height: 1.4; }
+.moving-entry-arrow { flex-shrink: 0; color: #b68939; font-size: 36rpx; }
+.personal-day-card { margin-top: 23rpx; padding: 20rpx 25rpx 25rpx; }
+.personal-day-heading { display: flex; align-items: center; justify-content: space-between; }
+.personal-day-heading .section-heading { margin: 0; }
+.personal-day-invite { margin: 18rpx 0 20rpx; color: #7f8992; font-size: 23rpx; line-height: 1.55; }
+.personal-day-start { display: flex; align-items: center; justify-content: center; height: 68rpx; margin: 0; border-radius: 18rpx; background: #fbf2df; color: #a87418; font-size: 25rpx; font-weight: 700; }
+.personal-day-open { padding-top: 16rpx; }
+.personal-day-meta { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; color: #89939b; font-size: 20rpx; }
+.personal-day-meta > text:last-child { flex-shrink: 0; color: #be841c; }
+.personal-day-verdict { display: flex; align-items: center; gap: 14rpx; margin-top: 19rpx; }
+.personal-status { padding: 8rpx 18rpx; border-radius: 13rpx; background: #f8f2e5; color: #775119; font-size: 25rpx; font-weight: 700; }
+.personal-status.status-caution { background: #f9ede8; color: #8b463a; }
+.personal-status.status-insufficient, .personal-status.status-neutral { background: #f0f2f3; color: #78828b; }
+.personal-day-ganzhi { color: #485057; font-size: 24rpx; font-weight: 600; }
+.personal-day-summary { margin-top: 14rpx; color: #4f5c65; font-size: 24rpx; line-height: 1.55; }
+.personal-day-tips { display: flex; gap: 12rpx; margin-top: 18rpx; }
+.personal-day-tips > view { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 6rpx; padding: 15rpx; border-radius: 15rpx; background: #faf8f4; font-size: 20rpx; }
+.personal-day-tips > view > text:first-child { color: #859099; }
+.personal-day-tips > view > text:last-child { color: #333b3c; font-weight: 700; }
+.personal-day-link { margin-top: 20rpx; color: #b57d1c; font-size: 21rpx; text-align: right; }
+.calendar-details { min-height: 252rpx; margin-top: 23rpx; overflow: hidden; }
+.calendar-tabs { display: flex; height: 92rpx; border-bottom: 1rpx solid #ececec; }
+.calendar-tabs > view { position: relative; display: flex; width: 50%; flex-direction: column; align-items: center; justify-content: center; gap: 3rpx; color: #758193; font-size: 25rpx; }
+.calendar-tabs > view.active { color: #d1911c; font-weight: 700; }
+.calendar-tabs > view.active::after { position: absolute; bottom: 0; width: 42rpx; height: 5rpx; border-radius: 5rpx; background: #d49a20; content: ""; }
+.term-tab-summary { color: #9aa2aa; font-size: 18rpx; font-weight: 400; }
+.calendar-tabs > view.active .term-tab-summary { color: #bf8b2e; }
+.date-details, .term-list { padding: 20rpx 25rpx 27rpx; }
+.detail-kicker { color: #9b7a39; font-size: 22rpx; }
+.ganzhi-row { display: flex; gap: 12rpx; margin-top: 12rpx; }
+.ganzhi-row > view { display: flex; flex: 1; align-items: center; justify-content: center; gap: 8rpx; padding: 11rpx 0; border-radius: 12rpx; background: #f9f7f3; }
+.ganzhi-row text { color: #8e969e; font-size: 20rpx; }
+.ganzhi-row .ganzhi-value { color: #c78f22; font-size: 23rpx; font-weight: 700; }
+.detail-hint { margin-top: 18rpx; color: #5f6b74; font-size: 23rpx; line-height: 1.5; }
+.term-month-head { display: flex; justify-content: space-between; color: #8b929b; font-size: 21rpx; }
+.term-item { display: flex; align-items: center; gap: 14rpx; margin-top: 13rpx; padding: 12rpx 16rpx; border-radius: 14rpx; background: #faf8f4; }
+.term-day { width: 45rpx; color: #c78b1e; font-size: 32rpx; font-weight: 700; text-align: center; }
+.term-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 4rpx; }
+.term-name { color: #32383c; font-size: 24rpx; font-weight: 700; }
+.term-meta { color: #8b949d; font-size: 19rpx; }
+.term-arrow { color: #a4acb2; font-size: 29rpx; }
+.calendar-demo-note { display: flex; align-items: center; gap: 10rpx; margin: 22rpx 0; color: #8b949e; font-size: 20rpx; }

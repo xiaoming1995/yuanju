@@ -102,3 +102,6 @@ Thumbs.db
 /backend/vendor/
 
 .superpowers/
+
+# WeChat DevTools local settings
+/miniapp/project.private.config.json

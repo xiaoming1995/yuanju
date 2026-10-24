@@ -1,0 +1,64 @@
+<view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
+<view class="page-shell mine-page">
+  <view wx:if="{{!previewLoggedIn}}" class="account-row" bindtap="openLogin">
+    <view class="avatar"><view class="avatar-head"></view><view class="avatar-shoulders"></view></view>
+    <view class="account-copy"><text>预览登录后界面</text><text>仅切换演示画面，不会登录账号</text></view>
+    <text class="row-arrow">›</text>
+  </view>
+  <view wx:else class="account-row account-row-logged" bindtap="openProfile">
+    <view class="avatar avatar-logged"><text>示</text></view>
+    <view class="account-copy"><text>{{demoUser.nickname}} <text class="login-demo-badge">演示登录</text></text><text>{{demoUser.email}}</text></view>
+    <text class="row-arrow">›</text>
+  </view>
+
+  <view wx:if="{{!previewLoggedIn || !latestChart}}" class="brand-banner">
+    <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
+    <text class="brand-title">命 · 修身</text>
+    <text class="brand-subtitle">以天地之数为钥，开启国学之门</text>
+  </view>
+  <view wx:else class="brand-banner resume-banner {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openLatestChart">
+    <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
+    <text class="resume-kicker">最近命盘 · 演示记录</text>
+    <text class="resume-title">{{latestChart.name}}</text>
+    <view class="resume-pillars"><text wx:for="{{latestChart.columns}}" wx:for-item="pillar" wx:key="text">{{pillar.text}}</text></view>
+    <view class="resume-bottom"><text>{{latestChart.date}}</text><text>查看演示记录 ›</text></view>
+  </view>
+
+  <block wx:if="{{previewLoggedIn}}">
+    <view class="chart-summary surface-card {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openHistory">
+      <view class="chart-summary-icon">▣</view>
+      <view class="chart-summary-copy"><text>我的命盘记录</text><text>查看本地演示历史</text></view>
+      <text class="chart-summary-count">{{chartCount}} 份 ›</text>
+    </view>
+
+    <view class="recent-charts surface-card">
+      <view class="recent-charts-head"><text>最近命盘</text><text class="{{navigationKey === 'history' ? 'is-opening' : ''}}" bindtap="openHistory">查看全部 ›</text></view>
+      <view wx:if="{{!recentCharts.length}}" class="recent-chart-empty">本次演示列表已清空</view>
+      <view class="recent-chart {{navigationKey === 'history' ? 'is-opening' : ''}}" wx:for="{{recentCharts}}" wx:key="id" data-id="{{item.id}}" hover-class="tap-pressed" bindtap="openRecentChart">
+        <view><text class="recent-chart-name">{{item.name}}</text><text class="recent-chart-date">{{item.date}}</text></view>
+        <view class="recent-chart-pillars"><text wx:for="{{item.columns}}" wx:for-item="pillar" wx:key="text" class="tone-{{pillar.tone}}">{{pillar.text}}</text></view>
+        <text class="recent-chart-arrow">›</text>
+      </view>
+    </view>
+  </block>
+
+  <view class="tool-card surface-card">
+    <view class="section-heading">常用工具</view>
+    <view class="tool-grid">
+      <view class="tool-item" data-title="分享好友" bindtap="openTool"><view class="tool-icon share">➜</view><text>分享好友</text></view>
+      <view class="tool-item" data-title="联系我们" bindtap="openTool"><view class="tool-icon contact">◉</view><text>联系我们</text></view>
+      <view class="tool-item" data-title="公众号" bindtap="openTool"><view class="tool-icon channel">➤</view><text>公众号</text></view>
+      <view class="tool-item" data-title="意见反馈" bindtap="openTool"><view class="tool-icon feedback">✎</view><text>意见反馈</text></view>
+    </view>
+  </view>
+
+  <view class="settings-card surface-card">
+    <view class="settings-row {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openHistory"><text class="settings-icon">▣</text><text class="settings-label">查询历史</text><text class="row-arrow">›</text></view>
+    <view class="settings-row" bindtap="openPrivacy"><text class="settings-icon">◇</text><text class="settings-label">隐私政策</text><text class="row-arrow">›</text></view>
+    <view class="settings-row" bindtap="clearDemo"><text class="settings-icon">ⓘ</text><text class="settings-label">了解演示数据</text><text class="row-arrow">›</text></view>
+    <view class="settings-row" bindtap="openAbout"><text class="settings-icon">ⓘ</text><text class="settings-label">关于我们</text><text class="row-arrow">›</text></view>
+  </view>
+
+  <button wx:if="{{previewLoggedIn}}" class="logout-preview" bindtap="logoutPreview">退出演示登录</button>
+  <view class="mine-footnote"><text class="demo-tag">前端原型</text><text>{{previewLoggedIn ? '登录资料与命盘记录均为演示数据' : '所有工具入口仅展示操作反馈'}}</text></view>
+</view>

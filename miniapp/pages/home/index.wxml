@@ -1,0 +1,79 @@
+<view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
+<view class="page-shell home-page">
+  <view class="segment surface-card" role="tablist">
+    <view class="segment-item {{mode === 'query' ? 'is-active' : ''}}" data-mode="query" bindtap="switchMode" role="tab">干支查询</view>
+    <view class="segment-item {{mode === 'history' ? 'is-active' : ''}}" data-mode="history" bindtap="switchMode" role="tab">历史记录</view>
+  </view>
+
+  <block wx:if="{{mode === 'query'}}">
+    <view class="section-heading">体验日期输入</view>
+    <view class="query-card surface-card">
+      <view class="query-explainer">本页只预览输入流程。所选日期不会生成下方的固定示例命盘。</view>
+      <view class="form-label">选择日期</view>
+      <view class="date-trigger" bindtap="openPicker">
+        <text>{{dateText}}</text>
+        <text class="chevron">⌄</text>
+      </view>
+      <view class="form-label note-label">备注（可选）</view>
+      <input class="note-input" value="{{note}}" placeholder="例如：自己的命盘" maxlength="20" bindinput="onNoteInput" />
+      <button class="primary-button query-button {{navigationKey === 'result' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openDemoResult">查看固定示例命盘</button>
+      <view class="query-footnote">结果固定为 1990 年示例，输入仅用于体验页面流程</view>
+    </view>
+
+    <view class="home-section-title"><view class="section-heading">{{calendarPreview.title}}</view><text class="home-section-link {{navigationKey === 'calendar' ? 'is-opening' : ''}}" bindtap="openCalendar">查看日历 ›</text></view>
+    <view class="today-card surface-card {{navigationKey === 'calendar' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openCalendar">
+      <view class="today-date"><text>{{calendarPreview.date}}</text><text>{{calendarPreview.lunar}}</text></view>
+      <view class="today-pillars">
+        <view><text class="today-pillar-label">年柱</text><text class="today-pillar-value">{{calendarPreview.yearGanZhi}}</text></view>
+        <view><text class="today-pillar-label">月柱</text><text class="today-pillar-value">{{calendarPreview.monthGanZhi}}</text></view>
+        <view><text class="today-pillar-label">日柱</text><text class="today-pillar-value">{{calendarPreview.dayGanZhi}}</text></view>
+      </view>
+      <view class="today-footnote">本地预置历法数据 · 点击查看万年历</view>
+    </view>
+
+    <view class="home-section-title"><view class="section-heading">演示历史</view><text class="home-section-link" bindtap="openHistory">全部记录 ›</text></view>
+    <view wx:if="{{recentHistory}}" class="recent-card surface-card" data-id="{{recentHistory.id}}" bindtap="openHistoryDetail">
+      <view class="recent-main"><text class="recent-name">{{recentHistory.name}}</text><text class="demo-tag">演示记录</text></view>
+      <view class="recent-pillars"><text wx:for="{{recentHistory.columns}}" wx:for-item="pillar" wx:key="text" class="tone-{{pillar.tone}}">{{pillar.text}}</text></view>
+      <view class="recent-sub"><text>{{recentHistory.date}}</text><text class="recent-arrow">›</text></view>
+    </view>
+    <view wx:else class="recent-card recent-empty surface-card" bindtap="openHistory">暂无演示记录，查看历史 ›</view>
+  </block>
+
+  <block wx:else>
+    <view class="history-lead"><text class="section-heading">我的命盘</text><text class="demo-tag">演示列表</text></view>
+    <view class="history-card surface-card" wx:for="{{history}}" wx:key="id" data-id="{{item.id}}" bindtap="openHistoryDetail">
+      <view class="history-top"><text class="history-name">{{item.name}}</text><text class="trash-control" data-id="{{item.id}}" catchtap="removeHistory">删除</text></view>
+      <text class="history-date">{{item.date}}</text>
+      <view class="history-pillars"><text wx:for="{{item.columns}}" wx:for-item="pillar" wx:key="text" class="tone-{{pillar.tone}}">{{pillar.text}}</text></view>
+      <text class="history-arrow">›</text>
+    </view>
+    <view wx:if="{{history.length === 0}}" class="empty-history surface-card">本次演示记录已移除。重新打开小程序即可恢复示例。</view>
+    <view class="history-footnote">以上是本地演示数据，不读取或修改真实命盘历史。</view>
+  </block>
+</view>
+
+<view wx:if="{{showPicker}}" class="overlay">
+  <view class="overlay-backdrop" bindtap="closePicker"></view>
+  <view class="picker-sheet">
+    <view class="picker-toolbar"><text bindtap="closePicker">取消</text><text class="picker-title">选择日期</text><text class="picker-confirm" bindtap="confirmPicker">确定</text></view>
+    <picker-view class="date-picker" value="{{pickerValue}}" bindchange="onPickerChange" indicator-style="height: 80rpx">
+      <picker-view-column><view class="picker-option" wx:for="{{years}}" wx:for-item="year" wx:key="*this">{{year}}</view></picker-view-column>
+      <picker-view-column><view class="picker-option" wx:for="{{months}}" wx:for-item="month" wx:key="*this">{{month}}</view></picker-view-column>
+      <picker-view-column><view class="picker-option" wx:for="{{days}}" wx:for-item="day" wx:key="*this">{{day}}</view></picker-view-column>
+      <picker-view-column><view class="picker-option" wx:for="{{hours}}" wx:for-item="hour" wx:key="*this">{{hour}}</view></picker-view-column>
+    </picker-view>
+    <view class="picker-hint">按小时选择；当前固定示例不会按所选时间重新计算。</view>
+  </view>
+</view>
+
+<view wx:if="{{detail}}" class="overlay detail-overlay">
+  <view class="overlay-backdrop" bindtap="closeHistoryDetail"></view>
+  <view class="history-dialog surface-card">
+    <view class="dialog-head"><text>{{detail.name}}</text><text bindtap="closeHistoryDetail">×</text></view>
+    <view class="dialog-date">{{detail.date}}</view>
+    <view class="history-pillars dialog-pillars"><text wx:for="{{detail.columns}}" wx:for-item="pillar" wx:key="text" class="tone-{{pillar.tone}}">{{pillar.text}}</text></view>
+    <view class="dialog-note">这是界面演示记录，尚未连接真实命盘详情。</view>
+    <button class="primary-button" bindtap="closeHistoryDetail">返回历史</button>
+  </view>
+</view>

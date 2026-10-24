@@ -1,0 +1,43 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/calendar/index",
+    "pages/mine/index",
+    "pages/result/index",
+    "pages/personal-day/index",
+    "pages/moving-date/index"
+  ],
+  "window": {
+    "backgroundColor": "#F7F6F4",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#F7F6F4",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "缘聚"
+  },
+  "tabBar": {
+    "color": "#A4A7AE",
+    "selectedColor": "#D29A2F",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "assets/tab-home.png",
+        "selectedIconPath": "assets/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/calendar/index",
+        "text": "日历",
+        "iconPath": "assets/tab-calendar.png",
+        "selectedIconPath": "assets/tab-calendar-active.png"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的",
+        "iconPath": "assets/tab-mine.png",
+        "selectedIconPath": "assets/tab-mine-active.png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,69 @@
+<view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
+<view class="page-shell personal-page">
+  <view class="personal-hero surface-card">
+    <view class="hero-top"><text class="hero-kicker">每日干支参考 · 前端演示</text><text class="demo-tag">演示数据</text></view>
+    <view class="hero-date">{{dateLabel}}</view>
+    <view class="hero-lunar">农历{{lunarFull}}<text wx:if="{{jieQi}}"> · {{jieQi}}</text></view>
+    <view class="hero-pillars"><view><text>年</text><text>{{yearGanZhi}}</text></view><view><text>月</text><text>{{monthGanZhi}}</text></view><view><text>日</text><text>{{dayGanZhi}}</text></view></view>
+  </view>
+
+  <view wx:if="{{selection}}" class="selection-card surface-card">
+    <view class="section-heading">{{selection.activityLabel}} · 日期依据</view>
+    <view class="selection-mapping">{{selection.note}}</view>
+    <view class="selection-tags"><text class="selection-yi">宜：{{selection.yiText}}</text><text class="selection-ji">忌：{{selection.jiText}}</text></view>
+    <view class="selection-reason">{{selection.reason}}</view>
+  </view>
+
+  <view class="jianchu-card surface-card">
+    <view class="section-heading">建除十二值</view>
+    <view class="jianchu-head"><text class="jianchu-label">{{jianChuInfo.label}}</text><text>通用日期信息</text></view>
+    <view wx:if="{{jianChuInfo.meaning}}" class="jianchu-copy">{{jianChuInfo.meaning}}</view>
+    <view wx:else class="jianchu-copy">所选日期暂无建除数据。</view>
+    <view class="jianchu-sequence"><text class="jianchu-item {{name === jianChuInfo.name ? 'is-current' : ''}}" wx:for="{{jianChuNames}}" wx:for-item="name" wx:key="*this">{{name}}</text></view>
+    <view class="jianchu-note">建除按月支与日支循环，是传统的通用日期标签；这里不把单一建除值当作个人喜忌或事项结论。</view>
+  </view>
+
+  <view wx:if="{{!enabled}}" class="personal-intro surface-card">
+    <view class="section-heading">尚未启用体验</view>
+    <view>这里使用固定的示例命盘展示页面效果，不需要真实登录，也不会保存生辰资料。</view>
+    <button class="primary-button" bindtap="startPreview">使用示例命盘体验</button>
+  </view>
+
+  <block wx:else>
+    <view class="personal-profile surface-card">
+      <view class="profile-icon">命</view>
+      <view class="profile-copy"><text>示例命盘</text><text>{{chartDate}} · 日柱{{chartDay}}</text></view>
+      <text class="profile-badge">模拟绑定</text>
+    </view>
+
+    <view class="personal-verdict surface-card">
+      <view class="section-heading">当天与命盘的关系</view>
+      <view class="verdict-line"><text class="verdict-badge verdict-{{personalDay.status}}">{{personalDay.label}}</text><text>{{dayGanZhi}}日</text></view>
+      <view class="verdict-summary">{{personalDay.summary}}</view>
+    </view>
+
+    <view class="personal-evidence surface-card">
+      <view class="section-heading">判断依据</view>
+      <view class="fuyi-line"><text>扶抑喜用：{{favorable}}</text><text>扶抑忌神：{{adverse}}</text></view>
+      <view wx:if="{{personalDay.evidence.length}}" class="evidence-list">
+        <view wx:for="{{personalDay.evidence}}" wx:key="*this"><text class="evidence-dot"></text><text>{{item}}</text></view>
+      </view>
+      <view wx:else class="evidence-empty">当前资料不足，没有形成个人关系判断。</view>
+      <view class="evidence-foot">演示规则仅比较日干、日支主气的扶抑方向，并提示日支相冲。</view>
+    </view>
+
+    <view wx:if="{{!selection}}" class="personal-activities surface-card">
+      <view class="section-heading">事项提醒</view>
+      <view wx:if="{{personalDay.activities.length}}">
+        <view class="activity-row" wx:for="{{personalDay.activities}}" wx:key="id">
+          <view class="activity-head"><text>{{item.title}}</text><text>{{item.tip}}</text></view>
+          <view class="activity-detail">{{item.detail}}</view>
+        </view>
+      </view>
+      <view wx:else class="evidence-empty">依据不足，暂不展示事项提醒。</view>
+    </view>
+
+    <view class="personal-boundary"><text class="demo-tag">原型说明</text><text>以上为固定命盘和预置日历的演示关系，不是完整择日结果。时辰、参与人及实际安排仍需另行核对；这里不提供投资买卖时机。</text></view>
+    <button class="end-preview {{navigationKey === 'back' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="endPreview">结束示例体验</button>
+  </block>
+</view>
