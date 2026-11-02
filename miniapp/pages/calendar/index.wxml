@@ -6,30 +6,67 @@
       <text class="month-title">{{year}}年{{month}}月</text>
       <text class="month-arrow" data-delta="1" bindtap="changeMonth">›</text>
     </view>
-    <view class="calendar-actions">
-      <view class="moving-shortcut {{navigationKey === 'moving' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openMovingDate">择日</view>
-      <view class="today-control" bindtap="pickToday">今</view>
-    </view>
+    <view class="calendar-actions"><view class="today-control" bindtap="pickToday">今天</view></view>
   </view>
 
   <view class="calendar-card surface-card">
     <view class="weekday-row"><text wx:for="{{weekShort}}" wx:key="*this">{{item}}</text></view>
     <view class="day-grid">
       <view class="day-cell {{item.otherMonth ? 'is-other' : ''}}" wx:for="{{cells}}" wx:key="key" data-key="{{item.key}}" bindtap="pickDate">
-        <view class="day-inner {{item.selected ? 'is-selected' : ''}}">
+        <view class="day-inner {{item.selected ? 'is-selected' : ''}} {{item.today ? 'is-today' : ''}}">
           <text class="solar-day">{{item.day}}</text>
           <text class="lunar-day {{item.jieQi ? 'has-jieqi' : ''}}">{{item.jieQi || item.lunar}}</text>
         </view>
-        <view wx:if="{{item.jieQi && !item.selected}}" class="term-dot"></view>
       </view>
     </view>
   </view>
 
   <view class="selected-card surface-card">
-    <view class="selected-head"><text>{{selected.date}}</text><text>{{selected.weekday}}</text></view>
-    <view class="selected-foot"><text>▣　{{selected.lunarFull}}{{selected.isToday ? '（今天）' : ''}}</text><text>{{selected.yearGanZhi}}年 {{selected.monthGanZhi}}月 {{selected.dayGanZhi}}日</text></view>
-    <view wx:if="{{selected.jieQi}}" class="selected-term">节气：{{selected.jieQi}}</view>
-    <view class="selected-jianchu"><text>建除十二值</text><text class="jianchu-value">{{selected.jianChuInfo.label}}</text><text wx:if="{{selected.jianChuInfo.meaning}}" class="jianchu-meaning">{{selected.jianChuInfo.meaning}}</text></view>
+    <view class="selected-head"><text>{{selected.date}}{{selected.isToday ? ' · 今天' : ''}}</text><text>{{selected.weekday}}</text></view>
+    <view class="selected-foot"><text class="selected-lunar">{{selected.lunarFull}}</text><text wx:if="{{selected.jieQi}}" class="selected-jieqi">{{selected.jieQi}}</text></view>
+    <view class="almanac-heading"><view class="section-heading">黄历宜忌</view><text>通用日期资料</text></view>
+    <view wx:if="{{calendarLoading}}" class="almanac-status">正在读取所选日期宜忌…</view>
+    <view wx:elif="{{calendarDay}}" class="almanac-list">
+      <view class="almanac-row"><text class="almanac-mark is-yi">宜</text><view class="almanac-items"><text wx:for="{{calendarDay.yi}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.yi.length}}" class="almanac-empty">无记录</text></view></view>
+      <view class="almanac-row"><text class="almanac-mark is-ji">忌</text><view class="almanac-items"><text wx:for="{{calendarDay.ji}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.ji.length}}" class="almanac-empty">无记录</text></view></view>
+    </view>
+    <view wx:else class="almanac-status">{{calendarError || '所选日期宜忌暂不可用'}}</view>
+    <view class="personal-day-heading"><view class="section-heading">本人事项提示</view><text class="demo-tag">{{personalChart ? '本人命盘' : (realLoading ? '检查中' : (dayPreviewEnabled ? '演示功能' : '未绑定'))}}</text></view>
+    <view wx:if="{{realError && !personalChart}}" class="personal-day-invite">本人命盘状态暂时无法读取：{{realError}}</view>
+    <block wx:if="{{personalChart}}">
+      <view wx:if="{{realLoading}}" class="personal-day-invite">正在读取所选日期的个人参考…</view>
+      <view wx:elif="{{realError}}" class="personal-day-invite">{{realError}}</view>
+      <view wx:elif="{{realDay}}" class="personal-day-open {{navigationKey === 'personal' ? 'is-opening' : ''}}" bindtap="openPersonalDay">
+        <view class="personal-day-meta"><text>{{realDay.chart_name}} · 本人命盘</text><text>详情 ›</text></view>
+        <block wx:if="{{realDay.activity_guidance && realDay.activity_guidance.length}}">
+          <view wx:if="{{personalHint}}" class="personal-highlight">
+            <view class="personal-highlight-title"><text>{{personalHint.title}}</text><text class="guidance-level level-{{personalHint.level}}">{{personalHint.label}}</text></view>
+            <view class="personal-day-summary">{{personalHint.summary}}</view>
+            <view wx:if="{{personalHintRemaining}}" class="personal-more">另有{{personalHintRemaining}}项本人提示</view>
+          </view>
+          <view wx:elif="{{realDay.status === 'insufficient'}}" class="personal-day-summary">{{realDay.summary || '所选日期的本人事项依据不足。'}}</view>
+          <view wx:else class="personal-day-summary">所选日期暂无特别的本人事项提示。</view>
+        </block>
+        <block wx:else>
+          <view class="personal-day-verdict"><text class="personal-status status-{{realDay.status}}">{{realDay.label}}</text><text class="personal-day-ganzhi">{{realDay.day_gan_zhi}}日</text></view>
+          <view class="personal-day-summary">{{realDay.summary}}</view>
+        </block>
+        <view class="personal-day-link">查看本人依据与日期详情 ›</view>
+      </view>
+      <view wx:else class="personal-day-invite">暂无所选日期的个人参考，请稍后重试。</view>
+    </block>
+    <block wx:elif="{{!dayPreviewEnabled}}">
+      <view wx:if="{{realLoading}}" class="personal-day-invite">正在检查本人命盘…</view>
+      <view wx:else class="personal-day-invite">{{realError ? '可稍后重试，或到历史记录检查本人命盘。' : '尚未绑定本人命盘。可在历史记录中选择自己的排盘。'}}</view>
+      <button class="personal-day-start" bindtap="openBinding">选择本人命盘</button>
+      <view class="personal-day-demo" bindtap="enablePersonalDay">使用示例干支体验 <text>演示 ›</text></view>
+    </block>
+    <view wx:else class="personal-day-open {{navigationKey === 'personal' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalDay">
+      <view class="personal-day-meta"><text>示例干支 · 1990年1月1日 01:00</text><text>详情 ›</text></view>
+      <view class="personal-day-verdict"><text class="personal-status status-{{personalDay.status}}">{{personalDay.label}}</text><text class="personal-day-ganzhi">{{selected.dayGanZhi}}日</text></view>
+      <view class="personal-day-summary">{{personalDay.summary}}</view>
+      <view class="personal-day-link">查看依据与更多说明 ›</view>
+    </view>
   </view>
 
   <view class="moving-entry surface-card {{navigationKey === 'moving' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openMovingDate">
@@ -37,29 +74,15 @@
     <text class="moving-entry-arrow">›</text>
   </view>
 
-  <view class="personal-day-card surface-card">
-    <view class="personal-day-heading"><view class="section-heading">每日干支参考</view><text class="demo-tag">演示功能</text></view>
-    <block wx:if="{{!dayPreviewEnabled}}">
-      <view class="personal-day-invite">用一份固定的示例命盘，看看所选日期的干支关系与事项提醒。</view>
-      <button class="personal-day-start" bindtap="enablePersonalDay">使用示例命盘体验</button>
-    </block>
-    <view wx:else class="personal-day-open {{navigationKey === 'personal' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalDay">
-      <view class="personal-day-meta"><text>示例命盘 · 1990年1月1日 01:00</text><text>详情 ›</text></view>
-      <view class="personal-day-verdict"><text class="personal-status status-{{personalDay.status}}">{{personalDay.label}}</text><text class="personal-day-ganzhi">{{selected.dayGanZhi}}日</text></view>
-      <view class="personal-day-summary">{{personalDay.summary}}</view>
-      <view wx:if="{{personalDay.activities.length}}" class="personal-day-tips">
-        <view wx:for="{{personalDay.activities}}" wx:key="id"><text>{{item.title}}</text><text>{{item.tip}}</text></view>
-      </view>
-      <view class="personal-day-link">查看依据与更多说明 ›</view>
-    </view>
-  </view>
-
   <view class="calendar-details surface-card">
-    <view class="calendar-tabs"><view class="{{infoTab === 'date' ? 'active' : ''}}" data-tab="date" bindtap="switchInfoTab">日期计算</view><view class="{{infoTab === 'terms' ? 'active' : ''}}" data-tab="terms" bindtap="switchInfoTab"><text>24节气</text><text class="term-tab-summary">{{termSummary}}</text></view></view>
+    <view class="calendar-tabs"><view class="{{infoTab === 'date' ? 'active' : ''}}" data-tab="date" bindtap="switchInfoTab">日期资料</view><view class="{{infoTab === 'terms' ? 'active' : ''}}" data-tab="terms" bindtap="switchInfoTab"><text>24节气</text><text class="term-tab-summary">{{termSummary}}</text></view></view>
     <view wx:if="{{infoTab === 'date'}}" class="date-details">
       <view class="detail-kicker">所选日期干支</view>
       <view class="ganzhi-row"><view><text>年</text><text class="ganzhi-value">{{selected.yearGanZhi}}</text></view><view><text>月</text><text class="ganzhi-value">{{selected.monthGanZhi}}</text></view><view><text>日</text><text class="ganzhi-value">{{selected.dayGanZhi}}</text></view></view>
-      <view class="detail-hint">此处为静态日历示例，不代表个人命盘推算。</view>
+      <view class="selected-jianchu"><text>建除十二值 · 通用日期标签</text><text class="jianchu-value">{{selected.jianChuInfo.label}}</text><text wx:if="{{selected.jianChuInfo.meaning}}" class="jianchu-meaning">{{selected.jianChuInfo.meaning}}</text></view>
+      <view wx:if="{{selected.jieQi}}" class="selected-term">节气：{{selected.jieQi}}</view>
+      <view wx:if="{{!selected.jianChu}}" class="detail-hint">本地农历、节气和建除资料仅覆盖2025—2027年；缺失日期不作推算。</view>
+      <view class="detail-hint">{{realDay ? '所选日期干支由后端计算；个人参考请看上方卡片。' : '此处为静态日历示例，不代表个人干支推算。'}}</view>
     </view>
     <view wx:else class="term-list">
       <view class="term-month-head"><text>{{year}}年{{month}}月节气</text><text>共{{terms.length}}个</text></view>
@@ -71,5 +94,4 @@
       <view wx:if="{{terms.length === 0}}" class="detail-hint">本月暂无节气演示数据。</view>
     </view>
   </view>
-  <view class="calendar-demo-note"><text class="demo-tag">演示数据</text><text>2025—2027 年日期标签预置于本地，未调用服务器。</text></view>
 </view>

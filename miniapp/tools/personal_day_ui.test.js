@@ -26,7 +26,7 @@ test('calendar preview follows the selected day and opens its detail route', () 
   assert.equal(page.data.dayPreviewEnabled, false)
   page.enablePersonalDay()
   assert.equal(app.globalData.previewDayProfileEnabled, true)
-  assert.equal(page.data.personalDay.date, '2026-10-22')
+  assert.equal(page.data.personalDay.date, new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10))
 
   page.pickDate({ currentTarget: { dataset: { key: '2026-10-24' } } })
   assert.equal(page.data.personalDay.date, '2026-10-24')
