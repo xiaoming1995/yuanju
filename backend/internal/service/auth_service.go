@@ -13,6 +13,8 @@ import (
 )
 
 var ErrRegistrationDisabled = errors.New("公开注册暂未开放")
+var ErrEmailCredentialsRequired = errors.New("该用户未设置邮箱密码")
+var ErrUserNotFound = errors.New("用户不存在")
 
 type RegisterInput struct {
 	Email    string `json:"email" binding:"required,email"`
@@ -117,6 +119,16 @@ func Login(input LoginInput) (*model.User, string, error) {
 }
 
 func ResetUserPassword(userID, newPassword string) error {
+	user, err := repository.GetUserByID(userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	if user.Email == "" {
+		return ErrEmailCredentialsRequired
+	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err

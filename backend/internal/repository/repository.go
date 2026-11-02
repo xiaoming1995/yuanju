@@ -27,9 +27,11 @@ func CreateUserWithSource(email, passwordHash, nickname, source string) (*model.
 func GetUserByEmail(email string) (*model.User, error) {
 	user := &model.User{}
 	err := database.DB.QueryRow(
-		`SELECT id, email, password_hash, nickname, COALESCE(source, 'self_registered'), created_at, disabled_at FROM users WHERE email=$1`,
+		`SELECT id, email, password_hash, nickname,
+		 COALESCE('/static/uploads/' || NULLIF(avatar_path, ''), ''),
+		 COALESCE(source, 'self_registered'), created_at, disabled_at FROM users WHERE email=$1`,
 		email,
-	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Nickname, &user.Source, &user.CreatedAt, &user.DisabledAt)
+	).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Nickname, &user.AvatarURL, &user.Source, &user.CreatedAt, &user.DisabledAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -39,8 +41,10 @@ func GetUserByEmail(email string) (*model.User, error) {
 func GetUserByID(id string) (*model.User, error) {
 	user := &model.User{}
 	err := database.DB.QueryRow(
-		`SELECT id, email, nickname, COALESCE(source, 'self_registered'), created_at, disabled_at FROM users WHERE id=$1`, id,
-	).Scan(&user.ID, &user.Email, &user.Nickname, &user.Source, &user.CreatedAt, &user.DisabledAt)
+		`SELECT id, COALESCE(email, ''), COALESCE(nickname, ''),
+		 COALESCE('/static/uploads/' || NULLIF(avatar_path, ''), ''),
+		 COALESCE(source, 'self_registered'), created_at, disabled_at FROM users WHERE id=$1`, id,
+	).Scan(&user.ID, &user.Email, &user.Nickname, &user.AvatarURL, &user.Source, &user.CreatedAt, &user.DisabledAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -66,7 +70,7 @@ func DeleteUser(userID string) error {
 	return err
 }
 
-// ---- 八字命盘 ----
+// ---- 八字干支 ----
 
 func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 	wuxingJSON, _ := json.Marshal(chart.Wuxing)
@@ -210,7 +214,7 @@ func GetChartsByUserID(userID string, limit, offset int) ([]*model.BaziChart, er
 	return charts, nil
 }
 
-// CountChartsGenderByUserID 返回用户命盘总数及男女命分布（供历史页分页与统计卡使用）
+// CountChartsGenderByUserID 返回用户干支总数及男女命分布（供历史页分页与统计卡使用）
 // 注：CountChartsByUserID（user_profile_repository.go）只返回总数，这里多了性别聚合
 func CountChartsGenderByUserID(userID string) (total, male, female int, err error) {
 	err = database.DB.QueryRow(`
@@ -239,8 +243,8 @@ func UpdateChartYongshenJishen(chartID, yongshen, jishen string) error {
 	return err
 }
 
-// GetChartResultJSON 读取命盘的完整 BaziResult 快照（result_json）
-// 返回 nil 表示该命盘尚未存快照（旧命盘需懒加载补回）
+// GetChartResultJSON 读取干支的完整 BaziResult 快照（result_json）
+// 返回 nil 表示该干支尚未存快照（旧干支需懒加载补回）
 func GetChartResultJSON(chartID string) ([]byte, error) {
 	var raw sql.NullString
 	err := database.DB.QueryRow(
@@ -258,7 +262,7 @@ func GetChartResultJSON(chartID string) ([]byte, error) {
 	return []byte(raw.String), nil
 }
 
-// SaveChartResultJSON 写入命盘的 BaziResult 快照（懒加载或新建命盘时调用）
+// SaveChartResultJSON 写入干支的 BaziResult 快照（懒加载或新建干支时调用）
 func SaveChartResultJSON(chartID string, resultJSON []byte) error {
 	_, err := database.DB.Exec(
 		`UPDATE bazi_charts SET result_json=$1 WHERE id=$2`,
@@ -267,7 +271,7 @@ func SaveChartResultJSON(chartID string, resultJSON []byte) error {
 	return err
 }
 
-// DeleteChart 删除命盘记录；衍生数据（AI 报告/大运/流年/润色/往年事件）由外键
+// DeleteChart 删除干支记录；衍生数据（AI 报告/大运/流年/润色/往年事件）由外键
 // ON DELETE CASCADE 自动清除，计费日志 ON DELETE SET NULL 保留。返回删除条数。
 func DeleteChart(chartID string) (int64, error) {
 	result, err := database.DB.Exec(`DELETE FROM bazi_charts WHERE id=$1`, chartID)
@@ -312,7 +316,7 @@ func DeleteAllReports() (int64, error) {
 	return result.RowsAffected()
 }
 
-// DeleteReportByChartID 清除指定命盘的 AI 报告缓存
+// DeleteReportByChartID 清除指定干支的 AI 报告缓存
 func DeleteReportByChartID(chartID string) (int64, error) {
 	result, err := database.DB.Exec(`DELETE FROM ai_reports WHERE chart_id=$1`, chartID)
 	if err != nil {

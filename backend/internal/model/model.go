@@ -10,6 +10,7 @@ type User struct {
 	Email        string     `json:"email"`
 	PasswordHash string     `json:"-"`
 	Nickname     string     `json:"nickname"`
+	AvatarURL    string     `json:"avatar_url"`
 	Source       string     `json:"source"`
 	CreatedAt    time.Time  `json:"created_at"`
 	DisabledAt   *time.Time `json:"disabled_at,omitempty"`
@@ -97,7 +98,7 @@ type ShenshaAnnotation struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// AIPastEvents 过往年份事件推算报告（命盘级缓存）
+// AIPastEvents 过往年份事件推算报告（干支级缓存）
 type AIPastEvents struct {
 	ID                string           `json:"id"`
 	ChartID           string           `json:"chart_id"`

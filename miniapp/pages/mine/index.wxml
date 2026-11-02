@@ -1,39 +1,47 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell mine-page">
-  <view wx:if="{{!previewLoggedIn}}" class="account-row" bindtap="openLogin">
+  <button wx:if="{{!loggedIn}}" class="account-row account-row-login" hover-class="account-row-login-pressed" disabled="{{loggingIn}}" bindtap="openLogin">
     <view class="avatar"><view class="avatar-head"></view><view class="avatar-shoulders"></view></view>
-    <view class="account-copy"><text>预览登录后界面</text><text>仅切换演示画面，不会登录账号</text></view>
-    <text class="row-arrow">›</text>
-  </view>
-  <view wx:else class="account-row account-row-logged" bindtap="openProfile">
-    <view class="avatar avatar-logged"><text>示</text></view>
-    <view class="account-copy"><text>{{demoUser.nickname}} <text class="login-demo-badge">演示登录</text></text><text>{{demoUser.email}}</text></view>
+    <view class="account-copy"><text>{{loggingIn ? '正在登录…' : '微信一键登录'}}</text><text>点击登录，首次使用自动创建账号</text></view>
+    <view class="login-entry-action"><text>登录</text><text class="row-arrow">›</text></view>
+  </button>
+  <view wx:else class="account-row account-row-logged {{navigationKey === 'profile' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openProfile">
+    <view class="avatar avatar-logged"><image wx:if="{{userAvatarUrl}}" class="avatar-image" src="{{userAvatarUrl}}" mode="aspectFill" /><text wx:else>缘</text></view>
+    <view class="account-copy"><text>{{user.nickname || '微信用户'}}</text><text>{{user.email || '微信小程序账号 · 点击可修改资料'}}</text></view>
     <text class="row-arrow">›</text>
   </view>
 
-  <view wx:if="{{!previewLoggedIn || !latestChart}}" class="brand-banner">
+  <view wx:if="{{!loggedIn}}" class="brand-banner">
     <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
     <text class="brand-title">命 · 修身</text>
     <text class="brand-subtitle">以天地之数为钥，开启国学之门</text>
   </view>
-  <view wx:else class="brand-banner resume-banner {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openLatestChart">
+  <view wx:elif="{{personalChartLoading}}" class="brand-banner resume-banner"><text class="resume-kicker">本人命盘</text><text class="resume-title">正在读取绑定状态…</text></view>
+  <view wx:elif="{{personalChart}}" class="brand-banner resume-banner {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalChart">
     <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
-    <text class="resume-kicker">最近命盘 · 演示记录</text>
-    <text class="resume-title">{{latestChart.name}}</text>
-    <view class="resume-pillars"><text wx:for="{{latestChart.columns}}" wx:for-item="pillar" wx:key="text">{{pillar.text}}</text></view>
-    <view class="resume-bottom"><text>{{latestChart.date}}</text><text>查看演示记录 ›</text></view>
+    <text class="resume-kicker">本人命盘 · 已手动绑定</text>
+    <text class="resume-title">{{personalChart.name}}</text>
+    <view class="resume-pillars"><text wx:for="{{personalChart.columns}}" wx:for-item="pillar" wx:key="text">{{pillar.text}}</text></view>
+    <view class="resume-bottom"><text>{{personalChart.date}}</text><text>查看干支 ›</text></view>
+  </view>
+  <view wx:else class="brand-banner resume-banner {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalBanner">
+    <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
+    <text class="resume-kicker">本人命盘</text>
+    <text class="resume-title">{{personalChartError ? '暂时无法读取绑定状态' : '尚未设置'}}</text>
+    <view class="resume-unbound-note">{{personalChartError || '从历史记录中自行选择一份本人排盘，登录和新建排盘不会自动绑定。'}}</view>
+    <view class="resume-bottom"><text></text><text>{{personalChartError ? '点击重试 ›' : '去选择 ›'}}</text></view>
   </view>
 
-  <block wx:if="{{previewLoggedIn}}">
+  <block wx:if="{{loggedIn}}">
     <view class="chart-summary surface-card {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openHistory">
       <view class="chart-summary-icon">▣</view>
-      <view class="chart-summary-copy"><text>我的命盘记录</text><text>查看本地演示历史</text></view>
+      <view class="chart-summary-copy"><text>我的干支记录</text><text>查看已保存的历史</text></view>
       <text class="chart-summary-count">{{chartCount}} 份 ›</text>
     </view>
 
     <view class="recent-charts surface-card">
-      <view class="recent-charts-head"><text>最近命盘</text><text class="{{navigationKey === 'history' ? 'is-opening' : ''}}" bindtap="openHistory">查看全部 ›</text></view>
-      <view wx:if="{{!recentCharts.length}}" class="recent-chart-empty">本次演示列表已清空</view>
+      <view class="recent-charts-head"><text>最近干支</text><text class="{{navigationKey === 'history' ? 'is-opening' : ''}}" bindtap="openHistory">查看全部 ›</text></view>
+      <view wx:if="{{!recentCharts.length}}" class="recent-chart-empty">暂无干支记录</view>
       <view class="recent-chart {{navigationKey === 'history' ? 'is-opening' : ''}}" wx:for="{{recentCharts}}" wx:key="id" data-id="{{item.id}}" hover-class="tap-pressed" bindtap="openRecentChart">
         <view><text class="recent-chart-name">{{item.name}}</text><text class="recent-chart-date">{{item.date}}</text></view>
         <view class="recent-chart-pillars"><text wx:for="{{item.columns}}" wx:for-item="pillar" wx:key="text" class="tone-{{pillar.tone}}">{{pillar.text}}</text></view>
@@ -53,12 +61,22 @@
   </view>
 
   <view class="settings-card surface-card">
+    <view wx:if="{{loggedIn && !user.email}}" class="settings-row" bindtap="toggleWebBinding"><text class="settings-icon">◇</text><text class="settings-label">绑定已有网页账号</text><text class="row-arrow">›</text></view>
+    <view wx:if="{{loggedIn && user.email}}" class="settings-row"><text class="settings-icon">✓</text><text class="settings-label">已绑定网页账号</text><text class="settings-bound-email">{{user.email}}</text></view>
     <view class="settings-row {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openHistory"><text class="settings-icon">▣</text><text class="settings-label">查询历史</text><text class="row-arrow">›</text></view>
     <view class="settings-row" bindtap="openPrivacy"><text class="settings-icon">◇</text><text class="settings-label">隐私政策</text><text class="row-arrow">›</text></view>
     <view class="settings-row" bindtap="clearDemo"><text class="settings-icon">ⓘ</text><text class="settings-label">了解演示数据</text><text class="row-arrow">›</text></view>
     <view class="settings-row" bindtap="openAbout"><text class="settings-icon">ⓘ</text><text class="settings-label">关于我们</text><text class="row-arrow">›</text></view>
   </view>
 
-  <button wx:if="{{previewLoggedIn}}" class="logout-preview" bindtap="logoutPreview">退出演示登录</button>
-  <view class="mine-footnote"><text class="demo-tag">前端原型</text><text>{{previewLoggedIn ? '登录资料与命盘记录均为演示数据' : '所有工具入口仅展示操作反馈'}}</text></view>
+  <view wx:if="{{loggedIn && bindingVisible && !user.email}}" class="surface-card web-binding-card">
+    <view class="web-binding-title">绑定已有网页账号</view>
+    <view class="web-binding-note">验证网页账号后，两端干支和历史会合并，网页账号将成为主账号。</view>
+    <input class="note-input" type="text" placeholder="网页账号邮箱" value="{{email}}" bindinput="onEmailInput" />
+    <input class="note-input" password="true" placeholder="网页账号密码" value="{{password}}" bindinput="onPasswordInput" />
+    <button class="primary-button" loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="bindWebAccount">确认绑定并合并历史</button>
+  </view>
+
+  <button wx:if="{{loggedIn}}" class="logout-preview" bindtap="logoutPreview">退出登录</button>
+  <view class="mine-footnote"><text>账号、排盘和本人每日参考连接后端；月历标签及择日参考仍为演示。</text></view>
 </view>

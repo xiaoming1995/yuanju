@@ -123,6 +123,7 @@ type MingGeHistoricalFigure struct {
 // AdminCompatListItem 后台合盘明细列表行
 type AdminCompatListItem struct {
 	ID                string    `json:"id"`
+	UserID            *string   `json:"user_id,omitempty"`
 	UserEmail         *string   `json:"user_email"`
 	SelfName          string    `json:"self_name"`
 	PartnerName       string    `json:"partner_name"`

@@ -1,15 +1,16 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell result-page">
+  <block wx:if="{{chart}}">
   <view class="query-summary surface-card">
-    <view class="summary-heading"><text>本次输入 · 未参与计算</text><text class="demo-tag">前端演示</text></view>
+    <view class="summary-heading"><text>本次排盘</text><text>已使用所填生辰</text></view>
     <view class="summary-date">{{selectedDate}}</view>
     <view wx:if="{{selectedNote}}" class="summary-note">备注：{{selectedNote}}</view>
-    <view class="summary-hint">下面仅预览固定命盘：1990-01-01 01:00 · 男命 · 北京时间。本次输入未用于排盘，也未保存。</view>
+    <view class="summary-hint">结果由缘聚后端计算并保存至当前账号。</view>
   </view>
 
-  <view class="section-heading">固定示例命盘</view>
-  <view class="result-card surface-card">
-    <view class="result-title">示例命盘 · {{chart.input.dateTime}} · 男命</view>
+  <view class="section-heading">四柱干支</view>
+  <view wx:if="{{chart}}" class="result-card surface-card">
+    <view class="result-title">{{chart.input.dateTime}} · {{chart.input.gender === 'male' ? '男命' : '女命'}}</view>
     <view class="result-divider"></view>
     <view class="pillar-grid">
       <view class="pillar-cell" wx:for="{{pillars}}" wx:key="label">
@@ -19,12 +20,12 @@
       </view>
     </view>
     <view class="result-mingge"><text class="result-mingge-label">命格</text><text>{{chart.mingGe || '待补充'}}</text></view>
-    <view class="result-caption"><text class="demo-tag">演示数据</text><text>四柱固定展示稿示例</text></view>
+    <view class="result-caption"><text>四柱由后端实时计算</text></view>
   </view>
 
-  <view class="section-heading">命盘核心结论</view>
+  <view class="section-heading">干支核心结论</view>
   <view class="natal-panel surface-card">
-    <view class="natal-heading"><text>天干级喜忌</text><text class="demo-tag">示例命盘</text></view>
+    <view class="natal-heading"><text>天干级喜忌</text></view>
     <view wx:if="{{chart.stemGuidance.primary_favorable.length}}" class="natal-line">
       <text class="natal-label">首取</text>
       <view class="natal-values">
@@ -51,15 +52,15 @@
     </view>
   </view>
 
-  <view class="section-heading">示例生辰信息</view>
+  <view class="section-heading">生辰信息</view>
   <view class="birth-grid surface-card">
     <view class="birth-item"><text class="birth-label">公历</text><text>{{chart.input.dateTime}}</text><text class="birth-muted">（北京时间）</text></view>
-    <view class="birth-item"><text class="birth-label">农历</text><text>己巳年 腊月初五</text><text class="birth-muted">（设计稿示例）</text></view>
+    <view class="birth-item"><text class="birth-label">历法</text><text>公历排盘</text></view>
   </view>
 
   <view class="section-heading">基本排盘</view>
   <view class="basic-panel surface-card">
-    <view class="basic-intro">字段顺序与网页版「基本排盘」一致 · 固定示例</view>
+    <view class="basic-intro">字段顺序与网页版「基本排盘」一致</view>
     <view class="basic-grid">
       <view class="matrix-label matrix-head">日期</view>
       <view class="matrix-cell matrix-head {{index === 2 ? 'is-day' : ''}}" wx:for="{{chart.pillars}}" wx:for-item="pillar" wx:key="label">{{pillar.label}}</view>
@@ -82,13 +83,14 @@
 
   <view class="section-heading">五行分布</view>
   <view class="wuxing-panel surface-card">
-    <view class="wuxing-caption">按同一示例四柱的八个干支统计</view>
+    <view class="wuxing-caption">按本次四柱的八个干支统计</view>
     <view class="wuxing-row" wx:for="{{chart.wuxingRows}}" wx:key="label">
       <text>{{item.label}}</text>
       <view class="wuxing-track"><view class="wuxing-fill {{item.tone}}" style="width: {{item.percent}}%;"></view></view>
       <text>{{item.count}} / {{chart.wuxingTotal}}</text>
     </view>
   </view>
+  </block>
 
   <button class="primary-button return-button {{navigationKey === 'back' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="returnToQuery">返回修改日期</button>
 </view>

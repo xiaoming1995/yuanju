@@ -88,12 +88,12 @@ function classifyActivityDate(activityId, date, record, personalDay) {
   }
   if (!personalDay || personalDay.status === 'insufficient' ||
       !['supportive', 'mixed', 'caution', 'neutral'].includes(personalDay.status)) {
-    return { ...result, group: 'insufficient', reason: `通用宜有${activity.label}相关标签，但示例命盘的个人关系依据不足。` }
+    return { ...result, group: 'insufficient', reason: `通用宜有${activity.label}相关标签，但示例干支的个人关系依据不足。` }
   }
   if (personalDay.status === 'supportive') {
-    return { ...result, group: 'priority', reason: `通用宜包含${result.yi.join('、')}，示例命盘通用日干支关系为偏合；仍需核对实际安排。` }
+    return { ...result, group: 'priority', reason: `通用宜包含${result.yi.join('、')}，示例干支通用日干支关系为偏合；仍需核对实际安排。` }
   }
-  return { ...result, group: 'review', reason: `通用宜包含${result.yi.join('、')}，示例命盘通用关系为${result.personalLabel}，需要继续核对。` }
+  return { ...result, group: 'review', reason: `通用宜包含${result.yi.join('、')}，示例干支通用关系为${result.personalLabel}，需要继续核对。` }
 }
 
 function analyzeActivityRange(activityId, startDate, endDate, calendar, chart) {

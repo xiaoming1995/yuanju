@@ -1,23 +1,30 @@
-const { chart, pillars, basicRows } = require('../../data/demo')
+const { toResult } = require('../../utils/chart_view')
 const navigation = require('../../utils/navigation_feedback')
 
 Page({
   data: {
     selectedDate: '1990-01-01 01:00',
     selectedNote: '',
-    chart,
-    pillars,
-    basicRows,
+    chart: null,
+    pillars: [],
+    basicRows: [],
   },
 
   onLoad() {
     navigation.pageVisible(this, 'pages/result/index')
-    const query = getApp().globalData.previewQuery
-    if (query) {
+    const query = getApp().globalData.activeResult
+    if (query && query.result) {
+      const chart = toResult(query.result, query)
       this.setData({
         selectedDate: query.dateText,
         selectedNote: query.note,
+        chart,
+        pillars: chart.pillars.map(p => ({ label: p.label.slice(0, 1), gan: p.gan, zhi: p.zhi, ganTone: p.ganTone, zhiTone: p.zhiTone })),
+        basicRows: chart.basicRows,
       })
+    } else {
+      wx.showToast({ title: '干支数据已失效，请重新查询', icon: 'none' })
+      setTimeout(() => wx.navigateBack({ delta: 1 }), 800)
     }
   },
 

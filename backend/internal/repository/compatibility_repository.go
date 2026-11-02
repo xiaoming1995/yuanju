@@ -336,7 +336,7 @@ func AdminListCompatibilityReadings(page, pageSize int) ([]model.AdminCompatList
 	}
 
 	rows, err := database.DB.Query(`
-		SELECT r.id, u.email, r.overall_score, r.overall_level,
+		SELECT r.id, r.user_id, u.email, r.overall_score, r.overall_level,
 		       r.relationship_stage, r.primary_question, r.analysis_version, r.created_at,
 		       COALESCE((SELECT display_name FROM compatibility_participants WHERE reading_id=r.id AND role='self'  LIMIT 1), '') AS self_name,
 		       COALESCE((SELECT display_name FROM compatibility_participants WHERE reading_id=r.id AND role='partner' LIMIT 1), '') AS partner_name
@@ -352,7 +352,7 @@ func AdminListCompatibilityReadings(page, pageSize int) ([]model.AdminCompatList
 	out := []model.AdminCompatListItem{}
 	for rows.Next() {
 		var it model.AdminCompatListItem
-		if err := rows.Scan(&it.ID, &it.UserEmail, &it.OverallScore, &it.OverallLevel,
+		if err := rows.Scan(&it.ID, &it.UserID, &it.UserEmail, &it.OverallScore, &it.OverallLevel,
 			&it.RelationshipStage, &it.PrimaryQuestion, &it.AnalysisVersion, &it.CreatedAt,
 			&it.SelfName, &it.PartnerName); err != nil {
 			return nil, 0, err

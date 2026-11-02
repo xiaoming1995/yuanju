@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	SettingRegistrationEnabled   = "registration_enabled"
-	SettingArticlesModuleEnabled = "articles_module_enabled"
+	SettingRegistrationEnabled        = "registration_enabled"
+	SettingMiniappRegistrationEnabled = "miniapp_registration_enabled"
+	SettingArticlesModuleEnabled      = "articles_module_enabled"
 )
 
 func GetBoolSetting(key string, defaultValue bool) (bool, error) {

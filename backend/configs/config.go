@@ -24,6 +24,10 @@ type Config struct {
 	AdminJWTSecret     string
 	AdminEncryptionKey string
 
+	// WeChat miniapp
+	WeChatMiniAppID     string
+	WeChatMiniAppSecret string
+
 	// AI
 	DeepSeekAPIKey string
 	OpenAIAPIKey   string
@@ -44,17 +48,19 @@ func Load() {
 	}
 
 	AppConfig = Config{
-		Port:               getEnv("PORT", "9002"),
-		DatabaseURL:        getEnv("DATABASE_URL", "postgres://yuanju:yuanju123@localhost:5432/yuanju?sslmode=disable"),
-		RedisURL:           getEnv("REDIS_URL", "redis://localhost:6379"),
-		JWTSecret:          getEnv("JWT_SECRET", "yuanju-secret-key-change-in-production"),
-		AdminJWTSecret:     getEnv("ADMIN_JWT_SECRET", "yuanju-admin-secret-change-in-production"),
-		AdminEncryptionKey: getEnv("ADMIN_ENCRYPTION_KEY", "yuanju-enc-key-32bytespadding!!"),
-		DeepSeekAPIKey:     getEnv("DEEPSEEK_API_KEY", ""),
-		OpenAIAPIKey:       getEnv("OPENAI_API_KEY", ""),
-		AIBaseURL:          getEnv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-		AIPromptLog:        getEnv("AI_PROMPT_LOG", "") == "true",
-		UploadDir:          getEnv("UPLOAD_DIR", "./uploads"),
+		Port:                getEnv("PORT", "9002"),
+		DatabaseURL:         getEnv("DATABASE_URL", "postgres://yuanju:yuanju123@localhost:5432/yuanju?sslmode=disable"),
+		RedisURL:            getEnv("REDIS_URL", "redis://localhost:6379"),
+		JWTSecret:           getEnv("JWT_SECRET", "yuanju-secret-key-change-in-production"),
+		AdminJWTSecret:      getEnv("ADMIN_JWT_SECRET", "yuanju-admin-secret-change-in-production"),
+		AdminEncryptionKey:  getEnv("ADMIN_ENCRYPTION_KEY", "yuanju-enc-key-32bytespadding!!"),
+		WeChatMiniAppID:     getEnv("WECHAT_MINIAPP_APP_ID", ""),
+		WeChatMiniAppSecret: getEnv("WECHAT_MINIAPP_APP_SECRET", ""),
+		DeepSeekAPIKey:      getEnv("DEEPSEEK_API_KEY", ""),
+		OpenAIAPIKey:        getEnv("OPENAI_API_KEY", ""),
+		AIBaseURL:           getEnv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
+		AIPromptLog:         getEnv("AI_PROMPT_LOG", "") == "true",
+		UploadDir:           getEnv("UPLOAD_DIR", "./uploads"),
 	}
 }
 

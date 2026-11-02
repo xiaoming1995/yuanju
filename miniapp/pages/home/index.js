@@ -1,4 +1,5 @@
-const { history } = require('../../data/demo')
+const api = require('../../utils/api')
+const { toHistory } = require('../../utils/chart_view')
 const calendarData = require('../../data/calendar')
 const navigation = require('../../utils/navigation_feedback')
 
@@ -37,8 +38,14 @@ Page({
     mode: 'query',
     dateText: '1990-01-01 01:00',
     note: '',
-    history: history.map(item => ({ ...item })),
-    recentHistory: history[0] || null,
+    gender: 'male',
+    calculating: false,
+    history: [],
+    recentHistory: null,
+    page: 1,
+    hasMore: false,
+    historyLoading: false,
+    personalChartId: '',
     calendarPreview: calendarPreview(),
     showPicker: false,
     detail: null,
@@ -52,19 +59,21 @@ Page({
   onShow() {
     navigation.pageVisible(this, 'pages/home/index')
     const globalData = getApp().globalData
-    const currentHistory = globalData.previewHistory || history
     this.setData({
       calendarPreview: calendarPreview(),
-      history: currentHistory,
-      recentHistory: currentHistory[0] || null,
     })
     if (globalData.previewHistoryNext) {
       globalData.previewHistoryNext = false
-      const detail = currentHistory.find(item => item.id === globalData.previewHistoryDetailId) || null
-      globalData.previewHistoryDetailId = null
-      this.setData({ mode: 'history', detail })
+      this.setData({ mode: 'history' })
+      if (globalData.previewHistoryDetailId) {
+        const id = globalData.previewHistoryDetailId
+        globalData.previewHistoryDetailId = null
+        this.openHistoryDetail({ currentTarget: { dataset: { id } } })
+      }
     }
-    wx.setNavigationBarTitle({ title: this.data.mode === 'history' ? '查询历史' : '干支演示' })
+    this.loadHistory(1)
+    this.loadPersonalChart()
+    wx.setNavigationBarTitle({ title: this.data.mode === 'history' ? '查询历史' : '干支排盘' })
   },
 
   onReady() {
@@ -82,12 +91,77 @@ Page({
   switchMode(event) {
     const mode = event.currentTarget.dataset.mode
     this.setData({ mode })
-    wx.setNavigationBarTitle({ title: mode === 'history' ? '查询历史' : '干支演示' })
+    if (mode === 'history') this.loadHistory(1)
+    wx.setNavigationBarTitle({ title: mode === 'history' ? '查询历史' : '干支排盘' })
   },
 
   onNoteInput(event) {
     this.setData({ note: event.detail.value })
   },
+
+  setGender(event) { this.setData({ gender: event.currentTarget.dataset.gender }) },
+
+  async loadHistory(page) {
+    const currentToken = api.token()
+    if (!currentToken) {
+      this.setData({ history: [], recentHistory: null, hasMore: false })
+      return
+    }
+    this.setData({ historyLoading: true })
+    try {
+      const response = await api.history(page)
+      if (api.token() !== currentToken) return
+      const next = page === 1 ? response.charts.map(toHistory) : this.data.history.concat(response.charts.map(toHistory))
+      this.setData({ history: next, recentHistory: next[0] || null, page, hasMore: next.length < response.total })
+    } catch (err) {
+      if (!api.token()) this.setData({ history: [], recentHistory: null, detail: null, hasMore: false })
+      wx.showToast({ title: err.message, icon: 'none' })
+    } finally {
+      this.setData({ historyLoading: false })
+    }
+  },
+
+  async loadPersonalChart() {
+    if (!api.token()) { this.setData({ personalChartId: '' }); return }
+    const currentToken = api.token()
+    this.setData({ personalChartId: '' })
+    try {
+      const response = await api.personalChart()
+      if (api.token() !== currentToken) return
+      const chart = response.chart || null
+      getApp().globalData.personalChart = chart
+      this.setData({ personalChartId: chart ? chart.id : '' })
+    } catch (err) {
+      this.setData({ personalChartId: '' })
+      wx.showToast({ title: err.message, icon: 'none' })
+    }
+  },
+
+  bindPersonalChart(event) {
+    const chartId = event.currentTarget.dataset.id
+    if (!chartId) return
+    wx.showModal({ title: '设为本人命盘', content: '请确认这份排盘使用的是你自己的出生资料。设置后可在日历查看每日干支参考。',
+      success: async ({ confirm }) => {
+        if (!confirm) return
+        try {
+          await api.setPersonalChart(chartId)
+          await this.loadPersonalChart()
+          wx.showToast({ title: '已绑定本人命盘', icon: 'success' })
+        } catch (err) { wx.showToast({ title: err.message, icon: 'none' }) }
+      } })
+  },
+
+  unbindPersonalChart() {
+    wx.showModal({ title: '解绑本人命盘', content: '解绑后将停止显示个人每日参考，历史排盘不会删除。',
+      success: async ({ confirm }) => {
+        if (!confirm) return
+        try { await api.clearPersonalChart(); getApp().globalData.personalChart = null
+          this.setData({ personalChartId: '' }); wx.showToast({ title: '已解绑', icon: 'none' }) }
+        catch (err) { wx.showToast({ title: err.message, icon: 'none' }) }
+      } })
+  },
+
+  loadMoreHistory() { if (this.data.hasMore && !this.data.historyLoading) this.loadHistory(this.data.page + 1) },
 
   openPicker() {
     this.setData({ showPicker: true })
@@ -112,13 +186,26 @@ Page({
     this.setData({ dateText, showPicker: false })
   },
 
-  openDemoResult() {
-    if (this.data.navigationKey) return
-    getApp().globalData.previewQuery = {
-      dateText: this.data.dateText,
-      note: this.data.note,
+  async openDemoResult() {
+    if (this.data.navigationKey || this.data.calculating) return
+    if (!api.token()) { wx.showToast({ title: '请先在「我的」页面登录', icon: 'none' }); return }
+    const match = this.data.dateText.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):00$/)
+    if (!match) { wx.showToast({ title: '请检查出生日期', icon: 'none' }); return }
+    const [, year, month, day, hour] = match
+    const input = { year: +year, month: +month, day: +day, hour: +hour,
+      gender: this.data.gender, calendar_type: 'solar', display_name: this.data.note }
+    this.setData({ calculating: true })
+    try {
+      const response = await api.calculate(input)
+      if (!response.chart_id) throw new Error('干支保存失败，请重试')
+      getApp().globalData.activeResult = { result: response.result, chartId: response.chart_id,
+        dateText: this.data.dateText, gender: this.data.gender, note: this.data.note }
+      navigation.navigate(this, { method: 'navigateTo', url: '/pages/result/index', key: 'result' })
+    } catch (err) {
+      if (!api.token()) this.setData({ detail: null, history: [], recentHistory: null, hasMore: false })
+      wx.showToast({ title: err.message, icon: 'none' })
     }
-    navigation.navigate(this, { method: 'navigateTo', url: '/pages/result/index', key: 'result' })
+    finally { this.setData({ calculating: false }) }
   },
 
   openCalendar() {
@@ -129,12 +216,26 @@ Page({
 
   openHistory() {
     this.setData({ mode: 'history' })
+    this.loadHistory(1)
     wx.setNavigationBarTitle({ title: '查询历史' })
   },
 
-  openHistoryDetail(event) {
-    const detail = this.data.history.find(item => item.id === event.currentTarget.dataset.id)
-    if (detail) this.setData({ detail })
+  async openHistoryDetail(event) {
+    try {
+      const response = await api.detail(event.currentTarget.dataset.id)
+      const detail = toHistory(response.chart)
+      this.setData({ detail })
+      getApp().globalData.activeResult = { result: response.result, chartId: detail.id,
+        dateText: detail.date, gender: response.chart.gender, note: detail.name }
+    } catch (err) {
+      if (!api.token()) this.setData({ detail: null, history: [], recentHistory: null, hasMore: false })
+      wx.showToast({ title: err.message, icon: 'none' })
+    }
+  },
+
+  openDetailResult() {
+    this.setData({ detail: null })
+    navigation.navigate(this, { method: 'navigateTo', url: '/pages/result/index', key: 'result' })
   },
 
   closeHistoryDetail() {
@@ -144,15 +245,13 @@ Page({
   removeHistory(event) {
     const id = event.currentTarget.dataset.id
     wx.showModal({
-      title: '移除演示记录',
-      content: '仅从当前演示列表移除，重新打开小程序会恢复；不会删除真实数据。',
+      title: '删除干支',
+      content: '确认删除这份干支记录？此操作无法撤销。',
       confirmColor: '#c38c24',
-      success: ({ confirm }) => {
+      success: async ({ confirm }) => {
         if (!confirm) return
-        const nextHistory = this.data.history.filter(item => item.id !== id)
-        getApp().globalData.previewHistory = nextHistory
-        this.setData({ history: nextHistory, recentHistory: nextHistory[0] || null })
-        wx.showToast({ title: '演示记录已移除', icon: 'none' })
+        try { await api.remove(id); await this.loadHistory(1); await this.loadPersonalChart(); wx.showToast({ title: '已删除', icon: 'none' }) }
+        catch (err) { wx.showToast({ title: err.message, icon: 'none' }) }
       },
     })
   },

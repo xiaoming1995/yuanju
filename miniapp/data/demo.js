@@ -37,7 +37,7 @@ const basicRows = basicRowFields.map(row => ({
 
 const history = [
   {
-    id: 'self', name: '我的命盘', date: '1990-01-01 01:00',
+    id: 'self', name: '我的干支', date: '1990-01-01 01:00',
     columns: [
       { text: '己巳', tone: 'earth' }, { text: '丙子', tone: 'water' },
       { text: '丙寅', tone: 'fire' }, { text: '己丑', tone: 'earth' },

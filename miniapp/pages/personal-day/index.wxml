@@ -1,5 +1,43 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell personal-page">
+  <block wx:if="{{realMode}}">
+    <view class="personal-hero surface-card">
+      <view class="hero-top"><text class="hero-kicker">每日干支参考 · 本人命盘</text><text class="demo-tag">{{realDay ? '真实排盘' : '待绑定'}}</text></view>
+      <view class="hero-date">{{dateLabel}}</view>
+      <view wx:if="{{realDay}}" class="hero-lunar">农历{{realDay.lunar_full}} · {{realDay.year_gan_zhi}}年 {{realDay.month_gan_zhi}}月 {{realDay.day_gan_zhi}}日</view>
+    </view>
+    <view wx:if="{{realLoading}}" class="personal-intro surface-card">正在计算所选日期与本人命盘的关系…</view>
+    <view wx:elif="{{realError}}" class="personal-intro surface-card">{{realError}}<button class="primary-button" bindtap="openBinding">查看我的排盘</button></view>
+    <view wx:elif="{{!realDay}}" class="personal-intro surface-card">
+      <view class="section-heading">尚未绑定本人命盘</view>
+      <view>请在历史记录中自行选择使用本人出生资料排出的干支。</view>
+      <button class="primary-button" bindtap="openBinding">选择本人命盘</button>
+      <button class="end-preview" bindtap="useDemo">使用固定示例体验</button>
+    </view>
+    <block wx:else>
+      <view wx:if="{{realDay.calendar_yi && realDay.calendar_ji}}" class="almanac-card surface-card">
+        <view class="section-heading">黄历宜忌 <text>通用日期资料</text></view>
+        <view class="almanac-row"><text class="almanac-mark is-yi">宜</text><view class="almanac-items"><text wx:for="{{realDay.calendar_yi}}" wx:key="*this">{{item}}</text><text wx:if="{{!realDay.calendar_yi.length}}" class="almanac-empty">无记录</text></view></view>
+        <view class="almanac-row"><text class="almanac-mark is-ji">忌</text><view class="almanac-items"><text wx:for="{{realDay.calendar_ji}}" wx:key="*this">{{item}}</text><text wx:if="{{!realDay.calendar_ji.length}}" class="almanac-empty">无记录</text></view></view>
+      </view>
+      <view class="personal-profile surface-card"><view class="profile-icon">命</view><view class="profile-copy"><text>{{realDay.chart_name}}</text><text>日柱{{realDay.chart_day}} · 已主动绑定</text></view></view>
+      <view wx:if="{{realDay.activity_guidance && realDay.activity_guidance.length}}" class="personal-activities surface-card">
+        <view class="guidance-section-head"><view class="section-heading">本人事项提示</view><text wx:if="{{personalHints.length}}" bindtap="toggleActivityEvidence">{{showActivityEvidence ? '收起依据' : '查看依据 ›'}}</text></view>
+        <view wx:if="{{!personalHints.length}}" class="evidence-empty">所选日期暂无特别的本人事项提示。</view>
+        <view class="activity-row" wx:for="{{personalHints}}" wx:key="id">
+          <view class="activity-head"><text>{{item.title}}</text><text class="guidance-level level-{{item.level}}">{{item.label}}</text></view>
+          <view class="activity-source">依据：{{item.source_label}}</view>
+          <view class="activity-detail">{{item.summary}}</view>
+          <block wx:if="{{showActivityEvidence}}"><view class="activity-evidence" wx:for="{{item.evidence}}" wx:for-item="evidence" wx:key="*this">{{evidence}}</view></block>
+        </view>
+      </view>
+      <view class="personal-verdict surface-card"><view class="section-heading">当日干支与本人命盘</view><view class="verdict-line"><text class="verdict-badge verdict-{{realDay.status}}">{{realDay.label}}</text><text>{{realDay.day_gan_zhi}}日</text></view><view class="verdict-summary">{{realDay.summary}}</view><view wx:if="{{realDirections.length}}" class="direction-list"><view wx:for="{{realDirections}}" wx:key="name"><text>{{item.name}}</text><text>{{item.direction}}</text></view></view></view>
+      <view class="personal-evidence surface-card"><view class="section-heading">判断依据</view><view class="fuyi-line"><text>扶抑喜用：{{realDay.favorable || '依据不足'}}</text><text>扶抑忌神：{{realDay.adverse || '依据不足'}}</text></view><view wx:if="{{realDay.evidence.length}}" class="evidence-list"><view wx:for="{{realDay.evidence}}" wx:key="*this"><text class="evidence-dot"></text><text>{{item}}</text></view></view><view wx:else class="evidence-empty">当前资料不足，没有形成个人关系判断。</view><view class="evidence-foot">依据版本：{{realDay.rule_version}}。日支仅按主气五行展示。</view></view>
+      <view wx:if="{{realDay.activities.length && !(realDay.activity_guidance && realDay.activity_guidance.length)}}" class="personal-activities surface-card"><view class="section-heading">事项提醒</view><view class="activity-row" wx:for="{{realDay.activities}}" wx:key="id"><view class="activity-head"><text>{{item.title}}</text><text>{{item.tip}}</text></view><view class="activity-detail">{{item.detail}}</view></view></view>
+      <view class="personal-boundary">以上内容仅供参考，不能据此预测具体事件，也不构成投资、医疗或其他重大决策依据。</view>
+    </block>
+  </block>
+  <block wx:else>
   <view class="personal-hero surface-card">
     <view class="hero-top"><text class="hero-kicker">每日干支参考 · 前端演示</text><text class="demo-tag">演示数据</text></view>
     <view class="hero-date">{{dateLabel}}</view>
@@ -25,19 +63,19 @@
 
   <view wx:if="{{!enabled}}" class="personal-intro surface-card">
     <view class="section-heading">尚未启用体验</view>
-    <view>这里使用固定的示例命盘展示页面效果，不需要真实登录，也不会保存生辰资料。</view>
-    <button class="primary-button" bindtap="startPreview">使用示例命盘体验</button>
+    <view>这里使用固定的示例干支展示页面效果，不需要真实登录，也不会保存生辰资料。</view>
+    <button class="primary-button" bindtap="startPreview">使用示例干支体验</button>
   </view>
 
   <block wx:else>
     <view class="personal-profile surface-card">
       <view class="profile-icon">命</view>
-      <view class="profile-copy"><text>示例命盘</text><text>{{chartDate}} · 日柱{{chartDay}}</text></view>
+      <view class="profile-copy"><text>示例干支</text><text>{{chartDate}} · 日柱{{chartDay}}</text></view>
       <text class="profile-badge">模拟绑定</text>
     </view>
 
     <view class="personal-verdict surface-card">
-      <view class="section-heading">当天与命盘的关系</view>
+      <view class="section-heading">当天与干支的关系</view>
       <view class="verdict-line"><text class="verdict-badge verdict-{{personalDay.status}}">{{personalDay.label}}</text><text>{{dayGanZhi}}日</text></view>
       <view class="verdict-summary">{{personalDay.summary}}</view>
     </view>
@@ -63,7 +101,8 @@
       <view wx:else class="evidence-empty">依据不足，暂不展示事项提醒。</view>
     </view>
 
-    <view class="personal-boundary"><text class="demo-tag">原型说明</text><text>以上为固定命盘和预置日历的演示关系，不是完整择日结果。时辰、参与人及实际安排仍需另行核对；这里不提供投资买卖时机。</text></view>
+    <view class="personal-boundary"><text class="demo-tag">原型说明</text><text>以上为固定干支和预置日历的演示关系，不是完整择日结果。时辰、参与人及实际安排仍需另行核对；这里不提供投资买卖时机。</text></view>
     <button class="end-preview {{navigationKey === 'back' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="endPreview">结束示例体验</button>
+  </block>
   </block>
 </view>

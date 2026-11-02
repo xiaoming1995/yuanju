@@ -226,19 +226,19 @@ func ListAdminUsers(page, pageSize int, q string) ([]AdminUserRow, int, error) {
 
 	var total int
 	err := database.DB.QueryRow(
-		`SELECT COUNT(*) FROM users WHERE $1 = '' OR email ILIKE '%' || $1 || '%'`, q,
+		`SELECT COUNT(*) FROM users WHERE $1 = '' OR email ILIKE '%' || $1 || '%' OR nickname ILIKE '%' || $1 || '%' OR id::text ILIKE '%' || $1 || '%'`, q,
 	).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	rows, err := database.DB.Query(`
-		SELECT u.id, u.email, u.nickname, COALESCE(u.source, 'self_registered'), u.created_at, u.disabled_at,
+		SELECT u.id, COALESCE(u.email, ''), COALESCE(u.nickname, ''), COALESCE(u.source, 'self_registered'), u.created_at, u.disabled_at,
 		       COUNT(b.id) as chart_count,
 		       (SELECT COUNT(*) FROM compatibility_readings cr WHERE cr.user_id = u.id) as compat_count
 		FROM users u
 		LEFT JOIN bazi_charts b ON b.user_id = u.id
-		WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%')
+		WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%' OR u.nickname ILIKE '%' || $1 || '%' OR u.id::text ILIKE '%' || $1 || '%')
 		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at, u.disabled_at
 		ORDER BY u.created_at DESC
 		LIMIT $2 OFFSET $3`, q, pageSize, offset)

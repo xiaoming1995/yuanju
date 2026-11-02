@@ -1,0 +1,39 @@
+<view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
+<view class="page-shell profile-page">
+  <view wx:if="{{loading}}" class="surface-card profile-state">正在加载个人资料…</view>
+  <view wx:elif="{{loadError}}" class="surface-card profile-state">
+    <view>{{loadError}}</view>
+    <button wx:if="{{!loginRequired}}" class="primary-button" bindtap="loadProfile">重新加载</button>
+    <button class="profile-return" bindtap="closeProfile">{{loginRequired ? '返回登录' : '返回我的'}}</button>
+  </view>
+  <view wx:elif="{{ready}}">
+    <view class="surface-card profile-card">
+      <view class="profile-field">
+        <button class="profile-avatar-row" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar" disabled="{{avatarStatus === 'saving'}}" aria-label="更换头像">
+          <text class="profile-field-label">头像</text>
+          <view class="profile-avatar">
+            <image wx:if="{{profileAvatarPreviewUrl}}" src="{{profileAvatarPreviewUrl}}" mode="aspectFill" />
+            <text wx:else>缘</text>
+          </view>
+          <text class="profile-chevron">›</text>
+        </button>
+        <view wx:if="{{avatarStatus}}" class="profile-field-status {{avatarStatus === 'error' ? 'is-error' : ''}}" aria-live="polite">
+          <text>{{avatarStatus === 'saving' ? '头像保存中…' : avatarStatus === 'saved' ? '头像已保存' : '头像保存失败'}}</text>
+          <button wx:if="{{avatarStatus === 'error'}}" class="profile-retry" bindtap="saveAvatar">重试</button>
+        </view>
+      </view>
+      <view class="profile-field">
+        <view class="profile-nickname-row">
+          <text class="profile-field-label">昵称</text>
+          <input wx:if="{{nicknameInputVisible}}" class="profile-nickname-input" type="nickname" maxlength="32" placeholder="填写昵称" value="{{profileNickname}}" focus="{{nicknameFocus}}" bindfocus="onNicknameFocus" bindblur="onNicknameBlur" bindinput="onProfileNicknameInput" bindnicknamereview="onProfileNicknameReview" disabled="{{nicknameStatus === 'saving' || nicknameStatus === 'reviewing'}}" />
+        </view>
+        <view wx:if="{{nicknameStatus}}" class="profile-field-status {{nicknameStatus === 'error' || nicknameStatus === 'reviewError' ? 'is-error' : ''}}" aria-live="polite">
+          <text>{{nicknameStatus === 'reviewing' ? '昵称检查中…' : nicknameStatus === 'saving' ? '昵称保存中…' : nicknameStatus === 'error' ? '昵称保存失败' : nicknameMessage}}</text>
+          <button wx:if="{{nicknameStatus === 'error' || nicknameStatus === 'reviewError'}}" class="profile-retry" bindtap="retryNickname">{{nicknameStatus === 'error' ? '重试' : '重试检查'}}</button>
+        </view>
+      </view>
+    </view>
+    <view class="profile-hint">修改后自动保存，可选用微信昵称或自行填写</view>
+    <view wx:if="{{profileOnboarding}}" class="profile-hint profile-onboarding-hint">已为你生成昵称，也可以直接返回继续使用</view>
+  </view>
+</view>

@@ -66,6 +66,9 @@ func main() {
 	if err := os.MkdirAll(filepath.Join(configs.AppConfig.UploadDir, "brand-logos"), 0755); err != nil {
 		log.Fatalf("创建上传目录失败: %v", err)
 	}
+	if err := os.MkdirAll(filepath.Join(configs.AppConfig.UploadDir, "user-avatars"), 0755); err != nil {
+		log.Fatalf("create user avatar directory: %v", err)
+	}
 
 	// 种子数据：将 .env 中已有的 API Key 写入 llm_providers
 	seed.SeedLLMProviders()
@@ -120,6 +123,7 @@ func main() {
 	// Do NOT broaden this to UploadDir root — future features may put private
 	// files under UploadDir/<other-subdir> and they must not be served publicly.
 	r.Static("/static/uploads/brand-logos", filepath.Join(configs.AppConfig.UploadDir, "brand-logos"))
+	r.Static("/static/uploads/user-avatars", filepath.Join(configs.AppConfig.UploadDir, "user-avatars"))
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
@@ -129,12 +133,18 @@ func main() {
 	// API 路由组
 	api := r.Group("/api")
 	{
+		api.GET("/calendar/day", handler.GetCalendarDay)
+		api.GET("/calendar/range", handler.GetCalendarRange)
 		// 普通用户认证路由
 		auth := api.Group("/auth")
 		{
 			auth.GET("/registration-settings", handler.RegistrationSettings)
+			auth.GET("/wechat/registration-settings", handler.MiniappRegistrationSettings)
 			auth.POST("/register", handler.Register)
 			auth.POST("/login", handler.Login)
+			auth.POST("/wechat/login", handler.WeChatLogin)
+			auth.POST("/wechat/bind", middleware.Auth(), handler.WeChatBind)
+			auth.POST("/wechat/link-web", middleware.Auth(), handler.WeChatLinkWebAccount)
 			auth.GET("/me", middleware.Auth(), handler.Me)
 		}
 
@@ -173,6 +183,12 @@ func main() {
 		user := api.Group("/user", middleware.Auth())
 		{
 			user.GET("/profile", handler.GetUserProfile)
+			user.GET("/personal-chart", handler.GetPersonalChart)
+			user.PUT("/personal-chart", handler.SetPersonalChart)
+			user.DELETE("/personal-chart", handler.ClearPersonalChart)
+			user.GET("/personal-day", handler.GetPersonalDay)
+			user.PUT("/profile/nickname", handler.RequireUserID, handler.UpdateProfileNickname)
+			user.POST("/profile/avatar", handler.RequireUserID, handler.UploadProfileAvatar)
 			user.GET("/export-brand", handler.RequireUserID, handler.GetExportBrand)
 			user.PUT("/export-brand", handler.RequireUserID, handler.UpdateExportBrand)
 			user.POST("/export-brand/logo", handler.RequireUserID, handler.UploadExportBrandLogo)
@@ -221,6 +237,8 @@ func main() {
 				adminAuth.DELETE("/users/:id", handler.AdminDeleteUser)
 				adminAuth.GET("/settings/registration", handler.AdminGetRegistrationSetting)
 				adminAuth.PUT("/settings/registration", handler.AdminUpdateRegistrationSetting)
+				adminAuth.GET("/settings/miniapp-registration", handler.AdminGetMiniappRegistrationSetting)
+				adminAuth.PUT("/settings/miniapp-registration", handler.AdminUpdateMiniappRegistrationSetting)
 				adminAuth.GET("/charts", handler.AdminListCharts)
 				adminAuth.GET("/charts/:chart_id", handler.AdminGetChartDetail)
 				adminAuth.GET("/compatibility/readings", handler.AdminListCompatReadings)

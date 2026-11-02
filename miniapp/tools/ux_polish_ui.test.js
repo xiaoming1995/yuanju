@@ -34,12 +34,20 @@ test('the preview date picker produces an hour-precision date', () => {
   assert.equal(page.data.dateText, '1990-01-01 01:00')
 })
 
-test('long date groups reveal seven days at a time and reset for another activity', () => {
+test('long date groups reveal seven days at a time and reset for another activity', async () => {
+  require('../config').apiBaseUrl = 'https://api.test.example'
   const app = { globalData: { previewDayProfileEnabled: true } }
-  const page = loadPage('../pages/moving-date/index', app)
-  page.onLoad()
+  const page = loadPage('../pages/moving-date/index', app, { getStorageSync() { return '' }, request(options) {
+    const params = new URL(options.url).searchParams
+    const days = []
+    for (let time = Date.parse(`${params.get('start')}T00:00:00Z`); time <= Date.parse(`${params.get('end')}T00:00:00Z`); time += 86400000) {
+      days.push({ date: new Date(time).toISOString().slice(0, 10), lunar_full: '十月初一', day_gan_zhi: '甲子', yi: ['入宅'], ji: [] })
+    }
+    options.success({ statusCode: 200, data: { data: { days } } })
+  } })
+  await page.onLoad()
   page.setData({ startDate: '2026-10-22', endDate: '2026-12-22' })
-  page.refreshResults()
+  await page.refreshResults()
   const longSection = page.data.sections.find(section => section.days.length > 7)
   assert.ok(longSection)
   assert.equal(longSection.visibleDays.length, 7)
@@ -50,35 +58,34 @@ test('long date groups reveal seven days at a time and reset for another activit
   }
   const expanded = page.data.sections.find(section => section.id === longSection.id)
   assert.equal(expanded.visibleDays.length, expanded.days.length)
-  page.changeActivity({ currentTarget: { dataset: { activity: 'marriage' } } })
+  await page.changeActivity({ currentTarget: { dataset: { activity: 'marriage' } } })
   assert.ok(page.data.sections.every(section => section.visibleDays.length <= 7))
   assert.equal(page.data.total, 62)
 })
 
-test('removing preview history updates the count and recent item on Mine', () => {
+test('removing real history calls backend and refreshes list', async () => {
+  require('../config').apiBaseUrl = 'https://api.test.example'
   const app = loadApp()
+  const calls = []
+  const chart = id => ({ id, birth_year: 2000, birth_month: 1, birth_day: 1, birth_hour: 1,
+    year_gan: '甲', year_zhi: '子', month_gan: '乙', month_zhi: '丑', day_gan: '丙', day_zhi: '寅', hour_gan: '丁', hour_zhi: '卯' })
+  let charts = [chart('first'), chart('second')]
   const home = loadPage('../pages/home/index', app, {
     setNavigationBarTitle() {},
     showModal(options) { options.success({ confirm: true }) },
     showToast() {},
+    getStorageSync() { return 'test-token' },
+    request(options) {
+      calls.push(`${options.method} ${options.url}`)
+      if (options.method === 'DELETE') { charts = charts.filter(item => item.id !== 'first'); options.success({ statusCode: 200, data: {} }) }
+      else options.success({ statusCode: 200, data: { charts, total: charts.length } })
+    },
   })
-  home.onShow()
-  home.removeHistory({ currentTarget: { dataset: { id: 'self' } } })
-  const mine = loadPage('../pages/mine/index', app, {
-    switchTab() {},
-    navigateTo() {},
-    setNavigationBarTitle() {},
-  })
-  mine.onShow()
-  assert.equal(home.data.history.length, 3)
-  assert.equal(mine.data.chartCount, 3)
-  assert.equal(mine.data.latestChart.id, 'child')
-  assert.equal(mine.data.recentCharts[0].id, 'child')
-  mine.openLatestChart()
-  assert.equal(app.globalData.previewHistoryDetailId, 'child')
-  assert.equal(app.globalData.previewHistoryNext, true)
-  mine.onHide()
-  home.onShow()
-  home.onReady()
-  assert.equal(home.data.detail.id, 'child')
+  await home.loadHistory(1)
+  assert.equal(home.data.history.length, 2)
+  home.removeHistory({ currentTarget: { dataset: { id: 'first' } } })
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(home.data.history.length, 1)
+  assert.equal(home.data.recentHistory.id, 'second')
+  assert.ok(calls.some(call => call.includes('DELETE') && call.includes('/bazi/history/first')))
 })

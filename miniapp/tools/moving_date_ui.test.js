@@ -1,7 +1,8 @@
 const assert = require('node:assert/strict')
 const test = require('node:test')
+require('../config').apiBaseUrl = 'https://api.test.example'
 
-function loadPage(path, app, wxApi) {
+function loadPage(path, wxApi, app = { globalData: {} }) {
   let definition
   global.Page = value => { definition = value }
   global.getApp = () => app
@@ -9,130 +10,127 @@ function loadPage(path, app, wxApi) {
   delete require.cache[require.resolve(path)]
   require(path)
   return {
-    ...definition,
-    data: { ...definition.data },
-    setData(patch, callback) {
-      this.data = { ...this.data, ...patch }
-      if (callback) callback()
-    },
+    ...definition, data: { ...definition.data },
+    setData(patch, callback) { this.data = { ...this.data, ...patch }; if (callback) callback() },
   }
 }
 
-test('calendar opens the dedicated date selection page', () => {
-  const visits = []
-  const app = { globalData: {} }
-  const wxApi = {
-    navigateTo(value) { visits.push(value.url) },
+function daysFromUrl(url) {
+  const params = new URL(url).searchParams
+  const start = new Date(`${params.get('start')}T00:00:00Z`)
+  const end = new Date(`${params.get('end')}T00:00:00Z`)
+  const days = []
+  for (let date = start; date <= end; date = new Date(date.getTime() + 86400000)) {
+    days.push({ date: date.toISOString().slice(0, 10), lunar_full: '十月初一', day_gan_zhi: '甲子',
+      yi: ['入宅', '嫁娶', '出行'], ji: ['开市'] })
   }
-  const page = loadPage('../pages/calendar/index', app, wxApi)
-  page.openMovingDate()
-  assert.deepEqual(visits, ['/pages/moving-date/index'])
-  const target = loadPage('../pages/moving-date/index', app, wxApi)
+  return days
+}
+
+function environment({ token = '', chart = null, delayed = false, failure = false } = {}) {
+  const calls = []
+  const pending = []
+  const wxApi = {
+    getStorageSync() { return token },
+    navigateTo(options) { calls.push(options.url) },
+    request(options) {
+      if (delayed) { pending.push(options); return }
+      if (failure && options.url.includes('/calendar/range')) {
+        options.fail(); return
+      }
+      const data = options.url.includes('/calendar/range') ? { data: { days: daysFromUrl(options.url) } }
+        : options.url.includes('/personal-chart') ? { chart } : {}
+      options.success({ statusCode: 200, data })
+    },
+  }
+  return { wxApi, calls, pending }
+}
+
+test('calendar opens the dedicated date selection page', () => {
+  const { wxApi, calls } = environment()
+  const calendar = loadPage('../pages/calendar/index', wxApi)
+  calendar.openMovingDate()
+  assert.deepEqual(calls, ['/pages/moving-date/index'])
+  const target = loadPage('../pages/moving-date/index', wxApi)
   target.onLoad()
   target.onReady()
 })
 
-test('date selection page asks to enable the fixed sample before showing personal candidates', () => {
-  const app = { globalData: { previewDayProfileEnabled: false } }
-  const page = loadPage('../pages/moving-date/index', app, {})
-  page.onLoad()
-  assert.equal(page.data.enabled, false)
-  assert.equal(page.data.total, 0)
-  page.startPreview()
-  assert.equal(app.globalData.previewDayProfileEnabled, true)
-  assert.equal(page.data.enabled, true)
-  assert.ok(page.data.total > 0)
+test('unbound users see real general dates without a sample switch', async () => {
+  const { wxApi } = environment()
+  const page = loadPage('../pages/moving-date/index', wxApi)
+  await page.onLoad()
+  assert.equal(page.data.total, 30)
+  assert.equal(page.data.candidateCount, 30)
+  assert.equal(page.data.personalChart, null)
+  assert.equal(typeof page.startPreview, 'undefined')
+  assert.equal(page.data.sections[0].days[0].allYi[0], '入宅')
 })
 
-test('changing activity recomputes results without losing the date range', () => {
-  const app = { globalData: { previewDayProfileEnabled: true } }
-  const page = loadPage('../pages/moving-date/index', app, {})
-  page.onLoad()
-  page.setData({ startDate: '2026-10-22', endDate: '2026-10-24' })
-  page.refreshResults()
-  assert.equal(page.data.activityId, 'moving')
-  page.changeActivity({ currentTarget: { dataset: { activity: 'marriage' } } })
-  assert.equal(page.data.activityId, 'marriage')
-  assert.equal(page.data.activity.label, '结婚')
-  assert.equal(page.data.startDate, '2026-10-22')
-  assert.equal(page.data.endDate, '2026-10-24')
-  assert.equal(page.data.total, 3)
+test('changing activity recomputes general results while keeping range', async () => {
+  const { wxApi } = environment()
+  const page = loadPage('../pages/moving-date/index', wxApi)
+  await page.onLoad()
+  const range = [page.data.startDate, page.data.endDate]
+  await page.changeActivity({ currentTarget: { dataset: { activity: 'opening' } } })
+  assert.deepEqual([page.data.startDate, page.data.endDate], range)
+  assert.equal(page.data.activityId, 'opening')
+  assert.equal(page.data.candidateCount, 0)
+  assert.equal(page.data.sections.find(section => section.id === 'ji').days.length, 30)
   assert.equal(page.data.activityOptions.filter(item => item.selected).length, 1)
-  page.onShow()
-  assert.equal(page.data.activityId, 'marriage')
 })
 
-test('activity and displayed results update in the same view patch', () => {
-  const app = { globalData: { previewDayProfileEnabled: true } }
-  const page = loadPage('../pages/moving-date/index', app, {})
-  page.onLoad()
-  page.setData({ startDate: '2026-10-22', endDate: '2026-10-24' })
-  page.refreshResults()
-  const oldSections = page.data.sections
-  const snapshots = []
-  const originalSetData = page.setData
-  page.setData = function (patch, callback) {
-    originalSetData.call(this, patch, callback)
-    snapshots.push({ activityId: this.data.activityId, sections: this.data.sections })
-  }
-  page.changeActivity({ currentTarget: { dataset: { activity: 'marriage' } } })
-  assert.notDeepEqual(page.data.sections, oldSections)
-  assert.ok(snapshots.every(snapshot => snapshot.activityId !== 'marriage' || snapshot.sections === page.data.sections))
-})
-
-test('invalid range clears old results rather than retaining a partial recommendation', () => {
-  const app = { globalData: { previewDayProfileEnabled: true } }
-  const page = loadPage('../pages/moving-date/index', app, {})
-  page.onLoad()
-  page.setData({ startDate: '2026-10-23', endDate: '2026-10-24' })
-  page.refreshResults()
-  assert.equal(page.data.total, 2)
-  page.changeStartDate({ detail: { value: '2026-10-25' } })
+test('invalid range clears candidates and later service failure has a retry path', async () => {
+  const { wxApi } = environment()
+  const page = loadPage('../pages/moving-date/index', wxApi)
+  await page.onLoad()
+  const invalidStart = new Date(`${page.data.endDate}T00:00:00Z`)
+  invalidStart.setUTCDate(invalidStart.getUTCDate() + 1)
+  await page.changeStartDate({ detail: { value: invalidStart.toISOString().slice(0, 10) } })
   assert.match(page.data.rangeError, /起日/)
   assert.equal(page.data.total, 0)
-  assert.ok(page.data.sections.every(section => section.days.length === 0))
-})
-
-test('an unavailable default date keeps the supported range visible after enabling the preview', () => {
-  const app = { globalData: { previewDayProfileEnabled: false } }
-  const page = loadPage('../pages/moving-date/index', app, {})
-  page.onLoad()
-  page.setData({ startDate: '', endDate: '', rangeError: '演示日历范围为2025—2027年，请选择范围内的日期。' })
-  page.startPreview()
-  assert.match(page.data.rangeError, /2025—2027/)
+  const oldRequest = wxApi.request
+  wxApi.request = options => options.fail()
+  await page.changeStartDate({ detail: { value: page.data.endDate } })
+  assert.match(page.data.resultError, /网络/)
   assert.equal(page.data.total, 0)
-})
-
-test('no priority candidate still leaves the conflicting day available', () => {
-  const app = { globalData: { previewDayProfileEnabled: true } }
-  const page = loadPage('../pages/moving-date/index', app, {})
-  page.onLoad()
-  page.setData({ startDate: '2026-10-22', endDate: '2026-10-22' })
-  page.refreshResults()
-  assert.equal(page.data.priorityCount, 0)
+  wxApi.request = oldRequest
+  await page.retryResults()
+  assert.equal(page.data.resultError, '')
   assert.equal(page.data.total, 1)
-  assert.equal(page.data.sections.find(section => section.id === 'conflict').days[0].date, '2026-10-22')
 })
 
-test('opening the daily detail and returning retains the selected activity and range', () => {
-  const visits = []
-  const app = { globalData: { previewDayProfileEnabled: true } }
-  const wxApi = {
-    navigateTo(value) { visits.push(value.url) },
-  }
-  const page = loadPage('../pages/moving-date/index', app, wxApi)
+test('an older response cannot replace a newer range or activity', async () => {
+  const { wxApi, pending } = environment({ delayed: true })
+  const page = loadPage('../pages/moving-date/index', wxApi)
   page.onLoad()
-  page.setData({ startDate: '2026-10-23', endDate: '2026-10-24' })
-  page.refreshResults()
-  page.changeActivity({ currentTarget: { dataset: { activity: 'travel' } } })
-  page.openDay({ currentTarget: { dataset: { date: '2026-10-23' } } })
-  page.onShow()
-  assert.deepEqual(visits, ['/pages/personal-day/index?date=2026-10-23&activity=travel'])
-  assert.equal(page.data.startDate, '2026-10-23')
-  assert.equal(page.data.endDate, '2026-10-24')
-  assert.equal(page.data.activityId, 'travel')
+  const first = pending[0]
+  page.setData({ startDate: '2028-01-01', endDate: '2028-01-02' })
+  const newer = page.changeActivity({ currentTarget: { dataset: { activity: 'marriage' } } })
+  pending[1].success({ statusCode: 200, data: { data: { days: daysFromUrl(pending[1].url) } } })
+  await newer
+  first.success({ statusCode: 200, data: { data: { days: daysFromUrl(first.url) } } })
+  await Promise.resolve()
+  assert.equal(page.data.activityId, 'marriage')
   assert.equal(page.data.total, 2)
-  const target = loadPage('../pages/personal-day/index', app, wxApi)
-  target.onLoad({ date: '2026-10-23', activity: 'travel' })
-  target.onReady()
+  assert.equal(page.data.sections[0].days[0].date, '2028-01-01')
+})
+
+test('date detail uses the same full labels and bound user can open personal day', async () => {
+  const { wxApi, calls } = environment({ token: 'token', chart: { id: 'chart-1' } })
+  const page = loadPage('../pages/moving-date/index', wxApi)
+  await page.onLoad()
+  await page.onShow()
+  const date = page.data.sections[0].days[0].date
+  page.openDay({ currentTarget: { dataset: { date } } })
+  assert.equal(page.data.expandedDate, date)
+  assert.deepEqual(page.data.sections[0].days[0].allYi, ['入宅', '嫁娶', '出行'])
+  page.openPersonalDay({ currentTarget: { dataset: { date } } })
+  assert.deepEqual(calls, [`/pages/personal-day/index?date=${date}`])
+  const detail = loadPage('../pages/personal-day/index', wxApi)
+  detail.onLoad({ date })
+  detail.onReady()
+  page.onShow()
+  assert.equal(page.data.expandedDate, date)
+  assert.equal(page.data.total, 30)
 })

@@ -58,7 +58,7 @@ func Auth() gin.HandlerFunc {
 			return
 		}
 		if user.DisabledAt != nil {
-			c.JSON(http.StatusForbidden, gin.H{"error": "该账号已被禁用"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "该账号已被禁用", "code": "account_disabled"})
 			c.Abort()
 			return
 		}
@@ -92,8 +92,18 @@ func OptionalAuth() gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		userID, ok := claims["user_id"].(string)
+		if !ok || userID == "" {
+			c.Next()
+			return
+		}
+		user, err := repository.GetUserByID(userID)
+		if err != nil || user == nil || user.DisabledAt != nil {
+			c.Next()
+			return
+		}
 
-		c.Set("user_id", claims["user_id"])
+		c.Set("user_id", userID)
 		c.Set("email", claims["email"])
 		c.Next()
 	}
