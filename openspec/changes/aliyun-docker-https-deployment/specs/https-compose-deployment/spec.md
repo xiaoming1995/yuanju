@@ -12,11 +12,15 @@ The project SHALL provide a common Compose configuration and explicit local and 
 - **THEN** only Caddy ports 80 and 443 are published to the host
 
 ### Requirement: HTTPS ingress
-The production stack SHALL proxy the web domain to the frontend service and the API domain to the backend service through Caddy, with persistent Caddy certificate data.
+The production stack SHALL proxy only the configured web hostname to the frontend service through Caddy, with persistent Caddy certificate data. API requests on the web hostname SHALL reach the backend through the frontend Nginx proxy. The production stack SHALL NOT expose a separate API hostname route.
 
 #### Scenario: Domain routing
-- **WHEN** valid web and API domains are configured and traffic reaches Caddy
-- **THEN** each domain is routed to its corresponding service over the Compose network
+- **WHEN** a valid web domain is configured and traffic reaches Caddy
+- **THEN** the web hostname is routed to the frontend service and its `/api` paths are proxied to the backend
+
+#### Scenario: Separate API hostname
+- **WHEN** a request targets an unrelated `api` hostname
+- **THEN** the production Caddy configuration does not route it to the backend
 
 #### Scenario: Missing domains
 - **WHEN** a required production domain variable is absent

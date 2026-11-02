@@ -1,6 +1,6 @@
 ## Context
 
-The existing Compose file publishes backend port 9002 and frontend port 3000 for local use. The frontend Nginx already proxies `/api` and `/static` to the backend. Production needs a single public ingress for the website plus a separate HTTPS API host for the miniapp. The backend environment file contains secrets and is currently in the Docker build context.
+The existing frontend Nginx proxies `/api` and `/static` to the backend. Production requires only the `www` hostname to serve both the website and miniapp API; the separate `api` hostname must not route to the backend.
 
 ## Goals / Non-Goals
 
@@ -19,8 +19,8 @@ The existing Compose file publishes backend port 9002 and frontend port 3000 for
 
 - Move host port bindings out of the base Compose file into an explicit `docker-compose.local.yml`. The local helper selects both files. This prevents Compose's additive port merge from accidentally exposing ports in production.
 - Add `docker-compose.prod.yml` with a Caddy service. It alone publishes 80/443, mounts `./caddy` as configuration, and persists `/data` and `/config` in named volumes.
-- Pass `WEB_DOMAIN` and `API_DOMAIN` from a server-only `.env.production` using Compose interpolation and then Caddyfile environment placeholders. This makes missing domains fail configuration before launch.
-- Route web host to `frontend:80` and API host to `backend:9002`. The web host retains the existing same-origin Nginx proxy and SSE handling.
+- Pass `WEB_DOMAIN` from a server-only `.env.production` using Compose interpolation and a Caddyfile environment placeholder. A missing domain fails configuration before launch.
+- Route only the web host to `frontend:80`. The frontend Nginx proxies `/api` and `/static` to `backend:9002`, including miniapp requests that use the same public web origin.
 - Exclude `.env` and `.env.*` from `backend/.dockerignore`, so secrets are absent from `COPY . .` build context. Runtime `env_file` remains available to Compose.
 
 ## Risks / Trade-offs
@@ -29,6 +29,7 @@ The existing Compose file publishes backend port 9002 and frontend port 3000 for
 - [Switching the base file removes implicit local published ports] → Update the local helper and document explicit local command.
 - [User runs production files without domain variables] → Compose required-variable interpolation fails early.
 - [Existing `backend/.env.docker` is reused on a server] → Document server-specific credentials and migration checks.
+- [Users can call public `/api` paths on `www`] → Keep backend authentication and authorization on protected routes; removing a hostname does not make the web API private.
 
 ## Migration Plan
 

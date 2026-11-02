@@ -18,7 +18,7 @@
 ### 发布配置
 
 1. 后端应用迁移 `00027_miniapp_user_identity.sql` 和 `00028_user_avatar.sql`，在后端环境设置 `WECHAT_MINIAPP_APP_ID` 和 `WECHAT_MINIAPP_APP_SECRET`。密钥仅保留在后端，不能写进小程序源码。头像文件保存在后端 `UPLOAD_DIR/user-avatars`，部署时需保留该目录的持久化存储。
-2. 将 `miniapp/config.js` 的 `apiBaseUrl` 从本机地址改为已部署的 HTTPS API 域名，例如 `https://api.example.com`，不要加 `/api`。该域名须在微信小程序后台配置为 request 合法域名。
+2. 将 `miniapp/config.js` 的 `apiBaseUrl` 从本机地址改为已部署的 HTTPS 网页域名，例如 `https://www.example.com`，不要加 `/api`。前端 Nginx 会转发 `/api` 和 `/static` 到后端；该域名须在微信小程序后台配置为 request 与 uploadFile 合法域名。
 3. 核对 `miniapp/project.config.json` 中的 `appid` 与后端配置一致。首次微信建号默认开启，可在网页管理后台“用户列表”中单独关闭“小程序微信注册”；网页邮箱注册开关独立。
 4. 小程序登录后，可在“我的”中选择绑定已有网页账号。验证网页密码后，后端在一个事务中将小程序账号的干支、合盘、收藏及用量记录迁到原网页用户 ID，并把微信身份转到该 ID；返回新令牌后，两端共享历史。密码错误或目标账号已有冲突的微信身份时，不合并。
 5. 小程序只在用户点击登录后调用 `wx.login`。排盘要求登录并保存至用户历史；日历与择日演示不会把固定示例干支写入用户历史。

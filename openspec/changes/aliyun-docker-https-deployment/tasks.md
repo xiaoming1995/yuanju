@@ -12,3 +12,8 @@
 ## 3. Verification
 
 - [x] 3.1 Validate local and production merged Compose configurations and exposed ports; review Caddyfile routing syntax.
+
+## 4. Single public hostname
+
+- [x] 4.1 Remove separate API domain routing and variable from production configuration.
+- [x] 4.2 Update deployment and miniapp release documentation for the `www` origin and verify production Compose configuration.

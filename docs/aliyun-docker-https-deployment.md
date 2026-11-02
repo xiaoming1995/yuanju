@@ -1,25 +1,24 @@
 # 阿里云 ECS 上用 Docker Compose 部署 HTTPS
 
-本文记录缘聚网页与微信小程序后端的部署方案。示例使用 Ubuntu ECS、Docker Compose 和 Caddy；`www.example.com`、`api.example.com` 都需要换成实际域名。
+本文记录缘聚网页与微信小程序后端的部署方案。示例使用 Ubuntu ECS、Docker Compose 和 Caddy；`www.example.com` 需要换成实际域名。生产环境只配置这一个公网主机名。
 
 > **当前状态**：仓库已包含下文的公共／本地／生产 Compose 文件和 Caddyfile，但尚未配置真实域名、服务器、密钥或完成线上部署。
 
 ## 部署结构
 
 ```text
-浏览器 https://www.example.com ─┐
-                                ├─ Caddy :80/:443 ─ 前端 Nginx :80 ─ /api、/static ─ 后端 :9002
-小程序 https://api.example.com ──┘             └─────────────────────────────── 后端 :9002
-                                                                          ├─ PostgreSQL
-                                                                          └─ Redis
+浏览器、小程序 → https://www.example.com → Caddy :80/:443 → 前端 Nginx :80
+                                                         └─ /api、/static → 后端 :9002
+                                                                           ├─ PostgreSQL
+                                                                           └─ Redis
 ```
 
-前端 Nginx 已处理单页路由、`/api`、`/static` 和流式接口；网页端保持同域请求即可。小程序使用独立 API 域名，地址中不附加 `/api`。Caddy 是独立容器，在入口处处理 HTTPS，并自动申请、续期证书。
+前端 Nginx 已处理单页路由、`/api`、`/static` 和流式接口；网页与小程序使用同一个 HTTPS 域名，小程序 API 地址中不附加 `/api`。Caddy 只为 `www` 配置站点，在入口处处理 HTTPS，并自动申请、续期证书。后端没有宿主机端口映射。
 
 ## 一、准备服务器与域名
 
 1. 准备带公网 IP 的阿里云 ECS，安装 Docker Engine 和 Compose 插件。Ubuntu 可参考 [Docker 官方安装指南](https://docs.docker.com/engine/install/ubuntu/)。
-2. 将网页和 API 域名的 A 记录解析到 ECS 公网 IP。
+2. 将网页域名的 A 记录解析到 ECS 公网 IP。若已给 `api` 子域名配置 A 记录，应删除该记录；Caddy 也不再为它配置路由。
 3. ECS 安全组允许公网访问 TCP 80、443；SSH 22 仅允许可信管理 IP。5432、6379、3000、9002 无需向公网开放。若服务器启用了系统防火墙，也要允许 80、443。
 4. 若 ECS 位于中国内地，网站对外开放前先办理所需的 ICP 备案；服务器区域和备案状态应在购买与解析域名前确定。参见[阿里云备案说明](https://help.aliyun.com/zh/icp-filing/basic-icp-service/support/for-the-record-process-faq)。
 
@@ -57,7 +56,6 @@ services:
       - "443:443"
     environment:
       WEB_DOMAIN: ${WEB_DOMAIN:?Set WEB_DOMAIN in .env.production}
-      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in .env.production}
     volumes:
       - ./caddy:/etc/caddy:ro
       - caddy_data:/data
@@ -94,12 +92,9 @@ docker compose --env-file .env.production -f docker-compose.yml -f docker-compos
     reverse_proxy frontend:80
 }
 
-{$API_DOMAIN} {
-    reverse_proxy backend:9002
-}
 ```
 
-在容器内使用 Compose 服务名 `frontend`、`backend`，不能使用 `127.0.0.1` 指向别的容器。Caddy 会在域名解析正确、80/443 可从公网访问时自动申请并续期公开可信的证书。`caddy_data` 必须保留，不能当缓存清理；`/etc/caddy` 挂载整个目录，便于后续重新加载配置。参见 [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)和[Caddy 官方镜像说明](https://hub.docker.com/_/caddy)。
+在容器内使用 Compose 服务名 `frontend`，不能使用 `127.0.0.1` 指向别的容器。前端 Nginx 再通过 Docker 网络访问 `backend:9002`。Caddy 会在域名解析正确、80/443 可从公网访问时自动申请并续期公开可信的证书。`caddy_data` 必须保留，不能当缓存清理；`/etc/caddy` 挂载整个目录，便于后续重新加载配置。参见 [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)和[Caddy 官方镜像说明](https://hub.docker.com/_/caddy)。
 
 ## 四、准备环境变量和构建上下文
 
@@ -109,10 +104,9 @@ docker compose --env-file .env.production -f docker-compose.yml -f docker-compos
 
 ```dotenv
 WEB_DOMAIN=www.example.com
-API_DOMAIN=api.example.com
 ```
 
-两处示例域名都要换成自己的真实域名。每台机器使用各自的环境文件，不要提交到 Git。`backend/.dockerignore` 已排除 `.env` 和 `.env.*`，避免后端 Dockerfile 的 `COPY . .` 把运行时密钥送入构建上下文。Git 的 `.gitignore` 不影响 Docker 构建上下文。参见 [Docker 构建上下文文档](https://docs.docker.com/build/concepts/context/)。
+将示例域名换成自己的真实网页域名，不再需要 `API_DOMAIN`。每台机器使用各自的环境文件，不要提交到 Git。`backend/.dockerignore` 已排除 `.env` 和 `.env.*`，避免后端 Dockerfile 的 `COPY . .` 把运行时密钥送入构建上下文。Git 的 `.gitignore` 不影响 Docker 构建上下文。参见 [Docker 构建上下文文档](https://docs.docker.com/build/concepts/context/)。
 
 后端当前的 CORS 中间件实际返回 `Access-Control-Allow-Origin: *`；`FRONTEND_URL` 虽出现在环境变量示例中，但目前并未被用作 CORS 白名单。不要把填写该变量视为访问控制。
 
@@ -137,11 +131,13 @@ docker compose --env-file .env.production -f docker-compose.yml -f docker-compos
 
 ```bash
 curl -I https://www.example.com
-curl https://api.example.com/health
+curl https://www.example.com/api/auth/registration-settings
 ```
 
-第二条应返回包含 `"status":"ok"` 的 JSON。再在浏览器验证首页、登录、一个 `/api` 请求及流式报告；用真机验证小程序登录和头像上传。若证书申请失败，优先检查 DNS、备案／访问状态、80/443 的安全组与系统防火墙、Caddy 日志。
+第二条应返回注册开关的 JSON，证明 `www/api` 已经转发到后端；`/health` 只在后端容器内提供，未通过 `www` 对外代理。再在浏览器验证首页、登录及流式报告；用真机验证小程序登录和头像上传。若证书申请失败，优先检查 DNS、备案／访问状态、80/443 的安全组与系统防火墙、Caddy 日志。
 
 ## 六、小程序发布配置
 
-发布版将 `miniapp/config.js` 的 API 地址设为 `https://api.example.com`，不要附加 `/api`；当前文件仍使用局域网 HTTP 地址，且开发者工具分支会切到本机地址，发布前需一并核对。微信后台登记该域名的 request 和 uploadFile 合法域名，并核对小程序 AppID 与后端一致。头像存储在后端 `UPLOAD_DIR/user-avatars`，对应现有 `brand_uploads` 持久化卷。具体发布检查见 [`miniapp/README.md`](../miniapp/README.md)。
+发布版将 `miniapp/config.js` 的 API 地址设为 `https://www.example.com`，不要附加 `/api`；当前文件仍使用局域网 HTTP 地址，且开发者工具分支会切到本机地址，发布前需一并核对。微信后台登记 `www` 域名的 request 和 uploadFile 合法域名，并核对小程序 AppID 与后端一致。头像存储在后端 `UPLOAD_DIR/user-avatars`，对应现有 `brand_uploads` 持久化卷。具体发布检查见 [`miniapp/README.md`](../miniapp/README.md)。
+
+只关闭独立的 `api` 主机名，并不能隐藏 `https://www.example.com/api/...`：网页和小程序必须通过这些路径访问服务。私有数据仍需依靠后端鉴权和授权保护；DNS 和 CORS 不能替代它们。
