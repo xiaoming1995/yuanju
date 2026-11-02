@@ -100,4 +100,4 @@ if [ "$PREPARE_ONLY" -eq 1 ]; then
 fi
 
 cd "$ROOT_DIR"
-docker compose up -d --build "$@"
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build "$@"

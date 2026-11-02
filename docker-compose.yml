@@ -35,8 +35,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: yuanju_backend
-    ports:
-      - "9002:9002"
     env_file:
       - ./backend/.env.docker
     environment:
@@ -60,8 +58,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: yuanju_frontend
-    ports:
-      - "3000:80"
     depends_on:
       - backend
     restart: unless-stopped

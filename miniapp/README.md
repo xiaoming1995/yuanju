@@ -6,7 +6,7 @@
 
 ### 本地开发者工具联调
 
-1. 在 `backend/.env.docker` 填入真实 `WECHAT_MINIAPP_APP_ID`、`WECHAT_MINIAPP_APP_SECRET`（可参考 `.env.docker.example`），然后从仓库根目录运行 `docker compose up -d --build backend`，用 `curl http://127.0.0.1:9002/health` 确认后端可访问。必要时执行 `docker compose exec backend ./server -migrate-apply` 并检查迁移结果。
+1. 在 `backend/.env.docker` 填入真实 `WECHAT_MINIAPP_APP_ID`、`WECHAT_MINIAPP_APP_SECRET`（可参考 `.env.docker.example`），然后从仓库根目录运行 `./scripts/docker-compose-up.sh backend`，用 `curl http://127.0.0.1:9002/health` 确认后端可访问。必要时执行 `docker compose -f docker-compose.yml -f docker-compose.local.yml exec backend ./server -migrate-apply` 并检查迁移结果。
 2. `miniapp/config.js` 在开发者工具模拟器中使用 `http://127.0.0.1:9002`，真机使用电脑的局域网 IP。开发者工具需开启“本地设置 → 不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书”。项目 AppID 必须与后端一致；若仍为 `touristappid`，则不能测试真实微信登录。
 3. 在“我的”中点击“微信一键登录”；首次登录自动创建小程序账号。需要沿用已有网页账号时，登录后在个人中心选择“绑定已有网页账号”，填写邮箱密码并合并两端历史。小程序新用户注册默认开启；若本地数据库此前已将开关保存为关闭，需在网页后台用户列表中重新开启。
 4. 首次微信注册由后端生成“缘友＋6 位随机数字”的默认昵称（例如“缘友582731”），只在新建账号时生成，后续登录及已有账号昵称保持不变。新用户进入独立“个人资料”页，也可直接返回继续使用；后续登录不重复打开引导。用户随时可点击“我的”顶部资料区进入该页：头像选择后立即保存，修改昵称并移开焦点、通过微信检查后自动保存，两项互不等待，无需保存或取消按钮。字段下方显示保存状态，失败可单独重试；保存后留在当前页，返回“我的”时刷新展示。尚有未保存修改时，平台支持的返回操作会询问是否离开。`wx.login` 只用于获取身份凭证，不会自动返回微信个人头像与昵称。
