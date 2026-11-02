@@ -7,18 +7,18 @@
 ### 本地开发者工具联调
 
 1. 在 `backend/.env.docker` 填入真实 `WECHAT_MINIAPP_APP_ID`、`WECHAT_MINIAPP_APP_SECRET`（可参考 `.env.docker.example`），然后从仓库根目录运行 `./scripts/docker-compose-up.sh backend`，用 `curl http://127.0.0.1:9002/health` 确认后端可访问。必要时执行 `docker compose -f docker-compose.yml -f docker-compose.local.yml exec backend ./server -migrate-apply` 并检查迁移结果。
-2. `miniapp/config.js` 在开发者工具模拟器中使用 `http://127.0.0.1:9002`，真机使用电脑的局域网 IP。开发者工具需开启“本地设置 → 不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书”。项目 AppID 必须与后端一致；若仍为 `touristappid`，则不能测试真实微信登录。
+2. `miniapp/config.js` 自动按小程序版本选择地址：开发版在开发者工具模拟器中使用 `http://127.0.0.1:9002`，开发版真机使用电脑的局域网 IP；体验版和正式版使用 `https://www.guanshilu.cn`。开发者工具需开启“本地设置 → 不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书”。项目 AppID 必须与后端一致；若仍为 `touristappid`，则不能测试真实微信登录。
 3. 在“我的”中点击“微信一键登录”；首次登录自动创建小程序账号。需要沿用已有网页账号时，登录后在个人中心选择“绑定已有网页账号”，填写邮箱密码并合并两端历史。小程序新用户注册默认开启；若本地数据库此前已将开关保存为关闭，需在网页后台用户列表中重新开启。
 4. 首次微信注册由后端生成“缘友＋6 位随机数字”的默认昵称（例如“缘友582731”），只在新建账号时生成，后续登录及已有账号昵称保持不变。新用户进入独立“个人资料”页，也可直接返回继续使用；后续登录不重复打开引导。用户随时可点击“我的”顶部资料区进入该页：头像选择后立即保存，修改昵称并移开焦点、通过微信检查后自动保存，两项互不等待，无需保存或取消按钮。字段下方显示保存状态，失败可单独重试；保存后留在当前页，返回“我的”时刷新展示。尚有未保存修改时，平台支持的返回操作会询问是否离开。`wx.login` 只用于获取身份凭证，不会自动返回微信个人头像与昵称。
 
-手机与电脑在同一局域网时，`miniapp/config.js` 中的 `lanApiBaseUrl` 应填写电脑的局域网 IP，例如 `http://192.168.101.24:9002`，用于真机联调；先用手机浏览器访问 `http://电脑局域网IP:9002/health` 确认网络可达。电脑 IP 变化后需同步修改。`0.0.0.0` 是服务端监听地址，不能作为小程序请求地址；`127.0.0.1` 仅供开发者工具模拟器使用。正式发布请改为可访问的 HTTPS 域名，并在微信后台登记 request 和头像上传所需的 uploadFile 合法域名。
+手机与电脑在同一局域网时，`miniapp/config.js` 中的 `lanApiBaseUrl` 应填写电脑的局域网 IP，例如 `http://192.168.101.24:9002`，用于开发版真机联调；先用手机浏览器访问 `http://电脑局域网IP:9002/health` 确认网络可达。电脑 IP 变化后需同步修改。`0.0.0.0` 是服务端监听地址，不能作为小程序请求地址；`127.0.0.1` 仅供开发者工具模拟器使用。体验版和正式版使用 HTTPS 域名，不受局域网 IP 变化影响。
 
 开发者工具 3.17.5 的微信昵称检查可能报 `reviewNickname:fail upload nickname timeout`，且错误地把超时标志设为 false。页面会保留输入并提供“重试检查”，不会把服务异常直接提示为昵称不合规，也不会在未明确通过时提交。若持续超时，需检查开发者工具到微信服务的网络，或使用已配置 HTTPS 后端的真机核对。
 
 ### 发布配置
 
 1. 后端应用迁移 `00027_miniapp_user_identity.sql` 和 `00028_user_avatar.sql`，在后端环境设置 `WECHAT_MINIAPP_APP_ID` 和 `WECHAT_MINIAPP_APP_SECRET`。密钥仅保留在后端，不能写进小程序源码。头像文件保存在后端 `UPLOAD_DIR/user-avatars`，部署时需保留该目录的持久化存储。
-2. 将 `miniapp/config.js` 的 `apiBaseUrl` 从本机地址改为已部署的 HTTPS 网页域名，例如 `https://www.example.com`，不要加 `/api`。前端 Nginx 会转发 `/api` 和 `/static` 到后端；该域名须在微信小程序后台配置为 request 与 uploadFile 合法域名。
+2. `miniapp/config.js` 已把体验版和正式版的 API 地址固定为 `https://www.guanshilu.cn`，每次上传无需手动切换；若将来更换域名，只改 `productionApiBaseUrl`，不要加 `/api`。前端 Nginx 会转发 `/api` 和 `/static` 到后端；微信小程序后台需将 `https://www.guanshilu.cn` 配为 request 与 uploadFile 合法域名。上传体验版后用真机检查登录和头像上传，确认请求发往线上地址。
 3. 核对 `miniapp/project.config.json` 中的 `appid` 与后端配置一致。首次微信建号默认开启，可在网页管理后台“用户列表”中单独关闭“小程序微信注册”；网页邮箱注册开关独立。
 4. 小程序登录后，可在“我的”中选择绑定已有网页账号。验证网页密码后，后端在一个事务中将小程序账号的干支、合盘、收藏及用量记录迁到原网页用户 ID，并把微信身份转到该 ID；返回新令牌后，两端共享历史。密码错误或目标账号已有冲突的微信身份时，不合并。
 5. 小程序只在用户点击登录后调用 `wx.login`。排盘要求登录并保存至用户历史；日历与择日演示不会把固定示例干支写入用户历史。

@@ -144,6 +144,6 @@ curl https://www.example.com/api/auth/registration-settings
 
 ## 六、小程序发布配置
 
-发布版将 `miniapp/config.js` 的 API 地址设为 `https://www.example.com`，不要附加 `/api`；当前文件仍使用局域网 HTTP 地址，且开发者工具分支会切到本机地址，发布前需一并核对。微信后台登记 `www` 域名的 request 和 uploadFile 合法域名，并核对小程序 AppID 与后端一致。头像存储在后端 `UPLOAD_DIR/user-avatars`，对应现有 `brand_uploads` 持久化卷。具体发布检查见 [`miniapp/README.md`](../miniapp/README.md)。
+`miniapp/config.js` 按运行版本自动选择地址：开发版使用本地后端，体验版和正式版使用 `https://www.guanshilu.cn`，每次上传无需手动切换。更换线上域名时只修改 `productionApiBaseUrl`，不要附加 `/api`。微信后台登记线上 `www` 域名的 request 和 uploadFile 合法域名，并核对小程序 AppID 与后端一致。头像存储在后端 `UPLOAD_DIR/user-avatars`，对应现有 `brand_uploads` 持久化卷。具体发布检查见 [`miniapp/README.md`](../miniapp/README.md)。
 
 只关闭独立的 `api` 主机名，并不能隐藏 `https://www.example.com/api/...`：网页和小程序必须通过这些路径访问服务。私有数据仍需依靠后端鉴权和授权保护；DNS 和 CORS 不能替代它们。
