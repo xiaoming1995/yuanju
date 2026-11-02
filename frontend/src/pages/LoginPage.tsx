@@ -37,7 +37,7 @@ export default function LoginPage() {
         })
         return true
       } catch (err: unknown) {
-        setError(err instanceof Error ? `登录成功，但恢复刚才的命盘失败：${err.message}` : '登录成功，但恢复刚才的命盘失败')
+        setError(err instanceof Error ? `登录成功，但恢复刚才的干支失败：${err.message}` : '登录成功，但恢复刚才的干支失败')
         return false
       }
     }
@@ -71,7 +71,7 @@ export default function LoginPage() {
           <div className="auth-header">
             <div className="auth-logo serif"><Compass size={40} /></div>
             <h1 className="auth-title serif">欢迎回来</h1>
-            <p className="auth-desc">登录缘聚命理，查看您的命盘记录</p>
+            <p className="auth-desc">登录缘聚命理，查看您的干支记录</p>
           </div>
 
           <form onSubmit={handleSubmit} id="login-form">

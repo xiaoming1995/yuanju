@@ -165,13 +165,13 @@ func durationBandV3(longLevel CompatibilityDurationLevel) string {
 func durationSummaryV3(short, long CompatibilityDurationLevel) string {
 	switch {
 	case short == CompatibilityDurationHigh && long == CompatibilityDurationHigh:
-		return "属相与纳音支撑短期吸引，日柱与八字承接长期稳定，关系发展通道顺畅。"
+		return "属相与纳音支撑短期吸引，日柱与年、月、时柱承接长期稳定，关系发展通道顺畅。"
 	case short == CompatibilityDurationHigh && long == CompatibilityDurationLow:
 		return "短期靠近感强，但长期承接薄弱——关系更像「先热后难」型，需要把短期热度引导到现实安排。"
 	case long == CompatibilityDurationHigh:
 		return "短期需要时间培养亲近感，长期承接稳——关系更适合慢热经营。"
 	default:
-		return "这段关系的维持性更依赖阶段中的现实磨合而非最初的命盘指向。"
+		return "这段关系的维持性更依赖阶段中的现实磨合而非最初的干支指向。"
 	}
 }
 
@@ -306,7 +306,7 @@ func buildClaimEvidenceLinksV3(verdict string, evidences []CompatibilityEvidence
 		ClaimID:      "relationship_main_judgement",
 		Claim:        verdict,
 		EvidenceKeys: keys,
-		Reasoning:    "主要判断综合 4 模块（合属相 / 合纳音 / 合日柱 / 合八字）的命中结果与总分。",
+		Reasoning:    "主要判断综合 4 模块（合属相 / 合纳音 / 合日柱 / 三柱配合）的命中结果与总分。",
 		Caveat:       "合盘表达的是关系倾向，现实选择与相处方式会改变结果表现。",
 	}}
 }

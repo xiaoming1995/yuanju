@@ -114,7 +114,7 @@ export default function CompatibilityHistoryPage() {
         <nav className="archive-switcher" aria-label="档案类型">
           <Link to="/history" className="archive-switcher-item">
             <Compass size={17} />
-            <span>命盘档案</span>
+            <span>干支档案</span>
           </Link>
           <Link to="/compatibility/history" className="archive-switcher-item archive-switcher-item--active">
             <HeartHandshake size={17} />

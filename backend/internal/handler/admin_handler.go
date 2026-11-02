@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -18,35 +19,6 @@ import (
 )
 
 // ====== Admin Auth ======
-
-func AdminRegister(c *gin.Context) {
-	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,min=8"`
-		Name     string `json:"name"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	existing, _ := repository.GetAdminByEmail(req.Email)
-	if existing != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "邮箱已注册"})
-		return
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
-		return
-	}
-	admin, err := repository.CreateAdmin(req.Email, string(hash), req.Name)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建失败"})
-		return
-	}
-	token, _ := generateAdminToken(admin)
-	c.JSON(http.StatusCreated, gin.H{"token": token, "admin": admin})
-}
 
 func AdminLogin(c *gin.Context) {
 	var req struct {
@@ -410,7 +382,7 @@ func AdminGetChartDetail(c *gin.Context) {
 		return
 	}
 	if chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "命盘不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "干支不存在"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": chart})
@@ -431,7 +403,7 @@ func AdminClearAllReports(c *gin.Context) {
 	})
 }
 
-// AdminClearReportByChart 清除指定命盘的 AI 报告缓存
+// AdminClearReportByChart 清除指定干支的 AI 报告缓存
 func AdminClearReportByChart(c *gin.Context) {
 	chartID := c.Param("chart_id")
 	if chartID == "" {
@@ -444,12 +416,12 @@ func AdminClearReportByChart(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "已清除该命盘报告缓存",
+		"message": "已清除该干支报告缓存",
 		"deleted": affected,
 	})
 }
 
-// AdminListLiunianReports 获取某命盘下所有的流年批断记录
+// AdminListLiunianReports 获取某干支下所有的流年批断记录
 func AdminListLiunianReports(c *gin.Context) {
 	chartID := c.Param("chart_id")
 	if chartID == "" {
@@ -467,7 +439,7 @@ func AdminListLiunianReports(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": reports})
 }
 
-// AdminListPastEventsReports 获取某命盘下所有的过往推算大运段记录
+// AdminListPastEventsReports 获取某干支下所有的过往推算大运段记录
 func AdminListPastEventsReports(c *gin.Context) {
 	chartID := c.Param("chart_id")
 	if chartID == "" {
@@ -529,13 +501,21 @@ func AdminResetUserPassword(c *gin.Context) {
 		return
 	}
 	if err := service.ResetUserPassword(id, req.Password); err != nil {
+		if errors.Is(err, service.ErrEmailCredentialsRequired) {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, service.ErrUserNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "重置密码失败"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "已重置"})
 }
 
-// AdminDeleteUser 硬删除用户（合盘记录级联删除，八字命盘转游客保留）
+// AdminDeleteUser 硬删除用户（合盘记录级联删除，八字干支转游客保留）
 func AdminDeleteUser(c *gin.Context) {
 	id := c.Param("id")
 	if err := repository.DeleteUser(id); err != nil {

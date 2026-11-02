@@ -12,7 +12,7 @@ test('EvidenceDrawer is a single details-open block', () => {
   assert.match(src, /<details open/)
   assert.match(src, /compat-evidence-drawer/)
   assert.match(src, /关键判断依据/)
-  assert.match(src, /命盘细节/)
+  assert.match(src, /干支细节/)
 })
 
 test('page no longer defines EvidenceLinkedClaims / ProfessionalEvidenceGroups / EvidenceCard inline', () => {

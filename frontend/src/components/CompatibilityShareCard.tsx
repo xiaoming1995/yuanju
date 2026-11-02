@@ -52,7 +52,7 @@ const DIM_LABEL_V3: Record<string, string> = {
   zodiac: '属相',
   nayin: '纳音',
   day_pillar: '日柱',
-  eight_chars: '八字',
+  eight_chars: '三柱配合',
 }
 
 const STRATEGY_LABEL: Record<string, string> = {
@@ -91,7 +91,7 @@ const EVIDENCE_SOURCE_LABEL: Record<string, string> = {
   zodiac: '属相',
   nayin: '纳音',
   day_pillar: '日柱',
-  eight_chars: '八字',
+  eight_chars: '三柱配合',
 }
 
 function ChartColumn({ participant, label }: { participant?: CompatibilityParticipant; label: string }) {

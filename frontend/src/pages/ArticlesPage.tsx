@@ -80,7 +80,7 @@ export default function ArticlesPage() {
           <div>
             <span className="articles-eyebrow">内容灵感库</span>
             <h1>资讯</h1>
-            <p>参考公开搜索信息与 AI 拆解，收集八字文章选题和仿写灵感。</p>
+            <p>参考公开搜索信息与 AI 拆解，收集干支相关文章选题和仿写灵感。</p>
           </div>
           <div className="articles-header-aside">
             <span>{total} 篇</span>

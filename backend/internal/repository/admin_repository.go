@@ -10,17 +10,6 @@ import (
 
 // ====== Admin Repository ======
 
-func CreateAdmin(email, passwordHash, name string) (*model.Admin, error) {
-	admin := &model.Admin{}
-	err := database.DB.QueryRow(
-		`INSERT INTO admins (email, password_hash, name)
-		 VALUES ($1, $2, $3)
-		 RETURNING id, email, name, created_at`,
-		email, passwordHash, name,
-	).Scan(&admin.ID, &admin.Email, &admin.Name, &admin.CreatedAt)
-	return admin, err
-}
-
 func GetAdminByEmail(email string) (*model.Admin, error) {
 	admin := &model.Admin{}
 	err := database.DB.QueryRow(
@@ -152,7 +141,7 @@ type AdminOverviewStats struct {
 	TodayAIRequests int `json:"today_ai_requests"`
 }
 
-// GetAdminOverviewStats 一次查询返回用户/命盘/AI 调用的总量与今日量
+// GetAdminOverviewStats 一次查询返回用户/干支/AI 调用的总量与今日量
 func GetAdminOverviewStats() (*AdminOverviewStats, error) {
 	s := &AdminOverviewStats{}
 	err := database.DB.QueryRow(`
@@ -220,7 +209,7 @@ type AdminUserRow struct {
 	CompatCount int        `json:"compat_count"`
 }
 
-// ListAdminUsers 分页查询用户列表（含命盘数/合盘数），支持按邮箱模糊搜索
+// ListAdminUsers 分页查询用户列表（含干支数/合盘数），支持邮箱、昵称和 ID 搜索。
 func ListAdminUsers(page, pageSize int, q string) ([]AdminUserRow, int, error) {
 	offset := (page - 1) * pageSize
 
@@ -458,7 +447,7 @@ func ListBaziCharts(page, pageSize int, q, from, to string) ([]model.AdminChartR
 	return charts, total, nil
 }
 
-// GetAdminBaziChartByID 查询后台单条命盘详情，包含最新 AI 原局报告摘要。
+// GetAdminBaziChartByID 查询后台单条干支详情，包含最新 AI 原局报告摘要。
 func GetAdminBaziChartByID(chartID string) (*model.AdminChartRecord, error) {
 	var r model.AdminChartRecord
 	err := database.DB.QueryRow(`
@@ -495,7 +484,7 @@ func GetAdminBaziChartByID(chartID string) (*model.AdminChartRecord, error) {
 	return &r, nil
 }
 
-// ListAdminPastEventsByChartID 查询某命盘下所有过往推算大运段缓存，供后台排查生成内容。
+// ListAdminPastEventsByChartID 查询某干支下所有过往推算大运段缓存，供后台排查生成内容。
 func ListAdminPastEventsByChartID(chartID string) ([]model.AdminPastEventsDayunRecord, error) {
 	rows, err := database.DB.Query(`
 		SELECT id, chart_id, dayun_index, COALESCE(dayun_ganzhi, ''),

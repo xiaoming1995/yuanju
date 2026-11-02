@@ -116,10 +116,10 @@ func GenerateReport(c *gin.Context) {
 		return
 	}
 
-	// 1. 获取命盘并验证归属
+	// 1. 获取干支并验证归属
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 
@@ -127,11 +127,11 @@ func GenerateReport(c *gin.Context) {
 	userIDStr := userID.(string)
 
 	if chart.UserID == nil || *chart.UserID != userIDStr {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 
-	// 2. 加载命盘 BaziResult 快照（result_json 优先；老命盘懒加载并写回 DB）
+	// 2. 加载干支 BaziResult 快照（result_json 优先；老干支懒加载并写回 DB）
 	result, err := service.LoadOrCalculateResult(chart)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -172,7 +172,7 @@ func GenerateReportStream(c *gin.Context) {
 
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 
@@ -180,17 +180,17 @@ func GenerateReportStream(c *gin.Context) {
 	userIDStr := userID.(string)
 
 	if chart.UserID == nil || *chart.UserID != userIDStr {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 
-	log.Printf("[Stream T+%dms] 加载命盘快照（result_json 优先）", time.Since(t0).Milliseconds())
+	log.Printf("[Stream T+%dms] 加载干支快照（result_json 优先）", time.Since(t0).Milliseconds())
 	result, err := service.LoadOrCalculateResult(chart)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	log.Printf("[Stream T+%dms] 命盘加载完成", time.Since(t0).Milliseconds())
+	log.Printf("[Stream T+%dms] 干支加载完成", time.Since(t0).Milliseconds())
 
 	c.Header("Content-Type", "text/event-stream")
 	c.Header("Cache-Control", "no-cache")
@@ -240,7 +240,7 @@ func authorizeLiunianChart(c *gin.Context, chartID string) (*model.BaziChart, st
 
 	chart, err := getBaziChartByIDForLiunianReport(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return nil, "", false
 	}
 
@@ -248,7 +248,7 @@ func authorizeLiunianChart(c *gin.Context, chartID string) (*model.BaziChart, st
 	userIDStr := userID.(string)
 
 	if chart.UserID == nil || *chart.UserID != userIDStr {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return nil, "", false
 	}
 	return chart, userIDStr, true
@@ -432,7 +432,7 @@ func GetHistoryDetail(c *gin.Context) {
 
 	report, _ := repository.GetReportByChartID(chartID)
 
-	// 加载完整 BaziResult 快照（result_json 优先，老命盘懒加载）
+	// 加载完整 BaziResult 快照（result_json 优先，老干支懒加载）
 	result, err := service.LoadOrCalculateResult(chart)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -479,12 +479,12 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 		return
 	}
 	if _, err := uuid.Parse(chartID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的命盘ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的干支ID"})
 		return
 	}
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取命盘失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取干支失败"})
 		return
 	}
 	if chart == nil {
@@ -492,7 +492,7 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 		return
 	}
 	if chart.UserID == nil || *chart.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 	if err := repository.UpdateChartDisplayName(chartID, displayName); err != nil {
@@ -502,17 +502,17 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"id": chartID, "display_name": displayName}})
 }
 
-// DeleteHistory 删除命盘记录及其全部衍生数据（AI 报告/大运/流年等由数据库级联清除）
+// DeleteHistory 删除干支记录及其全部衍生数据（AI 报告/大运/流年等由数据库级联清除）
 func DeleteHistory(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	chartID := c.Param("id")
 	if _, err := uuid.Parse(chartID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的命盘ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的干支ID"})
 		return
 	}
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取命盘失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取干支失败"})
 		return
 	}
 	if chart == nil {
@@ -520,11 +520,11 @@ func DeleteHistory(c *gin.Context) {
 		return
 	}
 	if chart.UserID == nil || *chart.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 	if _, err := repository.DeleteChart(chartID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除命盘失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除干支失败"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"id": chartID}})
@@ -539,12 +539,12 @@ func HandlePastEventsYears(c *gin.Context) {
 	}
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 	userID, _ := c.Get("user_id")
 	if chart.UserID == nil || *chart.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 	resp, err := service.GeneratePastEventsYears(chartID)
@@ -555,7 +555,7 @@ func HandlePastEventsYears(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
-// HandlePastEventsExport 只读返回当前命盘已缓存的过往事件导出数据。
+// HandlePastEventsExport 只读返回当前干支已缓存的过往事件导出数据。
 func HandlePastEventsExport(c *gin.Context) {
 	chartID := c.Param("chart_id")
 	if chartID == "" {
@@ -564,12 +564,12 @@ func HandlePastEventsExport(c *gin.Context) {
 	}
 	chart, err := getBaziChartByIDForPastEventsExport(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 	userID, _ := c.Get("user_id")
 	if chart.UserID == nil || *chart.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 	resp, err := generatePastEventsExportForChartHandler(chart)
@@ -589,12 +589,12 @@ func HandleDayunSummariesStream(c *gin.Context) {
 	}
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 	userID, _ := c.Get("user_id")
 	if chart.UserID == nil || *chart.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 
@@ -636,13 +636,13 @@ func HandlePastEventsStream(c *gin.Context) {
 
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 
 	userID, _ := c.Get("user_id")
 	if chart.UserID == nil || *chart.UserID != userID.(string) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 	userIDStr := userID.(string)

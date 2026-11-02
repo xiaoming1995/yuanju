@@ -420,7 +420,7 @@ function buildStemRelation(
       wuxing: wuxing || GAN_WUXING[gan] || '',
       ten_god: '日主 / 日元',
       relation: '命主自身',
-      summary: '这是命盘的参照点，其他十神都以此天干为中心推导。',
+      summary: '这是干支的参照点，其他十神都以此天干为中心推导。',
     }
   }
   const resolvedTenGod = tenGod || getShiShen(dayGan, gan)
@@ -656,14 +656,14 @@ function buildChartVerdict(result: BaziResult, relation: TenGodRelationMatrix) {
     const yongshenText = stemSummary.primary
       ? `首取${stemSummary.primary.stem}${stemSummary.primary.element}，扶抑可用${formatStemGuidanceItems(stemSummary.usable) || '待结合全局判断'}${stemSummary.adverse.length > 0 ? `，慎用${formatStemGuidanceItems(stemSummary.adverse)}` : ''}`
       : `扶抑可用${formatStemGuidanceItems(stemSummary.usable) || '待结合全局判断'}${stemSummary.adverse.length > 0 ? `，慎用${formatStemGuidanceItems(stemSummary.adverse)}` : ''}`
-    return `日主${dayMaster}为命局参照，${yongshenText}${minggeText}。建议先看当前大运与用神依据，再进入专业命盘和完整命理解读。`
+    return `日主${dayMaster}为命局参照，${yongshenText}${minggeText}。建议先看当前大运与用神依据，再进入专业干支和完整命理解读。`
   }
   const yongshen = getFuyiYongshen(result)
   const jishen = getFuyiJishen(result)
   const yongshenText = yongshen
     ? `扶抑喜用${yongshen}${jishen ? `，忌${jishen}` : ''}`
     : '喜忌待结合解读确认'
-  return `日主${dayMaster}为命局参照，${yongshenText}${minggeText}。建议先看当前大运与用神依据，再进入专业命盘和完整命理解读。`
+  return `日主${dayMaster}为命局参照，${yongshenText}${minggeText}。建议先看当前大运与用神依据，再进入专业干支和完整命理解读。`
 }
 
 function buildYongshenEvidence(result: BaziResult, relation: TenGodRelationMatrix) {
@@ -691,8 +691,8 @@ function buildYongshenEvidence(result: BaziResult, relation: TenGodRelationMatri
     {
       title: '调候线索',
       detail: tiaohouExpected.length > 0
-        ? `调候优先参考${tiaohouExpected.join('、')}${tiaohouHit.length ? `，命盘中可见${tiaohouHit.join('、')}` : '，命盘显现程度需结合藏干与透干观察'}。`
-        : '当前命盘未展示明确调候命中项，优先结合五行与十神结构阅读。',
+        ? `调候优先参考${tiaohouExpected.join('、')}${tiaohouHit.length ? `，干支中可见${tiaohouHit.join('、')}` : '，干支显现程度需结合藏干与透干观察'}。`
+        : '当前干支未展示明确调候命中项，优先结合五行与十神结构阅读。',
     },
     {
       title: '十神结构',
@@ -826,7 +826,7 @@ export default function ResultPage() {
   const shareCardRef = useRef<HTMLDivElement>(null)
   const pendingIntentConsumedRef = useRef(false)
   const pendingInput = location.state?.input as CalculateInput | undefined
-  // 页面当前命盘 id：历史 URL、起盘 state 都会汇入这里。
+  // 页面当前干支 id：历史 URL、起盘 state 都会汇入这里。
   const targetId = id || location.state?.chartId
 
   useEffect(() => {
@@ -948,8 +948,8 @@ export default function ResultPage() {
           // 支持 Web Share API（iOS 15+ Safari 全款支持）
           await navigator.share({
             files: [file],
-            title: `缘聚命理 · 八字命理报告`,
-            text: `我的八字命理：${result?.year_gan ?? ''}${result?.year_zhi ?? ''}年`,
+            title: `缘聚命理 · 干支分析报告`,
+            text: `我的干支信息：${result?.year_gan ?? ''}${result?.year_zhi ?? ''}年`,
           })
         } else {
           // 退化到 Blob Object URL——比 base64 更靠谱
@@ -1172,13 +1172,13 @@ export default function ResultPage() {
           },
         })
       } catch (err: unknown) {
-        setReportError(err instanceof Error ? `保存命盘失败：${err.message}` : '保存命盘失败，请重新起盘后再生成解读。')
+        setReportError(err instanceof Error ? `保存干支失败：${err.message}` : '保存干支失败，请重新起盘后再生成解读。')
         setReportLoading(false)
         return
       }
     }
     if (!reportTargetId) {
-      setReportError('未找到可保存的命盘记录，请返回首页重新起盘后再生成解读。')
+      setReportError('未找到可保存的干支记录，请返回首页重新起盘后再生成解读。')
       return
     }
     setReportLoading(true)
@@ -1322,7 +1322,7 @@ export default function ResultPage() {
             ? '财富依据'
             : ''
   const overviewModalKicker = overviewModal === 'grade' || overviewModal === 'vehicle-evidence'
-    ? '命盘座驾'
+    ? '干支座驾'
     : overviewModal === 'wealth-evidence'
       ? '财富结构'
       : '当前路况'
@@ -1379,7 +1379,7 @@ export default function ResultPage() {
   const resultSegments = readingMode === 'professional'
     ? [
       { id: 'result-section-overview', label: '总览' },
-      { id: 'result-section-chart', label: '命盘' },
+      { id: 'result-section-chart', label: '干支' },
       { id: 'result-section-yongshen', label: '用神' },
       { id: 'result-section-dayun', label: '大运' },
       { id: 'result-section-ai', label: 'AI 解读' },
@@ -1428,7 +1428,7 @@ export default function ResultPage() {
         <div className="container">
 
         <section id="result-section-overview" className="result-overview-section">
-          <section className="result-identity-panel animate-fade-up" aria-label="命盘身份信息">
+          <section className="result-identity-panel animate-fade-up" aria-label="干支身份信息">
             <div className="result-identity-main">
               <div className="result-header">
                 <div className="result-birth-info">
@@ -1490,7 +1490,7 @@ export default function ResultPage() {
             {targetId && !isGuest && (
               <div className="chart-archive-tools result-utility-bar result-identity-utility">
                 <div className="chart-archive-name">
-                  <label htmlFor="result-chart-display-name">命盘称呼</label>
+                  <label htmlFor="result-chart-display-name">干支称呼</label>
                   <input
                     id="result-chart-display-name"
                     value={chartDisplayNameDraft}
@@ -1504,7 +1504,7 @@ export default function ResultPage() {
                 </div>
                 {chartDisplayNameError && <div className="chart-archive-error">{chartDisplayNameError}</div>}
                 <div className="chart-archive-compatibility">
-                  <span>用此命盘发起合盘</span>
+                  <span>用此干支发起合盘</span>
                   <button type="button" className="btn btn-ghost" onClick={() => navigate(`/compatibility?importChart=${targetId}&role=self`)}>
                     作为我
                   </button>
@@ -1519,7 +1519,7 @@ export default function ResultPage() {
           <article className="result-verdict-card result-conclusion-panel">
             <div className="result-product-card-head">
               <div>
-                <span className="result-product-kicker">命盘总评</span>
+                <span className="result-product-kicker">干支总评</span>
                 <h2 className="serif">先看结论</h2>
               </div>
               {fuyiYongshen && <span className="result-product-pill">扶抑喜用：{fuyiYongshen}</span>}
@@ -1548,14 +1548,14 @@ export default function ResultPage() {
               <article className="result-vehicle-card result-summary-card result-summary-card--vehicle">
                 <div className="result-product-card-head">
                   <div>
-                    <span className="result-product-kicker">命盘座驾</span>
+                    <span className="result-product-kicker">干支座驾</span>
                     <h2 className="serif">
                       {vehicleGradeGuide?.label || result.vehicle_profile.grade_label} · {vehicleType}
                     </h2>
                   </div>
                   <span className="result-product-pill">{result.vehicle_profile.grade} 级</span>
                 </div>
-                <div className="result-vehicle-meter" aria-label={`命盘座驾分 ${result.vehicle_profile.score}`}>
+                <div className="result-vehicle-meter" aria-label={`干支座驾分 ${result.vehicle_profile.score}`}>
                   <span style={{ width: `${Math.max(0, Math.min(100, result.vehicle_profile.score))}%` }} />
                 </div>
                 {vehicleGradeGuide && (
@@ -1703,7 +1703,7 @@ export default function ResultPage() {
                   </div>
                 </>
               ) : (
-                <p>当前命盘暂未返回大运数据，可先阅读命盘结构与 AI 解读。</p>
+                <p>当前干支暂未返回大运数据，可先阅读干支结构与 AI 解读。</p>
               )}
               {currentDayunRoad && (
                 <div className="result-overview-actions">
@@ -1917,7 +1917,7 @@ export default function ResultPage() {
               <div className="result-section-heading">
                 <span className="result-section-kicker">判断依据</span>
                 <h2 id="simple-evidence-title" className="section-title serif">为什么这样看</h2>
-                <p>这里不重新计算算法，只把现有命盘数据整理成更容易理解的依据链。</p>
+                <p>这里不重新计算算法，只把现有干支数据整理成更容易理解的依据链。</p>
               </div>
               <div className="result-evidence-grid">
                 {yongshenEvidence.map((item, index) => (
@@ -1931,7 +1931,7 @@ export default function ResultPage() {
                 ))}
               </div>
               <button type="button" className="result-professional-cta" onClick={() => setReadingMode('professional')}>
-                展开专业命盘
+                展开专业干支
               </button>
             </section>
           )}
@@ -1941,7 +1941,7 @@ export default function ResultPage() {
           </div>
         </section>
 
-        {/* 命盘详情 */}
+        {/* 干支详情 */}
         {readingMode === 'professional' && (
         <section id="result-section-chart" className="professional-view animate-fade-up">
 
@@ -2446,7 +2446,7 @@ export default function ResultPage() {
                     </div>
                   ) : (
                     <div className="guest-banner">
-                      <span>登录后可获得完整解读报告，并保存命盘记录</span>
+                      <span>登录后可获得完整解读报告，并保存干支记录</span>
                       {registration_enabled
                         ? (
                           <a
@@ -2547,7 +2547,7 @@ export default function ResultPage() {
 
               {overviewModal === 'road' && (
                 <div className="result-road-guide-body">
-                  <p>车代表命盘的基础配置与驾驭难度，路代表每十年大运带来的外部支持与阻力。车好不等于一路顺，路顺也能让普通配置发挥得更好。</p>
+                  <p>车代表干支的基础配置与驾驭难度，路代表每十年大运带来的外部支持与阻力。车好不等于一路顺，路顺也能让普通配置发挥得更好。</p>
                   <p className="result-road-scope-note">{DAYUN_ROAD_SCOPE_EXPLANATION}</p>
                   <ul className="result-road-guide">
                     {ROAD_GUIDE.map(item => (

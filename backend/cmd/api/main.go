@@ -210,9 +210,8 @@ func main() {
 		// Admin 路由组（独立鉴权）
 		admin := api.Group("/admin")
 		{
-			// Admin 认证（无需 Token）
-			admin.POST("/auth/register", handler.AdminRegister)
-			admin.POST("/auth/login", handler.AdminLogin)
+			// Admin 认证（无需 Token）；首次管理员仅通过本地命令创建。
+			registerAdminPublicRoutes(admin)
 
 			// 需要 Admin Token 的路由
 			adminAuth := admin.Group("", middleware.AdminAuth())
@@ -336,6 +335,10 @@ func main() {
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("服务启动失败: %v", err)
 	}
+}
+
+func registerAdminPublicRoutes(admin *gin.RouterGroup) {
+	admin.POST("/auth/login", handler.AdminLogin)
 }
 
 // makeCleanupDeps 把 repository 层的具体函数 wrap 成 service.CleanupDeps，

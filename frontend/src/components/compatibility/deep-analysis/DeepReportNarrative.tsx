@@ -150,7 +150,7 @@ export default function DeepReportNarrative({
           <div className="compatibility-report-raw">{rawContent}</div>
         ) : (
           <div className="compatibility-report-empty">
-            <p>AI 深度解读会基于双方命盘生成「双方性格画像与差异」，以及完整的关系叙事、风险解释和相处建议。</p>
+            <p>AI 深度解读会基于双方干支生成「双方性格画像与差异」，以及完整的关系叙事、风险解释和相处建议。</p>
             <div className="compatibility-report-empty-grid">
               <span>双方性格画像与差异</span>
               <span>关系叙事</span>

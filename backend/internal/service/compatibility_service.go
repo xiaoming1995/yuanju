@@ -628,7 +628,7 @@ func compatibilityParticipantSummary(p *model.CompatibilityParticipant) (string,
 	return base + " " + spousePortraitSignalText(p.DisplayName, sig), nil
 }
 
-// spousePortraitSignalText 把配偶星信号格式化为一句话，拼进命盘摘要供 LLM 推配偶画像。
+// spousePortraitSignalText 把配偶星信号格式化为一句话，拼进干支摘要供 LLM 推配偶画像。
 func spousePortraitSignalText(name string, sig bazi.SpouseStarSignal) string {
 	if !sig.Available {
 		return fmt.Sprintf("%s 配偶画像信号：性别缺失，无法定配偶星，本节跳过。", name)

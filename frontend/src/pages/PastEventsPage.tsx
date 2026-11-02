@@ -649,11 +649,11 @@ export default function PastEventsPage() {
         {yearsLoaded && events.length === 0 && (
           <EmptyState
             title="暂无过往年份数据"
-            description="这份命盘暂时没有可展示的过往事件推算结果，可以返回结果页继续查看命盘或重新起盘。"
+            description="这份干支暂时没有可展示的过往事件推算结果，可以返回结果页继续查看干支或重新起盘。"
             action={
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {chartId && <Button href={`/history/${chartId}`} variant="primary">返回结果页</Button>}
-                <Button href="/history" variant="secondary">查看历史命盘</Button>
+                <Button href="/history" variant="secondary">查看历史干支</Button>
               </div>
             }
           />

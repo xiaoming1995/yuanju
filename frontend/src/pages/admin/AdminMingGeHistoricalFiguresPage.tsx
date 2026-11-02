@@ -83,7 +83,7 @@ export default function AdminMingGeHistoricalFiguresPage() {
 
   const handleSave = async () => {
     if (form.show_dayun && !canShowDayun) {
-      setError('展示大运前，请补齐精确时辰、命盘核验、转折信息与大运呼应说明。')
+      setError('展示大运前，请补齐精确时辰、干支核验、转折信息与大运呼应说明。')
       return
     }
     setSaving(true)
@@ -186,7 +186,7 @@ export default function AdminMingGeHistoricalFiguresPage() {
                 </select>
               </Field>
             </div>
-            <Field label="命盘核验说明"><textarea className="admin-form-input" rows={2} value={form.bazi_verification_note} onChange={(event) => setForm((value) => ({ ...value, bazi_verification_note: event.target.value }))} placeholder="未展示大运时可留空。" /></Field>
+            <Field label="干支核验说明"><textarea className="admin-form-input" rows={2} value={form.bazi_verification_note} onChange={(event) => setForm((value) => ({ ...value, bazi_verification_note: event.target.value }))} placeholder="未展示大运时可留空。" /></Field>
             <div className="admin-form-row">
               <Field label="人生转折"><input className="admin-form-input" value={form.turning_point} onChange={(event) => setForm((value) => ({ ...value, turning_point: event.target.value }))} /></Field>
               <Field label="转折年份 / 时期"><input className="admin-form-input" value={form.turning_point_year} onChange={(event) => setForm((value) => ({ ...value, turning_point_year: event.target.value }))} /></Field>

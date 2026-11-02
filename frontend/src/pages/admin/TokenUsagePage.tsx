@@ -363,7 +363,7 @@ export default function TokenUsagePage() {
               <table className="admin-table" style={{ width: '100%' }}>
                 <thead>
                   <tr>
-                    <th>用户邮箱</th>
+                    <th>邮箱 / 用户 ID</th>
                     <th>昵称</th>
                     <th>模型</th>
                     <th style={{ textAlign: 'right' }}>请求次数</th>
@@ -386,7 +386,7 @@ export default function TokenUsagePage() {
                       {/* per-model rows */}
                       {group.rows.map((row, ri) => (
                         <tr key={row.model}>
-                          <td style={{ color: 'var(--admin-text-secondary)' }}>{ri === 0 ? row.email : ''}</td>
+                          <td style={{ color: 'var(--admin-text-secondary)' }}>{ri === 0 ? (row.email || `未绑定邮箱 · ${group.userID.slice(0, 8)}`) : ''}</td>
                           <td>{ri === 0 ? (row.nickname || '—') : ''}</td>
                           <td style={{ fontSize: 12, color: 'var(--admin-text-secondary)' }}>{row.model}</td>
                           <td style={{ textAlign: 'right' }}>{fmt(row.request_count)}</td>

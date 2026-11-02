@@ -121,7 +121,7 @@ type BaziResult struct {
 	// 原局结构评估：调候急需、扶抑、格局成败与流通的版本化判断上下文。
 	NatalAssessment *NatalAssessment `json:"natal_assessment,omitempty"`
 
-	// 命盘座驾与大运路况（确定性算法解释层）
+	// 干支座驾与大运路况（确定性算法解释层）
 	VehicleProfile *VehicleProfile `json:"vehicle_profile,omitempty"`
 	DayunRoadmap   []DayunRoad     `json:"dayun_roadmap,omitempty"`
 	WealthProfile  *WealthProfile  `json:"wealth_profile,omitempty"`

@@ -75,7 +75,7 @@ func AdminGetTokenUsageContent(c *gin.Context) {
 }
 
 // AdminGetBudgetStatus GET /api/admin/token-usage/budget-status
-// 返回今日 / 本月 / 单命盘 TOP 5 成本快照 + 阈值。
+// 返回今日 / 本月 / 单干支 TOP 5 成本快照 + 阈值。
 func AdminGetBudgetStatus(c *gin.Context) {
 	status, err := service.BuildBudgetStatus()
 	if err != nil {

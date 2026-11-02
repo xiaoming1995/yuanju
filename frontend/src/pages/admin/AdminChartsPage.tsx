@@ -89,7 +89,7 @@ export default function AdminChartsPage() {
 
       <div className="admin-card">
         <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--admin-text-muted)' }}>
-          记录平台上每一次八字排盘动作（包含注册用户与游客），共 {total} 条记录。
+          记录平台上每一次干支排盘动作（包含注册用户与游客），共 {total} 条记录。
         </div>
 
         <form className="admin-search-bar" onSubmit={e => { e.preventDefault(); setPage(1); fetchCharts(1) }}>
@@ -129,6 +129,8 @@ export default function AdminChartsPage() {
                         <User size={14} color="var(--admin-text-muted)" />
                         {chart.user_email ? (
                           <span style={{ color: 'var(--admin-text-secondary)' }}>{chart.user_email}</span>
+                        ) : chart.user_id ? (
+                          <span style={{ color: 'var(--admin-text-secondary)' }}>微信用户 · {chart.user_id.slice(0, 8)}</span>
                         ) : (
                           <span style={{ color: 'var(--admin-text-faint)', fontStyle: 'italic' }}>游客</span>
                         )}

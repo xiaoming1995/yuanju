@@ -59,7 +59,7 @@ export default function ProfilePage() {
   }
 
   const stats = [
-    { label: '命盘记录', value: profile.stats.chart_count, icon: CalendarDays, to: '/history' },
+    { label: '干支记录', value: profile.stats.chart_count, icon: CalendarDays, to: '/history' },
     { label: 'AI 报告', value: profile.stats.ai_report_count, icon: FileText },
     { label: '合盘记录', value: profile.stats.compatibility_count, icon: HeartHandshake, to: '/compatibility/history' },
   ]
@@ -77,14 +77,14 @@ export default function ProfilePage() {
       }
     : latestChart
     ? {
-        label: '最近命盘',
+        label: '最近干支',
         title: `${latestChart.year_gan}${latestChart.year_zhi} · ${latestChart.month_gan}${latestChart.month_zhi} · ${latestChart.day_gan}${latestChart.day_zhi} · ${latestChart.hour_gan}${latestChart.hour_zhi}`,
         desc: `${latestChart.birth_year}年${latestChart.birth_month}月${latestChart.birth_day}日 ${latestChart.birth_hour}时 · ${genderText(latestChart.gender)}`,
         href: `/history/${latestChart.id}`,
       }
     : {
         label: '新的分析',
-        title: '创建新的八字命盘',
+        title: '创建新的干支记录',
         desc: '填写生辰信息，开始一次新的命理分析',
         href: '/',
       }
@@ -95,7 +95,7 @@ export default function ProfilePage() {
         <div className="profile-avatar"><UserRound size={28} /></div>
         <div>
           <h1>{profile.user.nickname || '缘聚用户'}</h1>
-          <p>{profile.user.email}</p>
+          <p>{profile.user.email || '微信小程序账号 · 未绑定邮箱'}</p>
           <span>加入时间：{formatDate(profile.user.created_at)}</span>
         </div>
       </section>
@@ -139,7 +139,7 @@ export default function ProfilePage() {
           <History size={20} />
           <div>
             <strong>历史记录</strong>
-            <span>查看已保存的命盘与报告</span>
+            <span>查看已保存的干支与报告</span>
           </div>
         </Link>
         <Link className="profile-action-card" to="/compatibility/history">
@@ -153,7 +153,7 @@ export default function ProfilePage() {
           <Sparkles size={20} />
           <div>
             <strong>继续测算</strong>
-            <span>创建新的八字命盘</span>
+            <span>创建新的干支记录</span>
           </div>
         </Link>
         <Link className="profile-action-card" to="/settings/brand">
@@ -168,7 +168,7 @@ export default function ProfilePage() {
       <section className="profile-grid">
         <div className="profile-panel">
           <div className="profile-section-title">
-            <h2>最近命盘</h2>
+            <h2>最近干支</h2>
             <Link to="/history">全部</Link>
           </div>
           {profile.recent_charts.length > 0 ? (
@@ -181,7 +181,7 @@ export default function ProfilePage() {
               ))}
             </div>
           ) : (
-            <p className="profile-muted">还没有保存命盘。</p>
+            <p className="profile-muted">还没有保存干支。</p>
           )}
         </div>
 

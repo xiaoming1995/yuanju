@@ -119,7 +119,7 @@ export default function CompatibilityPage() {
       const res = await baziAPI.getHistoryDetail(chartId)
       applyImportedChart(role, res.data.chart as BaziHistoryChart)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '命盘不存在或无权访问')
+      setError(err instanceof Error ? err.message : '干支不存在或无权访问')
     }
   }, [applyImportedChart])
 
@@ -127,7 +127,7 @@ export default function CompatibilityPage() {
     if (isLoading) return
     const charts = await loadHistoryCharts()
     if (charts.length === 0) {
-      setError('还没有命盘档案，请先新建命盘')
+      setError('还没有干支档案，请先新建干支')
       return
     }
     applyImportedChart(role, charts[0])
@@ -326,15 +326,15 @@ export default function CompatibilityPage() {
           <div className={`card compatibility-profile-panel ${activeProfile === 'self' ? 'compatibility-profile-panel--active' : ''}`}>
             <div className="compatibility-import-toolbar">
               <button type="button" className="btn btn-ghost" onClick={() => importLatestChart('self')}>
-                导入最近命盘
+                导入最近干支
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => openChartPicker('self')}>
-                从命盘档案选择
+                从干支档案选择
               </button>
             </div>
             {selfImportSource && (
               <p className="compatibility-import-source">
-                {importSourceLabel(selfImportSource, selfProfile, '我的命盘')}
+                {importSourceLabel(selfImportSource, selfProfile, '我的干支')}
               </p>
             )}
             <BirthProfileForm title="我的生辰" value={selfProfile} onChange={handleSelfProfileChange} showSummary />
@@ -342,15 +342,15 @@ export default function CompatibilityPage() {
           <div className={`card compatibility-profile-panel ${activeProfile === 'partner' ? 'compatibility-profile-panel--active' : ''}`}>
             <div className="compatibility-import-toolbar">
               <button type="button" className="btn btn-ghost" onClick={() => importLatestChart('partner')}>
-                导入最近命盘
+                导入最近干支
               </button>
               <button type="button" className="btn btn-ghost" onClick={() => openChartPicker('partner')}>
-                从命盘档案选择
+                从干支档案选择
               </button>
             </div>
             {partnerImportSource && (
               <p className="compatibility-import-source">
-                {importSourceLabel(partnerImportSource, partnerProfile, '对方命盘')}
+                {importSourceLabel(partnerImportSource, partnerProfile, '对方干支')}
               </p>
             )}
             <BirthProfileForm title="对方的生辰" value={partnerProfile} onChange={handlePartnerProfileChange} showSummary />
@@ -370,10 +370,10 @@ export default function CompatibilityPage() {
       </div>
 
       {pickerRole && (
-        <div className="compatibility-chart-picker" role="dialog" aria-modal="true" aria-label="选择命盘档案">
+        <div className="compatibility-chart-picker" role="dialog" aria-modal="true" aria-label="选择干支档案">
           <div className="compatibility-chart-picker-panel" ref={chartPickerRef} tabIndex={-1}>
             <div className="compatibility-chart-picker-head">
-              <strong>选择命盘档案</strong>
+              <strong>选择干支档案</strong>
               <button type="button" className="btn btn-ghost" onClick={() => setPickerRole(null)}>
                 关闭
               </button>
@@ -383,10 +383,10 @@ export default function CompatibilityPage() {
                 ref={pickerSearchRef}
                 type="search"
                 className="compatibility-chart-picker-search"
-                placeholder="搜索命盘称呼"
+                placeholder="搜索干支称呼"
                 value={pickerSearch}
                 onChange={event => setPickerSearch(event.target.value)}
-                aria-label="搜索命盘称呼"
+                aria-label="搜索干支称呼"
               />
               <div className="compatibility-chart-picker-filter" role="tablist" aria-label="性别筛选">
                 {(['all', 'male', 'female'] as const).map(g => (
@@ -409,14 +409,14 @@ export default function CompatibilityPage() {
             ) : pickerCharts.length === 0 ? (
               historyCharts.length === 0 ? (
                 <div className="compatibility-chart-picker-empty">
-                  <p>还没有命盘档案</p>
+                  <p>还没有干支档案</p>
                   <Link to="/" className="btn btn-primary compatibility-chart-picker-empty-cta">
-                    立即新建命盘
+                    立即新建干支
                   </Link>
                 </div>
               ) : (
                 <div className="compatibility-chart-picker-empty">
-                  <p>没有匹配的命盘</p>
+                  <p>没有匹配的干支</p>
                   <button
                     type="button"
                     className="btn btn-ghost compatibility-chart-picker-empty-cta"

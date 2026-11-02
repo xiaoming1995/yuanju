@@ -32,14 +32,14 @@ func GenerateAndSavePolishedReport(c *gin.Context) {
 
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 
 	userID, _ := c.Get("user_id")
 	userIDStr := userID.(string)
 	if chart.UserID == nil || *chart.UserID != userIDStr {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 
@@ -70,14 +70,14 @@ func GetPolishedReport(c *gin.Context) {
 
 	chart, err := repository.GetChartByID(chartID)
 	if err != nil || chart == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定命盘记录"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "未找到指定干支记录"})
 		return
 	}
 
 	userID, _ := c.Get("user_id")
 	userIDStr := userID.(string)
 	if chart.UserID == nil || *chart.UserID != userIDStr {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此命盘"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此干支"})
 		return
 	}
 

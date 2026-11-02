@@ -71,7 +71,7 @@ func ValidateMingGeHistoricalFigure(figure *model.MingGeHistoricalFigure) error 
 		if figure.BirthDataPrecision != "exact_hour" || figure.BaziVerificationNote == "" ||
 			figure.TurningPoint == "" || figure.TurningPointYear == "" ||
 			figure.DayunPeriod == "" || figure.DayunExplanation == "" {
-			return fmt.Errorf("展示大运需提供精确时辰、命盘核验、人生转折、转折年份、大运阶段与呼应说明")
+			return fmt.Errorf("展示大运需提供精确时辰、干支核验、人生转折、转折年份、大运阶段与呼应说明")
 		}
 	}
 	return nil

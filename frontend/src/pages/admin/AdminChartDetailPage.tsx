@@ -6,6 +6,7 @@ import './AdminChartDetailPage.css'
 
 interface ChartRecord {
   id: string
+  user_id?: string
   user_email?: string
   birth_year: number
   birth_month: number
@@ -107,8 +108,8 @@ function renderStructuredReport(chart: ChartRecord) {
       </div>
     )
   }
-  if (chart.ai_result) return <EmptyState>此命盘 AI 报告为旧格式，无结构化内容可展示。</EmptyState>
-  return <EmptyState>此命盘尚未生成 AI 原局报告。</EmptyState>
+  if (chart.ai_result) return <EmptyState>此干支 AI 报告为旧格式，无结构化内容可展示。</EmptyState>
+  return <EmptyState>此干支尚未生成 AI 原局报告。</EmptyState>
 }
 
 export default function AdminChartDetailPage() {
@@ -159,7 +160,7 @@ export default function AdminChartDetailPage() {
     return (
       <div className="admin-chart-detail">
         <Link to="/admin/charts" className="admin-chart-detail-back"><ArrowLeft size={14} /> 返回起盘明细</Link>
-        <div className="admin-card admin-chart-detail-error">{error || '命盘不存在'}</div>
+        <div className="admin-card admin-chart-detail-error">{error || '干支不存在'}</div>
       </div>
     )
   }
@@ -177,7 +178,7 @@ export default function AdminChartDetailPage() {
         <div>
           <Link to="/admin/charts" className="admin-chart-detail-back"><ArrowLeft size={14} /> 返回起盘明细</Link>
           <h1 className="admin-page-title admin-chart-detail-title">
-            <BookOpen size={24} /> 命盘详情
+            <BookOpen size={24} /> 干支详情
           </h1>
         </div>
         <button className="admin-btn admin-btn-ghost admin-chart-detail-refresh" onClick={loadAll}>
@@ -190,7 +191,7 @@ export default function AdminChartDetailPage() {
           <div className="admin-chart-profile-top">
             <span className="admin-chart-profile-avatar"><User size={18} /></span>
             <div>
-              <div className="admin-chart-profile-name">{chart.user_email || '游客命盘'}</div>
+              <div className="admin-chart-profile-name">{chart.user_email || (chart.user_id ? `微信用户 · ${chart.user_id.slice(0, 8)}` : '游客干支')}</div>
               <div className="admin-chart-profile-meta">{genderLabel(chart.gender)}命 · {formatDate(chart.created_at)}</div>
             </div>
           </div>

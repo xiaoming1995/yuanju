@@ -72,6 +72,12 @@ export const adminRegistrationSettingsAPI = {
     adminApi.put<{ registration_enabled: boolean }>('/api/admin/settings/registration', data),
 }
 
+export const adminMiniappRegistrationSettingsAPI = {
+  get: () => adminApi.get<{ miniapp_registration_enabled: boolean }>('/api/admin/settings/miniapp-registration'),
+  update: (data: { miniapp_registration_enabled: boolean }) =>
+    adminApi.put<{ miniapp_registration_enabled: boolean }>('/api/admin/settings/miniapp-registration', data),
+}
+
 export const adminChartsAPI = {
   list: (page: number = 1, pageSize: number = 20, q = '', from = '', to = '') =>
     adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(q)}&from=${from}&to=${to}`),

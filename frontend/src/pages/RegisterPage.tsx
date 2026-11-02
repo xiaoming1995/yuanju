@@ -45,7 +45,7 @@ export default function RegisterPage() {
         })
         return true
       } catch (err: unknown) {
-        setError(err instanceof Error ? `注册成功，但恢复刚才的命盘失败：${err.message}` : '注册成功，但恢复刚才的命盘失败')
+        setError(err instanceof Error ? `注册成功，但恢复刚才的干支失败：${err.message}` : '注册成功，但恢复刚才的干支失败')
         return false
       }
     }

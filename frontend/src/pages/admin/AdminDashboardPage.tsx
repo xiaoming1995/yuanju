@@ -36,7 +36,7 @@ export default function AdminDashboardPage() {
 
   const cards = stats ? [
     { label: '总用户数', value: stats.total_users, sub: `今日 +${stats.today_users}`, icon: <Users size={28} color="var(--admin-accent)" /> },
-    { label: '总命盘数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: <Compass size={28} color="var(--admin-accent)" /> },
+    { label: '总干支数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: <Compass size={28} color="var(--admin-accent)" /> },
     { label: 'AI 调用总数', value: stats.total_ai_requests, sub: `今日 +${stats.today_ai_requests}`, icon: <Bot size={28} color="var(--admin-accent)" /> },
   ] : []
 

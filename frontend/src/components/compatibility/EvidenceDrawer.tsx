@@ -12,7 +12,7 @@ const dimensionText: Record<string, string> = {
   zodiac: '合属相',
   nayin: '合纳音',
   day_pillar: '合日柱',
-  eight_chars: '合八字',
+  eight_chars: '三柱配合',
 }
 
 const polarityText: Record<string, string> = {
@@ -44,7 +44,7 @@ const evidenceSourceText: Record<string, string> = {
   zodiac: '合属相',
   nayin: '合纳音',
   day_pillar: '合日柱',
-  eight_chars: '合八字',
+  eight_chars: '三柱配合',
 }
 
 const perspectiveText: Record<string, string> = {
@@ -174,7 +174,7 @@ export default function EvidenceDrawer({ evidences, claimEvidenceLinks }: Props)
   return (
     <details open className="compat-evidence-drawer">
       <summary className="compat-evidence-drawer__summary">
-        <span className="compat-evidence-drawer__title serif">命理证据 / 命盘细节</span>
+        <span className="compat-evidence-drawer__title serif">命理证据 / 干支细节</span>
         <span className="compat-evidence-drawer__hint">关键判断依据 + 结构化证据组</span>
       </summary>
       <div className="compat-evidence-drawer__body">

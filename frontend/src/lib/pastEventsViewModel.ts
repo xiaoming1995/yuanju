@@ -198,7 +198,7 @@ export function getPastEventsSegmentViewState(summary?: PastEventsDayunSummaryLi
       return {
         state: 'generated',
         label: '本次缓存',
-        description: '本段批语来自当前命盘已生成内容，不复用同八字旧缓存。',
+        description: '本段批语来自当前干支已生成内容，不复用同一组干支的旧缓存。',
         canRevealSignals: false,
         canGenerateAi: false,
         canRetry: false,
@@ -209,7 +209,7 @@ export function getPastEventsSegmentViewState(summary?: PastEventsDayunSummaryLi
       return {
         state: 'generated',
         label: '批语刚生成',
-        description: '本段批语已为当前命盘重新生成，并保存为本次命盘缓存。',
+        description: '本段批语已为当前干支重新生成，并保存为本次干支缓存。',
         canRevealSignals: false,
         canGenerateAi: false,
         canRetry: false,

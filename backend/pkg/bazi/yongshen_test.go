@@ -198,7 +198,7 @@ func TestInferYongshen_HotMonth_HiddenWaterHit(t *testing.T) {
 	}
 }
 
-// 6.9：strings.Contains 兼容性：构造 yongshen=火 的命盘，getYongshenBaseline 仍命中
+// 6.9：strings.Contains 兼容性：构造 yongshen=火 的干支，getYongshenBaseline 仍命中
 func TestGetYongshenBaseline_SingleWuxingMatch(t *testing.T) {
 	natal := &BaziResult{
 		DayGan:   "甲",

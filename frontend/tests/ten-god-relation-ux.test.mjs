@@ -13,7 +13,7 @@ test('result page defines ten god relation data and legacy fallback derivation',
   assert.match(page, /ten_god_relation\?: TenGodRelationMatrix/)
   assert.match(page, /buildTenGodRelationMatrix/)
   assert.match(page, /日主 \/ 日元/)
-  assert.match(page, /命盘的参照点/)
+  assert.match(page, /干支的参照点/)
 })
 
 test('result page renders day-master and heavenly-stem relation cards', () => {

@@ -89,8 +89,8 @@ export default function HomePage() {
       if (list.length === 0) {
         const isZiHour = pillars.hourPillar.endsWith('子')
         setError(isZiHour
-          ? '这组八字找不到对应的真实日期。若出生于 23 点后的子时，日柱排法可能不同（早/晚子时），请核对后再试。'
-          : '这组八字找不到对应的真实日期，请核对四柱')
+          ? '这组干支找不到对应的真实日期。若出生于 23 点后的子时，日柱排法可能不同（早/晚子时），请核对后再试。'
+          : '这组干支找不到对应的真实日期，请核对四柱')
       } else if (list.length === 1) {
         await castBySolar(list[0].year, list[0].month, list[0].day, list[0].hour, pillars.gender, false)
       } else {
@@ -168,12 +168,12 @@ export default function HomePage() {
       <section className="hero">
         <div className="container">
           <div className="hero-content animate-fade-up">
-            <div className="hero-badge serif">八字命理 · 命理解读</div>
+            <div className="hero-badge serif">干支分析 · 命理解读</div>
             <h1 className="hero-title serif">
               知命理，<span className="text-gold">悟人生</span>
             </h1>
             <p className="hero-desc">
-              融合传统八字命理与现代算法，为你解读命盘中的天赋与机遇
+              融合传统干支推算与现代算法，为你解读干支中的天赋与机遇
             </p>
             <div className="home-intent-grid" aria-label="常用分析入口">
               <a className="home-intent-card" href="#bazi-form">
@@ -210,7 +210,7 @@ export default function HomePage() {
                   className={`birth-profile-option ${inputMode === m ? 'active' : ''}`}
                   onClick={() => { setInputMode(m); setError(''); setDisplayNameError(''); setCandidates([]) }}
                 >
-                  {m === 'birth' ? '按生辰' : '按八字'}
+                  {m === 'birth' ? '按生辰' : '按干支'}
                 </button>
               ))}
             </div>
@@ -229,7 +229,7 @@ export default function HomePage() {
               <div className="form-group">
                 <label className="form-label" htmlFor="chart-display-name">
                   档案称呼（选填）
-                  <span className="field-note">用于在历史与合盘中识别此命盘，最多 20 字</span>
+                  <span className="field-note">用于在历史与合盘中识别此干支，最多 20 字</span>
                 </label>
                 <input
                   id="chart-display-name"
@@ -332,7 +332,7 @@ export default function HomePage() {
                 {error && <p className="form-error">{error}</p>}
 
                 <button type="submit" id="submit-pillars" className="btn btn-primary btn-lg submit-btn" disabled={loading}>
-                  {loading ? (<><span className="loading-spinner" />正在反查...</>) : (<>按八字起盘</>)}
+                  {loading ? (<><span className="loading-spinner" />正在反查...</>) : (<>按干支起盘</>)}
                 </button>
 
                 {!user && (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { adminRegistrationSettingsAPI, adminStatsAPI, adminUsersAPI } from '../../lib/adminApi'
+import { adminMiniappRegistrationSettingsAPI, adminRegistrationSettingsAPI, adminStatsAPI, adminUsersAPI } from '../../lib/adminApi'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useToast } from '../../components/ui/useToast'
@@ -30,6 +30,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [registration_enabled, setRegistrationEnabled] = useState(false)
   const [registrationSaving, setRegistrationSaving] = useState(false)
+  const [miniappRegistrationEnabled, setMiniappRegistrationEnabled] = useState(false)
+  const [miniappRegistrationSaving, setMiniappRegistrationSaving] = useState(false)
   const [settingsMsg, setSettingsMsg] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState(initialForm)
@@ -51,6 +53,9 @@ export default function AdminUsersPage() {
     adminRegistrationSettingsAPI.get()
       .then(r => setRegistrationEnabled(r.data.registration_enabled))
       .catch(() => setSettingsMsg('注册设置读取失败'))
+    adminMiniappRegistrationSettingsAPI.get()
+      .then(r => setMiniappRegistrationEnabled(r.data.miniapp_registration_enabled))
+      .catch(() => setSettingsMsg('小程序注册设置读取失败'))
   }
 
   useEffect(() => {
@@ -80,6 +85,21 @@ export default function AdminUsersPage() {
       showToast(e instanceof Error ? e.message : '保存失败', 'error')
     } finally {
       setRegistrationSaving(false)
+    }
+  }
+
+  const toggleMiniappRegistration = async () => {
+    setMiniappRegistrationSaving(true)
+    setSettingsMsg('')
+    try {
+      const res = await adminMiniappRegistrationSettingsAPI.update({ miniapp_registration_enabled: !miniappRegistrationEnabled })
+      setMiniappRegistrationEnabled(res.data.miniapp_registration_enabled)
+      setSettingsMsg('已保存')
+      showToast(res.data.miniapp_registration_enabled ? '已开启小程序新用户注册' : '已关闭小程序新用户注册', 'success')
+    } catch (e: unknown) {
+      setSettingsMsg(e instanceof Error ? e.message : '保存失败')
+    } finally {
+      setMiniappRegistrationSaving(false)
     }
   }
 
@@ -163,7 +183,8 @@ export default function AdminUsersPage() {
     }
   }
 
-  const sourceLabel = (source: string) => source === 'admin_created' ? '后台创建' : '公开注册'
+  const sourceLabel = (source: string) => source === 'admin_created' ? '后台创建' : source === 'miniapp_wechat' ? '微信小程序' : '网页注册'
+  const userLabel = (user: User) => user.email || `${user.nickname || '微信用户'}（${user.id.slice(0, 8)}）`
 
   return (
     <div>
@@ -175,9 +196,9 @@ export default function AdminUsersPage() {
       <div className="admin-card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ color: 'var(--admin-text)', fontWeight: 700, marginBottom: 4 }}>公开注册</div>
+            <div style={{ color: 'var(--admin-text)', fontWeight: 700, marginBottom: 4 }}>网页邮箱注册</div>
             <div style={{ color: 'var(--admin-text-muted)', fontSize: 13 }}>
-              当前状态：{registration_enabled ? '允许访客自行注册' : '关闭公开注册，仅后台可创建用户'}
+              当前状态：{registration_enabled ? '允许网页访客自行注册' : '关闭网页注册，仅后台可创建邮箱用户'}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
@@ -190,13 +211,23 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
+      <div className="admin-card" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ color: 'var(--admin-text)', fontWeight: 700, marginBottom: 4 }}>小程序微信注册</div>
+          <div style={{ color: 'var(--admin-text-muted)', fontSize: 13 }}>只控制首次微信建号；已绑定账号仍可登录，与网页邮箱注册开关独立。</div>
+        </div>
+        <button className="admin-btn admin-btn-ghost" onClick={toggleMiniappRegistration} disabled={miniappRegistrationSaving}>
+          {miniappRegistrationSaving ? '保存中...' : miniappRegistrationEnabled ? '关闭小程序注册' : '开启小程序注册'}
+        </button>
+      </div>
+
       <form onSubmit={handleSearch} className="admin-search-bar">
         <input
           id="admin-user-search"
           className="admin-search-input"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="搜索邮箱..."
+          placeholder="搜索邮箱、昵称或用户 ID..."
         />
         <button type="submit" className="admin-btn admin-btn-primary">搜索</button>
         {query && (
@@ -209,7 +240,7 @@ export default function AdminUsersPage() {
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
           <table className="admin-table">
             <thead>
-              <tr><th>邮箱</th><th>昵称</th><th>来源</th><th>命盘数</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+              <tr><th>邮箱 / 用户 ID</th><th>昵称</th><th>来源</th><th>干支数</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
             </thead>
             <tbody>
               {!users?.length && (
@@ -219,7 +250,7 @@ export default function AdminUsersPage() {
               )}
               {users?.map(u => (
                 <tr key={u.id}>
-                  <td style={{ color: 'var(--admin-text)' }}>{u.email}</td>
+                  <td style={{ color: 'var(--admin-text)' }}>{u.email || `未绑定邮箱 · ${u.id.slice(0, 8)}`}</td>
                   <td style={{ color: 'var(--admin-text-secondary)' }}>{u.nickname || '—'}</td>
                   <td style={{ color: u.source === 'admin_created' ? 'var(--admin-primary)' : 'var(--admin-text-muted)', fontSize: 13 }}>
                     {sourceLabel(u.source)}
@@ -240,8 +271,8 @@ export default function AdminUsersPage() {
                     {new Date(u.created_at).toLocaleDateString('zh-CN')}
                   </td>
                   <td style={{ whiteSpace: 'nowrap' }}>
-                    <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
-                      onClick={() => openReset(u)}>重置密码</button>
+                    {u.email && <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
+                      onClick={() => openReset(u)}>重置密码</button>}
                     <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
                       onClick={() => toggleDisabled(u)}>{u.disabled_at ? '解禁' : '禁用'}</button>
                     <button className="admin-btn admin-btn-ghost" style={{ color: 'var(--admin-danger)' }}
@@ -324,11 +355,11 @@ export default function AdminUsersPage() {
         title={pendingAction?.type === 'delete' ? '删除用户' : pendingAction?.user.disabled_at ? '解禁用户' : '禁用用户'}
         description={
           pendingAction?.type === 'delete'
-            ? `确认删除用户 ${pendingAction.user.email}？将连带删除其 ${pendingAction.user.compat_count || 0} 条合盘记录（不可恢复），其八字命盘将转为游客记录保留。`
+            ? `确认删除用户 ${userLabel(pendingAction.user)}？将连带删除其 ${pendingAction.user.compat_count || 0} 条合盘记录（不可恢复），其干支记录将转为游客记录保留。`
             : pendingAction
               ? pendingAction.user.disabled_at
-                ? `确认解禁用户 ${pendingAction.user.email}？`
-                : `确认禁用用户 ${pendingAction.user.email}？禁用后该用户将无法再次登录，已签发的登录令牌在到期前仍有效。`
+                ? `确认解禁用户 ${userLabel(pendingAction.user)}？`
+                : `确认禁用用户 ${userLabel(pendingAction.user)}？禁用后该用户将无法再次登录。`
               : ''
         }
         confirmText={pendingAction?.type === 'delete' ? '删除' : pendingAction?.user.disabled_at ? '解禁' : '禁用'}

@@ -26,7 +26,7 @@ const DIM_LABEL_V3: Record<string, string> = {
   zodiac: '属相',
   nayin: '纳音',
   day_pillar: '日柱',
-  eight_chars: '八字',
+  eight_chars: '三柱配合',
 }
 const POLARITY_LABEL: Record<string, string> = {
   positive: '正向',
@@ -66,7 +66,7 @@ const EVIDENCE_SOURCE_LABEL: Record<string, string> = {
   zodiac: '合属相',
   nayin: '合纳音',
   day_pillar: '合日柱',
-  eight_chars: '合八字',
+  eight_chars: '三柱配合',
 }
 
 function PrintHeader({ title, brand }: { title: string; brand?: ExportBrand | null }) {

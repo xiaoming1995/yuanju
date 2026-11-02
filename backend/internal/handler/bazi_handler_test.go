@@ -73,7 +73,7 @@ func TestUpdateChartDisplayNameRequest_RejectsMalformedChartID(t *testing.T) {
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d: %s", recorder.Code, recorder.Body.String())
 	}
-	if !strings.Contains(recorder.Body.String(), "无效的命盘ID") {
+	if !strings.Contains(recorder.Body.String(), "无效的干支ID") {
 		t.Fatalf("expected invalid chart id error, got %s", recorder.Body.String())
 	}
 }
@@ -91,7 +91,7 @@ func TestDeleteHistory_RejectsMalformedChartID(t *testing.T) {
 	if recorder.Code != http.StatusBadRequest {
 		t.Fatalf("expected status 400, got %d: %s", recorder.Code, recorder.Body.String())
 	}
-	if !strings.Contains(recorder.Body.String(), "无效的命盘ID") {
+	if !strings.Contains(recorder.Body.String(), "无效的干支ID") {
 		t.Fatalf("expected invalid chart id error, got %s", recorder.Body.String())
 	}
 }

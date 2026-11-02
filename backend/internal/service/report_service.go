@@ -30,7 +30,7 @@ var (
 	createLiunianReport = repository.CreateLiunianReport
 )
 
-const dayunSummaryPromptTpl = `你是一位资深八字命理师。请只为下列单段大运撰写整体总结和该段 10 年的逐年评述。
+const dayunSummaryPromptTpl = `你是一位资深干支命理师。请只为下列单段大运撰写整体总结和该段 10 年的逐年评述。
 
 命主：性别{{.Gender}} / 日干{{.DayGan}}
 原局：{{.NatalSummary}}
@@ -105,7 +105,7 @@ func validateLiunianGenderConsistency(gender, content string) error {
 	}
 	for _, phrase := range forbidden {
 		if strings.Contains(content, phrase) {
-			return fmt.Errorf("AI流年输出与命盘性别不一致，包含不应出现的表述：%s", phrase)
+			return fmt.Errorf("AI流年输出与干支性别不一致，包含不应出现的表述：%s", phrase)
 		}
 	}
 	return nil
@@ -162,10 +162,10 @@ func buildLifeStageHint(youngCount, totalCount int) string {
 	return fmt.Sprintf("本段大运跨越读书期与成人期（前 %d 年读书、后 %d 年入社会），summary 请分两段叙述：先讲读书期学业 / 性格，再讲成人期事业 / 婚恋。", youngCount, adultCount)
 }
 
-// LoadOrCalculateResult 加载或懒计算命盘的 BaziResult 快照
+// LoadOrCalculateResult 加载或懒计算干支的 BaziResult 快照
 //
 // 优先从 bazi_charts.result_json 反序列化（无 lunar-go 调用，毫秒级）；
-// 老命盘 result_json 为空时，调一次 bazi.Calculate 并回写 DB；
+// 老干支 result_json 为空时，调一次 bazi.Calculate 并回写 DB；
 // 之后所有下游（流年、大运、报告）都拿到一致的"原子化"原局，避免算法版本漂移。
 func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 	if chart == nil {
@@ -173,7 +173,7 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 	}
 	raw, err := getChartResultJSON(chart.ID)
 	if err != nil {
-		return nil, fmt.Errorf("读取命盘快照失败: %v", err)
+		return nil, fmt.Errorf("读取干支快照失败: %v", err)
 	}
 	if len(raw) > 0 {
 		var cached bazi.BaziResult
@@ -191,7 +191,7 @@ func LoadOrCalculateResult(chart *model.BaziChart) (*bazi.BaziResult, error) {
 				backfilled = true
 			}
 			assessmentBackfilled := bazi.EnsureNatalAssessment(&cached)
-			// 喜忌十神与命盘评估同源。评估升级时必须同步刷新，避免旧调候
+			// 喜忌十神与干支评估同源。评估升级时必须同步刷新，避免旧调候
 			// 结果继续作为扶抑十神基底。
 			if cached.ShishenConfidence == "" || assessmentBackfilled {
 				fuyi := bazi.AssessFuyiStrength(&cached)
@@ -362,11 +362,11 @@ func formatVehicleRoadPromptContext(result *bazi.BaziResult, currentYear int) st
 	}
 
 	var b strings.Builder
-	b.WriteString("\n[命盘座驾与大运路况-算法精算]\n")
+	b.WriteString("\n[干支座驾与大运路况-算法精算]\n")
 	b.WriteString("以下为后端算法已计算的比喻化解释层，你只能解释其含义，不得重新打分、改判等级或输出相互矛盾的座驾/路况结论。\n")
 	if v := result.VehicleProfile; v != nil {
 		b.WriteString("座驾等级表示原局基础层次：调候急需优先；无急需时以扶抑为基线，再看日干调候成格、主格结构、制化与流通；不是社会阶层、人的贵贱或确定命运。\n")
-		b.WriteString(fmt.Sprintf("命盘座驾：%s级（%s），车型=%s，分数=%d，标签=%s。\n",
+		b.WriteString(fmt.Sprintf("干支座驾：%s级（%s），车型=%s，分数=%d，标签=%s。\n",
 			v.Grade, v.GradeLabel, v.VehicleType, v.Score, join(v.Tags)))
 		b.WriteString(fmt.Sprintf("座驾摘要：%s\n", v.Summary))
 		b.WriteString(fmt.Sprintf("座驾依据：%s\n", formatEvidence(v.Evidences, 5)))
@@ -668,7 +668,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 			"   若局中同时存在其它明显结构，必须明确写出“兼带某某倾向”或“局中亦见某某气象”一句，再继续解释主次关系；\n"+
 			"   格局模块用于解释主格，不再重新决定格局名称。\n\n"+
 			"c. 【神煞修饰 — 辅助依据】\n"+
-			"   扫描命盘全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
+			"   扫描干支全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
 			"   判断关键神煞如何修饰人格特征、事件色彩与运势表现；\n"+
 			"   神煞不得推翻系统定格结果，也不得单独决定最终喜忌。\n\n"+
 			"d. 【综合结论】\n"+
@@ -681,7 +681,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 			"- 开头必须先写系统主格，使用“此命以【X格】立局”或同义表达；\n" +
 			"- 紧接着说明该格局在原局中属于成格、破格、有救、偏弱中的哪一种；\n" +
 			"- 然后说明该格局与调候、最终喜用神之间的关系；\n" +
-			"- 首段直接说明命盘的核心喜用神与忌神。阐述依据时，需通过自然语言融合调候、格局与神煞的结论。绝对禁止出现“百分比”、“加权”、“权重”、“65%”等机械化算分词汇。\n" +
+			"- 首段直接说明干支的核心喜用神与忌神。阐述依据时，需通过自然语言融合调候、格局与神煞的结论。绝对禁止出现“百分比”、“加权”、“权重”、“65%”等机械化算分词汇。\n" +
 			"- 若模块存在冲突（如格局倾向与调候方向不一致），请用专业口吻解释主次取舍（例如：“虽以正官格立局，但命局偏寒，首当以火土暖局为要”）。\n" +
 			"- 若局中兼象明显，必须显式写出“兼带某某倾向”或“局中亦见某某气象”，但不得覆盖系统主格。\n" +
 			"- 接续说明日干强弱依据（月令得令、失令状态）\n" +
@@ -705,7 +705,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 			"   ④按知识库「用神取法」确定格局喜用神；\n"+
 			"   对格局喜用神五行 +25票，忌神五行 -25票。\n\n"+
 			"c. 【神煞综合评分 — 权重10票】\n"+
-			"   扫描命盘全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
+			"   扫描干支全部神煞（天乙贵人/驿马/羊刃/桃花/华盖等）；\n"+
 			"   判断每个神煞对各五行的影响方向：利→ +10票，不利→ -10票，中性→ 0票。\n\n"+
 			"d. 【加权合并】\n"+
 			"   对每个五行汇总 a+b+c 的总票数；\n"+
@@ -715,15 +715,15 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 		)
 		stepTwoPrompt = "[第二步：生成命局分析总览 analysis.logic]\n" +
 			"写一段整体分析（500-800字），专业命理分析风格，如实批断，不偏不倚：\n" +
-			"- 首段直接说明命盘的核心喜用神与忌神。阐述依据时，需通过自然语言融合调候、格局与神煞的结论。绝对禁止出现“百分比”、“加权”、“权重”、“65%”等机械化算分词汇。\n" +
+			"- 首段直接说明干支的核心喜用神与忌神。阐述依据时，需通过自然语言融合调候、格局与神煞的结论。绝对禁止出现“百分比”、“加权”、“权重”、“65%”等机械化算分词汇。\n" +
 			"- 若模块存在冲突（如格局用神与调候用神不一致），请用专业口吻解释主次取舍（例如：“虽因格局喜水木，但命局偏寒，首当以火土暖局为要”）。\n" +
 			"- 接续说明日干强弱依据（月令得令、失令状态）\n" +
 			"- 提取1~2个最亮眼的特征或神煞进行个性点评\n" +
 			"- 若命局存在明显缺陷（如用神缺失、忌神过重、格局遭破），必须如实指出，不可回避或美化。\n\n"
 	}
 
-	prompt := "以下命盘数据已由算法精确计算，请基于精算结果进行深度命理解读。\n\n" +
-		fmt.Sprintf("[八字命盘]\n"+
+	prompt := "以下干支数据已由算法精确计算，请基于精算结果进行深度命理解读。\n\n" +
+		fmt.Sprintf("[四柱干支]\n"+
 			"年柱：%s%s（%s%s）| 藏干：%s\n"+
 			"月柱：%s%s（%s%s）| 藏干：%s\n"+
 			"日柱：%s%s（%s%s）| 藏干：%s <- 日干代表本人\n"+

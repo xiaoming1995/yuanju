@@ -10,7 +10,7 @@ import (
 )
 
 // UpsertPolishedReport 创建或覆盖一条润色版报告。
-// UNIQUE chart_id 约束 → 同一命盘只保留最新一份。
+// UNIQUE chart_id 约束 → 同一干支只保留最新一份。
 func UpsertPolishedReport(
 	chartID, userSituation, content, modelName string,
 	contentStructured *json.RawMessage,
@@ -45,7 +45,7 @@ func UpsertPolishedReport(
 	return report, err
 }
 
-// GetPolishedByChartID 读指定命盘的润色版。无记录返回 (nil, nil)。
+// GetPolishedByChartID 读指定干支的润色版。无记录返回 (nil, nil)。
 func GetPolishedByChartID(chartID string) (*model.PolishedReport, error) {
 	report := &model.PolishedReport{}
 	err := database.DB.QueryRow(

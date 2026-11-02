@@ -45,7 +45,7 @@ const TiaohouCard: React.FC<TiaohouCardProps> = ({ dayGan, monthZhi, score, form
         </div>
         
         <div className="tiaohou-actual-row">
-          <span className="tiaohou-label">本八字</span>
+          <span className="tiaohou-label">本命盘</span>
           <div className="tiaohou-actual-values">
             <span className="actual-type">透</span>
             {tiaohou.tou.length > 0 ? (

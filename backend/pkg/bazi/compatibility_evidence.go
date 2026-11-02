@@ -117,7 +117,7 @@ func dayPillarEvidence(a, b *BaziResult) []CompatibilityEvidence {
 				Source:      "day_pillar",
 				Title:       "日柱上档",
 				Detail: fmt.Sprintf(
-					"日柱（%s%s / %s%s）是命盘里最贴近婚恋、最代表「枕边人」的一根柱子，你俩在这里咬合得很到位——地支相合、天干也彼此呼应。这说明在亲密关系的核心地带，你们有天然的契合和稳定结构。相处中容易有那种「找对了人」的踏实感，亲密和信任都建立得比较顺。这是合盘里分量很重的一个好信号，值得珍惜。",
+					"日柱（%s%s / %s%s）是干支里最贴近婚恋、最代表「枕边人」的一根柱子，你俩在这里咬合得很到位——地支相合、天干也彼此呼应。这说明在亲密关系的核心地带，你们有天然的契合和稳定结构。相处中容易有那种「找对了人」的踏实感，亲密和信任都建立得比较顺。这是合盘里分量很重的一个好信号，值得珍惜。",
 					a.DayGan, a.DayZhi, b.DayGan, b.DayZhi,
 				),
 				Weight: 10,
@@ -350,7 +350,7 @@ func buildSummaryTagsV3(scores CompatibilityDimensionScores, total int) []string
 		tags = append(tags, "日柱次吉")
 	}
 	if scores.EightChars >= 14 {
-		tags = append(tags, "八字承接好")
+		tags = append(tags, "三柱承接好")
 	}
 	if len(tags) > 4 {
 		tags = tags[:4]

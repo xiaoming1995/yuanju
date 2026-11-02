@@ -60,7 +60,7 @@ export default function PillarsInputForm({ value, onChange }: PillarsInputFormPr
 
       <div className="birth-profile-fieldset">
         <label className="form-label" htmlFor={`${formId}-quick`}>
-          快速填入八字（选填）
+          快速填入干支（选填）
           <span className="field-note">直接打字或粘贴 8 个字，自动拆到下方四柱；也可在下方逐字选择</span>
         </label>
         <input
@@ -76,7 +76,7 @@ export default function PillarsInputForm({ value, onChange }: PillarsInputFormPr
 
       <div className="birth-profile-fieldset">
         <div className="form-label">
-          四柱八字
+          四柱干支
           <span className="field-note">点开每个格子选一个字：上为天干、下为地支</span>
         </div>
         <div className="pillars-grid">

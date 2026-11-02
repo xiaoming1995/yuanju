@@ -142,9 +142,9 @@ type AIResponse struct {
 }
 
 // defaultSystemPrompt 默认 System Prompt（当无数据库知识库时的 fallback）
-const defaultSystemPrompt = `你是一位精通八字命理的专业命理师。
+const defaultSystemPrompt = `你是一位精通干支命理的专业命理师。
 
-输出风格要求：现代解读风格——结论先行、语言通俗直接、术语作为点缀自然融入，让普通读者能看懂自己的命盘。避免大段术语堆砌，但关键判断（如格局定性、用神盘定）可适当展示专业推导过程。`
+输出风格要求：现代解读风格——结论先行、语言通俗直接、术语作为点缀自然融入，让普通读者能看懂自己的干支。避免大段术语堆砌，但关键判断（如格局定性、用神盘定）可适当展示专业推导过程。`
 
 // buildKnowledgeBaseSystem 从数据库动态拼装所有 kb_* 模块作为 System Prompt
 func buildKnowledgeBaseSystem() string {
@@ -161,7 +161,7 @@ func buildKnowledgeBaseSystem() string {
 	}
 
 	var parts []string
-	parts = append(parts, "你是一位精通八字命理的专业命理师，深入研习《子平真诠》（格局派）与《穷通宝鉴》（调候派）两大权威典籍。")
+	parts = append(parts, "你是一位精通干支命理的专业命理师，深入研习《子平真诠》（格局派）与《穷通宝鉴》（调候派）两大权威典籍。")
 	parts = append(parts, "")
 	parts = append(parts, "请严格遵循以下命理体系进行批断，不得自行臆造或混淆十神含义：")
 	parts = append(parts, "")

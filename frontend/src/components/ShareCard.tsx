@@ -536,7 +536,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>((props, ref) => {
           fontSize: 13,
           fontFamily: '"Noto Sans SC", sans-serif',
         }}>
-          命盘尚未生成命理解读，请先生成报告后再保存图片
+          干支尚未生成命理解读，请先生成报告后再保存图片
         </div>
       )}
 

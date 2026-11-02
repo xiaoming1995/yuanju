@@ -97,7 +97,7 @@ func buildStemRelation(dayGan, pillar, label, gan, wuxing, tenGod string, isDayM
 			Wuxing:      wuxing,
 			TenGod:      "日主 / 日元",
 			Relation:    "命主自身",
-			Summary:     "这是命盘的参照点，其他十神都以此天干为中心推导。",
+			Summary:     "这是干支的参照点，其他十神都以此天干为中心推导。",
 		}
 	}
 	if tenGod == "" {

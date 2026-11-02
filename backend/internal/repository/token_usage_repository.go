@@ -85,7 +85,7 @@ func GetTokenUsageSummary(from, to time.Time, costFn func(string, int, int) floa
 	rows, err := database.DB.Query(`
 		SELECT
 			u.id,
-			u.email,
+			COALESCE(u.email, '') AS email,
 			COALESCE(u.nickname, '') AS nickname,
 			COUNT(t.id)::int                           AS request_count,
 			COALESCE(t.model, '')                      AS model,

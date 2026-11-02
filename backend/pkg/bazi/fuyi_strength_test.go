@@ -109,18 +109,18 @@ func TestCalcFuyiStrength_NoRoot_Weak(t *testing.T) {
 	// 有根检测：日支子藏[癸]→癸=水≠火；年支亥藏[壬甲]→壬水、甲木，均≠火；月支戌藏[戊辛]→戊土、辛金，≠火
 	// 时支巳藏[丙庚]→取主中=[丙,庚]，丙=火=dayGanWx → 有根(时支巳，坐/引?)
 	// 实际：时支巳主气丙，ganWuxing[丙]=huo=dayGanWx → 有根（引）
-	// 所以这个命盘是有根的，测试结果取决于克泄数
+	// 所以这个干支是有根的，测试结果取决于克泄数
 	// 这里主要验证函数不崩溃，结果合理
-	t.Logf("1995命盘扶抑结果: isStrong=%v, reason=%s", isStrong, reason)
+	t.Logf("1995干支扶抑结果: isStrong=%v, reason=%s", isStrong, reason)
 	_ = isStrong
 	_ = reason
 }
 
-// TestCalcFuyiYongshen_1995 验证1995命盘用忌神派生
+// TestCalcFuyiYongshen_1995 验证1995干支用忌神派生
 func TestCalcFuyiYongshen_1995(t *testing.T) {
 	dayGan, yearGan, monthGan, hourGan, yearHG, monthHG, dayHG, hourHG := fuyiArgs1995()
 	ys, js := calcFuyiYongshen(dayGan, yearGan, monthGan, hourGan, yearHG, monthHG, dayHG, hourHG)
-	t.Logf("1995命盘 yongshen=%s jishen=%s", ys, js)
+	t.Logf("1995干支 yongshen=%s jishen=%s", ys, js)
 	if ys == "" {
 		t.Error("yongshen 不应为空")
 	}

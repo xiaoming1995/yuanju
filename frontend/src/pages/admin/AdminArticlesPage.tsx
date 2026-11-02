@@ -545,7 +545,7 @@ export default function AdminArticlesPage() {
         <div>
           <span className="admin-page-kicker">内容运营</span>
           <h1>资讯管理</h1>
-          <p>采集、审核、分类并发布八字相关文章参考。</p>
+          <p>采集、审核、分类并发布干支相关文章参考。</p>
         </div>
         <div className="admin-article-summary">
           <SummaryStat label="当前列表" value={articleTotal} />
@@ -946,7 +946,7 @@ export default function AdminArticlesPage() {
             <div className="admin-article-card-head">
               <div>
                 <h2>资讯 AI 配置</h2>
-                <p>用于文章摘要、拆解和仿写角度分析，不影响八字报告模型。</p>
+                <p>用于文章摘要、拆解和仿写角度分析，不影响命盘报告模型。</p>
               </div>
               <button className="admin-article-btn primary" onClick={saveAIConfig}>保存 AI 配置</button>
             </div>

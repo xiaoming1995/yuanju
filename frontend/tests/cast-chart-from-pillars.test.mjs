@@ -35,7 +35,7 @@ test('homepage offers birth/pillars input mode toggle', () => {
   const home = read('src/pages/HomePage.tsx')
   assert.match(home, /inputMode/)
   assert.match(home, /按生辰/)
-  assert.match(home, /按八字/)
+  assert.match(home, /按干支/)
   assert.match(home, /PillarsInputForm/)
 })
 

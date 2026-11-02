@@ -791,8 +791,8 @@ func TestBuildBaziPromptIncludesVehicleRoadContext(t *testing.T) {
 	prompt := buildBaziPrompt(result)
 
 	for _, want := range []string{
-		"[命盘座驾与大运路况-算法精算]",
-		"命盘座驾：",
+		"[干支座驾与大运路况-算法精算]",
+		"干支座驾：",
 		"座驾等级表示原局基础层次：调候急需优先；无急需时以扶抑为基线，再看日干调候成格、主格结构、制化与流通",
 		"日干调候可用性=resolved（得分=12，所需=甲、壬，透=甲，藏=甲、壬）",
 		"日干调候成格=formed/high（基础加成=24）",
@@ -899,7 +899,7 @@ func TestBuildBaziPromptOmitsVehicleRoadContextWhenMissing(t *testing.T) {
 	}
 
 	prompt := buildBaziPrompt(result)
-	if strings.Contains(prompt, "[命盘座驾与大运路况-算法精算]") {
+	if strings.Contains(prompt, "[干支座驾与大运路况-算法精算]") {
 		t.Fatalf("prompt should omit vehicle-road context when structured fields are missing")
 	}
 	if strings.Contains(prompt, "重新生成座驾") || strings.Contains(prompt, "自行判断座驾") {
@@ -1188,7 +1188,7 @@ func TestDayunSummaryPrompt_YearNarrativeMustLeadWithPlainLanguage(t *testing.T)
 // ── computeAutoGenDayunIndexes 测试 ──────────────────────────────────
 
 // helper for building DayunItem slices in tests; StartYear 由 birthYear + StartAge 推算，
-// 用于模拟"起运正好踩在生日整数年"的常规命盘。需要 StartYear 与 birthYear+StartAge
+// 用于模拟"起运正好踩在生日整数年"的常规干支。需要 StartYear 与 birthYear+StartAge
 // 偏移一年的边界场景时，请直接构造 []bazi.DayunItem 字面量。
 func mkDayuns(birthYear int, starts ...int) []bazi.DayunItem {
 	out := make([]bazi.DayunItem, len(starts))
@@ -1426,7 +1426,7 @@ func TestBuildPastEventsExportDataFiltersToGeneratedCachedSegments(t *testing.T)
 	emptyYears := json.RawMessage(`[]`)
 	invalidYears := json.RawMessage(`{"bad":true}`)
 	chart := &model.BaziChart{
-		ID: "chart-1", DisplayName: "测试命盘",
+		ID: "chart-1", DisplayName: "测试干支",
 		BirthYear: 1990, BirthMonth: 1, BirthDay: 2, BirthHour: 12,
 		Gender:  "male",
 		YearGan: "庚", YearZhi: "午", MonthGan: "戊", MonthZhi: "寅",
@@ -1463,7 +1463,7 @@ func TestBuildPastEventsExportDataFiltersToGeneratedCachedSegments(t *testing.T)
 	if err != nil {
 		t.Fatalf("BuildPastEventsExportData returned error: %v", err)
 	}
-	if got.Chart.ID != "chart-1" || got.Chart.DisplayName != "测试命盘" {
+	if got.Chart.ID != "chart-1" || got.Chart.DisplayName != "测试干支" {
 		t.Fatalf("unexpected chart context: %+v", got.Chart)
 	}
 	if len(got.Segments) != 1 {

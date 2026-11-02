@@ -88,7 +88,7 @@ export default function HistoryPage() {
 
   const latestChart = charts[0]
   const stats = [
-    { label: '命盘记录', value: `${total}`, icon: CalendarDays },
+    { label: '干支记录', value: `${total}`, icon: CalendarDays },
     { label: '最近起盘', value: latestChart ? formatDate(latestChart.created_at) : '-', icon: Sparkles },
     { label: '男女命', value: `${maleCount}/${femaleCount}`, icon: Compass },
   ]
@@ -155,17 +155,17 @@ export default function HistoryPage() {
       <div className="container">
         <section className="history-archive-hero card animate-fade-up">
           <div>
-            <p className="history-kicker">命盘档案</p>
-            <h1 className="history-title serif">我的命盘档案</h1>
-            <p className="history-desc">已保存 {total} 份命盘，回看四柱、出生信息和后续分析入口。</p>
+            <p className="history-kicker">干支档案</p>
+            <h1 className="history-title serif">我的干支档案</h1>
+            <p className="history-desc">已保存 {total} 份干支，回看四柱、出生信息和后续分析入口。</p>
           </div>
-          <Link to="/" className="btn btn-primary">新建命盘</Link>
+          <Link to="/" className="btn btn-primary">新建干支</Link>
         </section>
 
         <nav className="archive-switcher animate-fade-up" aria-label="档案类型">
           <Link to="/history" className="archive-switcher-item archive-switcher-item--active">
             <Compass size={17} />
-            <span>命盘档案</span>
+            <span>干支档案</span>
           </Link>
           <Link to="/compatibility/history" className="archive-switcher-item">
             <HeartHandshake size={17} />
@@ -188,22 +188,22 @@ export default function HistoryPage() {
 
         <div className="history-section-title animate-fade-up">
           <div>
-            <h2 className="serif">最近命盘</h2>
-            <p>按保存时间排列，点击可查看完整命盘。</p>
+            <h2 className="serif">最近干支</h2>
+            <p>按保存时间排列，点击可查看完整干支。</p>
           </div>
         </div>
 
         {loadError ? (
           <div className="history-empty card animate-fade-up">
             <div className="empty-icon"><Compass size={48} /></div>
-            <p className="empty-title serif">命盘记录加载失败</p>
-            <p className="empty-desc">网络或服务暂时不可用，已保存的命盘不会丢失</p>
+            <p className="empty-title serif">干支记录加载失败</p>
+            <p className="empty-desc">网络或服务暂时不可用，已保存的干支不会丢失</p>
             <button type="button" className="btn btn-primary" onClick={loadCharts}>重新加载</button>
           </div>
         ) : charts.length === 0 ? (
           <div className="history-empty card animate-fade-up">
             <div className="empty-icon"><Compass size={48} /></div>
-            <p className="empty-title serif">还没有命盘记录</p>
+            <p className="empty-title serif">还没有干支记录</p>
             <p className="empty-desc">起盘后登录即可自动保存</p>
             <Link to="/" className="btn btn-primary">立即起盘</Link>
           </div>
@@ -240,7 +240,7 @@ export default function HistoryPage() {
                           onChange={(event) => setDisplayNameDraft(event.target.value)}
                           maxLength={20}
                           placeholder={chartFallbackName(c)}
-                          aria-label="命盘称呼"
+                          aria-label="干支称呼"
                         />
                         <button
                           type="button"
@@ -295,7 +295,7 @@ export default function HistoryPage() {
                         setCompatibilityRoleChart(c)
                       }}
                     >
-                      用此命盘合盘
+                      用此干支合盘
                     </button>
                     <button
                       type="button"
@@ -355,7 +355,7 @@ export default function HistoryPage() {
             >
               <p className="history-kicker">选择合盘身份</p>
               <h2 className="serif">{chartDisplayName(compatibilityRoleChart)}</h2>
-              <p>请选择这份命盘在合盘中的角色。</p>
+              <p>请选择这份干支在合盘中的角色。</p>
               <div className="history-role-actions">
                 <button type="button" className="btn btn-primary" onClick={() => launchCompatibility('self')}>
                   作为我
@@ -373,8 +373,8 @@ export default function HistoryPage() {
 
         <ConfirmDialog
           open={Boolean(deletingChart)}
-          title={deletingChart ? `删除 ${chartDisplayName(deletingChart)}` : '删除命盘'}
-          description={deleteError ? <>删除后该命盘及其 AI 报告将永久消失，无法恢复。<br />{deleteError}</> : '删除后该命盘及其 AI 报告将永久消失，无法恢复。'}
+          title={deletingChart ? `删除 ${chartDisplayName(deletingChart)}` : '删除干支'}
+          description={deleteError ? <>删除后该干支及其 AI 报告将永久消失，无法恢复。<br />{deleteError}</> : '删除后该干支及其 AI 报告将永久消失，无法恢复。'}
           confirmText="删除"
           danger
           pending={deleteLoading}

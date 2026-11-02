@@ -38,7 +38,7 @@ describe('getPastEventsSegmentViewState', () => {
     expect(state.canRetry).toBe(false)
   })
 
-  it('区分当前命盘缓存和刚生成内容，避免误认为复用旧命盘', () => {
+  it('区分当前干支缓存和刚生成内容，避免误认为复用旧干支', () => {
     const cachedState = getPastEventsSegmentViewState({
       summary: '本步大运已有总结。',
       themes: ['事业'],
@@ -51,10 +51,10 @@ describe('getPastEventsSegmentViewState', () => {
     })
 
     expect(cachedState.label).toBe('本次缓存')
-    expect(cachedState.description).toContain('当前命盘')
-    expect(cachedState.description).toContain('不复用同八字旧缓存')
+    expect(cachedState.description).toContain('当前干支')
+    expect(cachedState.description).toContain('不复用同一组干支的旧缓存')
     expect(generatedState.label).toBe('批语刚生成')
-    expect(generatedState.description).toContain('当前命盘')
+    expect(generatedState.description).toContain('当前干支')
   })
 
   it('将未来折叠段标记为只展开年份信号', () => {

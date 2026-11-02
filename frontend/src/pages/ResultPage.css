@@ -290,7 +290,7 @@
   margin-bottom: 24px;
 }
 
-/* 四柱命盘 */
+/* 四柱干支 */
 .professional-view {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

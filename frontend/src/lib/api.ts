@@ -382,7 +382,7 @@ export interface CompatibilityChartSnapshot {
     jin: number
     shui: number
   }
-  // 性格画像引擎所需字段（命盘快照已包含完整 BaziResult；旧数据可能缺失，故均可选）
+  // 性格画像引擎所需字段（干支快照已包含完整 BaziResult；旧数据可能缺失，故均可选）
   day_gan_wuxing?: string
   year_gan_shishen?: string
   month_gan_shishen?: string

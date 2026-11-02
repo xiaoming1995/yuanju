@@ -12,7 +12,7 @@ const dimensionText: Record<string, string> = {
   zodiac: '合属相',
   nayin: '合纳音',
   day_pillar: '合日柱',
-  eight_chars: '合八字',
+  eight_chars: '三柱配合',
 }
 
 const dimensionHint: Record<keyof CompatibilityDimensionScoresLegacy, string> = {
@@ -58,7 +58,7 @@ const dimensionLabelV3: Record<keyof CompatibilityDimensionScoresV3, string> = {
   zodiac: '合属相',
   nayin: '合纳音',
   day_pillar: '合日柱',
-  eight_chars: '合八字',
+  eight_chars: '三柱配合',
 }
 
 const dimensionMaxV3: Record<keyof CompatibilityDimensionScoresV3, number> = {

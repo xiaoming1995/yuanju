@@ -1,10 +1,10 @@
 package bazi
 
-// SpouseStarSignal 描述一个人命盘中「配偶星 + 夫妻宫」的结构化信号，
+// SpouseStarSignal 描述一个人干支中「配偶星 + 夫妻宫」的结构化信号，
 // 供 LLM 推导「TA 命里理想/容易吸引的另一半画像」。本结构只陈述客观事实，不做性格解读。
 type SpouseStarSignal struct {
 	Available              bool     // 性别可识别（能定配偶星类别）；false → 上层跳过本节
-	Present                bool     // 命盘中存在配偶星
+	Present                bool     // 干支中存在配偶星
 	Category               string   // "财星"(男) / "官杀"(女)；Available=false 时为空
 	StarNames              []string // 命中出现的具体十神：正财/偏财 或 正官/七杀（去重保序）
 	Positions              []string // 配偶星位置，如 "月干(透)"、"日支(藏)"

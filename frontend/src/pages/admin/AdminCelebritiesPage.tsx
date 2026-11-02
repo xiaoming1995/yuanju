@@ -116,7 +116,7 @@ export default function AdminCelebritiesPage() {
                 <th style={{ width: '120px' }}>姓名</th>
                 <th style={{ width: '60px' }}>性别</th>
                 <th style={{ width: '150px' }}>职业/头衔</th>
-                <th>八字特征 / 命理标签</th>
+                <th>命盘特征 / 命理标签</th>
                 <th style={{ width: '80px' }}>状态</th>
                 <th style={{ width: '150px' }}>操作</th>
               </tr>
@@ -187,7 +187,7 @@ export default function AdminCelebritiesPage() {
             </div>
 
             <div className="admin-form-group" style={{ marginBottom: 16 }}>
-              <label className="admin-form-label">八字关键特征（最重要，供给 AI 作为参考）</label>
+              <label className="admin-form-label">命盘关键特征（最重要，供给 AI 作为参考）</label>
               <textarea className="admin-form-input" rows={6} value={form.traits}
                 onChange={e => setForm(f => ({ ...f, traits: e.target.value }))}
                 placeholder="例如：日主丙火生于子月，水火既济，伤官生财，性格追求极致且极具创新。" />

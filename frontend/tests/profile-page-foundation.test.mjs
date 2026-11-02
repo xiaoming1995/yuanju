@@ -38,7 +38,7 @@ test('profile page provides a continuation workbench', () => {
   assert.match(page, /profile-workbench/)
   assert.match(page, /continueTarget/)
   assert.match(page, /继续上次分析/)
-  assert.match(page, /最近命盘/)
+  assert.match(page, /最近干支/)
   assert.match(page, /最近合盘/)
   assert.match(page, /to=\{continueTarget\.href\}/)
   assert.match(css, /\.profile-workbench/)

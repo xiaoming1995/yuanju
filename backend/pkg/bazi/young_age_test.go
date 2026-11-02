@@ -149,7 +149,7 @@ func TestYoungAge_NoMarriageDoubling(t *testing.T) {
 
 // 9.7 14 岁桃花神煞 → 性格_情谊
 func TestYoungAge_PeachBlossomShensha(t *testing.T) {
-	// 构造一个能命中桃花神煞的命盘：日支午 → 桃花地支为卯
+	// 构造一个能命中桃花神煞的干支：日支午 → 桃花地支为卯
 	// 流年地支选卯（月支=卯，所以本来就有，但流年再现也算）
 	natal := makeNatal("甲子", "丁卯", "丙午", "戊子", "", "")
 	natal.Tiaohou = nil
@@ -166,7 +166,7 @@ func TestYoungAge_PeachBlossomShensha(t *testing.T) {
 		}
 	}
 	if !hasShensha {
-		t.Skip("命盘未触发任何神煞（此测试场景依赖具体桃花/红艳/天喜命中，可跳过）")
+		t.Skip("干支未触发任何神煞（此测试场景依赖具体桃花/红艳/天喜命中，可跳过）")
 	}
 }
 

@@ -33,7 +33,7 @@ test('compatibility history uses archive styling without inline layout-heavy car
   assert.match(page, /archive-switcher/)
   assert.match(page, /compatibility-history-card/)
   assert.match(page, /查看合盘/)
-  assert.match(page, /命盘档案/)
+  assert.match(page, /干支档案/)
   assert.doesNotMatch(page, /style=\{\{/)
 })
 

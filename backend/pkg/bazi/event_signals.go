@@ -2084,7 +2084,7 @@ func GetAllYearSignals(result *BaziResult, gender string, currentYear, minAge in
 	return out
 }
 
-// CollectDayunHuaheMap 汇总命盘中所有大运的合化标签 → map[gz]label，供 Service 层按大运 lookup
+// CollectDayunHuaheMap 汇总干支中所有大运的合化标签 → map[gz]label，供 Service 层按大运 lookup
 func CollectDayunHuaheMap(natal *BaziResult) map[string]string {
 	out := map[string]string{}
 	if natal == nil {
@@ -2105,7 +2105,7 @@ func CollectDayunHuaheMap(natal *BaziResult) map[string]string {
 	return out
 }
 
-// CollectDayunHuaheLines 汇总命盘中所有大运的合化标签（供 Prompt 使用）
+// CollectDayunHuaheLines 汇总干支中所有大运的合化标签（供 Prompt 使用）
 func CollectDayunHuaheLines(natal *BaziResult) []string {
 	if natal == nil {
 		return nil

@@ -478,7 +478,7 @@ export default function PrintLayout({
               {tenGodRelation.day_master.gan} {tenGodRelation.day_master.wuxing}
             </span>
             <span style={{ marginLeft: 12, color: '#888', fontSize: 11 }}>
-              命盘参照点，其它干支均以此推算
+              干支参照点，其它干支均以此推算
             </span>
           </div>
 
@@ -792,7 +792,7 @@ export default function PrintLayout({
           padding: '4px 0',
         }}>
           {[
-            { term: '日主', desc: '日干代表本人，是命盘的参照中心。' },
+            { term: '日主', desc: '日干代表本人，是干支的参照中心。' },
             { term: '十神', desc: '日干与其它干支之间的十种生克关系。' },
             { term: '调候', desc: '寒暖燥湿平衡的命局要素，决定气候适应力。' },
             { term: '格局', desc: '月令与十神形成的命局主结构。' },

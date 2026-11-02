@@ -4,6 +4,7 @@ import { adminCompatAPI } from '../../lib/adminApi'
 
 interface CompatListItem {
   id: string
+  user_id?: string | null
   user_email?: string | null
   self_name: string
   partner_name: string
@@ -132,6 +133,8 @@ export default function AdminCompatPage() {
                         <User size={14} color="var(--admin-text-muted)" />
                         {it.user_email
                           ? <span style={{ color: 'var(--admin-text-secondary)' }}>{it.user_email}</span>
+                          : it.user_id
+                            ? <span style={{ color: 'var(--admin-text-secondary)' }}>微信用户 · {it.user_id.slice(0, 8)}</span>
                           : <span style={{ color: 'var(--admin-text-faint)', fontStyle: 'italic' }}>未知</span>}
                       </div>
                     </td>

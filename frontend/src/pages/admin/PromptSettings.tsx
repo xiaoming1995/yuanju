@@ -58,8 +58,8 @@ const KB_MODULES = [
 ]
 
 const INSTRUCTION_MODULES = [
-  { module: 'liunian', label: '流年运势批断', icon: Zap, hint: '流年精批的 User Prompt 模版，支持 Go Template 占位变量注入命盘数据。' },
-  { module: 'compatibility', label: '婚恋合盘解读', icon: Heart, hint: '双人合盘分析的 User Prompt 模版，输入双方命盘摘要、四维分数与结构化证据。' },
+  { module: 'liunian', label: '流年运势批断', icon: Zap, hint: '流年精批的 User Prompt 模版，支持 Go Template 占位变量注入干支数据。' },
+  { module: 'compatibility', label: '婚恋合盘解读', icon: Heart, hint: '双人合盘分析的 User Prompt 模版，输入双方干支摘要、四维分数与结构化证据。' },
 ]
 
 const PromptSettings: React.FC = () => {
@@ -392,7 +392,7 @@ const PromptSettings: React.FC = () => {
               }}>
                 <Lightbulb size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />
                 <strong>知识库工作原理：</strong>
-                以下 5 个模块会在每次 AI 流年精批时自动被拼入 System Prompt，让 AI 先"精通典籍"再对命盘进行批断。
+                以下 5 个模块会在每次 AI 流年精批时自动被拼入 System Prompt，让 AI 先"精通典籍"再对干支进行批断。
                 你可以随时修改并保存，清除旧流年缓存后立即生效。
               </div>
               {KB_MODULES.map(def => renderModuleCard(def, true))}
@@ -408,7 +408,7 @@ const PromptSettings: React.FC = () => {
               }}>
                 <Lightbulb size={13} style={{ marginRight: 6, verticalAlign: '-2px' }} />
                 <strong>批断指令说明：</strong>
-                此处为 User Prompt 模版，支持 Go Template 语法注入命盘结构化数据。
+                此处为 User Prompt 模版，支持 Go Template 语法注入干支结构化数据。
                 AI 会在"已掌握知识库"的基础上，按此模版的要求执行具体批断并输出 JSON。
               </div>
               {INSTRUCTION_MODULES.map(def => renderModuleCard(def, false))}
