@@ -22,3 +22,8 @@
 
 - [x] 5.1 Publish the local frontend on host port 80 and update generated/example local URL values.
 - [x] 5.2 Update the deployment guide and validate local and production merged ports.
+
+## 6. Production certificate issuer
+
+- [x] 6.1 Configure ZeroSSL ACME and require a contact email in production Compose.
+- [x] 6.2 Update the deployment guide and validate the merged configuration and Caddyfile syntax.

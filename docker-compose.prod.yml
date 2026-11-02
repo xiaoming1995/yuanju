@@ -7,6 +7,7 @@ services:
       - "443:443"
     environment:
       WEB_DOMAIN: ${WEB_DOMAIN:?Set WEB_DOMAIN in .env.production}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env.production}
     volumes:
       - ./caddy:/etc/caddy:ro
       - caddy_data:/data

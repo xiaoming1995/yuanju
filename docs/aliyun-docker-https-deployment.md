@@ -56,6 +56,7 @@ services:
       - "443:443"
     environment:
       WEB_DOMAIN: ${WEB_DOMAIN:?Set WEB_DOMAIN in .env.production}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env.production}
     volumes:
       - ./caddy:/etc/caddy:ro
       - caddy_data:/data
@@ -88,25 +89,30 @@ docker compose --env-file .env.production -f docker-compose.yml -f docker-compos
 仓库中的 `caddy/Caddyfile` 从容器环境变量读取域名：
 
 ```caddyfile
+{
+    email {$ACME_EMAIL}
+    acme_ca https://acme.zerossl.com/v2/DV90
+}
+
 {$WEB_DOMAIN} {
     reverse_proxy frontend:80
 }
-
 ```
 
-在容器内使用 Compose 服务名 `frontend`，不能使用 `127.0.0.1` 指向别的容器。前端 Nginx 再通过 Docker 网络访问 `backend:9002`。Caddy 会在域名解析正确、80/443 可从公网访问时自动申请并续期公开可信的证书。`caddy_data` 必须保留，不能当缓存清理；`/etc/caddy` 挂载整个目录，便于后续重新加载配置。参见 [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)和[Caddy 官方镜像说明](https://hub.docker.com/_/caddy)。
+在容器内使用 Compose 服务名 `frontend`，不能使用 `127.0.0.1` 指向别的容器。前端 Nginx 再通过 Docker 网络访问 `backend:9002`。当前阿里云 ECS 无法连接 Let's Encrypt 正式签发接口，因此生产配置改用从该 ECS 已确认可达的 ZeroSSL ACME 接口；Caddy 会用 `ACME_EMAIL` 自动申请账号绑定凭据，并申请、续期公开可信的证书。`caddy_data` 必须保留，不能当缓存清理；`/etc/caddy` 挂载整个目录，便于后续重新加载配置。参见 [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)、[ZeroSSL ACME](https://zerossl.com/documentation/acme) 和 [Caddy 官方镜像说明](https://hub.docker.com/_/caddy)。
 
 ## 四、准备环境变量和构建上下文
 
 在**服务器本机**准备 `backend/.env.docker`。可先执行 `./scripts/docker-compose-up.sh --prepare-only` 生成随机初始密钥，再检查并填写实际配置；已有文件不会被脚本覆盖。`POSTGRES_PASSWORD` 必须与 `DATABASE_URL` 中的密码一致，数据库主机保持 `postgres`，Redis 主机保持 `redis`。网页使用默认的同域 `/api` 请求，不设置跨域的 `VITE_API_URL`。需要微信登录时，在后端填写真实的 `WECHAT_MINIAPP_APP_ID`、`WECHAT_MINIAPP_APP_SECRET`，不要把 AppSecret 写进小程序源码。
 
-另在服务器项目根目录创建 `.env.production`，只填写域名：
+另在服务器项目根目录创建 `.env.production`，填写域名和一个实际可收信的证书联系邮箱：
 
 ```dotenv
 WEB_DOMAIN=www.example.com
+ACME_EMAIL=your-email@example.com
 ```
 
-将示例域名换成自己的真实网页域名，不再需要 `API_DOMAIN`。每台机器使用各自的环境文件，不要提交到 Git。`backend/.dockerignore` 已排除 `.env` 和 `.env.*`，避免后端 Dockerfile 的 `COPY . .` 把运行时密钥送入构建上下文。Git 的 `.gitignore` 不影响 Docker 构建上下文。参见 [Docker 构建上下文文档](https://docs.docker.com/build/concepts/context/)。
+将示例域名和邮箱换成自己的实际值，不再需要 `API_DOMAIN`。每台机器使用各自的环境文件，不要提交到 Git。`backend/.dockerignore` 已排除 `.env` 和 `.env.*`，避免后端 Dockerfile 的 `COPY . .` 把运行时密钥送入构建上下文。Git 的 `.gitignore` 不影响 Docker 构建上下文。参见 [Docker 构建上下文文档](https://docs.docker.com/build/concepts/context/)。
 
 后端当前的 CORS 中间件实际返回 `Access-Control-Allow-Origin: *`；`FRONTEND_URL` 虽出现在环境变量示例中，但目前并未被用作 CORS 白名单。不要把填写该变量视为访问控制。
 

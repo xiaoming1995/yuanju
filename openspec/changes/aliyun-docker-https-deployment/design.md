@@ -20,6 +20,7 @@ The existing frontend Nginx proxies `/api` and `/static` to the backend. Product
 - Move host port bindings out of the base Compose file into an explicit `docker-compose.local.yml`. The local helper selects both files. This prevents Compose's additive port merge from accidentally exposing ports in production.
 - Add `docker-compose.prod.yml` with a Caddy service. It alone publishes 80/443, mounts `./caddy` as configuration, and persists `/data` and `/config` in named volumes.
 - Pass `WEB_DOMAIN` from a server-only `.env.production` using Compose interpolation and a Caddyfile environment placeholder. A missing domain fails configuration before launch.
+- Use ZeroSSL's ACME directory for this ECS deployment because the server's connections to Let's Encrypt production timed out while both ZeroSSL endpoints were reachable. Require `ACME_EMAIL`; Caddy obtains ZeroSSL EAB credentials automatically with that email.
 - Route only the web host to `frontend:80`. The frontend Nginx proxies `/api` and `/static` to `backend:9002`, including miniapp requests that use the same public web origin.
 - Exclude `.env` and `.env.*` from `backend/.dockerignore`, so secrets are absent from `COPY . .` build context. Runtime `env_file` remains available to Compose.
 
@@ -30,6 +31,7 @@ The existing frontend Nginx proxies `/api` and `/static` to the backend. Product
 - [User runs production files without domain variables] → Compose required-variable interpolation fails early.
 - [Existing `backend/.env.docker` is reused on a server] → Document server-specific credentials and migration checks.
 - [Users can call public `/api` paths on `www`] → Keep backend authentication and authorization on protected routes; removing a hostname does not make the web API private.
+- [ZeroSSL account or issuance endpoint later becomes unreachable] → Keep certificate storage persistent and inspect Caddy ACME logs; restore network connectivity or choose another reachable public issuer before renewal.
 
 ## Migration Plan
 

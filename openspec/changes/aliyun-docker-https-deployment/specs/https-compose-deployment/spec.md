@@ -26,6 +26,17 @@ The production stack SHALL proxy only the configured web hostname to the fronten
 - **WHEN** a required production domain variable is absent
 - **THEN** Compose configuration fails before startup
 
+### Requirement: Reachable certificate issuer
+The production Caddy configuration SHALL obtain publicly trusted certificates from the configured ZeroSSL ACME service using a required contact email.
+
+#### Scenario: Missing certificate contact
+- **WHEN** the production ACME email variable is absent
+- **THEN** Compose configuration fails before startup
+
+#### Scenario: Certificate issuance
+- **WHEN** the ZeroSSL services and domain validation are reachable from the server
+- **THEN** Caddy can request and renew the web hostname certificate without manual certificate files
+
 ### Requirement: Secret-safe backend build context
 The backend Docker build context MUST exclude local environment files containing runtime credentials.
 
