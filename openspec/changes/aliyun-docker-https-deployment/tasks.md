@@ -17,3 +17,8 @@
 
 - [x] 4.1 Remove separate API domain routing and variable from production configuration.
 - [x] 4.2 Update deployment and miniapp release documentation for the `www` origin and verify production Compose configuration.
+
+## 5. Local frontend port
+
+- [x] 5.1 Publish the local frontend on host port 80 and update generated/example local URL values.
+- [x] 5.2 Update the deployment guide and validate local and production merged ports.

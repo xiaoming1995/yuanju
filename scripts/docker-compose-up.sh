@@ -55,7 +55,7 @@ ADMIN_ENCRYPTION_KEY=$admin_encryption_key
 DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 OPENAI_API_KEY=
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=http://localhost
 EOF
 
   chmod 600 "$ENV_FILE"

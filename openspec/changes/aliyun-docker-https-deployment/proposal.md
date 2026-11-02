@@ -4,7 +4,7 @@ The current Compose setup publishes the frontend and backend directly for local 
 
 ## What Changes
 
-- Split common, local, and production Compose configuration; keep local access on ports 3000 and 9002.
+- Split common, local, and production Compose configuration; keep local access on frontend port 80 and backend port 9002.
 - Add a Caddy container with a single public web hostname, automatic HTTPS, and persistent certificate storage for production. Web and miniapp API calls use the web hostname's existing `/api` proxy.
 - Exclude backend environment files from Docker build context.
 - Update the deployment guide to match the implemented files and commands.

@@ -29,7 +29,7 @@
 | 文件 | 内容 |
 | --- | --- |
 | `docker-compose.yml` | PostgreSQL、Redis、后端、前端及持久化卷的公共配置；前后端**不写** `ports` |
-| `docker-compose.local.yml` | 本地需要的 `9002:9002`、`3000:80` 端口映射 |
+| `docker-compose.local.yml` | 本地需要的 `9002:9002`、`80:80` 端口映射 |
 | `docker-compose.prod.yml` | Caddy 服务、80/443 公网端口、证书持久化卷 |
 
 本地文件的端口配置：
@@ -41,7 +41,7 @@ services:
       - "9002:9002"
   frontend:
     ports:
-      - "3000:80"
+      - "80:80"
 ```
 
 生产文件的入口配置：
@@ -69,7 +69,7 @@ volumes:
   caddy_config:
 ```
 
-`9002:9002` 和 `3000:80` 已从公共文件移到本地文件。Compose 合并文件时会保留并合并端口列表，因此生产文件只与公共文件合并。数据库和 Redis 保持仅在 Docker 网络内可达。
+`9002:9002` 和 `80:80` 只在本地文件中；生产文件只与公共文件合并，由 Caddy 占用宿主机 80/443。不要在同一台机器上同时启动本地和生产配置，否则两者都会尝试占用 80 端口。数据库和 Redis 保持仅在 Docker 网络内可达。
 
 明确指定配置文件，避免本地与生产混用：
 
@@ -81,7 +81,7 @@ volumes:
 docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-本地脚本已显式选择公共与本地文件。正式启动前分别用 `docker compose -f docker-compose.yml -f docker-compose.local.yml config --quiet` 和 `docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml config --quiet` 校验配置，并检查生产合并结果中没有对外发布 3000、9002、5432、6379。不要将含密钥的完整 `docker compose config` 输出粘贴到工单或聊天中。
+本地脚本已显式选择公共与本地文件，本地网页入口为 `http://localhost/`。正式启动前分别用 `docker compose -f docker-compose.yml -f docker-compose.local.yml config --quiet` 和 `docker compose --env-file .env.production -f docker-compose.yml -f docker-compose.prod.yml config --quiet` 校验配置，并检查生产合并结果中没有对外发布 9002、5432、6379。不要将含密钥的完整 `docker compose config` 输出粘贴到工单或聊天中。
 
 ## 三、配置 Caddy
 

@@ -5,7 +5,7 @@ The project SHALL provide a common Compose configuration and explicit local and 
 
 #### Scenario: Local startup
 - **WHEN** the local Compose configuration is selected
-- **THEN** frontend port 3000 and backend port 9002 are published to the host
+- **THEN** frontend port 80 and backend port 9002 are published to the host
 
 #### Scenario: Production startup
 - **WHEN** the production Compose configuration is selected
