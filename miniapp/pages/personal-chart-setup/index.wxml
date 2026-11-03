@@ -1,0 +1,25 @@
+<view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
+<view class="page-shell setup-page">
+  <view class="setup-card surface-card">
+    <text class="setup-title">{{hasPersonalChart ? '修改本人出生资料' : '设置本人命盘'}}</text>
+    <text class="setup-hint">请填写你自己的出生资料。保存后可查看本人命盘与每日参考。</text>
+    <view wx:if="{{loading}}" class="setup-state">正在读取本人命盘…</view>
+    <view wx:elif="{{loadError}}" class="setup-state">
+      <text>{{loadError}}</text><button bindtap="loadPersonalChart">重试</button>
+    </view>
+    <block wx:else>
+      <text class="setup-label">公历出生日期</text>
+      <picker mode="date" start="1900-01-01" end="2100-12-31" value="{{birthDate}}" bindchange="changeDate">
+        <view class="setup-field">{{birthDate}} <text>›</text></view>
+      </picker>
+      <text class="setup-label">出生时辰（整点）</text>
+      <picker mode="selector" range="{{hours}}" value="{{hourIndex}}" bindchange="changeHour">
+        <view class="setup-field">{{hours[hourIndex]}} <text>›</text></view>
+      </picker>
+      <text class="setup-label">性别</text>
+      <view class="setup-genders"><view class="setup-gender {{gender === 'male' ? 'selected' : ''}}" data-gender="male" bindtap="changeGender">男</view><view class="setup-gender {{gender === 'female' ? 'selected' : ''}}" data-gender="female" bindtap="changeGender">女</view></view>
+      <button class="primary-button setup-save" loading="{{saving}}" disabled="{{saving}}" bindtap="save">{{saving ? '保存中…' : '保存本人命盘'}}</button>
+      <text wx:if="{{hasPersonalChart}}" class="setup-hint">修改后会切换为新命盘，原历史记录仍保留。</text>
+    </block>
+  </view>
+</view>

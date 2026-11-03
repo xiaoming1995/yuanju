@@ -40,7 +40,6 @@ function request(method, path, data, authenticated = false) {
         if (sessionRejected && currentToken && token() === currentToken) {
           wx.removeStorageSync(TOKEN_KEY)
           if (typeof getApp === 'function') {
-            getApp().globalData.activeResult = null
             getApp().globalData.personalChart = null
           }
         }
@@ -141,6 +140,8 @@ module.exports = {
   detail: id => request('GET', `/bazi/history/${encodeURIComponent(id)}`, null, true),
   remove: id => request('DELETE', `/bazi/history/${encodeURIComponent(id)}`, null, true),
   personalChart: () => request('GET', '/user/personal-chart', null, true),
+  savePersonalChart: input => request('POST', '/user/personal-chart', input, true),
+  personalChartDetail: () => request('GET', '/user/personal-chart/detail', null, true),
   setPersonalChart: chartId => request('PUT', '/user/personal-chart', { chart_id: chartId }, true),
   clearPersonalChart: () => request('DELETE', '/user/personal-chart', null, true),
   personalDay: date => request('GET', `/user/personal-day?date=${encodeURIComponent(date)}`, null, true),
@@ -149,7 +150,6 @@ module.exports = {
   logout: () => {
     wx.removeStorageSync(TOKEN_KEY)
     if (typeof getApp === 'function') {
-      getApp().globalData.activeResult = null
       getApp().globalData.personalChart = null
     }
   },

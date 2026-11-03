@@ -19,6 +19,15 @@ type PersonalDayActivity struct {
 	Detail string `json:"detail"`
 }
 
+type PersonalDayLuck struct {
+	Available bool   `json:"available"`
+	Level     string `json:"level,omitempty"`
+	Element   string `json:"element,omitempty"`
+	Direction string `json:"direction,omitempty"`
+	Color     string `json:"color,omitempty"`
+	Reason    string `json:"reason"`
+}
+
 type PersonalDayResult struct {
 	Date             string                `json:"date"`
 	LunarFull        string                `json:"lunar_full"`
@@ -39,6 +48,7 @@ type PersonalDayResult struct {
 	Evidence         []string              `json:"evidence"`
 	Activities       []PersonalDayActivity `json:"activities"`
 	ActivityGuidance []PersonalDayGuidance `json:"activity_guidance"`
+	Luck             PersonalDayLuck       `json:"luck"`
 	RuleVersion      string                `json:"rule_version"`
 	Favorable        string                `json:"favorable"`
 	Adverse          string                `json:"adverse"`
@@ -50,6 +60,77 @@ type PersonalDayResult struct {
 var dayStemElement = map[string]string{"甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土", "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水"}
 var dayBranchElement = map[string]string{"子": "水", "丑": "土", "寅": "木", "卯": "木", "辰": "土", "巳": "火", "午": "火", "未": "土", "申": "金", "酉": "金", "戌": "土", "亥": "水"}
 var dayBranchOpposite = map[string]string{"子": "午", "丑": "未", "寅": "申", "卯": "酉", "辰": "戌", "巳": "亥", "午": "子", "未": "丑", "申": "寅", "酉": "卯", "戌": "辰", "亥": "巳"}
+var elementLuck = map[string]struct{ direction, color string }{
+	"木": {"东方", "绿色系"}, "火": {"南方", "红色系"}, "土": {"中央", "黄色系"},
+	"金": {"西方", "白色系"}, "水": {"北方", "蓝黑色系"},
+}
+
+func personalDayLuck(stemElement, branchElement, stemDirection, branchDirection, favorable string, climateConflict, clash bool) PersonalDayLuck {
+	unavailable := func(reason string) PersonalDayLuck { return PersonalDayLuck{Reason: reason} }
+	if stemElement == "" || branchElement == "" || stemDirection == "" || branchDirection == "" || favorable == "" {
+		return unavailable("命盘喜忌依据不足，暂无明确参考。")
+	}
+	baseline := func(context string) PersonalDayLuck {
+		directions, colors := []string{}, []string{}
+		seen := map[rune]bool{}
+		for _, element := range favorable {
+			if seen[element] {
+				continue
+			}
+			mapping, ok := elementLuck[string(element)]
+			if !ok {
+				return unavailable("命盘喜用五行资料不完整，暂无明确参考。")
+			}
+			seen[element] = true
+			directions = append(directions, mapping.direction)
+			colors = append(colors, mapping.color)
+		}
+		return PersonalDayLuck{Available: true, Level: "baseline", Element: favorable,
+			Direction: strings.Join(directions, "、"), Color: strings.Join(colors, "、"),
+			Reason: fmt.Sprintf("%s；以下仅是本人命盘喜用%s的传统五行对应，不代表今日适宜。", context, favorable)}
+	}
+	element := ""
+	basis := ""
+	if stemDirection == "favorable" {
+		element = stemElement
+		basis = "日干"
+	}
+	if branchDirection == "favorable" {
+		if element != "" && element != branchElement {
+			return baseline("今日干支涉及两个不同的喜用五行，无法选出唯一的每日参考")
+		}
+		element = branchElement
+		if basis == "" {
+			basis = "日支主气"
+		} else {
+			basis = "日干与日支主气"
+		}
+	}
+	if element == "" {
+		return baseline("今日干支未落入明确喜用五行")
+	}
+	mapping, ok := elementLuck[element]
+	if !ok {
+		return unavailable("五行资料不完整，暂无明确参考。")
+	}
+	result := PersonalDayLuck{Available: true, Level: "aligned", Element: element, Direction: mapping.direction, Color: mapping.color,
+		Reason: fmt.Sprintf("今日%s的%s属本人扶抑喜用；方位与色彩按传统五行对应，仅供参考。", basis, element)}
+	if climateConflict || clash || stemDirection == "adverse" || branchDirection == "adverse" {
+		conflicts := []string{}
+		if stemDirection == "adverse" || branchDirection == "adverse" {
+			conflicts = append(conflicts, "另一干支五行属忌神")
+		}
+		if climateConflict {
+			conflicts = append(conflicts, "扶抑与调候方向不同")
+		}
+		if clash {
+			conflicts = append(conflicts, "日支与本人日支相冲")
+		}
+		result.Level = "qualified"
+		result.Reason = fmt.Sprintf("今日%s的%s属本人扶抑喜用，可参考其传统五行对应；但%s，仅为局部参考，不代表整日适宜。", basis, element, strings.Join(conflicts, "、"))
+	}
+	return result
+}
 
 func personalDayDirection(element, favorable, adverse string) string {
 	if strings.Contains(favorable, element) {
@@ -97,7 +178,8 @@ func BuildPersonalDay(date string, chart *bazi.BaziResult) (*PersonalDayResult, 
 		YearGanZhi: lunar.GetYearInGanZhiByLiChun(), MonthGanZhi: lunar.GetMonthInGanZhi(),
 		DayGanZhi: ganZhi, DayGan: gan, DayZhi: zhi, Status: "insufficient", Label: "依据不足",
 		Summary:  "当前命盘缺少有效的扶抑喜忌，暂不提供个人事项判断。",
-		Evidence: []string{}, Activities: []PersonalDayActivity{}, RuleVersion: "personal-day-v2",
+		Evidence: []string{}, Activities: []PersonalDayActivity{}, RuleVersion: "personal-day-v4",
+		Luck: PersonalDayLuck{Reason: "命盘喜忌依据不足，暂无明确参考。"},
 	}
 	yi, ji := lunar.GetDayYi(), lunar.GetDayJi()
 	output.CalendarYi, output.CalendarJi = dayListLabels(yi), dayListLabels(ji)
@@ -140,6 +222,7 @@ func BuildPersonalDay(date string, chart *bazi.BaziResult) (*PersonalDayResult, 
 	if climateConflict {
 		output.Evidence = append(output.Evidence, "扶抑与调候对此五行的方向不同，需结合完整命盘阅读。")
 	}
+	output.Luck = personalDayLuck(ganElement, zhiElement, gd, zd, fuyi.Yongshen, climateConflict, clash)
 	activity.valid = true
 	activity.ganElement, activity.zhiElement = ganElement, zhiElement
 	activity.ganDirection, activity.zhiDirection = gd, zd

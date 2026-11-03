@@ -15,7 +15,7 @@ function loadPage(path, app, wxApi) {
   }
 }
 
-test('calendar preview follows the selected day and opens its detail route', () => {
+test('calendar selection opens a real date detail route', () => {
   const app = { globalData: { previewDayProfileEnabled: false } }
   const visits = []
   const wxApi = {
@@ -23,31 +23,14 @@ test('calendar preview follows the selected day and opens its detail route', () 
   }
   const page = loadPage('../pages/calendar/index', app, wxApi)
 
-  assert.equal(page.data.dayPreviewEnabled, false)
-  page.enablePersonalDay()
-  assert.equal(app.globalData.previewDayProfileEnabled, true)
-  assert.equal(page.data.personalDay.date, new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10))
-
   page.pickDate({ currentTarget: { dataset: { key: '2026-10-24' } } })
-  assert.equal(page.data.personalDay.date, '2026-10-24')
   assert.equal(page.data.selected.jianChu, '收')
   assert.equal(page.data.selected.jianChuInfo.label, '收日')
-  page.openPersonalDay()
+  page.openSelectedDay()
   assert.deepEqual(visits, ['/pages/personal-day/index?date=2026-10-24'])
   const target = loadPage('../pages/personal-day/index', app, wxApi)
   target.onLoad({ date: '2026-10-24' })
   target.onReady()
-})
-
-test('returning from detail after ending preview restores the invitation', () => {
-  const app = { globalData: { previewDayProfileEnabled: true } }
-  const page = loadPage('../pages/calendar/index', app, {})
-
-  page.onShow()
-  assert.equal(page.data.dayPreviewEnabled, true)
-  app.globalData.previewDayProfileEnabled = false
-  page.onShow()
-  assert.equal(page.data.dayPreviewEnabled, false)
 })
 
 test('detail reads the selected date and ending demo clears the process state', () => {

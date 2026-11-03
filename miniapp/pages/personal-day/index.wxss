@@ -50,6 +50,7 @@
 .verdict-badge.verdict-insufficient, .verdict-badge.verdict-neutral, .verdict-badge.verdict-undetermined { background: #f0f2f3; color: #78838a; }
 .verdict-summary { margin-top: 17rpx; color: #515e62; font-size: 23rpx; line-height: 1.6; }
 .direction-list { margin-top: 16rpx; }
+.luck-level { color: #9b7130; font-size: 21rpx; }
 .direction-list > view { display: flex; justify-content: space-between; gap: 12rpx; padding: 8rpx 0; color: #5b666e; font-size: 21rpx; }
 .direction-list > view > text:last-child { flex-shrink: 0; color: #a27730; }
 .fuyi-line { display: flex; gap: 10rpx; flex-wrap: wrap; }

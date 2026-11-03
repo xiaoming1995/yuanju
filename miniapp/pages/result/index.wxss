@@ -2,6 +2,8 @@
   padding-top: 16rpx;
   padding-bottom: calc(env(safe-area-inset-bottom) + 44rpx);
 }
+.result-state { padding: 28rpx; color: #5f6b74; font-size: 24rpx; }
+.result-state button { margin-top: 16rpx; color: #805a20; }
 
 .query-summary { padding: 24rpx 27rpx; }
 .summary-heading { display: flex; align-items: center; justify-content: space-between; color: #657080; font-size: 23rpx; }

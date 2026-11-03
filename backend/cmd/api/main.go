@@ -189,6 +189,8 @@ func main() {
 		{
 			user.GET("/profile", handler.GetUserProfile)
 			user.GET("/personal-chart", handler.GetPersonalChart)
+			user.POST("/personal-chart", handler.SavePersonalChart)
+			user.GET("/personal-chart/detail", handler.GetPersonalChartDetail)
 			user.PUT("/personal-chart", handler.SetPersonalChart)
 			user.DELETE("/personal-chart", handler.ClearPersonalChart)
 			user.GET("/personal-day", handler.GetPersonalDay)

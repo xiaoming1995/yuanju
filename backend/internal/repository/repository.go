@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
@@ -98,6 +99,19 @@ func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 }
 
 func CreateChartWithChannel(chart *model.BaziChart, channel string) (*model.BaziChart, error) {
+	return createChartWithChannel(chart, channel, false)
+}
+
+// CreatePersonalChartWithChannel saves a new chart and switches the user's
+// personal binding in one transaction. An error leaves the old binding intact.
+func CreatePersonalChartWithChannel(chart *model.BaziChart, channel string) (*model.BaziChart, error) {
+	if chart == nil || chart.UserID == nil || *chart.UserID == "" {
+		return nil, errors.New("本人命盘必须属于已登录用户")
+	}
+	return createChartWithChannel(chart, channel, true)
+}
+
+func createChartWithChannel(chart *model.BaziChart, channel string, bindPersonal bool) (*model.BaziChart, error) {
 	wuxingJSON, _ := json.Marshal(chart.Wuxing)
 	dayunJSON, _ := json.Marshal(chart.Dayun)
 	tx, err := database.DB.Begin()
@@ -105,6 +119,12 @@ func CreateChartWithChannel(chart *model.BaziChart, channel string) (*model.Bazi
 		return nil, err
 	}
 	defer tx.Rollback()
+	if bindPersonal {
+		var owner string
+		if err := tx.QueryRow(`SELECT id FROM users WHERE id=$1 FOR UPDATE`, *chart.UserID).Scan(&owner); err != nil {
+			return nil, err
+		}
+	}
 
 	result := &model.BaziChart{}
 	var userID sql.NullString
@@ -138,6 +158,12 @@ func CreateChartWithChannel(chart *model.BaziChart, channel string) (*model.Bazi
 		}
 		if err := RecordUserActivityTx(context.Background(), tx, *chart.UserID, "chart_created", channel, &result.ID); err != nil {
 			return nil, err
+		}
+		if bindPersonal {
+			if _, err := tx.Exec(`INSERT INTO user_personal_charts (user_id, chart_id) VALUES ($1,$2)
+				ON CONFLICT (user_id) DO UPDATE SET chart_id=EXCLUDED.chart_id, updated_at=NOW()`, *chart.UserID, result.ID); err != nil {
+				return nil, err
+			}
 		}
 	}
 	if err := tx.Commit(); err != nil {

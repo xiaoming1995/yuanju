@@ -26,12 +26,13 @@ function loadPage(path, app, wxApi = {}) {
   }
 }
 
-test('the preview date picker produces an hour-precision date', () => {
+test('personal chart setup keeps hour precision', () => {
   const app = loadApp()
-  const page = loadPage('../pages/home/index', app)
-  page.setData({ pickerValue: [90, 0, 0, 1] })
-  page.confirmPicker()
-  assert.equal(page.data.dateText, '1990-01-01 01:00')
+  const page = loadPage('../pages/personal-chart-setup/index', app)
+  page.changeDate({ detail: { value: '1990-01-01' } })
+  page.changeHour({ detail: { value: 1 } })
+  assert.equal(page.data.birthDate, '1990-01-01')
+  assert.equal(page.data.hours[page.data.hourIndex], '01:00')
 })
 
 test('long date groups reveal seven days at a time and reset for another activity', async () => {
@@ -86,6 +87,6 @@ test('removing real history calls backend and refreshes list', async () => {
   home.removeHistory({ currentTarget: { dataset: { id: 'first' } } })
   await new Promise(resolve => setImmediate(resolve))
   assert.equal(home.data.history.length, 1)
-  assert.equal(home.data.recentHistory.id, 'second')
+  assert.equal(home.data.recentHistory, null)
   assert.ok(calls.some(call => call.includes('DELETE') && call.includes('/bazi/history/first')))
 })

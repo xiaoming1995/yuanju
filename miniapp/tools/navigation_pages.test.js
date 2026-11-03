@@ -32,10 +32,9 @@ function environment() {
     getStorageSync(key) { return storage[key] },
     removeStorageSync(key) { delete storage[key] },
     request(options) {
-      const data = options.url.includes('/bazi/calculate')
-        ? { chart_id: 'chart-1', result: { year_gan: '甲', year_zhi: '子', month_gan: '乙', month_zhi: '丑', day_gan: '丙', day_zhi: '寅', hour_gan: '丁', hour_zhi: '卯', wuxing: { total: 8 } } }
-        : options.url.includes('/bazi/history/')
-          ? { chart: { id: 'chart-1', birth_year: 2000, birth_month: 6, birth_day: 1, birth_hour: 8, year_gan: '甲', year_zhi: '子', month_gan: '乙', month_zhi: '丑', day_gan: '丙', day_zhi: '寅', hour_gan: '丁', hour_zhi: '卯' }, result: {} }
+      const data = options.url.includes('/user/personal-chart/detail')
+        ? { chart: { id: 'chart-1', birth_year: 2000, birth_month: 6, birth_day: 1, birth_hour: 8, gender: 'male', year_gan: '甲', year_zhi: '子', month_gan: '乙', month_zhi: '丑', day_gan: '丙', day_zhi: '寅', hour_gan: '丁', hour_zhi: '卯' }, result: { year_gan: '甲', year_zhi: '子', month_gan: '乙', month_zhi: '丑', day_gan: '丙', day_zhi: '寅', hour_gan: '丁', hour_zhi: '卯', wuxing: { total: 8 } } }
+        : options.url.includes('/user/personal-chart') ? { chart: null }
           : { charts: [], total: 0 }
       options.success({ statusCode: 200, data })
     },
@@ -43,32 +42,28 @@ function environment() {
   return { app, calls, wxApi }
 }
 
-test('home result and back navigation acknowledge only one tap and restore the form', async () => {
+test('Mine personal chart opens guarded detail and returns to Mine', async () => {
   const { app, calls, wxApi } = environment()
-  const home = loadPage('../pages/home/index', app, wxApi)
-  home.onShow()
-  home.onReady()
-  home.setData({ dateText: '2000-06-01 08:00', note: '自己的干支' })
-
-  await Promise.all([home.openDemoResult(), home.openDemoResult()])
+  const mine = loadPage('../pages/mine/index', app, wxApi)
+  mine.setData({ personalChart: { id: 'chart-1' } })
+  mine.openPersonalChart()
+  mine.openPersonalChart()
   assert.equal(calls.filter(call => call.method === 'navigateTo').length, 1)
-  assert.equal(home.data.navigationKey, 'result')
-  home.onHide()
+  assert.equal(mine.data.navigationKey, 'result')
+  mine.onHide()
 
   const result = loadPage('../pages/result/index', app, wxApi)
-  result.onLoad()
+  await result.onLoad()
   result.onShow()
   result.onReady()
-  assert.equal(home.data.navigationKey, '')
+  assert.equal(mine.data.navigationKey, '')
   assert.equal(result.data.selectedDate, '2000-06-01 08:00')
-  assert.equal(result.data.selectedNote, '自己的干支')
-
-  result.returnToQuery()
-  result.returnToQuery()
-  assert.equal(calls.filter(call => call.method === 'navigateBack').length, 1)
-  home.onShow()
+  result.returnToMine()
+  result.returnToMine()
+  assert.equal(calls.filter(call => call.method === 'switchTab').length, 1)
+  mine.onShow()
+  mine.onReady()
   assert.equal(result.data.navigationKey, '')
-  assert.equal(home.data.dateText, '2000-06-01 08:00')
 })
 
 test('calendar and date selection entries use the same navigation feedback', () => {
@@ -120,47 +115,23 @@ test('mine to history tab clears loading when the cached home tab appears', () =
   assert.equal(home.data.mode, 'history')
 })
 
-test('empty Mine record action opens the query form even when Home was showing history', () => {
+test('Mine personal chart action opens setup', () => {
   const { app, calls, wxApi } = environment()
-  const home = loadPage('../pages/home/index', app, wxApi)
-  home.setData({ mode: 'history' })
   const mine = loadPage('../pages/mine/index', app, wxApi)
   mine.openCreateChart()
-  assert.equal(calls.at(-1).method, 'switchTab')
-  mine.onHide()
-  home.onShow()
-  home.onReady()
-  assert.equal(home.data.mode, 'query')
-  home.onHide()
+  assert.equal(calls.at(-1).method, 'navigateTo')
+  assert.equal(calls.at(-1).options.url, '/pages/personal-chart-setup/index')
+  require('../utils/navigation_feedback').pageReady({}, 'pages/personal-chart-setup/index')
 })
 
-test('unbound Mine chart directs users without records to the query form', () => {
+test('unbound Mine chart directs users without records to setup', () => {
   const { app, calls, wxApi } = environment()
-  const home = loadPage('../pages/home/index', app, wxApi)
-  home.setData({ mode: 'history' })
   const mine = loadPage('../pages/mine/index', app, wxApi)
   mine.setData({ chartCount: 0, personalChartError: '' })
   mine.openPersonalBanner()
-  assert.equal(calls.at(-1).method, 'switchTab')
-  mine.onHide()
-  home.onShow()
-  home.onReady()
-  assert.equal(home.data.mode, 'query')
-  home.onHide()
-})
-
-test('a second history card tap does not replace the first pending destination', () => {
-  const { app, calls, wxApi } = environment()
-  const mine = loadPage('../pages/mine/index', app, wxApi)
-  mine.setData({ recentCharts: [{ id: 'first' }, { id: 'second' }] })
-  const [first, second] = mine.data.recentCharts
-  mine.openRecentChart({ currentTarget: { dataset: { id: first.id } } })
-  mine.openRecentChart({ currentTarget: { dataset: { id: second.id } } })
-  assert.equal(calls.length, 1)
-  assert.equal(app.globalData.previewHistoryDetailId, first.id)
-  const home = loadPage('../pages/home/index', app, wxApi)
-  home.onShow()
-  home.onReady()
+  assert.equal(calls.at(-1).method, 'navigateTo')
+  assert.equal(calls.at(-1).options.url, '/pages/personal-chart-setup/index')
+  require('../utils/navigation_feedback').pageReady({}, 'pages/personal-chart-setup/index')
 })
 
 test('profile navigation prevents repeated opening and refreshes Mine after automatic saving and return', async () => {

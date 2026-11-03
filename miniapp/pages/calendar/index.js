@@ -1,9 +1,6 @@
 const calendarData = require('../../data/calendar')
 const api = require('../../utils/api')
-const { chart } = require('../../data/demo')
-const { buildPersonalDay } = require('../../data/personal_day')
 const { getJianChuInfo } = require('../../data/jianchu')
-const { personalHints } = require('../../utils/personal_day_view')
 const navigation = require('../../utils/navigation_feedback')
 
 const weekNames = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
@@ -84,18 +81,9 @@ Page({
     cells: initialView.cells,
     terms: initialView.terms,
     termSummary: initialView.termSummary,
-    dayPreviewEnabled: false,
-    personalDay: buildPersonalDay(initialKey, calendarData[initialKey], chart),
-    personalChart: null,
     calendarDay: null,
     calendarLoading: false,
     calendarError: '',
-    realDay: null,
-    personalHints: [],
-    personalHint: null,
-    personalHintRemaining: 0,
-    realLoading: false,
-    realError: '',
     selectedByUser: false,
     infoTab: 'date',
     weekShort: ['日', '一', '二', '三', '四', '五', '六'],
@@ -103,35 +91,27 @@ Page({
 
   onShow() {
     navigation.pageVisible(this, 'pages/calendar/index')
-    const dayPreviewEnabled = Boolean(getApp().globalData.previewDayProfileEnabled)
     const selectedKey = getApp().globalData.previewCalendarNext
     if (!selectedKey) {
       if (!this.data.selectedByUser && this.data.selectedKey !== chinaTodayKey()) {
         this.showDate(chinaTodayKey(), false)
       }
-      this.setData({ dayPreviewEnabled })
       this.refreshCalendarDay()
-      this.refreshPersonalState()
       return
     }
     getApp().globalData.previewCalendarNext = null
     this.showDate(selectedKey, true)
-    this.setData({ dayPreviewEnabled })
     this.refreshCalendarDay()
-    this.refreshPersonalState()
   },
 
   showDate(selectedKey, selectedByUser = true) {
-    this._dailyRequestId = (this._dailyRequestId || 0) + 1
     this._calendarRequestId = (this._calendarRequestId || 0) + 1
     const [year, month] = selectedKey.split('-').map(Number)
     const view = monthView(year, month, selectedKey)
     this.setData({ year, month, selectedKey, selected: selectedInfo(selectedKey), cells: view.cells,
       terms: view.terms, termSummary: view.termSummary, selectedByUser,
-      personalDay: buildPersonalDay(selectedKey, calendarData[selectedKey], chart),
       calendarDay: null,
-      calendarError: '', realDay: null, personalHints: [], personalHint: null,
-      personalHintRemaining: 0, realError: '' })
+      calendarError: '' })
   },
 
   async refreshCalendarDay() {
@@ -154,55 +134,6 @@ Page({
     } catch (err) {
       if (this.data.selectedKey === date && this._calendarRequestId === requestId) this.setData({ calendarError: err.message })
     } finally { if (this._calendarRequestId === requestId) this.setData({ calendarLoading: false }) }
-  },
-
-  async refreshPersonalState() {
-    if (typeof wx.getStorageSync !== 'function' || !api.token()) {
-      this._dailyRequestId = (this._dailyRequestId || 0) + 1
-      this.setData({ personalChart: null, realDay: null, personalHints: [], personalHint: null,
-        personalHintRemaining: 0, realError: '', realLoading: false })
-      return
-    }
-    const currentToken = api.token()
-    this.setData({ realLoading: true, realError: '', realDay: null, personalHints: [],
-      personalHint: null, personalHintRemaining: 0, personalChart: null })
-    try {
-      const response = await api.personalChart()
-      if (api.token() !== currentToken) return
-      const personalChart = response.chart || null
-      this.setData({ personalChart })
-      if (personalChart) await this.refreshRealDay()
-    } catch (err) {
-      if (api.token() === currentToken) this.setData({ realError: err.message, personalChart: null,
-        realDay: null, personalHints: [], personalHint: null, personalHintRemaining: 0 })
-    } finally { this.setData({ realLoading: false }) }
-  },
-
-  async refreshRealDay() {
-    if (!this.data.personalChart || !api.token()) return
-    const date = this.data.selectedKey
-    const currentToken = api.token()
-    const requestId = (this._dailyRequestId || 0) + 1
-    this._dailyRequestId = requestId
-    this.setData({ realLoading: true, realError: '', realDay: null, personalHints: [],
-      personalHint: null, personalHintRemaining: 0 })
-    try {
-      const response = await api.personalDay(date)
-      if (api.token() !== currentToken || this.data.selectedKey !== date || this._dailyRequestId !== requestId) return
-      const day = response.data
-      const hints = personalHints(day)
-      this.setData({ realDay: day, personalHints: hints, personalHint: hints[0] || null,
-        personalHintRemaining: Math.max(0, hints.length - 1), selected: { ...this.data.selected,
-        lunarFull: day.lunar_full || this.data.selected.lunarFull,
-        yearGanZhi: day.year_gan_zhi || this.data.selected.yearGanZhi,
-        monthGanZhi: day.month_gan_zhi || this.data.selected.monthGanZhi,
-        dayGanZhi: day.day_gan_zhi || this.data.selected.dayGanZhi } })
-    } catch (err) {
-      if (api.token() !== currentToken || this.data.selectedKey !== date || this._dailyRequestId !== requestId) return
-      if (err.code === 'personal_chart_unbound') this.setData({ personalChart: null })
-      this.setData({ realError: err.message, realDay: null, personalHints: [],
-        personalHint: null, personalHintRemaining: 0 })
-    } finally { if (this._dailyRequestId === requestId) this.setData({ realLoading: false }) }
   },
 
   onReady() {
@@ -230,7 +161,6 @@ Page({
     const selectedKey = keyOf(year, month, selectedDay)
     this.showDate(selectedKey)
     this.refreshCalendarDay()
-    this.refreshRealDay()
   },
 
   pickDate(event) {
@@ -242,7 +172,6 @@ Page({
     }
     this.showDate(selectedKey)
     this.refreshCalendarDay()
-    this.refreshRealDay()
   },
 
   pickToday() {
@@ -254,22 +183,10 @@ Page({
     }
     this.showDate(todayKey)
     this.refreshCalendarDay()
-    this.refreshRealDay()
   },
 
-  enablePersonalDay() {
-    getApp().globalData.previewDayProfileEnabled = true
-    this.setData({ dayPreviewEnabled: true })
-  },
-
-  openPersonalDay() {
-    if (!this.data.dayPreviewEnabled && !this.data.personalChart) return
+  openSelectedDay() {
     navigation.navigate(this, { method: 'navigateTo', url: `/pages/personal-day/index?date=${this.data.selectedKey}`, key: 'personal' })
-  },
-
-  openBinding() {
-    getApp().globalData.previewHistoryNext = true
-    navigation.navigate(this, { method: 'switchTab', url: '/pages/home/index', key: 'history' })
   },
 
   openMovingDate() {

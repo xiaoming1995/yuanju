@@ -157,15 +157,15 @@ test('Mine shows the explicitly bound chart rather than the newest history recor
     require('../pages/mine/index')
     const page = { ...definition, data: { ...definition.data }, setData(patch) { Object.assign(this.data, patch) } }
     assert.equal(await page.loadProfile(), true)
-    assert.equal(page.data.recentCharts[0].id, 'newest')
+    assert.equal(page.data.chartCount, 2)
+    assert.equal('recentCharts' in page.data, false)
     assert.equal(page.data.personalChart.id, 'selected')
     page.openPersonalChart()
-    assert.equal(app.globalData.previewHistoryDetailId, 'selected')
-    assert.equal(visits[0].url, '/pages/home/index')
+    assert.equal(visits[0].url, '/pages/result/index')
     api.personalChart = async () => ({ chart: null })
     await page.loadProfile()
     assert.equal(page.data.personalChart, null)
-    assert.equal(page.data.recentCharts[0].id, 'newest')
+    assert.equal(page.data.chartCount, 2)
   } finally {
     Object.assign(api, { token: previous.token, profile: previous.profile, personalChart: previous.personalChart })
     navigation.navigate = previous.navigate
@@ -194,7 +194,7 @@ test('failed profile refresh hides stale account data and can retry', async () =
     assert.equal(await page.loadProfile(), false)
     assert.equal(page.data.user, null)
     assert.equal(page.data.chartCount, 0)
-    assert.deepEqual(page.data.recentCharts, [])
+    assert.equal('recentCharts' in page.data, false)
     assert.equal(page.data.profileError, '网络暂不可用')
     fail = false
     assert.equal(await page.loadProfile(), true)
@@ -217,13 +217,13 @@ test('logout clears visible account data and the web binding form', () => {
     delete require.cache[require.resolve('../pages/mine/index')]
     require('../pages/mine/index')
     const page = { ...definition, data: { ...definition.data }, setData(patch) { Object.assign(this.data, patch) } }
-    page.setData({ loggedIn: true, user: { id: 'u1' }, chartCount: 2, recentCharts: [{ id: 'c1' }],
+    page.setData({ loggedIn: true, user: { id: 'u1' }, chartCount: 2,
       personalChart: { id: 'c1' }, bindingVisible: true, email: 'web@example.com', password: 'secret' })
     page.logoutPreview()
     assert.equal(loggedOut, true)
     assert.equal(page.data.loggedIn, false)
     assert.equal(page.data.user, null)
-    assert.deepEqual(page.data.recentCharts, [])
+    assert.equal(page.data.chartCount, 0)
     assert.equal(page.data.personalChart, null)
     assert.equal(page.data.bindingVisible, false)
     assert.equal(page.data.password, '')

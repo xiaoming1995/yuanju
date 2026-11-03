@@ -1,4 +1,6 @@
 const { toResult } = require('../../utils/chart_view')
+const { toHistory } = require('../../utils/chart_view')
+const api = require('../../utils/api')
 const navigation = require('../../utils/navigation_feedback')
 
 Page({
@@ -8,28 +10,48 @@ Page({
     chart: null,
     pillars: [],
     basicRows: [],
+    loading: true,
+    loadError: '',
   },
 
-  onLoad() {
+  async onLoad() {
     navigation.pageVisible(this, 'pages/result/index')
-    const query = getApp().globalData.activeResult
-    if (query && query.result) {
-      const chart = toResult(query.result, query)
+    return this.loadDetail()
+  },
+
+  async loadDetail() {
+    const loadSeq = this._loadSeq = (this._loadSeq || 0) + 1
+    const currentToken = api.token()
+    if (!currentToken) { this.showUnavailable('请先登录并配置本人命盘'); return }
+    this.setData({ loading: true, loadError: '', chart: null, pillars: [], basicRows: [] })
+    try {
+      const response = await api.personalChartDetail()
+      if (api.token() !== currentToken || this._navigationGone || this._hidden || loadSeq !== this._loadSeq) return
+      const history = toHistory(response.chart)
+      const chart = toResult(response.result, { dateText: history.date, gender: response.chart.gender, note: history.name })
       this.setData({
-        selectedDate: query.dateText,
-        selectedNote: query.note,
+        selectedDate: history.date,
+        selectedNote: history.name,
         chart,
         pillars: chart.pillars.map(p => ({ label: p.label.slice(0, 1), gan: p.gan, zhi: p.zhi, ganTone: p.ganTone, zhiTone: p.zhiTone })),
         basicRows: chart.basicRows,
+        loading: false,
       })
-    } else {
-      wx.showToast({ title: '干支数据已失效，请重新查询', icon: 'none' })
-      setTimeout(() => wx.navigateBack({ delta: 1 }), 800)
+    } catch (err) {
+      if (api.token() !== currentToken || this._navigationGone || this._hidden || loadSeq !== this._loadSeq) return
+      this.showUnavailable(err.code === 'personal_chart_unbound' ? '请先配置本人命盘' : err.message)
     }
   },
 
+  showUnavailable(message) {
+    this.setData({ loading: false, loadError: message, chart: null, pillars: [], basicRows: [] })
+  },
+
   onShow() {
+    this._hidden = false
     navigation.pageVisible(this, 'pages/result/index')
+    if (this._shownOnce) this.loadDetail()
+    this._shownOnce = true
   },
 
   onReady() {
@@ -37,6 +59,9 @@ Page({
   },
 
   onHide() {
+    this._hidden = true
+    this._loadSeq = (this._loadSeq || 0) + 1
+    this.setData({ chart: null, pillars: [], basicRows: [] })
     navigation.pageHidden(this)
   },
 
@@ -44,10 +69,9 @@ Page({
     navigation.pageGone(this)
   },
 
-  returnToQuery() {
+  returnToMine() {
     navigation.navigate(this, {
-      method: 'navigateBack', delta: 1, target: '/pages/home/index', key: 'back',
-      fallback: { method: 'switchTab', url: '/pages/home/index' },
+      method: 'switchTab', url: '/pages/mine/index', key: 'back',
     })
   },
 })

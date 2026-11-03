@@ -4,6 +4,7 @@
     "pages/calendar/index",
     "pages/mine/index",
     "pages/profile/index",
+    "pages/personal-chart-setup/index",
     "pages/result/index",
     "pages/personal-day/index",
     "pages/moving-date/index"

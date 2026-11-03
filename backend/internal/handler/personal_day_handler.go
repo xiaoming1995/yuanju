@@ -1,15 +1,81 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
+	"yuanju/internal/model"
 	"yuanju/internal/repository"
 	"yuanju/internal/service"
+	"yuanju/pkg/bazi"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+// SavePersonalChart creates a fresh chart snapshot and switches the personal
+// binding atomically. This endpoint is used by the miniapp's Mine setup flow.
+func SavePersonalChart(c *gin.Context) {
+	var input CalculateInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "请检查本人出生资料"})
+		return
+	}
+	birthDate := time.Date(input.Year, time.Month(input.Month), input.Day, 0, 0, 0, 0, time.UTC)
+	if birthDate.Year() != input.Year || int(birthDate.Month()) != input.Month || birthDate.Day() != input.Day {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "出生日期无效"})
+		return
+	}
+	if input.CalendarType == "" {
+		input.CalendarType = "solar"
+	}
+	if input.CalendarType != "solar" {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": "本人命盘请填写公历出生日期"})
+		return
+	}
+	name, err := normalizeChartDisplayName(input.DisplayName)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+		return
+	}
+	result := bazi.Calculate(input.Year, input.Month, input.Day, input.Hour, input.Gender,
+		input.IsEarlyZishi, input.Longitude, input.CalendarType, input.IsLeapMonth)
+	userID := personalUserID(c)
+	chart := &model.BaziChart{UserID: &userID, BirthYear: input.Year, BirthMonth: input.Month,
+		BirthDay: input.Day, BirthHour: input.Hour, Gender: input.Gender, DisplayName: name,
+		YearGan: result.YearGan, YearZhi: result.YearZhi, MonthGan: result.MonthGan, MonthZhi: result.MonthZhi,
+		DayGan: result.DayGan, DayZhi: result.DayZhi, HourGan: result.HourGan, HourZhi: result.HourZhi,
+		Wuxing: result.Wuxing, Dayun: result.Dayun, Yongshen: result.Yongshen, Jishen: result.Jishen,
+		ChartHash: result.ChartHash, CalendarType: input.CalendarType, IsLeapMonth: input.IsLeapMonth}
+	saved, err := repository.CreatePersonalChartWithChannel(chart, userActivityChannel(c))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "本人命盘保存失败，请稍后重试"})
+		return
+	}
+	if snapshot, err := json.Marshal(result); err == nil {
+		_ = repository.SaveChartResultJSON(saved.ID, snapshot)
+	}
+	c.JSON(http.StatusOK, gin.H{"chart": saved, "result": result})
+}
+
+func GetPersonalChartDetail(c *gin.Context) {
+	chart, err := repository.GetPersonalChart(personalUserID(c))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取本人命盘失败"})
+		return
+	}
+	if chart == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "请先配置本人命盘", "code": "personal_chart_unbound"})
+		return
+	}
+	result, err := service.LoadOrCalculateResult(chart)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取本人命盘详情失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"chart": chart, "result": result})
+}
 
 func personalUserID(c *gin.Context) string {
 	value, _ := c.Get("user_id")

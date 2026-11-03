@@ -1,11 +1,13 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell result-page">
+  <view wx:if="{{loading}}" class="result-state surface-card">正在读取本人命盘…</view>
+  <view wx:elif="{{loadError}}" class="result-state surface-card"><text>{{loadError}}</text><button bindtap="loadDetail">重新加载</button></view>
   <block wx:if="{{chart}}">
   <view class="query-summary surface-card">
-    <view class="summary-heading"><text>本次排盘</text><text>已使用所填生辰</text></view>
+    <view class="summary-heading"><text>本人命盘</text><text>已绑定</text></view>
     <view class="summary-date">{{selectedDate}}</view>
     <view wx:if="{{selectedNote}}" class="summary-note">备注：{{selectedNote}}</view>
-    <view class="summary-hint">结果由缘聚后端计算并保存至当前账号。</view>
+    <view class="summary-hint">结果来自当前账号配置的本人命盘。</view>
   </view>
 
   <view class="section-heading">四柱干支</view>
@@ -92,5 +94,5 @@
   </view>
   </block>
 
-  <button class="primary-button return-button {{navigationKey === 'back' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="returnToQuery">返回修改日期</button>
+  <button class="primary-button return-button {{navigationKey === 'back' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="returnToMine">返回我的</button>
 </view>

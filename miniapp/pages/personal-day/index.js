@@ -5,18 +5,9 @@ const { buildPersonalDay } = require('../../data/personal_day')
 const { getJianChuInfo, jianChuNames } = require('../../data/jianchu')
 const { ACTIVITIES, classifyActivityDate } = require('../../data/moving_date')
 const navigation = require('../../utils/navigation_feedback')
-const { personalHints } = require('../../utils/personal_day_view')
+const { personalHints, personalDirectionRows } = require('../../utils/personal_day_view')
 
 const previewDate = '2026-10-22'
-
-function realDirectionRows(day) {
-  const labels = { favorable: '喜用', adverse: '忌神', neutral: '未落入喜忌' }
-  if (!day || !labels[day.stem_direction] || !labels[day.branch_direction]) return []
-  return [
-    { name: `日干${day.day_gan}（${day.stem_element}）`, direction: labels[day.stem_direction] },
-    { name: `日支${day.day_zhi}（${day.branch_element}主气）`, direction: labels[day.branch_direction] },
-  ]
-}
 
 function dateDetails(date, activityId) {
   const record = calendarData[date] || {}
@@ -47,7 +38,10 @@ Page({
     favorable: chart.personalDay.fuyiYongshen,
     adverse: chart.personalDay.fuyiJishen,
     jianChuNames,
-    realMode: false,
+    realMode: true,
+    calendarDay: null,
+    calendarLoading: false,
+    calendarError: '',
     realDay: null,
     personalHints: [],
     realDirections: [],
@@ -61,10 +55,27 @@ Page({
     navigation.pageVisible(this, 'pages/personal-day/index')
     const date = options && options.date ? options.date : previewDate
     this.setData({
+      realMode: true,
       enabled: Boolean(getApp().globalData.previewDayProfileEnabled),
       ...dateDetails(date, options && options.activity),
     })
+    this.loadCalendarDay(date)
     if (typeof wx.getStorageSync === 'function' && api.token()) this.loadRealDay(date)
+  },
+
+  async loadCalendarDay(date) {
+    this.setData({ calendarDay: null, calendarLoading: true, calendarError: '' })
+    try {
+      const response = await api.calendarDay(date)
+      const day = response.data
+      if (!day || day.date !== date || !Array.isArray(day.yi) || !Array.isArray(day.ji)) throw new Error('日期资料不完整')
+      this.setData({ calendarDay: day, lunarFull: day.lunar_full || this.data.lunarFull,
+        yearGanZhi: day.year_gan_zhi || this.data.yearGanZhi,
+        monthGanZhi: day.month_gan_zhi || this.data.monthGanZhi,
+        dayGanZhi: day.day_gan_zhi || this.data.dayGanZhi })
+    } catch (err) {
+      this.setData({ calendarError: err.message })
+    } finally { this.setData({ calendarLoading: false }) }
   },
 
   async loadRealDay(date) {
@@ -74,20 +85,19 @@ Page({
       const response = await api.personalChart()
       if (api.token() !== currentToken) return
       if (!response.chart) {
-        this.setData({ realLoading: false, realMode: !getApp().globalData.previewDayProfileEnabled })
+        this.setData({ realLoading: false, realMode: true })
         return
       }
       const dayResponse = await api.personalDay(date)
       if (api.token() !== currentToken) return
-      this.setData({ realDay: dayResponse.data, personalHints: personalHints(dayResponse.data), realDirections: realDirectionRows(dayResponse.data) })
+      this.setData({ realDay: dayResponse.data, personalHints: personalHints(dayResponse.data), realDirections: personalDirectionRows(dayResponse.data) })
     } catch (err) {
       if (api.token() === currentToken) this.setData({ realError: err.message })
     } finally { if (api.token() === currentToken) this.setData({ realLoading: false }) }
   },
 
   openBinding() {
-    getApp().globalData.previewHistoryNext = true
-    navigation.navigate(this, { method: 'switchTab', url: '/pages/home/index', key: 'history' })
+    navigation.navigate(this, { method: 'switchTab', url: '/pages/mine/index', key: 'mine' })
   },
 
   useDemo() { this.setData({ realMode: false }) },

@@ -67,38 +67,6 @@ test('four, five, and six week months retain seven complete date columns', () =>
   }
 })
 
-test('late response for an earlier selection cannot replace the current personal result', async () => {
-  config.apiBaseUrl = 'https://api.test.example'
-  const pending = []
-  const wxApi = {
-    getStorageSync: () => 'jwt',
-    request(options) {
-      if (options.url.endsWith('/personal-chart')) {
-        options.success({ statusCode: 200, data: { chart: { id: 'mine' } } })
-      } else if (options.url.includes('/calendar/day?')) {
-        const date = options.url.split('date=')[1]
-        options.success({ statusCode: 200, data: { data: { date, yi: ['祭祀'], ji: ['开市'] } } })
-      } else {
-        pending.push(options)
-      }
-    },
-  }
-  const page = loadPage({ globalData: {} }, wxApi)
-  const initial = page.refreshPersonalState()
-  await new Promise(resolve => setImmediate(resolve))
-  assert.equal(pending.length, 1)
-  page.pickDate({ currentTarget: { dataset: { key: '2026-11-10' } } })
-  assert.equal(pending.length, 2)
-  pending[1].success({ statusCode: 200, data: { data: { date: '2026-11-10', day_gan_zhi: '甲子', summary: '新结果', activity_guidance: [{ id: 'travel', source_label: '通用日历', level: 'review', summary: '新事项' }] } } })
-  await new Promise(resolve => setImmediate(resolve))
-  pending[0].success({ statusCode: 200, data: { data: { date: page.data.selectedKey, day_gan_zhi: '乙丑', summary: '旧结果', activity_guidance: [{ id: 'travel', summary: '旧事项' }] } } })
-  await initial
-  assert.equal(page.data.realDay.summary, '新结果')
-  assert.equal(page.data.realDay.activity_guidance[0].summary, '新事项')
-  assert.equal(page.data.selected.dayGanZhi, '甲子')
-  assert.equal(page.data.realLoading, false)
-})
-
 test('public almanac retains complete Yi and Ji without login and ignores an older date response', async () => {
   config.apiBaseUrl = 'https://api.test.example'
   const pending = []
@@ -119,14 +87,16 @@ test('public almanac retains complete Yi and Ji without login and ignores an old
   assert.deepEqual(page.data.calendarDay.ji, ['开市', '嫁娶'])
   page.pickDate({ currentTarget: { dataset: { key: '2026-11-03' } } })
   assert.equal(page.data.calendarDay, null)
-  assert.equal(page.data.personalChart, null)
 })
 
-test('calendar renders every Yi and Ji label directly without a collapsed preview', () => {
-  const template = fs.readFileSync(require.resolve('../pages/calendar/index.wxml'), 'utf8')
-  assert.match(template, /wx:for="\{\{calendarDay\.yi\}\}"/)
-  assert.match(template, /wx:for="\{\{calendarDay\.ji\}\}"/)
-  assert.doesNotMatch(template, /almanac-toggle|almanacView|almanacExpanded/)
+test('calendar omits the selected-date card and keeps its detail link in date information', () => {
+  const calendar = fs.readFileSync(require.resolve('../pages/calendar/index.wxml'), 'utf8')
+  const detail = fs.readFileSync(require.resolve('../pages/personal-day/index.wxml'), 'utf8')
+  assert.doesNotMatch(calendar, /selected-card/)
+  assert.match(calendar, /date-detail-link[^>]*bindtap="openSelectedDay"/)
+  assert.doesNotMatch(calendar, /wx:for="\{\{calendarDay\.(yi|ji)\}\}"/)
+  assert.match(detail, /wx:for="\{\{calendarDay\.yi\}\}"/)
+  assert.match(detail, /wx:for="\{\{calendarDay\.ji\}\}"/)
 })
 
 test('calendar distinguishes empty, loading, and failed almanac data', async () => {
@@ -149,31 +119,4 @@ test('calendar distinguishes empty, loading, and failed almanac data', async () 
   await failed
   assert.equal(page.data.calendarDay, null)
   assert.ok(page.data.calendarError)
-})
-
-test('calendar keeps one personal hint and the remaining count for a bound chart', async () => {
-  config.apiBaseUrl = 'https://api.test.example'
-  const page = loadPage({ globalData: {} }, {
-    getStorageSync: () => 'jwt',
-    request(options) {
-      if (options.url.endsWith('/personal-chart')) {
-        options.success({ statusCode: 200, data: { chart: { id: 'mine' } } })
-      } else if (options.url.includes('/personal-day?')) {
-        options.success({ statusCode: 200, data: { data: {
-          date: page.data.selectedKey,
-          activity_guidance: [
-            { id: 'travel', title: '出行', level: 'review', sources: ['personal_chart'], summary: '谨慎安排' },
-            { id: 'work', title: '工作', level: 'candidate', sources: ['personal_chart'], summary: '适合推进' },
-            { id: 'other', title: '通用', level: 'review', sources: ['calendar_yiji'], summary: '通用提示' },
-          ],
-        } } })
-      }
-    },
-  })
-  await page.refreshPersonalState()
-  assert.equal(page.data.personalHint.title, '出行')
-  assert.equal(page.data.personalHintRemaining, 1)
-  page.showDate('2026-11-03')
-  assert.equal(page.data.personalHint, null)
-  assert.equal(page.data.personalHintRemaining, 0)
 })

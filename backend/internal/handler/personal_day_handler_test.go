@@ -16,10 +16,83 @@ func personalHandlerRouter(userID string) *gin.Engine {
 	r := gin.New()
 	group := r.Group("/api/user", func(c *gin.Context) { c.Set("user_id", userID); c.Next() })
 	group.GET("/personal-chart", GetPersonalChart)
+	group.POST("/personal-chart", SavePersonalChart)
+	group.GET("/personal-chart/detail", GetPersonalChartDetail)
 	group.PUT("/personal-chart", SetPersonalChart)
 	group.DELETE("/personal-chart", ClearPersonalChart)
 	group.GET("/personal-day", GetPersonalDay)
 	return r
+}
+
+func TestPersonalChartSetupAndBoundDetail(t *testing.T) {
+	db := withArticleHandlerDB(t)
+	var owner, other string
+	for _, id := range []*string{&owner, &other} {
+		if err := db.QueryRow(`INSERT INTO users (email,password_hash) VALUES (gen_random_uuid()::text || '@example.com','hash') RETURNING id`).Scan(id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	ownerAPI, otherAPI := personalHandlerRouter(owner), personalHandlerRouter(other)
+	if got := personalRequest(ownerAPI, http.MethodGet, "/api/user/personal-chart/detail", ""); got.Code != http.StatusConflict {
+		t.Fatalf("unbound detail: %d %s", got.Code, got.Body.String())
+	}
+	first := personalRequest(ownerAPI, http.MethodPost, "/api/user/personal-chart", `{"year":1990,"month":1,"day":1,"hour":1,"gender":"male"}`)
+	if first.Code != http.StatusOK {
+		t.Fatalf("first setup: %d %s", first.Code, first.Body.String())
+	}
+	var firstBody struct {
+		Chart struct {
+			ID string `json:"id"`
+		} `json:"chart"`
+	}
+	if err := json.Unmarshal(first.Body.Bytes(), &firstBody); err != nil || firstBody.Chart.ID == "" {
+		t.Fatalf("first chart: %v %s", err, first.Body.String())
+	}
+	if got := personalRequest(otherAPI, http.MethodGet, "/api/user/personal-chart/detail", ""); got.Code != http.StatusConflict || bytes.Contains(got.Body.Bytes(), []byte(firstBody.Chart.ID)) {
+		t.Fatalf("other user detail: %d %s", got.Code, got.Body.String())
+	}
+	if got := personalRequest(ownerAPI, http.MethodGet, "/api/user/personal-chart/detail", ""); got.Code != http.StatusOK || !bytes.Contains(got.Body.Bytes(), []byte(firstBody.Chart.ID)) {
+		t.Fatalf("owner detail: %d %s", got.Code, got.Body.String())
+	}
+	if got := personalRequest(ownerAPI, http.MethodPost, "/api/user/personal-chart", `{"year":1991,"month":1,"day":1,"hour":1,"gender":"invalid"}`); got.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("invalid change: %d %s", got.Code, got.Body.String())
+	}
+	if got := personalRequest(ownerAPI, http.MethodPost, "/api/user/personal-chart", `{"year":1991,"month":2,"day":30,"hour":1,"gender":"male"}`); got.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("invalid birth date: %d %s", got.Code, got.Body.String())
+	}
+	if got := personalRequest(ownerAPI, http.MethodGet, "/api/user/personal-chart/detail", ""); got.Code != http.StatusOK || !bytes.Contains(got.Body.Bytes(), []byte(firstBody.Chart.ID)) {
+		t.Fatalf("old binding changed after invalid input: %d %s", got.Code, got.Body.String())
+	}
+	if _, err := db.Exec(`CREATE FUNCTION reject_personal_switch() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test switch failure'; END $$`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TRIGGER reject_personal_switch BEFORE UPDATE ON user_personal_charts FOR EACH ROW EXECUTE FUNCTION reject_personal_switch()`); err != nil {
+		t.Fatal(err)
+	}
+	failed := personalRequest(ownerAPI, http.MethodPost, "/api/user/personal-chart", `{"year":1992,"month":1,"day":1,"hour":1,"gender":"male"}`)
+	if failed.Code != http.StatusInternalServerError {
+		t.Fatalf("failed switch: %d %s", failed.Code, failed.Body.String())
+	}
+	if _, err := db.Exec(`DROP TRIGGER reject_personal_switch ON user_personal_charts`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DROP FUNCTION reject_personal_switch()`); err != nil {
+		t.Fatal(err)
+	}
+	if got := personalRequest(ownerAPI, http.MethodGet, "/api/user/personal-chart/detail", ""); got.Code != http.StatusOK || !bytes.Contains(got.Body.Bytes(), []byte(firstBody.Chart.ID)) {
+		t.Fatalf("old binding changed after transaction failure: %d %s", got.Code, got.Body.String())
+	}
+	var chartCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM bazi_charts WHERE user_id=$1`, owner).Scan(&chartCount); err != nil || chartCount != 1 {
+		t.Fatalf("failed switch left a chart: count=%d err=%v", chartCount, err)
+	}
+	second := personalRequest(ownerAPI, http.MethodPost, "/api/user/personal-chart", `{"year":1991,"month":1,"day":1,"hour":1,"gender":"female"}`)
+	if second.Code != http.StatusOK || bytes.Contains(second.Body.Bytes(), []byte(`"id":"`+firstBody.Chart.ID+`"`)) {
+		t.Fatalf("replacement: %d %s", second.Code, second.Body.String())
+	}
+	if got := personalRequest(ownerAPI, http.MethodGet, "/api/user/personal-chart/detail", ""); got.Code != http.StatusOK || bytes.Contains(got.Body.Bytes(), []byte(`"id":"`+firstBody.Chart.ID+`"`)) {
+		t.Fatalf("old chart still bound: %d %s", got.Code, got.Body.String())
+	}
 }
 
 func personalRequest(r *gin.Engine, method, path, body string) *httptest.ResponseRecorder {

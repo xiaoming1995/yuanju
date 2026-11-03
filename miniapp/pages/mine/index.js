@@ -5,7 +5,7 @@ const navigation = require('../../utils/navigation_feedback')
 Page({
   data: {
     loggedIn: false, loggingIn: false, profileLoading: false, profileError: '', user: null,
-    email: '', password: '', bindingVisible: false, chartCount: 0, recentCharts: [],
+    email: '', password: '', bindingVisible: false, chartCount: 0,
     personalChart: null, personalChartError: '', personalChartLoading: false,
     userAvatarUrl: '',
     officialAccountGuide: null, officialAccountOpen: false, officialAccountQRFailed: false,
@@ -53,18 +53,16 @@ Page({
     const loadSeq = this._profileLoadSeq = (this._profileLoadSeq || 0) + 1
     const currentToken = api.token()
     if (!currentToken) { this.setData({ loggedIn: false, profileLoading: false, profileError: '', user: null, userAvatarUrl: '',
-      chartCount: 0, recentCharts: [], personalChart: null, personalChartError: '', personalChartLoading: false }); return false }
+      chartCount: 0, personalChart: null, personalChartError: '', personalChartLoading: false }); return false }
     this.setData({ profileLoading: !this.data.loggedIn, profileError: '', personalChart: null, personalChartError: '', personalChartLoading: true })
     try {
       const bindingRequest = api.personalChart().then(value => ({ value }), error => ({ error }))
       const response = await api.profile()
       if (api.token() !== currentToken || this._profileLoadSeq !== loadSeq) return false
       const profile = response.data
-      const history = (profile.recent_charts || []).map(toHistory)
       const user = profile.user
       const avatarUrl = api.assetUrl(user.avatar_url) || ''
       this.setData({ loggedIn: true, profileLoading: false, profileError: '', user: profile.user, chartCount: profile.stats.chart_count,
-        recentCharts: history.slice(0, 2),
         userAvatarUrl: avatarUrl.startsWith('http://') ? '' : avatarUrl })
       api.avatarDisplayUrl(user.avatar_url).then(displayUrl => {
         if (api.token() === currentToken && this._profileLoadSeq === loadSeq) this.setData({ userAvatarUrl: displayUrl })
@@ -81,7 +79,7 @@ Page({
       const stillAuthenticated = api.token() === currentToken
       if (!stillAuthenticated && api.token()) return false
       this.setData({ loggedIn: false, profileLoading: false, profileError: stillAuthenticated ? (err.message || '个人资料读取失败') : '',
-        user: null, userAvatarUrl: '', chartCount: 0, recentCharts: [], personalChart: null,
+        user: null, userAvatarUrl: '', chartCount: 0, personalChart: null,
         personalChartError: '', personalChartLoading: false })
       return false
     }
@@ -120,22 +118,20 @@ Page({
     navigation.navigate(this, { method: 'navigateTo',
       url: `/pages/profile/index${onboarding === true ? '?onboarding=1' : ''}`, key: 'profile' })
   },
-  openPersonalChart() { if (this.data.personalChart) this.openRecentChart({ currentTarget: { dataset: { id: this.data.personalChart.id } } }) },
+  openPersonalChart() {
+    if (!this.data.personalChart) return
+    navigation.navigate(this, { method: 'navigateTo', url: '/pages/result/index', key: 'result' })
+  },
   openPersonalBanner() {
     if (this.data.personalChartError) return this.loadProfile()
     if (!this.data.chartCount) return this.openCreateChart()
-    this.openHistory()
-  },
-  openRecentChart(event) {
-    if (this.data.navigationKey) return
-    getApp().globalData.previewHistoryDetailId = event.currentTarget.dataset.id
     this.openHistory()
   },
   logoutPreview() {
     api.logout()
     this._profileLoadSeq = (this._profileLoadSeq || 0) + 1
     this.setData({ loggedIn: false, profileLoading: false, profileError: '', user: null, userAvatarUrl: '',
-      chartCount: 0, recentCharts: [], personalChart: null, personalChartError: '', personalChartLoading: false,
+      chartCount: 0, personalChart: null, personalChartError: '', personalChartLoading: false,
       email: '', password: '', bindingVisible: false })
     wx.showToast({ title: '已退出登录', icon: 'none' })
   },
@@ -144,9 +140,8 @@ Page({
     navigation.navigate(this, { method: 'switchTab', url: '/pages/home/index', key: 'history' })
   },
   openCreateChart() {
-    getApp().globalData.previewQueryNext = true
-    navigation.navigate(this, { method: 'switchTab', url: '/pages/home/index', key: 'query' })
+    navigation.navigate(this, { method: 'navigateTo', url: '/pages/personal-chart-setup/index', key: 'setup' })
   },
   openPrivacy() { wx.showModal({ title: '隐私说明', content: '登录及干支记录会提交到配置的后端服务。正式隐私政策尚未在小程序内提供。', showCancel: false }) },
-  openAbout() { wx.showModal({ title: '关于缘聚', content: '提供干支排盘、日历宜忌、个人参考与历史记录。', showCancel: false }) },
+  openAbout() { wx.showModal({ title: '关于缘聚', content: '提供本人命盘、日历宜忌与个人参考。', showCancel: false }) },
 })

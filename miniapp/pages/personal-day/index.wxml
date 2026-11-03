@@ -2,24 +2,28 @@
 <view class="page-shell personal-page">
   <block wx:if="{{realMode}}">
     <view class="personal-hero surface-card">
-      <view class="hero-top"><text class="hero-kicker">每日干支参考 · 本人命盘</text><text class="demo-tag">{{realDay ? '真实排盘' : '待绑定'}}</text></view>
+      <view class="hero-top"><text class="hero-kicker">每日干支参考 · {{realDay ? '本人命盘' : '通用日期'}}</text><text class="demo-tag">{{realDay ? '真实排盘' : (realLoading ? '检查中' : '未绑定')}}</text></view>
       <view class="hero-date">{{dateLabel}}</view>
-      <view wx:if="{{realDay}}" class="hero-lunar">农历{{realDay.lunar_full}} · {{realDay.year_gan_zhi}}年 {{realDay.month_gan_zhi}}月 {{realDay.day_gan_zhi}}日</view>
+      <view wx:if="{{calendarDay}}" class="hero-lunar">农历{{calendarDay.lunar_full}} · {{calendarDay.year_gan_zhi}}年 {{calendarDay.month_gan_zhi}}月 {{calendarDay.day_gan_zhi}}日</view>
+    </view>
+    <view class="almanac-card surface-card">
+      <view class="section-heading">黄历宜忌 <text>通用日期资料</text></view>
+      <view wx:if="{{calendarLoading}}" class="evidence-empty">正在读取该日宜忌…</view>
+      <view wx:elif="{{calendarDay}}">
+        <view class="almanac-row"><text class="almanac-mark is-yi">宜</text><view class="almanac-items"><text wx:for="{{calendarDay.yi}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.yi.length}}" class="almanac-empty">无记录</text></view></view>
+        <view class="almanac-row"><text class="almanac-mark is-ji">忌</text><view class="almanac-items"><text wx:for="{{calendarDay.ji}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.ji.length}}" class="almanac-empty">无记录</text></view></view>
+      </view>
+      <view wx:else class="evidence-empty">{{calendarError || '该日宜忌暂不可用'}}</view>
     </view>
     <view wx:if="{{realLoading}}" class="personal-intro surface-card">正在计算所选日期与本人命盘的关系…</view>
-    <view wx:elif="{{realError}}" class="personal-intro surface-card">{{realError}}<button class="primary-button" bindtap="openBinding">查看我的排盘</button></view>
+    <view wx:elif="{{realError}}" class="personal-intro surface-card">{{realError}}<button class="primary-button" bindtap="openBinding">去「我的」查看</button></view>
     <view wx:elif="{{!realDay}}" class="personal-intro surface-card">
       <view class="section-heading">尚未绑定本人命盘</view>
-      <view>请在历史记录中自行选择使用本人出生资料排出的干支。</view>
-      <button class="primary-button" bindtap="openBinding">选择本人命盘</button>
+      <view>可在「我的」配置本人命盘，再查看个人事项提示。</view>
+      <button class="primary-button" bindtap="openBinding">去「我的」配置</button>
       <button class="end-preview" bindtap="useDemo">使用固定示例体验</button>
     </view>
     <block wx:else>
-      <view wx:if="{{realDay.calendar_yi && realDay.calendar_ji}}" class="almanac-card surface-card">
-        <view class="section-heading">黄历宜忌 <text>通用日期资料</text></view>
-        <view class="almanac-row"><text class="almanac-mark is-yi">宜</text><view class="almanac-items"><text wx:for="{{realDay.calendar_yi}}" wx:key="*this">{{item}}</text><text wx:if="{{!realDay.calendar_yi.length}}" class="almanac-empty">无记录</text></view></view>
-        <view class="almanac-row"><text class="almanac-mark is-ji">忌</text><view class="almanac-items"><text wx:for="{{realDay.calendar_ji}}" wx:key="*this">{{item}}</text><text wx:if="{{!realDay.calendar_ji.length}}" class="almanac-empty">无记录</text></view></view>
-      </view>
       <view class="personal-profile surface-card"><view class="profile-icon">命</view><view class="profile-copy"><text>{{realDay.chart_name}}</text><text>日柱{{realDay.chart_day}} · 已主动绑定</text></view></view>
       <view wx:if="{{realDay.activity_guidance && realDay.activity_guidance.length}}" class="personal-activities surface-card">
         <view class="guidance-section-head"><view class="section-heading">本人事项提示</view><text wx:if="{{personalHints.length}}" bindtap="toggleActivityEvidence">{{showActivityEvidence ? '收起依据' : '查看依据 ›'}}</text></view>
@@ -32,6 +36,7 @@
         </view>
       </view>
       <view class="personal-verdict surface-card"><view class="section-heading">当日干支与本人命盘</view><view class="verdict-line"><text class="verdict-badge verdict-{{realDay.status}}">{{realDay.label}}</text><text>{{realDay.day_gan_zhi}}日</text></view><view class="verdict-summary">{{realDay.summary}}</view><view wx:if="{{realDirections.length}}" class="direction-list"><view wx:for="{{realDirections}}" wx:key="name"><text>{{item.name}}</text><text>{{item.direction}}</text></view></view></view>
+      <view class="personal-verdict surface-card"><view class="section-heading">方位与色彩参考</view><block wx:if="{{realDay.luck && realDay.luck.available}}"><view class="luck-level">{{realDay.luck.level === 'qualified' ? '有条件参考' : (realDay.luck.level === 'baseline' ? '命盘基础参考' : '今日喜用对应')}}</view><view class="direction-list"><view><text>参考方位</text><text>{{realDay.luck.direction}}</text></view><view><text>参考颜色</text><text>{{realDay.luck.color}}</text></view></view><view class="verdict-summary">{{realDay.luck.reason}}</view></block><view wx:else class="verdict-summary">{{realDay.luck ? realDay.luck.reason : '方位与颜色参考暂不可用。'}}</view></view>
       <view class="personal-evidence surface-card"><view class="section-heading">判断依据</view><view class="fuyi-line"><text>扶抑喜用：{{realDay.favorable || '依据不足'}}</text><text>扶抑忌神：{{realDay.adverse || '依据不足'}}</text></view><view wx:if="{{realDay.evidence.length}}" class="evidence-list"><view wx:for="{{realDay.evidence}}" wx:key="*this"><text class="evidence-dot"></text><text>{{item}}</text></view></view><view wx:else class="evidence-empty">当前资料不足，没有形成个人关系判断。</view><view class="evidence-foot">依据版本：{{realDay.rule_version}}。日支仅按主气五行展示。</view></view>
       <view wx:if="{{realDay.activities.length && !(realDay.activity_guidance && realDay.activity_guidance.length)}}" class="personal-activities surface-card"><view class="section-heading">事项提醒</view><view class="activity-row" wx:for="{{realDay.activities}}" wx:key="id"><view class="activity-head"><text>{{item.title}}</text><text>{{item.tip}}</text></view><view class="activity-detail">{{item.detail}}</view></view></view>
       <view class="personal-boundary">以上内容仅供参考，不能据此预测具体事件，也不构成投资、医疗或其他重大决策依据。</view>

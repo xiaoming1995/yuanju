@@ -24,6 +24,41 @@ func guidanceByID(day *PersonalDayResult, id string) *PersonalDayGuidance {
 	return nil
 }
 
+func TestPersonalDayLuckMappingAndBoundaries(t *testing.T) {
+	tests := []struct {
+		name, stem, branch, stemDirection, branchDirection, favorable, wantLevel, wantDirection, wantColor string
+		climateConflict, clash                                                                             bool
+	}{
+		{"wood", "木", "土", "favorable", "neutral", "木", "aligned", "东方", "绿色系", false, false},
+		{"fire", "火", "火", "favorable", "favorable", "火", "aligned", "南方", "红色系", false, false},
+		{"earth", "土", "木", "favorable", "neutral", "土", "aligned", "中央", "黄色系", false, false},
+		{"metal", "金", "水", "favorable", "neutral", "金", "aligned", "西方", "白色系", false, false},
+		{"water", "水", "木", "favorable", "neutral", "水", "aligned", "北方", "蓝黑色系", false, false},
+		{"different favorable elements", "金", "土", "favorable", "favorable", "金土", "baseline", "西方、中央", "白色系、黄色系", false, false},
+		{"adverse present", "金", "火", "favorable", "adverse", "金", "qualified", "西方", "白色系", false, false},
+		{"neutral", "土", "木", "neutral", "neutral", "水金", "baseline", "北方、西方", "蓝黑色系、白色系", false, false},
+		{"climate conflict", "金", "土", "favorable", "neutral", "金", "qualified", "西方", "白色系", true, false},
+		{"branch clash", "金", "土", "favorable", "neutral", "金", "qualified", "西方", "白色系", false, true},
+		{"missing", "", "", "", "", "", "", "", "", false, false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := personalDayLuck(tc.stem, tc.branch, tc.stemDirection, tc.branchDirection, tc.favorable, tc.climateConflict, tc.clash)
+			if got.Direction != tc.wantDirection || got.Color != tc.wantColor || got.Level != tc.wantLevel || got.Available != (tc.wantDirection != "") || got.Reason == "" {
+				t.Fatalf("unexpected luck: %+v", got)
+			}
+		})
+	}
+	day, err := BuildPersonalDay("2026-11-02", dailyChart("丙", "子"))
+	if err != nil || !day.Luck.Available || day.Luck.Direction != "西方" {
+		t.Fatalf("daily result lost luck mapping: %+v %v", day, err)
+	}
+	mixed, err := BuildPersonalDay("2026-11-04", dailyChart("丙", "子"))
+	if err != nil || mixed.DayGanZhi != "壬午" || mixed.Status != "mixed" || mixed.Luck.Level != "qualified" || mixed.Luck.Direction != "北方" || mixed.Luck.Color != "蓝黑色系" || !strings.Contains(mixed.Luck.Reason, "忌神") || !strings.Contains(mixed.Luck.Reason, "相冲") {
+		t.Fatalf("mixed water/fire day must retain qualified favorable-element reference: %+v %v", mixed, err)
+	}
+}
+
 func TestPersonalDayDirectionsAndSpecificGuidance(t *testing.T) {
 	chart := dailyChart("丙", "子")
 	chart.NatalAssessment.Fuyi = bazi.NatalFuyiAssessment{Yongshen: "水金", Jishen: "火木"}

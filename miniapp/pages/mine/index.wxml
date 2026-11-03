@@ -18,16 +18,16 @@
   </view>
 
   <block wx:if="{{loggedIn}}">
-    <view class="mine-chart-card surface-card">
-      <text class="mine-chart-kicker">本人命盘</text>
+    <view class="mine-chart-card surface-card" hover-class="{{personalChart ? 'tap-pressed' : 'none'}}" bindtap="openPersonalChart" role="button">
+      <view class="mine-chart-heading"><text class="mine-chart-kicker">本人命盘</text><text wx:if="{{personalChart}}" class="mine-chart-view">查看详情 ›</text></view>
       <view wx:if="{{personalChartLoading}}" class="mine-chart-content">
         <text class="mine-chart-title">正在读取绑定状态…</text>
         <text class="mine-chart-note">请稍候</text>
       </view>
-      <view wx:elif="{{personalChart}}" class="mine-chart-content {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalChart" role="button">
+      <view wx:elif="{{personalChart}}" class="mine-chart-content {{navigationKey === 'result' ? 'is-opening' : ''}}">
         <text class="mine-chart-title">{{personalChart.name}}</text>
-        <view class="mine-chart-pillars"><text wx:for="{{personalChart.columns}}" wx:for-item="pillar" wx:key="text">{{pillar.text}}</text></view>
-        <view class="mine-chart-bottom"><text>{{personalChart.date}}</text><text>查看命盘 ›</text></view>
+        <view class="mine-chart-pillars"><view class="mine-chart-pillar" wx:for="{{personalChart.columns}}" wx:for-item="pillar" wx:for-index="pillarIndex" wx:key="text"><text class="mine-chart-pillar-label">{{pillarIndex === 0 ? '年' : pillarIndex === 1 ? '月' : pillarIndex === 2 ? '日' : '时'}}</text><text class="mine-chart-pillar-value">{{pillar.text}}</text></view></view>
+        <view class="mine-chart-footer"><text class="mine-chart-date">{{personalChart.date}}</text><view class="mine-chart-edit" catchtap="openCreateChart" role="button">修改资料</view></view>
       </view>
       <view wx:elif="{{personalChartError}}" class="mine-chart-content" hover-class="tap-pressed" bindtap="openPersonalBanner" role="button">
         <text class="mine-chart-title">暂时无法读取绑定状态</text>
@@ -36,37 +36,22 @@
       </view>
       <view wx:elif="{{chartCount > 0}}" class="mine-chart-content {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalBanner" role="button">
         <text class="mine-chart-title">尚未设置本人命盘</text>
-        <text class="mine-chart-note">从历史排盘中选择自己的命盘，设置后可查看个人每日参考。</text>
-        <text class="mine-chart-link">去选择 ›</text>
+        <text class="mine-chart-note">填写本人出生资料，或从已有记录中选择自己的命盘。</text>
+        <text class="mine-chart-link" catchtap="openCreateChart">填写本人资料 ›</text>
+        <text class="mine-chart-link">从历史选择 ›</text>
       </view>
       <view wx:else class="mine-chart-content">
         <text class="mine-chart-title">尚未设置本人命盘</text>
-        <text class="mine-chart-note">创建一份自己的排盘后，可在历史记录中设为本人命盘。</text>
+        <text class="mine-chart-note">填写自己的出生资料，保存后即可查看本人命盘。</text>
+        <text class="mine-chart-link" bindtap="openCreateChart">去设置 ›</text>
       </view>
     </view>
 
-    <view class="mine-records surface-card">
-      <view class="mine-records-head">
-        <text class="mine-records-title">我的排盘</text>
-        <text class="mine-records-count">{{chartCount}}份</text>
-        <text class="mine-records-all {{navigationKey === 'history' ? 'is-opening' : ''}}" bindtap="openHistory" role="button">查看全部 ›</text>
-      </view>
-      <view wx:if="{{recentCharts.length}}" class="mine-record-list">
-        <view class="mine-record {{navigationKey === 'history' ? 'is-opening' : ''}}" wx:for="{{recentCharts}}" wx:key="id" data-id="{{item.id}}" hover-class="tap-pressed" bindtap="openRecentChart" role="button">
-          <view class="mine-record-copy"><text>{{item.name}}</text><text>{{item.date}}</text></view>
-          <text class="mine-chevron">›</text>
-        </view>
-      </view>
-      <view wx:else class="mine-record-empty">
-        <text>还没有保存排盘</text>
-        <text class="mine-record-create" bindtap="openCreateChart" role="button">去创建排盘 ›</text>
-      </view>
-    </view>
   </block>
 
   <view wx:if="{{!loggedIn && !profileLoading && !profileError}}" class="mine-guest-note surface-card">
     <text>从一份自己的排盘开始</text>
-    <text>登录后可以保存记录，并手动设置本人命盘。</text>
+    <text>登录后可配置本人命盘，查看个人参考。</text>
   </view>
 
   <view class="mine-settings-title">设置与帮助</view>

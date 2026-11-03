@@ -18,12 +18,6 @@
 .day-inner.is-selected .solar-day, .day-inner.is-selected .lunar-day { color: #fff; }
 .day-inner.is-today { box-shadow: inset 0 0 0 2rpx #a47c3b; }
 .day-inner.is-selected.is-today { box-shadow: inset 0 0 0 3rpx #e8c98d; }
-.selected-card { margin-top: 24rpx; padding: 27rpx 28rpx 30rpx; }
-.selected-head { display: flex; justify-content: space-between; align-items: center; font-size: 30rpx; font-weight: 700; }
-.selected-head > text:last-child { color: #775119; }
-.selected-foot { display: flex; justify-content: space-between; align-items: center; gap: 8rpx; flex-wrap: wrap; margin-top: 10rpx; font-size: 23rpx; }
-.selected-lunar { min-width: 0; color: #775119; overflow-wrap: anywhere; }
-.selected-jieqi { padding: 6rpx 8rpx; border-radius: 8rpx; background: #fbf5e8; color: #775119; text-align: right; }
 .almanac-heading { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; margin-top: 28rpx; padding-top: 24rpx; border-top: 1rpx solid #f0efeb; }
 .almanac-heading .section-heading { margin: 0; }
 .almanac-heading > text { color: #8b949d; font-size: 19rpx; }
@@ -97,6 +91,7 @@
 .ganzhi-row text { color: #8e969e; font-size: 20rpx; }
 .ganzhi-row .ganzhi-value { color: #c78f22; font-size: 23rpx; font-weight: 700; }
 .detail-hint { margin-top: 18rpx; color: #5f6b74; font-size: 23rpx; line-height: 1.5; }
+.date-detail-link { display: flex; align-items: center; justify-content: flex-end; min-height: 70rpx; margin-top: 18rpx; padding-top: 9rpx; border-top: 1rpx solid #f0efeb; color: #936c2c; font-size: 23rpx; }
 .term-month-head { display: flex; justify-content: space-between; color: #8b929b; font-size: 21rpx; }
 .term-item { display: flex; align-items: center; gap: 14rpx; margin-top: 13rpx; padding: 12rpx 16rpx; border-radius: 14rpx; background: #faf8f4; }
 .term-day { width: 45rpx; color: #c78b1e; font-size: 32rpx; font-weight: 700; text-align: center; }
