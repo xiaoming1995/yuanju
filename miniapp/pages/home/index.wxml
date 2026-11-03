@@ -1,29 +1,30 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
-<view class="page-shell home-page">
+<view class="page-shell home-page {{mode === 'home' ? 'daily-home-page' : ''}}">
   <view wx:if="{{mode === 'history'}}" class="history-page-header">
     <view class="history-back" data-mode="home" bindtap="switchMode" role="button"><text class="history-back-arrow">←</text><text>返回首页</text></view>
     <text class="history-page-title">我的排盘</text>
   </view>
 
   <block wx:if="{{mode === 'home'}}">
-    <view class="home-section-title"><view class="section-heading">今日参考</view><text class="home-section-link {{navigationKey === 'calendar' ? 'is-opening' : ''}}" bindtap="openCalendar">查看日历 ›</text></view>
-    <view class="today-card surface-card">
-      <view class="today-date"><text>{{calendarPreview.date}}</text><text>今天 · 农历{{calendarPreview.lunar || (calendarLoading ? '读取中' : '暂不可用')}}</text></view>
-      <view class="today-pillars">
-        <view><text class="today-pillar-label">年柱</text><text class="today-pillar-value">{{calendarPreview.yearGanZhi}}</text></view>
-        <view><text class="today-pillar-label">月柱</text><text class="today-pillar-value">{{calendarPreview.monthGanZhi}}</text></view>
-        <view><text class="today-pillar-label">日柱</text><text class="today-pillar-value">{{calendarPreview.dayGanZhi}}</text></view>
-      </view>
-      <view class="today-divider"></view>
-      <view class="today-heading"><text>黄历宜忌</text><text>通用日期资料</text></view>
+    <view class="today-hero">
+      <image class="today-plum" src="/assets/home-plum-branch.png" mode="widthFix" aria-hidden="true"></image>
+      <view class="today-hero-top"><text class="today-wordmark">缘聚</text><text class="home-section-link {{navigationKey === 'calendar' ? 'is-opening' : ''}}" bindtap="openCalendar">查看日历 ›</text></view>
+      <view class="today-date"><text>{{calendarPreview.date}}</text><text>农历{{calendarPreview.lunar || (calendarLoading ? '读取中' : '暂不可用')}}</text></view>
+      <view class="today-pillars"><view><text class="today-pillar-value">{{calendarPreview.yearGanZhi}}年</text><text class="today-pillar-label">年柱</text></view><view><text class="today-pillar-value">{{calendarPreview.monthGanZhi}}月</text><text class="today-pillar-label">月柱</text></view><view><text class="today-pillar-value">{{calendarPreview.dayGanZhi}}日</text><text class="today-pillar-label">日柱</text></view></view>
+    </view>
+
+    <view class="today-section today-almanac-card surface-card">
+      <view class="today-heading"><text>黄历宜忌</text><view class="today-heading-rule"></view><text>通用日期资料</text></view>
       <view wx:if="{{calendarLoading}}" class="today-status">正在读取今日宜忌…</view>
       <view wx:elif="{{calendarDay}}" class="today-almanac">
         <view><text class="today-mark is-yi">宜</text><view><text wx:for="{{calendarDay.yi}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.yi.length}}">无记录</text></view></view>
         <view><text class="today-mark is-ji">忌</text><view><text wx:for="{{calendarDay.ji}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.ji.length}}">无记录</text></view></view>
       </view>
       <view wx:else class="today-status">{{calendarError || '今日宜忌暂不可用'}}</view>
-      <view class="today-divider"></view>
-      <view class="today-heading"><text>本人事项提示</text><text>本人命盘</text></view>
+    </view>
+
+    <view class="today-section today-personal-card surface-card">
+      <view class="today-heading"><text>本人事项提示</text><view class="today-heading-rule"></view><text>本人命盘</text></view>
       <view wx:if="{{personalLoading}}" class="today-status">正在读取个人参考…</view>
       <view wx:elif="{{personalState === 'unbound'}}" class="today-status">尚未配置本人命盘。<text class="today-inline-link" bindtap="openPersonalSetup">去「我的」设置 ›</text></view>
       <view wx:elif="{{personalState === 'error'}}" class="today-status">{{personalError || '个人参考暂不可用'}}<text class="today-inline-link" bindtap="refreshToday">重试 ›</text></view>
@@ -36,20 +37,20 @@
       </view>
       <view wx:else class="today-status">{{personalDay && personalDay.status === 'insufficient' ? personalDay.summary : '今天暂无特别的本人事项提示。'}}</view>
       <block wx:if="{{personalDay}}">
-        <view class="today-divider"></view>
-        <view class="today-heading"><text>当日干支与本人命盘</text><text>{{personalDay.day_gan_zhi}}日</text></view>
-        <view class="today-verdict"><text class="today-verdict-label status-{{personalDay.status}}">{{personalDay.label}}</text><text>{{personalDay.summary}}</text></view>
+        <view class="today-verdict"><text class="today-verdict-title">当日干支关系 · {{personalDay.day_gan_zhi}}日</text><view><text class="today-verdict-label status-{{personalDay.status}}">{{personalDay.label}}</text><text>{{personalDay.summary}}</text></view></view>
         <view wx:if="{{personalDirections.length}}" class="today-directions"><view wx:for="{{personalDirections}}" wx:key="name"><text>{{item.name}}</text><text>{{item.direction}}</text></view></view>
       </block>
-      <view class="today-divider"></view>
-      <view class="today-heading"><text>方位与色彩参考</text><text>{{personalDay && personalDay.luck && personalDay.luck.available ? (personalDay.luck.level === 'qualified' ? '有条件参考' : (personalDay.luck.level === 'baseline' ? '命盘基础' : '今日喜用')) : '个人五行推算'}}</text></view>
+    </view>
+
+    <view class="today-section today-luck-card surface-card">
+      <view class="today-heading"><text>方位与色彩参考</text><view class="today-heading-rule"></view><text>{{personalDay && personalDay.luck && personalDay.luck.available ? (personalDay.luck.level === 'qualified' ? '有条件参考' : (personalDay.luck.level === 'baseline' ? '命盘基础' : '今日喜用')) : '个人五行推算'}}</text></view>
       <view wx:if="{{personalLoading}}" class="today-status">正在读取个人五行参考…</view>
       <view wx:elif="{{personalState === 'unbound'}}" class="today-status">配置本人命盘后可查看。</view>
       <view wx:elif="{{personalState === 'error'}}" class="today-status">方位与颜色参考暂不可用。</view>
       <view wx:elif="{{personalDay && personalDay.luck && personalDay.luck.available}}"><view class="today-luck"><view><text>参考方位</text><text>{{personalDay.luck.direction}}</text></view><view><text>参考颜色</text><text>{{personalDay.luck.color}}</text></view></view><view class="today-footnote">{{personalDay.luck.reason}}</view></view>
       <view wx:else class="today-status">{{personalDay && personalDay.luck ? personalDay.luck.reason : '方位与颜色参考暂不可用。'}}</view>
-      <view class="today-detail-link {{navigationKey === 'personal' ? 'is-opening' : ''}}" bindtap="openTodayDetail">查看今日完整依据 ›</view>
     </view>
+    <view class="today-footer"><image class="today-mountains" src="/assets/home-ink-mountains.png" mode="widthFix" aria-hidden="true"></image><view class="today-detail-link {{navigationKey === 'personal' ? 'is-opening' : ''}}" bindtap="openTodayDetail">查看今日完整依据 ›</view><view class="today-boundary">本工具仅为传统文化娱乐参考，不构成决策指导。</view></view>
   </block>
 
   <block wx:else>

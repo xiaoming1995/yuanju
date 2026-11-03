@@ -58,7 +58,7 @@ Page({
       this.loadHistory(1)
       this.loadPersonalChart()
     }
-    wx.setNavigationBarTitle({ title: this.data.mode === 'history' ? '我的排盘' : '缘聚' })
+    wx.setNavigationBarTitle({ title: this.data.mode === 'history' ? '我的排盘' : '' })
   },
 
   onReady() {
@@ -133,7 +133,7 @@ Page({
     const mode = event.currentTarget.dataset.mode
     this.setData({ mode })
     if (mode === 'history') this.loadHistory(1)
-    wx.setNavigationBarTitle({ title: mode === 'history' ? '我的排盘' : '缘聚' })
+    wx.setNavigationBarTitle({ title: mode === 'history' ? '我的排盘' : '' })
   },
 
   async loadHistory(page) {
