@@ -1,5 +1,6 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell mine-page">
+  <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <view wx:if="{{profileLoading && !loggedIn}}" class="mine-state surface-card">正在读取个人资料…</view>
   <view wx:elif="{{profileError}}" class="mine-state surface-card">
     <text>个人资料暂时无法读取</text>

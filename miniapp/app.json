@@ -10,9 +10,9 @@
     "pages/moving-date/index"
   ],
   "window": {
-    "backgroundColor": "#F7F6F4",
+    "backgroundColor": "#FBF8F0",
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F7F6F4",
+    "navigationBarBackgroundColor": "#FBF8F0",
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "缘聚"
   },

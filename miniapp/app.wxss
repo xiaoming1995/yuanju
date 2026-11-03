@@ -1,6 +1,6 @@
 page {
   min-height: 100%;
-  background: #f7f6f4;
+  background: #fbf8f0;
   color: #262b29;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: 28rpx;
@@ -52,7 +52,39 @@ button::after {
 }
 
 .page-shell {
+  position: relative;
+  z-index: 0;
+  min-height: 100vh;
   padding: 20rpx 28rpx 40rpx;
+  border-left: 1rpx solid #d6b876;
+  border-right: 1rpx solid #d6b876;
+}
+
+.paper-backdrop {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.paper-backdrop-plum {
+  position: absolute;
+  top: 0;
+  left: -95rpx;
+  width: 250rpx;
+  opacity: 0.6;
+}
+
+.paper-backdrop-mountains {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0.48;
 }
 
 .section-heading {

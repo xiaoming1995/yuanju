@@ -1,5 +1,6 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell home-page {{mode === 'home' ? 'daily-home-page' : ''}}">
+  <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <view wx:if="{{mode === 'history'}}" class="history-page-header">
     <view class="history-back" data-mode="home" bindtap="switchMode" role="button"><text class="history-back-arrow">←</text><text>返回首页</text></view>
     <text class="history-page-title">我的排盘</text>
@@ -7,7 +8,6 @@
 
   <block wx:if="{{mode === 'home'}}">
     <view class="today-hero">
-      <image class="today-plum" src="/assets/home-plum-branch.png" mode="widthFix" aria-hidden="true"></image>
       <view class="today-hero-top"><text class="today-wordmark">缘聚</text><text class="home-section-link {{navigationKey === 'calendar' ? 'is-opening' : ''}}" bindtap="openCalendar">查看日历 ›</text></view>
       <view class="today-date"><text>{{calendarPreview.date}}</text><text>农历{{calendarPreview.lunar || (calendarLoading ? '读取中' : '暂不可用')}}</text></view>
       <view class="today-pillars"><view><text class="today-pillar-value">{{calendarPreview.yearGanZhi}}年</text><text class="today-pillar-label">年柱</text></view><view><text class="today-pillar-value">{{calendarPreview.monthGanZhi}}月</text><text class="today-pillar-label">月柱</text></view><view><text class="today-pillar-value">{{calendarPreview.dayGanZhi}}日</text><text class="today-pillar-label">日柱</text></view></view>
@@ -50,7 +50,7 @@
       <view wx:elif="{{personalDay && personalDay.luck && personalDay.luck.available}}"><view class="today-luck"><view><text>参考方位</text><text>{{personalDay.luck.direction}}</text></view><view><text>参考颜色</text><text>{{personalDay.luck.color}}</text></view></view><view class="today-footnote">{{personalDay.luck.reason}}</view></view>
       <view wx:else class="today-status">{{personalDay && personalDay.luck ? personalDay.luck.reason : '方位与颜色参考暂不可用。'}}</view>
     </view>
-    <view class="today-footer"><image class="today-mountains" src="/assets/home-ink-mountains.png" mode="widthFix" aria-hidden="true"></image><view class="today-detail-link {{navigationKey === 'personal' ? 'is-opening' : ''}}" bindtap="openTodayDetail">查看今日完整依据 ›</view><view class="today-boundary">本工具仅为传统文化娱乐参考，不构成决策指导。</view></view>
+    <view class="today-footer"><view class="today-detail-link {{navigationKey === 'personal' ? 'is-opening' : ''}}" bindtap="openTodayDetail">查看今日完整依据 ›</view><view class="today-boundary">本工具仅为传统文化娱乐参考，不构成决策指导。</view></view>
   </block>
 
   <block wx:else>

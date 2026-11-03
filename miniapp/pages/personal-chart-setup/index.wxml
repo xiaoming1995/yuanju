@@ -1,5 +1,6 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell setup-page">
+  <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <view class="setup-card surface-card">
     <text class="setup-title">{{hasPersonalChart ? '修改本人出生资料' : '设置本人命盘'}}</text>
     <text class="setup-hint">请填写你自己的出生资料。保存后可查看本人命盘与每日参考。</text>
