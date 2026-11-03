@@ -52,8 +52,12 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	user, token, err := service.Login(input)
+	user, token, err := service.LoginForWeb(c.Request.Context(), input)
 	if err != nil {
+		if errors.Is(err, service.ErrLoginActivityFailed) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": service.ErrLoginActivityFailed.Error()})
+			return
+		}
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}

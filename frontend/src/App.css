@@ -15,6 +15,36 @@ body::before {
   z-index: 0;
 }
 
+body:has(.admin-layout),
+body:has(.admin-login-page) {
+  background-color: var(--admin-bg-base);
+  color: var(--admin-text);
+}
+
+body:has(.admin-layout)::before,
+body:has(.admin-login-page)::before {
+  display: none;
+}
+
+html:has(.admin-layout),
+html:has(.admin-login-page) {
+  scrollbar-color: var(--admin-border-strong) var(--admin-bg-base);
+}
+
+html:has(.admin-layout)::-webkit-scrollbar-track,
+html:has(.admin-login-page)::-webkit-scrollbar-track,
+body:has(.admin-layout)::-webkit-scrollbar-track,
+body:has(.admin-login-page)::-webkit-scrollbar-track {
+  background: var(--admin-bg-base);
+}
+
+html:has(.admin-layout)::-webkit-scrollbar-thumb,
+html:has(.admin-login-page)::-webkit-scrollbar-thumb,
+body:has(.admin-layout)::-webkit-scrollbar-thumb,
+body:has(.admin-login-page)::-webkit-scrollbar-thumb {
+  background: var(--admin-border-strong);
+}
+
 /* 路由懒加载 chunk 下载期间的占位块 */
 .route-fallback-skeleton {
   height: 240px;

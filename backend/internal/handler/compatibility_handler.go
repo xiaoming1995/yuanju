@@ -47,6 +47,7 @@ func CreateCompatibilityReading(c *gin.Context) {
 			Self:    req.SelfDisplayName,
 			Partner: req.PartnerDisplayName,
 		},
+		userActivityChannel(c),
 	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -112,7 +113,7 @@ func DeleteCompatibilityReading(c *gin.Context) {
 func GenerateCompatibilityReport(c *gin.Context) {
 	readingID := c.Param("id")
 	userID, _ := c.Get("user_id")
-	report, err := service.GenerateCompatibilityReport(readingID, userID.(string))
+	report, err := service.GenerateCompatibilityReport(readingID, userID.(string), userActivityChannel(c))
 	if err != nil {
 		if err.Error() == "forbidden" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "无权操作此合盘记录"})

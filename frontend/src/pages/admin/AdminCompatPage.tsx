@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Heart, User, RefreshCw } from 'lucide-react'
 import { adminCompatAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 interface CompatListItem {
   id: string
@@ -57,35 +58,45 @@ export default function AdminCompatPage() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const requestSerial = useRef(0)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [details, setDetails] = useState<Record<string, CompatDetail>>({})
   const [detailLoading, setDetailLoading] = useState<Record<string, boolean>>({})
+  const [detailError, setDetailError] = useState<Record<string, string>>({})
+  const [detailRevision, setDetailRevision] = useState(0)
   const pageSize = 20
 
   const fetchList = async (pageNum: number) => {
+    const serial = ++requestSerial.current
     try {
       setLoading(true)
+      setError('')
       const res = await adminCompatAPI.list(pageNum, pageSize)
+      if (serial !== requestSerial.current) return
       setItems(res.data?.data || [])
       setTotal(res.data?.total || 0)
     } catch (err) {
-      console.error('获取合盘明细失败:', err)
+      if (serial === requestSerial.current) setError(err instanceof Error ? err.message : '合盘明细加载失败')
     } finally {
-      setLoading(false)
+      if (serial === requestSerial.current) setLoading(false)
     }
   }
 
   useEffect(() => { fetchList(page) }, [page])
 
   useEffect(() => {
+    let active = true
     if (expandedId && !details[expandedId]) {
       setDetailLoading(prev => ({ ...prev, [expandedId]: true }))
+      setDetailError(prev => ({ ...prev, [expandedId]: '' }))
       adminCompatAPI.detail(expandedId)
-        .then(res => setDetails(prev => ({ ...prev, [expandedId]: res.data?.data })))
-        .catch(err => console.error(err))
-        .finally(() => setDetailLoading(prev => ({ ...prev, [expandedId]: false })))
+        .then(res => { if (active) setDetails(prev => ({ ...prev, [expandedId]: res.data?.data })) })
+        .catch((err: unknown) => { if (active) setDetailError(prev => ({ ...prev, [expandedId]: err instanceof Error ? err.message : '详情加载失败' })) })
+        .finally(() => { if (active) setDetailLoading(prev => ({ ...prev, [expandedId]: false })) })
     }
-  }, [expandedId]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { active = false }
+  }, [expandedId, detailRevision]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalPages = Math.ceil((total || 0) / pageSize) || 1
 
@@ -107,19 +118,24 @@ export default function AdminCompatPage() {
         </button>
       </div>
 
-      <div className="admin-card">
+      <div className="admin-card" aria-busy={loading}>
         <div style={{ marginBottom: 16, fontSize: 13, color: 'var(--admin-text-muted)' }}>
           记录平台上每一次合盘测算，共 {total} 条记录。
         </div>
 
-        {loading ? (
-          <div className="admin-loading">加载中...</div>
+        {loading && items.length === 0 ? (
+          <AdminRequestState state="loading" message="正在加载合盘明细…" />
+        ) : error && items.length === 0 ? (
+          <AdminRequestState state="error" message={error} onRetry={() => void fetchList(page)} />
         ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', color: 'var(--admin-text-faint)', padding: '40px 0' }}>
             <Heart size={48} color="var(--admin-border-strong)" style={{ margin: '0 auto 16px' }} />
             <p>暂无合盘记录</p>
           </div>
         ) : (
+          <>
+          {loading && <AdminRequestState state="updating" message="正在更新合盘明细，当前显示上一结果…" />}
+          {error && <AdminRequestState state="error" message={`${error}；当前结果未更新`} onRetry={() => void fetchList(page)} />}
           <table className="admin-table">
             <thead>
               <tr><th>排盘用户</th><th>排盘时间</th><th>双方命主</th><th>总分/等级</th><th>关系阶段</th><th>操作</th></tr>
@@ -155,7 +171,8 @@ export default function AdminCompatPage() {
                   {expandedId === it.id && (
                     <tr style={{ background: 'rgba(23,35,33,0.04)' }}>
                       <td colSpan={6} style={{ padding: '20px 24px', borderLeft: '3px solid var(--admin-accent)' }}>
-                        {detailLoading[it.id] && <div style={{ fontSize: 12, color: 'var(--admin-text-faint)' }}>加载中...</div>}
+                        {detailLoading[it.id] && <AdminRequestState state="loading" message="正在加载合盘详情…" />}
+                        {detailError[it.id] && <AdminRequestState state="error" message={detailError[it.id]} onRetry={() => setDetailRevision(n => n + 1)} />}
                         {!detailLoading[it.id] && details[it.id] && (() => {
                           const d = details[it.id]
                           return (
@@ -222,6 +239,7 @@ export default function AdminCompatPage() {
               ))}
             </tbody>
           </table>
+          </>
         )}
 
         {totalPages > 1 && (

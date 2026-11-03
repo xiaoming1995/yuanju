@@ -1,6 +1,7 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, Fragment, useRef } from 'react'
+import { AdminRequestState } from '../../components/AdminRequestState'
 import { AlertTriangle, BarChart2, Settings } from 'lucide-react'
-import adminApi, { adminTokenUsageAPI } from '../../lib/adminApi'
+import adminApi, { adminActionErrorMessage, adminTokenUsageAPI } from '../../lib/adminApi'
 
 interface SummaryRow {
   user_id: string
@@ -130,6 +131,8 @@ export default function TokenUsagePage() {
   const [to, setTo] = useState(todayStr())
   const [summary, setSummary] = useState<SummaryRow[]>([])
   const [loading, setLoading] = useState(false)
+  const [queryError, setQueryError] = useState('')
+  const querySerial = useRef(0)
   const [queried, setQueried] = useState(false)
 
   const [drawerUser, setDrawerUser] = useState<SummaryRow | null>(null)
@@ -137,10 +140,15 @@ export default function TokenUsagePage() {
   const [detail, setDetail] = useState<DetailData | null>(null)
   const [detailPage, setDetailPage] = useState(1)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
+  const detailSerial = useRef(0)
   const detailLimit = 20
   const [contentModal, setContentModal] = useState<ContentModal | null>(null)
 
   const [budget, setBudget] = useState<BudgetStatus | null>(null)
+  const [budgetLoading, setBudgetLoading] = useState(true)
+  const [budgetError, setBudgetError] = useState('')
+  const [budgetRevision, setBudgetRevision] = useState(0)
   const [thresholdEditOpen, setThresholdEditOpen] = useState(false)
   const [thresholdDraft, setThresholdDraft] = useState<ThresholdEdit>({ daily: '', monthly: '', per_user: '' })
   const [thresholdSaving, setThresholdSaving] = useState(false)
@@ -152,9 +160,11 @@ export default function TokenUsagePage() {
     const load = async () => {
       try {
         const resp = await adminTokenUsageAPI.budgetStatus()
-        if (!cancelled) setBudget(resp.data)
+        if (!cancelled) { setBudget(resp.data); setBudgetError('') }
       } catch (e) {
-        console.warn('[budget-status] fetch failed', e)
+        if (!cancelled) setBudgetError(e instanceof Error ? e.message : '预算状态加载失败')
+      } finally {
+        if (!cancelled) setBudgetLoading(false)
       }
     }
 
@@ -164,32 +174,42 @@ export default function TokenUsagePage() {
       cancelled = true
       window.clearInterval(t)
     }
-  }, [])
+  }, [budgetRevision])
 
   const handleQuery = async () => {
+    const serial = ++querySerial.current
     setLoading(true)
+    setQueryError('')
     try {
       const res = await adminTokenUsageAPI.summary(from, to)
+      if (serial !== querySerial.current) return
       setSummary(res.data || [])
       setQueried(true)
+    } catch (e) {
+      if (serial === querySerial.current) setQueryError(e instanceof Error ? e.message : '查询失败')
     } finally {
-      setLoading(false)
+      if (serial === querySerial.current) setLoading(false)
     }
   }
 
   const openDetail = async (row: SummaryRow, page = 1, model = drawerModel) => {
+    const serial = ++detailSerial.current
     setDrawerUser(row)
     setDetailPage(page)
     setDetailLoading(true)
+    setDetailError('')
     try {
       const res = await adminTokenUsageAPI.detail(row.user_id, from, to, page, detailLimit, model)
-      setDetail(res.data)
+      if (serial === detailSerial.current) setDetail(res.data)
+    } catch (e) {
+      if (serial === detailSerial.current) setDetailError(e instanceof Error ? e.message : '详情加载失败')
     } finally {
-      setDetailLoading(false)
+      if (serial === detailSerial.current) setDetailLoading(false)
     }
   }
 
   const closeDrawer = () => {
+    detailSerial.current += 1
     setDrawerUser(null)
     setDetail(null)
     setDrawerModel('')
@@ -246,6 +266,8 @@ export default function TokenUsagePage() {
       </h1>
 
       {/* 越界 banner */}
+      {budgetLoading && !budget && <AdminRequestState state="loading" message="正在加载预算状态…" />}
+      {budgetError && <AdminRequestState state="error" message={budgetError} onRetry={() => { setBudgetLoading(true); setBudgetError(''); setBudgetRevision(n => n + 1) }} />}
       {budget && (budget.today.exceeded || budget.this_month.exceeded) && (
         <div
           style={{
@@ -354,6 +376,8 @@ export default function TokenUsagePage() {
       </div>
 
       {/* 汇总表格 */}
+      {queryError && <AdminRequestState state="error" message={queryError} onRetry={() => void handleQuery()} />}
+      {loading && queried && <AdminRequestState state="updating" message="正在更新用量结果，当前显示上一结果…" />}
       {queried && (
         <div className="admin-card">
           {summary.length === 0 ? (
@@ -481,7 +505,9 @@ export default function TokenUsagePage() {
             </div>
 
             {detailLoading ? (
-              <div className="admin-loading">加载中…</div>
+              <AdminRequestState state="loading" message="正在加载用量详情…" />
+            ) : detailError ? (
+              <AdminRequestState state="error" message={detailError} onRetry={() => { if (drawerUser) void openDetail(drawerUser, detailPage, drawerModel) }} />
             ) : detail && detail.items.length === 0 ? (
               <div style={{ color: 'var(--admin-text-muted)', textAlign: 'center', padding: 32 }}>无记录</div>
             ) : detail ? (
@@ -620,8 +646,7 @@ export default function TokenUsagePage() {
                     setBudget(resp.data)
                     setThresholdEditOpen(false)
                   } catch (e: unknown) {
-                    const err = e as { response?: { data?: { error?: string } }; message?: string }
-                    setThresholdError(err.response?.data?.error || err.message || '保存失败')
+                    setThresholdError(adminActionErrorMessage(e))
                   } finally {
                     setThresholdSaving(false)
                   }

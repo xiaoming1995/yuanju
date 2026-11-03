@@ -2,11 +2,15 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 	"time"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
+
+var ErrInvalidAdminUserFilter = errors.New("用户筛选条件无效")
 
 // ====== Admin Repository ======
 
@@ -199,38 +203,68 @@ func GetAIStatsByProvider() ([]AIProviderStat, error) {
 
 // AdminUserRow 后台用户列表行
 type AdminUserRow struct {
-	ID          string     `json:"id"`
-	Email       string     `json:"email"`
-	Nickname    string     `json:"nickname"`
-	Source      string     `json:"source"`
-	CreatedAt   string     `json:"created_at"`
-	DisabledAt  *time.Time `json:"disabled_at"`
-	ChartCount  int        `json:"chart_count"`
-	CompatCount int        `json:"compat_count"`
+	ID               string     `json:"id"`
+	Email            string     `json:"email"`
+	Nickname         string     `json:"nickname"`
+	Source           string     `json:"source"`
+	CreatedAt        string     `json:"created_at"`
+	DisabledAt       *time.Time `json:"disabled_at"`
+	ChartCount       int        `json:"chart_count"`
+	ChartQueryCount  int64      `json:"chart_query_count"`
+	CompatCount      int        `json:"compat_count"`
+	LastLoginAt      *time.Time `json:"last_login_at"`
+	LastLoginChannel string     `json:"last_login_channel"`
+	LastActiveAt     *time.Time `json:"last_active_at"`
 }
 
-// ListAdminUsers 分页查询用户列表（含干支数/合盘数），支持邮箱、昵称和 ID 搜索。
+// ListAdminUsers 分页查询用户列表（含累计查盘、现存排盘和合盘数），支持邮箱、昵称和 ID 搜索。
 func ListAdminUsers(page, pageSize int, q string) ([]AdminUserRow, int, error) {
+	return ListAdminUsersFiltered(page, pageSize, q, "", "", "", "created_desc")
+}
+
+func ListAdminUsersFiltered(page, pageSize int, q, source, status, activity, sort string) ([]AdminUserRow, int, error) {
 	offset := (page - 1) * pageSize
+	order := "u.created_at DESC"
+	switch sort {
+	case "last_login_desc":
+		order = "u.last_login_at DESC NULLS LAST, u.created_at DESC"
+	case "last_active_desc":
+		order = "u.last_active_at DESC NULLS LAST, u.created_at DESC"
+	case "created_desc", "":
+	default:
+		return nil, 0, fmt.Errorf("%w: sort", ErrInvalidAdminUserFilter)
+	}
+	if source != "" && source != "self_registered" && source != "admin_created" && source != "miniapp_wechat" {
+		return nil, 0, fmt.Errorf("%w: source", ErrInvalidAdminUserFilter)
+	}
+	if status != "" && status != "enabled" && status != "disabled" {
+		return nil, 0, fmt.Errorf("%w: status", ErrInvalidAdminUserFilter)
+	}
+	if activity != "" && activity != "never" && activity != "active7" && activity != "active30" && activity != "inactive30" {
+		return nil, 0, fmt.Errorf("%w: activity", ErrInvalidAdminUserFilter)
+	}
+	where := `($1 = '' OR u.email ILIKE '%' || $1 || '%' OR u.nickname ILIKE '%' || $1 || '%' OR u.id::text ILIKE '%' || $1 || '%')
+		AND ($2 = '' OR u.source=$2) AND ($3 = '' OR ($3='enabled' AND u.disabled_at IS NULL) OR ($3='disabled' AND u.disabled_at IS NOT NULL))
+		AND ($4 = '' OR ($4='never' AND u.last_login_at IS NULL) OR ($4='active7' AND u.last_active_at >= NOW()-INTERVAL '7 days') OR ($4='active30' AND u.last_active_at >= NOW()-INTERVAL '30 days') OR ($4='inactive30' AND (u.last_active_at IS NULL OR u.last_active_at < NOW()-INTERVAL '30 days')))`
 
 	var total int
 	err := database.DB.QueryRow(
-		`SELECT COUNT(*) FROM users WHERE $1 = '' OR email ILIKE '%' || $1 || '%' OR nickname ILIKE '%' || $1 || '%' OR id::text ILIKE '%' || $1 || '%'`, q,
+		`SELECT COUNT(*) FROM users u WHERE `+where, q, source, status, activity,
 	).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	rows, err := database.DB.Query(`
-		SELECT u.id, COALESCE(u.email, ''), COALESCE(u.nickname, ''), COALESCE(u.source, 'self_registered'), u.created_at, u.disabled_at,
-		       COUNT(b.id) as chart_count,
+		SELECT u.id, COALESCE(u.email, ''), COALESCE(u.nickname, ''), COALESCE(u.source, 'self_registered'), u.created_at, u.disabled_at, u.last_login_at, COALESCE(u.last_login_channel,''), u.last_active_at,
+		       COUNT(b.id) as chart_count, u.chart_query_count,
 		       (SELECT COUNT(*) FROM compatibility_readings cr WHERE cr.user_id = u.id) as compat_count
 		FROM users u
 		LEFT JOIN bazi_charts b ON b.user_id = u.id
-		WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%' OR u.nickname ILIKE '%' || $1 || '%' OR u.id::text ILIKE '%' || $1 || '%')
-		GROUP BY u.id, u.email, u.nickname, u.source, u.created_at, u.disabled_at
-		ORDER BY u.created_at DESC
-		LIMIT $2 OFFSET $3`, q, pageSize, offset)
+		WHERE `+where+`
+		GROUP BY u.id
+		ORDER BY `+order+`
+		LIMIT $5 OFFSET $6`, q, source, status, activity, pageSize, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -239,7 +273,7 @@ func ListAdminUsers(page, pageSize int, q string) ([]AdminUserRow, int, error) {
 	var users []AdminUserRow
 	for rows.Next() {
 		var u AdminUserRow
-		if err := rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.DisabledAt, &u.ChartCount, &u.CompatCount); err != nil {
+		if err := rows.Scan(&u.ID, &u.Email, &u.Nickname, &u.Source, &u.CreatedAt, &u.DisabledAt, &u.LastLoginAt, &u.LastLoginChannel, &u.LastActiveAt, &u.ChartCount, &u.ChartQueryCount, &u.CompatCount); err != nil {
 			return nil, 0, err
 		}
 		users = append(users, u)
@@ -381,21 +415,66 @@ func GetAILogsSummary() ([]AILogDayStat, error) {
 
 // ====== Bazi Charts (Admin view) ======
 
-// ListBaziCharts 分页查询所有用户的排盘记录，支持按邮箱（q）和创建时间范围（from/to）过滤
-func ListBaziCharts(page, pageSize int, q, from, to string) ([]model.AdminChartRecord, int, error) {
+// AdminUserChartQueryRecord 对已删除命盘只公开查询时间与状态。
+type AdminUserChartQueryRecord struct {
+	ChartID   *string   `json:"chart_id,omitempty"`
+	QueriedAt time.Time `json:"queried_at"`
+	Deleted   bool      `json:"deleted"`
+}
+
+// ListAdminUserChartQueries 返回用户的持久查询历史，日期过滤与分页共用同一条件。
+func ListAdminUserChartQueries(page, pageSize int, userID, from, to string) ([]AdminUserChartQueryRecord, int, error) {
+	where := `WHERE h.user_id=$1
+		AND ($2='' OR h.queried_at >= $2::timestamptz)
+		AND ($3='' OR h.queried_at < ($3::timestamptz + INTERVAL '1 day'))`
+	var total int
+	if err := database.DB.QueryRow(`SELECT COUNT(*) FROM user_chart_query_history h `+where, userID, from, to).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	if total == 0 {
+		return []AdminUserChartQueryRecord{}, 0, nil
+	}
+	rows, err := database.DB.Query(`SELECT h.chart_id, h.queried_at, c.id IS NULL
+		FROM user_chart_query_history h
+		LEFT JOIN bazi_charts c ON c.id=h.chart_id
+		`+where+`
+		ORDER BY h.queried_at DESC, h.chart_id DESC
+		LIMIT $4 OFFSET $5`, userID, from, to, pageSize, (page-1)*pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	records := make([]AdminUserChartQueryRecord, 0)
+	for rows.Next() {
+		var record AdminUserChartQueryRecord
+		var chartID string
+		if err := rows.Scan(&chartID, &record.QueriedAt, &record.Deleted); err != nil {
+			return nil, 0, err
+		}
+		if !record.Deleted {
+			record.ChartID = &chartID
+		}
+		records = append(records, record)
+	}
+	return records, total, rows.Err()
+}
+
+// ListBaziCharts 分页查询排盘记录，支持按用户 ID、邮箱和创建时间范围过滤。
+func ListBaziCharts(page, pageSize int, q, from, to, userID string) ([]model.AdminChartRecord, int, error) {
 	offset := (page - 1) * pageSize
 
-	// 动态过滤条件（$1=q, $2=from, $3=to）
+	// 计数与分页使用同一组过滤条件。
 	where := `WHERE ($1 = '' OR u.email ILIKE '%' || $1 || '%')
 		AND ($2 = '' OR c.created_at >= $2::timestamptz)
-		AND ($3 = '' OR c.created_at < ($3::timestamptz + interval '1 day'))`
+		AND ($3 = '' OR c.created_at < ($3::timestamptz + interval '1 day'))
+		AND ($4 = '' OR c.user_id = NULLIF($4, '')::uuid)`
 	if q != "" {
 		// 按邮箱搜索时排除无归属用户的游客记录
 		where += ` AND c.user_id IS NOT NULL`
 	}
 
 	var total int
-	err := database.DB.QueryRow(`SELECT COUNT(*) FROM bazi_charts c LEFT JOIN users u ON c.user_id = u.id `+where, q, from, to).Scan(&total)
+	err := database.DB.QueryRow(`SELECT COUNT(*) FROM bazi_charts c LEFT JOIN users u ON c.user_id = u.id `+where, q, from, to, userID).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -419,8 +498,8 @@ func ListBaziCharts(page, pageSize int, q, from, to string) ([]model.AdminChartR
 		LEFT JOIN users u ON c.user_id = u.id
 		`+where+`
 		ORDER BY c.created_at DESC
-		LIMIT $4 OFFSET $5
-	`, q, from, to, pageSize, offset)
+		LIMIT $5 OFFSET $6
+	`, q, from, to, userID, pageSize, offset)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -86,37 +86,32 @@
   --status-info-bg: rgba(91, 155, 213, 0.14);
 
   /* Admin semantic palette */
-  --admin-bg-base: #0f1117;
-  --admin-bg-surface: #161b27;
-  --admin-bg-soft: #111722;
-  --admin-bg-muted: #1e2436;
-  --admin-bg-raised: #151c29;
-  --admin-border: #2a2f3e;
-  --admin-border-strong: #30384a;
-  --admin-text: #e8e8e8;
-  --admin-text-secondary: #c8cad0;
-  --admin-text-muted: #888;
-  --admin-text-faint: #666;
-  --admin-primary: #c9a227;
-  --admin-primary-rgb: 201, 162, 39;
-  --admin-primary-hover: #e0b530;
-  --admin-accent: #a78bfa;
-  --admin-accent-rgb: 167, 139, 250;
-  --admin-success: #22c55e;
-  --admin-success-rgb: 34, 197, 94;
-  --admin-danger: #ef4444;
-  --admin-danger-rgb: 239, 68, 68;
-  --admin-warning: #e67e22;
-  --admin-warning-rgb: 230, 126, 34;
-  --admin-shadow: none;
+  --admin-bg-base: #f7f8f6;
+  --admin-bg-surface: #ffffff;
+  --admin-bg-soft: #f9fafb;
+  --admin-bg-muted: #edf2f7;
+  --admin-bg-raised: #f4f7fa;
+  --admin-border: #e4e9ed;
+  --admin-border-strong: #cbd5df;
+  --admin-text: #24303d;
+  --admin-text-secondary: #465565;
+  --admin-text-muted: #647487;
+  --admin-text-faint: #68798a;
+  --admin-primary: #4e7098;
+  --admin-primary-rgb: 78, 112, 152;
+  --admin-primary-hover: #3e5f85;
+  --admin-accent: #58789f;
+  --admin-accent-rgb: 88, 120, 159;
+  --admin-success: #19744e;
+  --admin-success-rgb: 25, 116, 78;
+  --admin-danger: #b84643;
+  --admin-danger-rgb: 184, 70, 67;
+  --admin-warning: #a7681f;
+  --admin-warning-rgb: 167, 104, 31;
+  --admin-shadow: 0 6px 24px rgba(36, 48, 61, 0.035);
 
-  /* Legacy admin aliases */
-  --color-primary: var(--admin-primary);
-  --color-surface: var(--admin-bg-soft);
-  --color-bg-secondary: var(--admin-bg-surface);
-  --color-border: var(--admin-border);
-  --color-text-primary: var(--admin-text);
-  --color-text-secondary: var(--admin-text-secondary);
+  /* Legacy user-side accent alias */
+  --color-primary: var(--primary);
 
   /* UX foundation rhythm */
   --space-page-x: 24px;

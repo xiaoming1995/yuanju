@@ -9,8 +9,13 @@ import (
 
 var ErrProfileUserMissing = errors.New("用户不存在")
 
-func UpdateUserNickname(ctx context.Context, userID, nickname string) error {
-	result, err := database.DB.ExecContext(ctx,
+func UpdateUserNickname(ctx context.Context, userID, nickname string, channels ...string) error {
+	tx, err := database.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx,
 		`UPDATE users SET nickname=$2, updated_at=NOW() WHERE id=$1`, userID, nickname)
 	if err != nil {
 		return err
@@ -22,11 +27,18 @@ func UpdateUserNickname(ctx context.Context, userID, nickname string) error {
 	if rows == 0 {
 		return ErrProfileUserMissing
 	}
-	return nil
+	channel := "web"
+	if len(channels) > 0 && channels[0] == "miniapp" {
+		channel = "miniapp"
+	}
+	if err := RecordUserActivityTx(ctx, tx, userID, "nickname_updated", channel, nil); err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 // UpdateUserAvatar returns the previous generated path for file cleanup.
-func UpdateUserAvatar(ctx context.Context, userID, avatarPath string) (string, error) {
+func UpdateUserAvatar(ctx context.Context, userID, avatarPath string, channels ...string) (string, error) {
 	tx, err := database.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return "", err
@@ -43,6 +55,13 @@ func UpdateUserAvatar(ctx context.Context, userID, avatarPath string) (string, e
 	}
 	if _, err := tx.ExecContext(ctx,
 		`UPDATE users SET avatar_path=$2, updated_at=NOW() WHERE id=$1`, userID, avatarPath); err != nil {
+		return "", err
+	}
+	channel := "web"
+	if len(channels) > 0 && channels[0] == "miniapp" {
+		channel = "miniapp"
+	}
+	if err := RecordUserActivityTx(ctx, tx, userID, "avatar_updated", channel, nil); err != nil {
 		return "", err
 	}
 	if err := tx.Commit(); err != nil {

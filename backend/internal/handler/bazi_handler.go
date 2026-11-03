@@ -39,7 +39,7 @@ var (
 	generateLiunianReportForHandler         = service.GenerateLiunianReport
 )
 
-// Calculate 计算八字（无需登录，但若是已登录用户起盘，则自动落库保存历史）
+// Calculate 计算八字；游客可查询，已登录用户需成功保存排盘后才返回成功。
 func Calculate(c *gin.Context) {
 	var input CalculateInput
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -93,13 +93,18 @@ func Calculate(c *gin.Context) {
 		IsLeapMonth:  input.IsLeapMonth,
 	}
 
-	// 静默落库，出错不影响排盘响应
-	if savedChart, err := repository.CreateChart(chart); err == nil && savedChart != nil {
+	// 已登录用户只有成功保存排盘才返回成功，确保累计查询次数与成功响应一致。
+	channel := userActivityChannel(c)
+	if savedChart, err := repository.CreateChartWithChannel(chart, channel); err == nil && savedChart != nil {
 		chartID = savedChart.ID
 		// 同步写入完整 BaziResult 快照，让下游全部跳过 lunar-go 重算
 		if resultJSON, mErr := json.Marshal(result); mErr == nil {
 			_ = repository.SaveChartResultJSON(chartID, resultJSON)
 		}
+	} else if ptrUserID != nil {
+		log.Printf("[Calculate] 保存用户排盘失败: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "排盘保存失败，请稍后重试"})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -140,7 +145,7 @@ func GenerateReport(c *gin.Context) {
 
 	// 3. 生成 AI 报告（若针对此 chartID 曾跑过则 0s 内自动命中缓存）
 	log.Printf("[AI Report] 开始生成报告 chart_id=%s user=%s", chart.ID, userIDStr)
-	report, err := service.GenerateAIReport(chart.ID, result, &userIDStr)
+	report, err := service.GenerateAIReport(chart.ID, result, &userIDStr, userActivityChannel(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -219,7 +224,7 @@ func GenerateReportStream(c *gin.Context) {
 		fmt.Fprintf(c.Writer, "event: thinking\ndata: {}\n\n")
 		c.Writer.Flush()
 		return nil
-	})
+	}, userActivityChannel(c))
 
 	log.Printf("[Stream T+%dms] 流式生成结束，共 %d 个 chunks, err=%v", time.Since(t0).Milliseconds(), chunkCount, err)
 
@@ -502,7 +507,7 @@ func UpdateHistoryDisplayName(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"id": chartID, "display_name": displayName}})
 }
 
-// DeleteHistory 删除干支记录及其全部衍生数据（AI 报告/大运/流年等由数据库级联清除）
+// DeleteHistory 删除干支及衍生数据；管理员查询历史仅保留时间和已删除状态。
 func DeleteHistory(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	chartID := c.Param("id")

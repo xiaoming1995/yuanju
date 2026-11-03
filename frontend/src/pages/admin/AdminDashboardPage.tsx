@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Users, Compass, Bot, Wrench, Trash2, LayoutDashboard } from 'lucide-react'
 import { adminStatsAPI, adminReportAPI } from '../../lib/adminApi'
+import { adminActionErrorMessage } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 interface Stats {
   total_users: number; today_users: number
@@ -11,12 +13,18 @@ interface Stats {
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [revision, setRevision] = useState(0)
   const [clearing, setClearing] = useState(false)
   const [clearResult, setClearResult] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
   useEffect(() => {
-    adminStatsAPI.overview().then(r => setStats(r.data)).finally(() => setLoading(false))
-  }, [])
+    let active = true
+    adminStatsAPI.overview().then(r => { if (active) setStats(r.data) })
+      .catch((e: unknown) => { if (active) setLoadError(e instanceof Error ? e.message : '加载失败') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [revision])
 
   const handleClearCache = async () => {
     if (!window.confirm('确定要清空所有 AI 报告缓存吗？\n\n清空后，用户下次访问时将重新生成报告。')) return
@@ -27,7 +35,7 @@ export default function AdminDashboardPage() {
       const data = res.data as { deleted: number; message: string }
       setClearResult({ type: 'success', msg: `${data.message}，共清除 ${data.deleted} 条记录` })
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '操作失败'
+      const msg = adminActionErrorMessage(e)
       setClearResult({ type: 'error', msg })
     } finally {
       setClearing(false)
@@ -35,25 +43,27 @@ export default function AdminDashboardPage() {
   }
 
   const cards = stats ? [
-    { label: '总用户数', value: stats.total_users, sub: `今日 +${stats.today_users}`, icon: <Users size={28} color="var(--admin-accent)" /> },
-    { label: '总干支数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: <Compass size={28} color="var(--admin-accent)" /> },
-    { label: 'AI 调用总数', value: stats.total_ai_requests, sub: `今日 +${stats.today_ai_requests}`, icon: <Bot size={28} color="var(--admin-accent)" /> },
+    { label: '总用户数', value: stats.total_users, sub: `今日 +${stats.today_users}`, icon: <Users size={18} /> },
+    { label: '总起盘数', value: stats.total_charts, sub: `今日 +${stats.today_charts}`, icon: <Compass size={18} /> },
+    { label: 'AI 调用总数', value: stats.total_ai_requests, sub: `今日 +${stats.today_ai_requests}`, icon: <Bot size={18} /> },
   ] : []
 
   return (
     <div>
-      <h1 className="admin-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <LayoutDashboard size={24} /> 数据概览
-      </h1>
-      {loading ? (
-        <div className="admin-loading">加载中...</div>
+      <div className="admin-dashboard-heading">
+        <h1 className="admin-page-title"><LayoutDashboard size={24} /> 数据概览</h1>
+        <p>查看平台运行情况与近期使用数据</p>
+      </div>
+      {loading && !stats ? (
+        <AdminRequestState state="loading" message="正在加载数据概览…" />
+      ) : loadError ? (
+        <AdminRequestState state="error" message={loadError} onRetry={() => { setLoading(true); setLoadError(''); setRevision(n => n + 1) }} />
       ) : (
         <div className="admin-stats-grid">
           {cards.map(c => (
             <div key={c.label} className="admin-stat-card">
-              <div style={{ marginBottom: 12, display: 'flex' }}>{c.icon}</div>
-              <div className="admin-stat-value">{c.value}</div>
-              <div className="admin-stat-label">{c.label}</div>
+              <div className="admin-stat-top"><div className="admin-stat-label">{c.label}</div><span className="admin-stat-icon">{c.icon}</span></div>
+              <div className="admin-stat-value">{c.value.toLocaleString('zh-CN')}</div>
               <div className="admin-stat-sub">{c.sub}</div>
             </div>
           ))}
@@ -61,7 +71,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* 系统操作区 */}
-      <div className="admin-card" style={{ marginTop: 24 }}>
+      <div className="admin-card admin-system-card" style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: 'var(--admin-text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
           <Wrench size={18} /> 系统操作
         </h2>
@@ -118,12 +128,21 @@ export default function AdminDashboardPage() {
 
 function AIStatsSection() {
   const [aiStats, setAiStats] = useState<{ by_provider: Array<{ provider: string; total: number; success_rate: number }> } | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [revision, setRevision] = useState(0)
 
   useEffect(() => {
-    adminStatsAPI.ai().then(r => setAiStats(r.data))
-  }, [])
+    let active = true
+    adminStatsAPI.ai().then(r => { if (active) setAiStats(r.data) })
+      .catch((e: unknown) => { if (active) setError(e instanceof Error ? e.message : '加载失败') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [revision])
 
-  if (!aiStats || !aiStats.by_provider?.length) return null
+  if (loading) return <AdminRequestState state="loading" message="正在加载 AI 调用分布…" />
+  if (error) return <AdminRequestState state="error" message={error} onRetry={() => { setLoading(true); setError(''); setRevision(n => n + 1) }} />
+  if (!aiStats?.by_provider?.length) return <AdminRequestState state="empty" message="暂无 AI 调用分布数据" />
 
   return (
     <div className="admin-card">

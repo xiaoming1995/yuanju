@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Calendar, RefreshCw, Trash2, User } from 'lucide-react'
-import { adminChartsAPI } from '../../lib/adminApi'
+import { adminActionErrorMessage, adminChartsAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 import './AdminChartDetailPage.css'
 
 interface ChartRecord {
@@ -114,14 +115,20 @@ function renderStructuredReport(chart: ChartRecord) {
 
 export default function AdminChartDetailPage() {
   const { chartId } = useParams()
+  const [searchParams] = useSearchParams()
+  const userID = searchParams.get('user_id')
+  const chartsPath = userID ? `/admin/charts?user_id=${encodeURIComponent(userID)}` : '/admin/charts'
   const [chart, setChart] = useState<ChartRecord | null>(null)
   const [pastEvents, setPastEvents] = useState<AdminPastEventsRecord[]>([])
   const [liunianReports, setLiunianReports] = useState<AdminLiunianReport[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const requestSerial = useRef(0)
+  const [deletingID, setDeletingID] = useState('')
 
   const loadAll = async () => {
     if (!chartId) return
+    const serial = ++requestSerial.current
     try {
       setLoading(true)
       setError('')
@@ -130,37 +137,43 @@ export default function AdminChartDetailPage() {
         adminChartsAPI.getPastEventsRecords(chartId),
         adminChartsAPI.getLiunianReports(chartId),
       ])
+      if (serial !== requestSerial.current) return
       setChart(chartRes.data?.data || null)
       setPastEvents(pastRes.data?.data || [])
       setLiunianReports(liunianRes.data?.data || [])
     } catch (err: unknown) {
-      setError(adminErrorMessage(err, '加载详情失败'))
+      if (serial === requestSerial.current) setError(adminErrorMessage(err, '加载详情失败'))
     } finally {
-      setLoading(false)
+      if (serial === requestSerial.current) setLoading(false)
     }
   }
 
   useEffect(() => {
     loadAll()
+    return () => { requestSerial.current += 1 }
   }, [chartId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDeleteLiunian = async (id: string) => {
+    if (deletingID) return
     if (!window.confirm('确定要清除该年份的流年预测缓存吗？清除后前端用户将可以重新生成该年的运势。')) return
+    setDeletingID(id)
     try {
       await adminChartsAPI.deleteLiunianReport(id)
       setLiunianReports(prev => prev.filter(r => r.id !== id))
     } catch (err: unknown) {
-      alert('清除失败: ' + adminErrorMessage(err, '清除失败'))
+      alert('清除失败: ' + adminActionErrorMessage(err))
+    } finally {
+      setDeletingID('')
     }
   }
 
-  if (loading) return <div className="admin-loading">加载中...</div>
+  if (loading) return <AdminRequestState state="loading" message="正在加载起盘详情…" />
 
   if (error || !chart) {
     return (
       <div className="admin-chart-detail">
-        <Link to="/admin/charts" className="admin-chart-detail-back"><ArrowLeft size={14} /> 返回起盘明细</Link>
-        <div className="admin-card admin-chart-detail-error">{error || '干支不存在'}</div>
+        <Link to={chartsPath} className="admin-chart-detail-back"><ArrowLeft size={14} /> 返回起盘明细</Link>
+        {error ? <AdminRequestState state="error" message={error} onRetry={() => void loadAll()} /> : <AdminRequestState state="empty" message="干支不存在" />}
       </div>
     )
   }
@@ -176,7 +189,7 @@ export default function AdminChartDetailPage() {
     <div className="admin-chart-detail">
       <header className="admin-chart-detail-header">
         <div>
-          <Link to="/admin/charts" className="admin-chart-detail-back"><ArrowLeft size={14} /> 返回起盘明细</Link>
+          <Link to={chartsPath} className="admin-chart-detail-back"><ArrowLeft size={14} /> 返回起盘明细</Link>
           <h1 className="admin-page-title admin-chart-detail-title">
             <BookOpen size={24} /> 干支详情
           </h1>
@@ -282,7 +295,7 @@ export default function AdminChartDetailPage() {
                 <div className="admin-liunian-card-meta">
                   <span>{lr.model}</span>
                   <span>{formatDate(lr.created_at)}</span>
-                  <button onClick={() => handleDeleteLiunian(lr.id)} title="清除此年流年报告缓存">
+                  <button disabled={Boolean(deletingID)} onClick={() => handleDeleteLiunian(lr.id)} title="清除此年流年报告缓存">
                     <Trash2 size={14} />
                   </button>
                 </div>

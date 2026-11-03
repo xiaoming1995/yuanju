@@ -388,9 +388,11 @@
 .admin-article-btn.primary {
   border-color: var(--admin-primary);
   background: var(--admin-primary);
-  color: var(--admin-bg-base);
+  color: #ffffff;
   font-weight: 700;
 }
+
+.admin-article-btn.primary:hover { color: #ffffff; background: var(--admin-primary-hover); }
 
 .admin-article-btn.success {
   border-color: rgba(var(--admin-success-rgb), 0.45);

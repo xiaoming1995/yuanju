@@ -1,10 +1,11 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { AdminAuthProvider, useAdminAuth } from './contexts/AdminAuthContext'
 import Navbar from './components/Navbar'
 import BottomNav from './components/BottomNav'
 import AdminLayout from './components/AdminLayout'
+import { AdminRequestState } from './components/AdminRequestState'
 import HomePage from './pages/HomePage'
 import ParticleBackground from './components/ParticleBackground'
 import { ToastProvider } from './components/ui/Toast'
@@ -44,6 +45,10 @@ const AdminArticleDetailPage = lazy(() => import('./pages/admin/AdminArticleDeta
 
 // 懒加载 chunk 下载期间的占位（复用全局 .skeleton 样式）
 function RouteFallback() {
+  const { pathname } = useLocation()
+  if (pathname.startsWith('/admin')) {
+    return <div className="admin-route-fallback"><AdminRequestState state="loading" message="正在加载后台页面…" /></div>
+  }
   return (
     <div className="page">
       <div className="container">
@@ -61,10 +66,15 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function RouteBackground() {
+  const { pathname } = useLocation()
+  return pathname.startsWith('/admin') ? null : <ParticleBackground />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
-      <ParticleBackground />
+      <RouteBackground />
       <AdminAuthProvider>
         <AuthProvider>
           <ToastProvider>

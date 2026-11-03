@@ -65,6 +65,11 @@ func Auth() gin.HandlerFunc {
 
 		c.Set("user_id", claims["user_id"])
 		c.Set("email", claims["email"])
+		channel, _ := claims["channel"].(string)
+		if channel != "miniapp" {
+			channel = "web"
+		}
+		c.Set("auth_channel", channel)
 		c.Next()
 	}
 }
@@ -102,6 +107,11 @@ func OptionalAuth() gin.HandlerFunc {
 			c.Next()
 			return
 		}
+		channel, _ := claims["channel"].(string)
+		if channel != "miniapp" {
+			channel = "web"
+		}
+		c.Set("auth_channel", channel)
 
 		c.Set("user_id", userID)
 		c.Set("email", claims["email"])

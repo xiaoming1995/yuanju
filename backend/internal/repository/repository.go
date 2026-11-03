@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"time"
@@ -22,6 +23,26 @@ func CreateUserWithSource(email, passwordHash, nickname, source string) (*model.
 		email, passwordHash, nickname, source,
 	).Scan(&user.ID, &user.Email, &user.Nickname, &user.Source, &user.CreatedAt)
 	return user, err
+}
+
+func CreateRegisteredUser(email, passwordHash, nickname string) (*model.User, error) {
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	user := &model.User{}
+	err = tx.QueryRow(`INSERT INTO users (email,password_hash,nickname,source) VALUES ($1,$2,$3,'self_registered') RETURNING id,email,nickname,source,created_at`, email, passwordHash, nickname).Scan(&user.ID, &user.Email, &user.Nickname, &user.Source, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	if err = RecordUserActivityTx(context.Background(), tx, user.ID, "register", "web", nil); err != nil {
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func GetUserByEmail(email string) (*model.User, error) {
@@ -73,8 +94,17 @@ func DeleteUser(userID string) error {
 // ---- 八字干支 ----
 
 func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
+	return CreateChartWithChannel(chart, "web")
+}
+
+func CreateChartWithChannel(chart *model.BaziChart, channel string) (*model.BaziChart, error) {
 	wuxingJSON, _ := json.Marshal(chart.Wuxing)
 	dayunJSON, _ := json.Marshal(chart.Dayun)
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 
 	result := &model.BaziChart{}
 	var userID sql.NullString
@@ -82,7 +112,7 @@ func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 		userID = sql.NullString{String: *chart.UserID, Valid: true}
 	}
 
-	err := database.DB.QueryRow(`
+	err = tx.QueryRow(`
 		INSERT INTO bazi_charts
 		(user_id, birth_year, birth_month, birth_day, birth_hour, gender, display_name,
 		 year_gan, year_zhi, month_gan, month_zhi, day_gan, day_zhi, hour_gan, hour_zhi,
@@ -97,6 +127,20 @@ func CreateChart(chart *model.BaziChart) (*model.BaziChart, error) {
 	).Scan(&result.ID, &result.ChartHash, &result.CreatedAt)
 
 	if err != nil {
+		return nil, err
+	}
+	if chart.UserID != nil {
+		if _, err := tx.Exec(`INSERT INTO user_chart_query_history (chart_id,user_id,queried_at) VALUES ($1,$2,$3)`, result.ID, *chart.UserID, result.CreatedAt); err != nil {
+			return nil, err
+		}
+		if _, err := tx.Exec(`UPDATE users SET chart_query_count=chart_query_count+1 WHERE id=$1`, *chart.UserID); err != nil {
+			return nil, err
+		}
+		if err := RecordUserActivityTx(context.Background(), tx, *chart.UserID, "chart_created", channel, &result.ID); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
 		return nil, err
 	}
 	result.YearGan = chart.YearGan
@@ -271,8 +315,8 @@ func SaveChartResultJSON(chartID string, resultJSON []byte) error {
 	return err
 }
 
-// DeleteChart 删除干支记录；衍生数据（AI 报告/大运/流年/润色/往年事件）由外键
-// ON DELETE CASCADE 自动清除，计费日志 ON DELETE SET NULL 保留。返回删除条数。
+// DeleteChart 删除干支及其级联内容；独立查询历史仅留下时间和已删除状态。
+// 计费日志由 ON DELETE SET NULL 保留。返回删除条数。
 func DeleteChart(chartID string) (int64, error) {
 	result, err := database.DB.Exec(`DELETE FROM bazi_charts WHERE id=$1`, chartID)
 	if err != nil {
@@ -284,14 +328,38 @@ func DeleteChart(chartID string) (int64, error) {
 // ---- AI 报告 ----
 
 func CreateReport(chartID, content, modelName string, contentStructured *json.RawMessage) (*model.AIReport, error) {
+	return CreateReportWithChannel(chartID, content, modelName, contentStructured, "web")
+}
+
+func CreateReportWithChannel(chartID, content, modelName string, contentStructured *json.RawMessage, channel string) (*model.AIReport, error) {
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 	report := &model.AIReport{}
-	err := database.DB.QueryRow(
+	err = tx.QueryRow(
 		`INSERT INTO ai_reports (chart_id, content, model, content_structured, algorithm_version)
 		 VALUES ($1,$2,$3,$4,$5)
 		 RETURNING id, chart_id, content, model, created_at, content_structured`,
 		chartID, content, modelName, contentStructured, CurrentAlgorithmVersion,
 	).Scan(&report.ID, &report.ChartID, &report.Content, &report.Model, &report.CreatedAt, &report.ContentStructured)
-	return report, err
+	if err != nil {
+		return nil, err
+	}
+	var userID sql.NullString
+	if err := tx.QueryRow(`SELECT user_id FROM bazi_charts WHERE id=$1`, chartID).Scan(&userID); err != nil {
+		return nil, err
+	}
+	if userID.Valid {
+		if err := RecordUserActivityTx(context.Background(), tx, userID.String, "bazi_report_generated", channel, &report.ID); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return report, nil
 }
 
 func GetReportByChartID(chartID string) (*model.AIReport, error) {

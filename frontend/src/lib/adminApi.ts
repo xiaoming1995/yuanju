@@ -1,4 +1,39 @@
 import axios from 'axios'
+import type { AxiosError } from 'axios'
+
+export class AdminRequestError extends Error {
+  readonly kind: 'timeout' | 'network' | 'http'
+  readonly status?: number
+  readonly response?: unknown
+  constructor(
+    message: string,
+    kind: 'timeout' | 'network' | 'http',
+    status?: number,
+    response?: unknown,
+  ) {
+    super(message)
+    this.name = 'AdminRequestError'
+    this.kind = kind
+    this.status = status
+    this.response = response
+  }
+}
+
+export function adminActionErrorMessage(error: unknown): string {
+  if (error instanceof AdminRequestError && error.kind === 'timeout') {
+    return '请求超时，结果尚未确认。请刷新页面核对状态后再操作。'
+  }
+  return error instanceof Error ? error.message : '操作失败'
+}
+
+export function toAdminRequestError(error: AxiosError<{ error?: string }>): AdminRequestError {
+  const kind = error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT'
+    ? 'timeout' : !error.response ? 'network' : 'http'
+  const message = kind === 'timeout' ? '连接超时，请重试'
+    : kind === 'network' ? '网络连接失败，请检查网络后重试'
+    : error.response?.data?.error || '请求失败'
+  return new AdminRequestError(message, kind, error.response?.status, error.response)
+}
 
 const adminApi = axios.create({
   baseURL: '',
@@ -18,8 +53,7 @@ adminApi.interceptors.response.use(
       localStorage.removeItem('yj_admin_token')
       window.location.href = '/admin/login'
     }
-    const message = error.response?.data?.error || '请求失败'
-    return Promise.reject(new Error(message))
+    return Promise.reject(toAdminRequestError(error))
   }
 )
 
@@ -47,8 +81,8 @@ export const adminLLMAPI = {
 export const adminStatsAPI = {
   overview: () => adminApi.get('/api/admin/stats'),
   ai: () => adminApi.get('/api/admin/stats/ai'),
-  users: (page = 1, q = '') =>
-    adminApi.get(`/api/admin/users?page=${page}&q=${encodeURIComponent(q)}`),
+  users: (page = 1, q = '', filters: { source?: string; status?: string; activity?: string; sort?: string } = {}, pageSize = 20) =>
+    adminApi.get(`/api/admin/users?${new URLSearchParams({ page: String(page), pageSize: String(pageSize), q, ...filters })}`),
   getAILogs: (page: number = 1, pageSize: number = 20) =>
     adminApi.get(`/api/admin/ai-logs?page=${page}&pageSize=${pageSize}`),
   clearAllCache: () => adminApi.delete('/api/admin/reports/cache'),
@@ -56,6 +90,8 @@ export const adminStatsAPI = {
 }
 
 export const adminUsersAPI = {
+  detail: (id: string) => adminApi.get(`/api/admin/users/${encodeURIComponent(id)}`),
+  events: (id: string, page = 1) => adminApi.get(`/api/admin/users/${encodeURIComponent(id)}/events?page=${page}`),
   create: (data: { email: string; password: string; nickname?: string }) =>
     adminApi.post('/api/admin/users', data),
   resetPassword: (id: string, password: string) =>
@@ -79,8 +115,8 @@ export const adminMiniappRegistrationSettingsAPI = {
 }
 
 export const adminChartsAPI = {
-  list: (page: number = 1, pageSize: number = 20, q = '', from = '', to = '') =>
-    adminApi.get(`/api/admin/charts?page=${page}&pageSize=${pageSize}&q=${encodeURIComponent(q)}&from=${from}&to=${to}`),
+  list: (page: number = 1, pageSize: number = 20, q = '', from = '', to = '', userID = '') =>
+    adminApi.get(`/api/admin/charts?${new URLSearchParams({ page: String(page), pageSize: String(pageSize), q, from, to, ...(userID ? { user_id: userID } : {}) })}`),
   detail: (chartId: string) =>
     adminApi.get(`/api/admin/charts/${chartId}`),
   getLiunianReports: (chartId: string) =>

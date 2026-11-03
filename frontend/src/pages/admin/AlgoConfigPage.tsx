@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { adminAlgoConfigAPI, adminAlgoTiaohouAPI } from '../../lib/adminApi'
+import React, { useEffect, useRef, useState } from 'react'
+import { adminActionErrorMessage, adminAlgoConfigAPI, adminAlgoTiaohouAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 function errorMessage(e: unknown, fallback: string) {
   return e instanceof Error ? e.message : fallback
@@ -44,11 +45,14 @@ const AlgoConfigPage: React.FC = () => {
   const [savingKey, setSavingKey] = useState<string | null>(null)
   const [reloading, setReloading] = useState(false)
   const [loadingParams, setLoadingParams] = useState(false)
+  const [paramsError, setParamsError] = useState('')
 
   // 调候规则
   const [activeGan, setActiveGan] = useState<string>('甲')
   const [tiaohouRows, setTiaohouRows] = useState<TiaohouRow[]>([])
   const [loadingTiaohou, setLoadingTiaohou] = useState(false)
+  const [tiaohouError, setTiaohouError] = useState('')
+  const tiaohouSerial = useRef(0)
   const [editingTiaohou, setEditingTiaohou] = useState<string | null>(null) // key = "甲_子"
   const [editXi, setEditXi] = useState('')
   const [editText, setEditText] = useState('')
@@ -56,25 +60,28 @@ const AlgoConfigPage: React.FC = () => {
 
   const fetchParams = async () => {
     setLoadingParams(true)
+    setParamsError('')
     try {
       const { data } = await adminAlgoConfigAPI.list()
       setParams(data || [])
     } catch (e: unknown) {
-      alert(errorMessage(e, '获取参数失败'))
+      setParamsError(errorMessage(e, '获取参数失败'))
     } finally {
       setLoadingParams(false)
     }
   }
 
   const fetchTiaohou = async (dayGan: string) => {
+    const serial = ++tiaohouSerial.current
     setLoadingTiaohou(true)
+    setTiaohouError('')
     try {
       const { data } = await adminAlgoTiaohouAPI.list(dayGan)
-      setTiaohouRows(data || [])
+      if (serial === tiaohouSerial.current) setTiaohouRows(data || [])
     } catch (e: unknown) {
-      alert(errorMessage(e, '获取调候规则失败'))
+      if (serial === tiaohouSerial.current) setTiaohouError(errorMessage(e, '获取调候规则失败'))
     } finally {
-      setLoadingTiaohou(false)
+      if (serial === tiaohouSerial.current) setLoadingTiaohou(false)
     }
   }
 
@@ -88,7 +95,7 @@ const AlgoConfigPage: React.FC = () => {
       setEditingKey(null)
       fetchParams()
     } catch (e: unknown) {
-      alert(errorMessage(e, '保存失败'))
+      alert(adminActionErrorMessage(e))
     } finally {
       setSavingKey(null)
     }
@@ -100,7 +107,7 @@ const AlgoConfigPage: React.FC = () => {
       await adminAlgoConfigAPI.reload()
       alert('算法配置已重载')
     } catch (e: unknown) {
-      alert(errorMessage(e, '重载失败'))
+      alert(adminActionErrorMessage(e))
     } finally {
       setReloading(false)
     }
@@ -116,7 +123,7 @@ const AlgoConfigPage: React.FC = () => {
       setEditingTiaohou(null)
       fetchTiaohou(activeGan)
     } catch (e: unknown) {
-      alert(errorMessage(e, '保存失败'))
+      alert(adminActionErrorMessage(e))
     } finally {
       setSavingTiaohou(false)
     }
@@ -147,8 +154,12 @@ const AlgoConfigPage: React.FC = () => {
       <section style={{ marginBottom: '40px' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '12px' }}>吉凶判定参数</h3>
         {loadingParams ? (
-          <p style={{ color: 'var(--color-muted, var(--admin-text-muted))' }}>加载中...</p>
+          <AdminRequestState state="loading" message="正在加载算法参数…" />
+        ) : paramsError && !params.length ? (
+          <AdminRequestState state="error" message={paramsError} onRetry={() => void fetchParams()} />
         ) : (
+          <>
+          {paramsError && <AdminRequestState state="error" message={`${paramsError}；当前参数未更新`} onRetry={() => void fetchParams()} />}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>
               <tr style={{ background: 'var(--color-surface, var(--admin-bg-soft))', textAlign: 'left' }}>
@@ -234,6 +245,7 @@ const AlgoConfigPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </>
         )}
       </section>
 
@@ -261,7 +273,9 @@ const AlgoConfigPage: React.FC = () => {
         </div>
 
         {loadingTiaohou ? (
-          <p style={{ color: 'var(--color-muted, var(--admin-text-muted))' }}>加载中...</p>
+          <AdminRequestState state="loading" message="正在加载调候规则…" />
+        ) : tiaohouError && !tiaohouRows.length ? (
+          <AdminRequestState state="error" message={tiaohouError} onRetry={() => void fetchTiaohou(activeGan)} />
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
             <thead>

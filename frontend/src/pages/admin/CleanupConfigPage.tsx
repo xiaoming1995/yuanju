@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react'
+import { AdminRequestState } from '../../components/AdminRequestState'
+import { adminActionErrorMessage } from '../../lib/adminApi'
 import { adminCleanupConfigAPI, type CleanupConfig } from '../../lib/adminApi'
 
 function errorMessage(e: unknown, fallback: string) {
@@ -8,6 +10,8 @@ function errorMessage(e: unknown, fallback: string) {
 const CleanupConfigPage: React.FC = () => {
   const [cfg, setCfg] = useState<CleanupConfig | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
   const [saving, setSaving] = useState(false)
   const [enabled, setEnabled] = useState(true)
   const [retentionDays, setRetentionDays] = useState(90)
@@ -24,10 +28,10 @@ const CleanupConfigPage: React.FC = () => {
         setRetentionDays(data.retention_days)
         setRunHour(data.run_hour)
       })
-      .catch(e => { if (!cancelled) alert(errorMessage(e, '加载清理配置失败')) })
+      .catch(e => { if (!cancelled) setLoadError(errorMessage(e, '加载清理配置失败')) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [reloadKey])
 
   const dirty = !!cfg && (
     enabled !== cfg.enabled ||
@@ -49,15 +53,17 @@ const CleanupConfigPage: React.FC = () => {
       setRunHour(data.run_hour)
       alert('已保存。下一次 scheduler tick 起按新配置执行。')
     } catch (e: unknown) {
-      alert(errorMessage(e, '保存失败'))
+      alert(adminActionErrorMessage(e))
     } finally {
       setSaving(false)
     }
   }
 
   if (loading) {
-    return <div className="admin-page"><h1>数据清理配置</h1><p>加载中…</p></div>
+    return <div className="admin-page"><h1>数据清理配置</h1><AdminRequestState state="loading" message="正在加载清理配置…" /></div>
   }
+
+  if (loadError) return <div className="admin-page"><h1>数据清理配置</h1><AdminRequestState state="error" message={loadError} onRetry={() => { setLoadError(''); setReloadKey(n => n + 1) }} /></div>
 
   return (
     <div className="admin-page">

@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	stdcontext "context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -45,7 +46,7 @@ var compatibilityQuestionGuidance = map[string]string{
 	"general":                  "重点回答关系是否值得继续观察、主要优势、主要风险和下一步行动。",
 }
 
-func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model.CompatibilityBirthProfile, context model.CompatibilityContext, displayNames model.CompatibilityDisplayNames) (*model.CompatibilityDetail, error) {
+func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model.CompatibilityBirthProfile, context model.CompatibilityContext, displayNames model.CompatibilityDisplayNames, channels ...string) (*model.CompatibilityDetail, error) {
 	selfProfile = normalizeCompatibilityProfile(selfProfile)
 	partnerProfile = normalizeCompatibilityProfile(partnerProfile)
 	context = normalizeCompatibilityContext(context)
@@ -123,7 +124,21 @@ func CreateCompatibilityReading(userID string, selfProfile, partnerProfile model
 		}
 	}
 
-	return repository.GetCompatibilityDetail(reading.ID)
+	detail, err := repository.GetCompatibilityDetail(reading.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := repository.RecordUserActivity(stdcontext.Background(), userID, "compatibility_created", activityChannel(channels), &reading.ID); err != nil {
+		return nil, err
+	}
+	return detail, nil
+}
+
+func activityChannel(channels []string) string {
+	if len(channels) > 0 && channels[0] == "miniapp" {
+		return "miniapp"
+	}
+	return "web"
 }
 
 // DeleteCompatibilityReadingForUser 校验归属后删除合盘记录，子表由数据库级联清除。
@@ -266,7 +281,7 @@ func GetCompatibilityHistoryForUser(userID string, limit, offset int) ([]model.C
 	return repository.ListCompatibilityHistory(userID, limit, offset)
 }
 
-func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibilityReport, error) {
+func GenerateCompatibilityReport(readingID, userID string, channels ...string) (*model.AICompatibilityReport, error) {
 	ownerID, err := repository.GetCompatibilityReadingOwner(readingID)
 	if err != nil {
 		return nil, err
@@ -374,7 +389,11 @@ func GenerateCompatibilityReport(readingID, userID string) (*model.AICompatibili
 			parseErr, rawContent[:min(200, len(rawContent))])
 	}
 
-	return repository.CreateCompatibilityReport(readingID, rawContent, modelName, structuredRaw)
+	channel := "web"
+	if len(channels) > 0 {
+		channel = channels[0]
+	}
+	return repository.CreateCompatibilityReportWithChannel(readingID, rawContent, modelName, structuredRaw, channel)
 }
 
 func ensureCompatibilityDurationAssessment(detail *model.CompatibilityDetail) (bool, error) {

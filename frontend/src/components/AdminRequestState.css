@@ -1,0 +1,17 @@
+.admin-request-loading, .admin-request-state { min-height: 136px; padding: 30px 24px; border: 1px solid var(--admin-border); border-radius: 12px; background: var(--admin-bg-surface); color: var(--admin-text-muted); text-align: center; }
+.admin-request-loading span, .admin-request-state p { display: block; margin: 12px 0; font-size: 14px; }
+.admin-request-skeleton { height: 16px; max-width: 500px; margin: 0 auto 10px; border-radius: 6px; background: var(--admin-bg-soft); animation: admin-request-pulse 1.3s ease-in-out infinite alternate; }
+.admin-request-skeleton.short { max-width: 300px; }
+.admin-request-error { color: var(--admin-danger); }
+.admin-request-updating { padding: 10px 14px; margin: 0 0 12px; border-radius: 8px; background: var(--admin-bg-soft); color: var(--admin-text-secondary); font-size: 13px; }
+.admin-request-state .ui-button:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+@keyframes admin-request-pulse { to { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .admin-request-skeleton { animation: none; } }
+.admin-route-fallback { min-height: 100vh; padding: 48px max(24px, calc((100vw - 840px) / 2)); background: var(--admin-bg-base); color: var(--admin-text); }
+@media (max-width: 600px) { .admin-route-fallback { padding: 24px 16px; } }
+.admin-layout .admin-btn:disabled, .admin-login-page .admin-btn:disabled { cursor: not-allowed; opacity: .58; transform: none; }
+.admin-layout .admin-btn:focus-visible, .admin-login-page .admin-btn:focus-visible { outline: 2px solid var(--admin-primary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-layout .admin-btn, .admin-login-page .admin-btn { transition: none; }
+  .admin-layout .ui-button__spinner, .admin-layout .admin-article-spin { animation: none; }
+}

@@ -230,6 +230,8 @@ func main() {
 
 				// 用户与数据流水管理
 				adminAuth.GET("/users", handler.AdminGetUsers)
+				adminAuth.GET("/users/:id", handler.AdminGetUserDetail)
+				adminAuth.GET("/users/:id/events", handler.AdminGetUserEvents)
 				adminAuth.POST("/users", handler.AdminCreateUser)
 				adminAuth.POST("/users/:id/reset-password", handler.AdminResetUserPassword)
 				adminAuth.PUT("/users/:id/disable", handler.AdminSetUserDisabled)
@@ -350,13 +352,15 @@ func makeCleanupDeps() service.CleanupDeps {
 		}
 	}
 	return service.CleanupDeps{
-		AIReports:     wrapTime(repository.DeleteAIReportsOlderThan),
-		Polished:      wrapTime(repository.DeletePolishedReportsOlderThan),
-		Liunian:       wrapTime(repository.DeleteLiunianReportsOlderThan),
-		PastEvents:    wrapTime(repository.DeletePastEventsOlderThan),
-		DayunSummary:  wrapTime(repository.DeleteDayunSummariesOlderThan),
-		CompatReports: wrapTime(repository.DeleteAICompatibilityReportsOlderThan),
-		RequestLogs:   wrapTime(repository.DeleteRequestLogsOlderThan),
+		AIReports:      wrapTime(repository.DeleteAIReportsOlderThan),
+		Polished:       wrapTime(repository.DeletePolishedReportsOlderThan),
+		Liunian:        wrapTime(repository.DeleteLiunianReportsOlderThan),
+		PastEvents:     wrapTime(repository.DeletePastEventsOlderThan),
+		DayunSummary:   wrapTime(repository.DeleteDayunSummariesOlderThan),
+		CompatReports:  wrapTime(repository.DeleteAICompatibilityReportsOlderThan),
+		RequestLogs:    wrapTime(repository.DeleteRequestLogsOlderThan),
+		UserActivity:   repository.CleanUserActivity,
+		AdminUserAudit: repository.CleanAdminUserAudit,
 		TokenRollup: func(_ context.Context) (service.RollupReport, error) {
 			r, err := repository.RollupClosedMonthsAndDelete()
 			return service.RollupReport{

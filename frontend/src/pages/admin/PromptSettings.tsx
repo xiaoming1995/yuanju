@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { AlertTriangle, BookOpen, Bot, CalendarDays, Heart, Landmark, Library, Lightbulb, Package, Scale, Thermometer, Zap } from 'lucide-react'
-import { adminPromptsAPI } from '../../lib/adminApi'
+import { adminActionErrorMessage, adminPromptsAPI } from '../../lib/adminApi'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useToast } from '../../components/ui/useToast'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 function errorMessage(e: unknown, fallback: string) {
   return e instanceof Error ? e.message : fallback
@@ -65,7 +66,8 @@ const INSTRUCTION_MODULES = [
 const PromptSettings: React.FC = () => {
   const { showToast } = useToast()
   const [prompts, setPrompts] = useState<PromptRecord[]>([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [activeTab, setActiveTab] = useState<'kb' | 'instruction'>('kb')
   const [editingModule, setEditingModule] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -76,15 +78,16 @@ const PromptSettings: React.FC = () => {
 
   const fetchPrompts = useCallback(async () => {
     setLoading(true)
+    setLoadError('')
     try {
       const { data } = await adminPromptsAPI.list()
       setPrompts(data || [])
     } catch (e: unknown) {
-      showToast(errorMessage(e, '获取配置失败'), 'error')
+      setLoadError(errorMessage(e, '获取配置失败'))
     } finally {
       setLoading(false)
     }
-  }, [showToast])
+  }, [])
 
   useEffect(() => { fetchPrompts() }, [fetchPrompts])
 
@@ -115,7 +118,7 @@ const PromptSettings: React.FC = () => {
       setEditBanner(null)
       fetchPrompts()
     } catch (e: unknown) {
-      showToast(errorMessage(e, '保存失败'), 'error')
+      showToast(adminActionErrorMessage(e), 'error')
     } finally {
       setSaving(false)
     }
@@ -134,7 +137,7 @@ const PromptSettings: React.FC = () => {
       setResettingModule(null)
       fetchPrompts()
     } catch (e: unknown) {
-      showToast(errorMessage(e, '重置失败'), 'error')
+      showToast(adminActionErrorMessage(e), 'error')
     } finally {
       setResetLoading(false)
     }
@@ -378,11 +381,12 @@ const PromptSettings: React.FC = () => {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 40, color: 'var(--color-text-secondary)' }}>
-          加载中...
-        </div>
+        <AdminRequestState state="loading" message="正在加载 AI 指令配置…" />
+      ) : loadError && !prompts.length ? (
+        <AdminRequestState state="error" message={loadError} onRetry={() => void fetchPrompts()} />
       ) : (
         <div>
+          {loadError && <AdminRequestState state="error" message={`${loadError}；当前配置未更新`} onRetry={() => void fetchPrompts()} />}
           {activeTab === 'kb' && (
             <div>
               <div style={{

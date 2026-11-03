@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -232,13 +233,71 @@ func AdminGetUsers(c *gin.Context) {
 		}
 	}
 	pageSize := 20
+	if p := c.Query("pageSize"); p != "" {
+		if parsed, err := strconv.Atoi(p); err == nil && (parsed == 10 || parsed == 20 || parsed == 50) {
+			pageSize = parsed
+		}
+	}
 
-	users, total, err := repository.ListAdminUsers(page, pageSize, q)
+	users, total, err := repository.ListAdminUsersFiltered(page, pageSize, q, c.Query("source"), c.Query("status"), c.Query("activity"), c.DefaultQuery("sort", "created_desc"))
+	if err != nil {
+		if errors.Is(err, repository.ErrInvalidAdminUserFilter) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "筛选条件无效"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"users": users, "total": total, "page": page, "page_size": pageSize})
+}
+
+func AdminGetUserDetail(c *gin.Context) {
+	if _, err := uuid.Parse(c.Param("id")); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+	detail, err := repository.GetAdminUserDetail(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"users": users, "total": total})
+	if detail == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": detail})
+}
+
+func AdminGetUserEvents(c *gin.Context) {
+	userID := c.Param("id")
+	if _, err := uuid.Parse(userID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+	user, err := repository.GetAdminUserDetail(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
+	if user == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if page < 1 {
+		page = 1
+	}
+	items, total, err := repository.ListUserActivity(userID, page, 20)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
+	audit, err := repository.ListAdminUserAudit(userID, 1, 20)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"events": items, "total": total, "admin_events": audit})
 }
 
 func AdminCreateUser(c *gin.Context) {
@@ -247,7 +306,8 @@ func AdminCreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	user, err := service.CreateUserByAdmin(req)
+	adminID, _ := c.Get("admin_id")
+	user, err := service.CreateUserByAdminAudited(c.Request.Context(), adminID.(string), req)
 	if err != nil {
 		if err.Error() == "该邮箱已被注册" {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -262,6 +322,10 @@ func AdminCreateUser(c *gin.Context) {
 // AdminSetUserDisabled 禁用/解禁用户
 func AdminSetUserDisabled(c *gin.Context) {
 	id := c.Param("id")
+	if _, err := uuid.Parse(id); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
 	var req struct {
 		Disabled *bool `json:"disabled" binding:"required"`
 	}
@@ -269,7 +333,12 @@ func AdminSetUserDisabled(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "disabled 必填"})
 		return
 	}
-	if err := repository.SetUserDisabled(id, *req.Disabled); err != nil {
+	adminID, _ := c.Get("admin_id")
+	if err := repository.SetUserDisabledAudited(c.Request.Context(), adminID.(string), id, *req.Disabled); err != nil {
+		if errors.Is(err, repository.ErrAdminUserMissing) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "操作失败"})
 		return
 	}
@@ -342,7 +411,7 @@ func AdminGetAILogsSummary(c *gin.Context) {
 	})
 }
 
-// AdminListCharts 获取全量用户的起盘日记流水
+// AdminListCharts 获取起盘记录，支持可选的用户 ID 精确筛选。
 func AdminListCharts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
@@ -356,7 +425,23 @@ func AdminListCharts(c *gin.Context) {
 	q := c.Query("q")
 	from := c.Query("from")
 	to := c.Query("to")
-	charts, total, err := repository.ListBaziCharts(page, pageSize, q, from, to)
+	userID := c.Query("user_id")
+	if userID != "" {
+		parsedID, err := uuid.Parse(userID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "无效的用户 ID"})
+			return
+		}
+		userID = parsedID.String()
+		queries, total, err := repository.ListAdminUserChartQueries(page, pageSize, userID, from, to)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取排盘历史失败"})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"data": queries, "total": total, "page": page})
+		return
+	}
+	charts, total, err := repository.ListBaziCharts(page, pageSize, q, from, to, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取排盘历史失败"})
 		return
@@ -493,6 +578,10 @@ func AdminListCompatReadings(c *gin.Context) {
 // AdminResetUserPassword 后台重置指定用户密码
 func AdminResetUserPassword(c *gin.Context) {
 	id := c.Param("id")
+	if _, err := uuid.Parse(id); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
 	var req struct {
 		Password string `json:"password" binding:"required,min=8"`
 	}
@@ -500,7 +589,8 @@ func AdminResetUserPassword(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "新密码至少需要8位"})
 		return
 	}
-	if err := service.ResetUserPassword(id, req.Password); err != nil {
+	adminID, _ := c.Get("admin_id")
+	if err := service.ResetUserPasswordAudited(c.Request.Context(), adminID.(string), id, req.Password); err != nil {
 		if errors.Is(err, service.ErrEmailCredentialsRequired) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -518,7 +608,16 @@ func AdminResetUserPassword(c *gin.Context) {
 // AdminDeleteUser 硬删除用户（合盘记录级联删除，八字干支转游客保留）
 func AdminDeleteUser(c *gin.Context) {
 	id := c.Param("id")
-	if err := repository.DeleteUser(id); err != nil {
+	if _, err := uuid.Parse(id); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		return
+	}
+	adminID, _ := c.Get("admin_id")
+	if err := repository.DeleteUserAudited(c.Request.Context(), adminID.(string), id); err != nil {
+		if errors.Is(err, repository.ErrAdminUserMissing) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除用户失败"})
 		return
 	}

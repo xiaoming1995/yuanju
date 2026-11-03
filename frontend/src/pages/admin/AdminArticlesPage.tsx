@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
@@ -16,7 +16,9 @@ import {
   Trash2,
   XCircle,
 } from 'lucide-react'
-import { adminArticlesAPI } from '../../lib/adminApi'
+import { adminActionErrorMessage, adminArticlesAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
+import { useToast } from '../../components/ui/useToast'
 import './AdminArticlesPage.css'
 
 type TabKey = 'articles' | 'collection' | 'content' | 'tasks'
@@ -163,6 +165,9 @@ const collectionIntervalPresets = [
 export default function AdminArticlesPage() {
   const [tab, setTab] = useState<TabKey>('articles')
   const [articles, setArticles] = useState<AdminArticleRecord[]>([])
+  const [articlesLoading, setArticlesLoading] = useState(true)
+  const [articlesError, setArticlesError] = useState('')
+  const articleRequestSerial = useRef(0)
   const [categories, setCategories] = useState<TaxonomyRecord[]>([])
   const [tags, setTags] = useState<TaxonomyRecord[]>([])
   const [keywords, setKeywords] = useState<KeywordRecord[]>([])
@@ -181,6 +186,8 @@ export default function AdminArticlesPage() {
   const [articlePage, setArticlePage] = useState(1)
   const [articleLimit, setArticleLimit] = useState(20)
   const [message, setMessage] = useState('')
+  const [batchPending, setBatchPending] = useState(false)
+  const [taxonomyPending, setTaxonomyPending] = useState('')
   const [collecting, setCollecting] = useState(false)
   const [retryingTaskID, setRetryingTaskID] = useState('')
   const [name, setName] = useState('')
@@ -199,19 +206,25 @@ export default function AdminArticlesPage() {
   const [qualityConfigSaving, setQualityConfigSaving] = useState(false)
   const [qualityConfigFeedback, setQualityConfigFeedback] = useState<{ type: 'success' | 'error'; title: string; detail: string } | null>(null)
   const [aiConfig, setAIConfig] = useState({ prompt_content: '', provider_name: '', provider_type: 'openai', base_url: '', model: '', api_key: '' })
+  const [aiConfigSaving, setAIConfigSaving] = useState(false)
 
   const loadArticles = useCallback(() => {
+    const serial = ++articleRequestSerial.current
+    setArticlesLoading(true)
+    setArticlesError('')
     adminArticlesAPI.list({ status, q: articleQuery, category: articleCategory, tag: articleTag, sort: articleSort, min_quality_score: minQualityScore || undefined, page: articlePage, limit: articleLimit }).then(res => {
+      if (serial !== articleRequestSerial.current) return
       setArticles(res.data.articles || [])
       setArticleTotal(res.data.total || 0)
-    })
+    }).catch((e: unknown) => { if (serial === articleRequestSerial.current) setArticlesError(e instanceof Error ? e.message : '资讯列表加载失败') })
+      .finally(() => { if (serial === articleRequestSerial.current) setArticlesLoading(false) })
   }, [articleCategory, articleLimit, articlePage, articleQuery, articleSort, articleTag, minQualityScore, status])
   const loadTaxonomy = useCallback(() => {
-    adminArticlesAPI.categories().then(res => setCategories(res.data.categories || []))
-    adminArticlesAPI.tags().then(res => setTags(res.data.tags || []))
+    adminArticlesAPI.categories().then(res => setCategories(res.data.categories || [])).catch((e: unknown) => setMessage(e instanceof Error ? e.message : '分类加载失败'))
+    adminArticlesAPI.tags().then(res => setTags(res.data.tags || [])).catch((e: unknown) => setMessage(e instanceof Error ? e.message : '标签加载失败'))
   }, [])
-  const loadKeywords = useCallback(() => adminArticlesAPI.keywords().then(res => setKeywords(res.data.keywords || [])), [])
-  const loadTasks = useCallback(() => adminArticlesAPI.tasks().then(res => setTasks(res.data.tasks || [])), [])
+  const loadKeywords = useCallback(() => adminArticlesAPI.keywords().then(res => setKeywords(res.data.keywords || [])).catch((e: unknown) => setMessage(e instanceof Error ? e.message : '关键词加载失败')), [])
+  const loadTasks = useCallback(() => adminArticlesAPI.tasks().then(res => setTasks(res.data.tasks || [])).catch((e: unknown) => setMessage(e instanceof Error ? e.message : '采集任务加载失败')), [])
 
   useEffect(() => {
     loadArticles()
@@ -235,17 +248,17 @@ export default function AdminArticlesPage() {
         setConfig(nextConfig)
         setSavedConfig(nextConfig)
       }
-    })
+    }).catch((e: unknown) => setMessage(e instanceof Error ? e.message : '采集配置加载失败'))
     adminArticlesAPI.getQualityConfig().then(res => {
       if (res.data.config) {
         const nextConfig = normalizeQualityConfig({ ...defaultQualityConfig, ...res.data.config })
         setQualityConfig(nextConfig)
         setSavedQualityConfig(nextConfig)
       }
-    })
+    }).catch((e: unknown) => setMessage(e instanceof Error ? e.message : '质量配置加载失败'))
     adminArticlesAPI.getAIConfig().then(res => {
       if (res.data.prompt?.content) setAIConfig(v => ({ ...v, prompt_content: res.data.prompt.content }))
-    })
+    }).catch((e: unknown) => setMessage(e instanceof Error ? e.message : 'AI 配置加载失败'))
   }, [loadKeywords, loadTasks, loadTaxonomy])
 
   const currentPageIDs = articles.map(item => item.id)
@@ -297,92 +310,85 @@ export default function AdminArticlesPage() {
   }
 
   const runBatch = async (action: string) => {
-    if (selected.length === 0) return
+    if (selected.length === 0 || batchPending) return
     if (action === 'delete' && !window.confirm(`确认删除选中的 ${selected.length} 篇文章？删除后会进入“已删除”状态。`)) {
       return
     }
     const hasMissingAI = action === 'publish' && articles.some(item => selected.includes(item.id) && !item.ai_analysis)
     const allow = hasMissingAI ? window.confirm('选中的文章包含未生成 AI 分析的内容，确认发布？') : true
     if (!allow) return
-    const res = await adminArticlesAPI.batchAction({ ids: selected, action, allow_publish_without_ai: hasMissingAI })
-    setMessage(`已更新 ${res.data.result.updated} 条`)
-    setSelected([])
-    loadArticles()
+    setBatchPending(true)
+    setMessage('批量操作中…')
+    try {
+      const res = await adminArticlesAPI.batchAction({ ids: selected, action, allow_publish_without_ai: hasMissingAI })
+      setMessage(`已更新 ${res.data.result.updated} 条`)
+      setSelected([])
+      loadArticles()
+    } catch (error) {
+      setMessage(adminActionErrorMessage(error))
+    } finally {
+      setBatchPending(false)
+    }
   }
 
   const runBatchAI = async () => {
-    if (selected.length === 0) return
+    if (selected.length === 0 || batchPending) return
+    setBatchPending(true)
     setMessage('批量 AI 分析中...')
-    const res = await adminArticlesAPI.batchGenerateAI(selected)
-    setMessage(`AI 分析完成 ${res.data.result.succeeded} 条，失败 ${res.data.result.failed.length} 条`)
-    loadArticles()
+    try {
+      const res = await adminArticlesAPI.batchGenerateAI(selected)
+      setMessage(`AI 分析完成 ${res.data.result.succeeded} 条，失败 ${res.data.result.failed.length} 条`)
+      loadArticles()
+    } catch (error) {
+      setMessage(adminActionErrorMessage(error))
+    } finally {
+      setBatchPending(false)
+    }
   }
 
-  const createCategory = async () => {
+  const runTaxonomy = async (label: string, work: () => Promise<unknown>, done: () => void) => {
+    if (taxonomyPending) return
+    setTaxonomyPending(label)
+    try {
+      await work()
+      done()
+    } catch (error) {
+      setMessage(adminActionErrorMessage(error))
+    } finally {
+      setTaxonomyPending('')
+    }
+  }
+
+  const createCategory = () => {
     if (!name.trim()) return
-    await adminArticlesAPI.createCategory({ name })
-    setName('')
-    setMessage('分类已创建')
-    loadTaxonomy()
+    void runTaxonomy('正在创建分类…', () => adminArticlesAPI.createCategory({ name }), () => { setName(''); setMessage('分类已创建'); loadTaxonomy() })
   }
-
-  const createTag = async () => {
+  const createTag = () => {
     if (!tagName.trim()) return
-    await adminArticlesAPI.createTag({ name: tagName })
-    setTagName('')
-    setMessage('标签已创建')
-    loadTaxonomy()
+    void runTaxonomy('正在创建标签…', () => adminArticlesAPI.createTag({ name: tagName }), () => { setTagName(''); setMessage('标签已创建'); loadTaxonomy() })
   }
-
-  const createKeyword = async () => {
+  const createKeyword = () => {
     if (!keyword.trim()) return
-    await adminArticlesAPI.createKeyword({ keyword })
-    setKeyword('')
-    setMessage('关键词已创建')
-    loadKeywords()
+    void runTaxonomy('正在创建关键词…', () => adminArticlesAPI.createKeyword({ keyword }), () => { setKeyword(''); setMessage('关键词已创建'); loadKeywords() })
   }
-
-  const editCategory = async (item: TaxonomyRecord) => {
+  const editCategory = (item: TaxonomyRecord) => {
     const nextName = window.prompt('分类名称', item.name)
     if (!nextName) return
-    await adminArticlesAPI.updateCategory(item.id, { name: nextName, slug: item.slug, sort_order: item.sort_order || 0, active: item.active })
-    setMessage('分类已更新')
-    loadTaxonomy()
+    void runTaxonomy('正在保存分类…', () => adminArticlesAPI.updateCategory(item.id, { name: nextName, slug: item.slug, sort_order: item.sort_order || 0, active: item.active }), () => { setMessage('分类已更新'); loadTaxonomy() })
   }
-
-  const toggleCategory = async (item: TaxonomyRecord) => {
-    await adminArticlesAPI.updateCategory(item.id, { name: item.name, slug: item.slug, sort_order: item.sort_order || 0, active: !item.active })
-    setMessage(item.active ? '分类已停用' : '分类已启用')
-    loadTaxonomy()
-  }
-
-  const editTag = async (item: TaxonomyRecord) => {
+  const toggleCategory = (item: TaxonomyRecord) => void runTaxonomy('正在更新分类…', () => adminArticlesAPI.updateCategory(item.id, { name: item.name, slug: item.slug, sort_order: item.sort_order || 0, active: !item.active }), () => { setMessage(item.active ? '分类已停用' : '分类已启用'); loadTaxonomy() })
+  const editTag = (item: TaxonomyRecord) => {
     const nextName = window.prompt('标签名称', item.name)
     if (!nextName) return
-    await adminArticlesAPI.updateTag(item.id, { name: nextName, slug: item.slug, active: item.active })
-    setMessage('标签已更新')
-    loadTaxonomy()
+    void runTaxonomy('正在保存标签…', () => adminArticlesAPI.updateTag(item.id, { name: nextName, slug: item.slug, active: item.active }), () => { setMessage('标签已更新'); loadTaxonomy() })
   }
-
-  const toggleTag = async (item: TaxonomyRecord) => {
-    await adminArticlesAPI.updateTag(item.id, { name: item.name, slug: item.slug, active: !item.active })
-    setMessage(item.active ? '标签已停用' : '标签已启用')
-    loadTaxonomy()
-  }
-
-  const editKeyword = async (item: KeywordRecord) => {
+  const toggleTag = (item: TaxonomyRecord) => void runTaxonomy('正在更新标签…', () => adminArticlesAPI.updateTag(item.id, { name: item.name, slug: item.slug, active: !item.active }), () => { setMessage(item.active ? '标签已停用' : '标签已启用'); loadTaxonomy() })
+  const editKeyword = (item: KeywordRecord) => {
     const nextKeyword = window.prompt('采集关键词', item.keyword)
     if (!nextKeyword) return
-    await adminArticlesAPI.updateKeyword(item.id, { keyword: nextKeyword, active: item.active })
-    setMessage('关键词已更新')
-    loadKeywords()
+    void runTaxonomy('正在保存关键词…', () => adminArticlesAPI.updateKeyword(item.id, { keyword: nextKeyword, active: item.active }), () => { setMessage('关键词已更新'); loadKeywords() })
   }
-
-  const toggleKeyword = async (item: KeywordRecord) => {
-    await adminArticlesAPI.updateKeyword(item.id, { keyword: item.keyword, active: !item.active })
-    setMessage(item.active ? '关键词已停用' : '关键词已启用')
-    loadKeywords()
-  }
+  const toggleKeyword = (item: KeywordRecord) => void runTaxonomy('正在更新关键词…', () => adminArticlesAPI.updateKeyword(item.id, { keyword: item.keyword, active: !item.active }), () => { setMessage(item.active ? '关键词已停用' : '关键词已启用'); loadKeywords() })
 
   const triggerCollect = async () => {
     if (collecting) return
@@ -399,8 +405,7 @@ export default function AdminArticlesPage() {
       loadTasks()
       loadArticles()
     } catch (err) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string }
-      setMessage(`采集失败：${error.response?.data?.error || error.message || '未知错误'}`)
+      setMessage(`采集失败：${adminActionErrorMessage(err)}`)
     } finally {
       setCollecting(false)
     }
@@ -420,8 +425,7 @@ export default function AdminArticlesPage() {
       loadTasks()
       loadArticles()
     } catch (err) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string }
-      setMessage(`重试失败：${error.response?.data?.error || error.message || '未知错误'}`)
+      setMessage(`重试失败：${adminActionErrorMessage(err)}`)
     } finally {
       setRetryingTaskID('')
     }
@@ -466,8 +470,7 @@ export default function AdminArticlesPage() {
       setCollectionConfigFeedback({ type: 'success', title: `已保存 ${savedAt}`, detail })
       setMessage(`采集配置已保存：${detail}`)
     } catch (err) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string }
-      const reason = error.response?.data?.error || error.message || '未知错误'
+      const reason = adminActionErrorMessage(err)
       setCollectionConfigFeedback({ type: 'error', title: '保存失败', detail: reason })
       setMessage(`采集配置保存失败：${reason}`)
     } finally {
@@ -493,8 +496,7 @@ export default function AdminArticlesPage() {
       setModuleSettingsFeedback(text)
       setMessage(text)
     } catch (err) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string }
-      const reason = error.response?.data?.error || error.message || '未知错误'
+      const reason = adminActionErrorMessage(err)
       setModuleSettingsFeedback(`保存失败：${reason}`)
       setMessage(`资讯模块设置保存失败：${reason}`)
     } finally {
@@ -520,8 +522,7 @@ export default function AdminArticlesPage() {
       setMessage(`质量筛选已保存：${qualityConfigSummary(saved)}`)
       loadArticles()
     } catch (err) {
-      const error = err as { response?: { data?: { error?: string } }; message?: string }
-      const reason = error.response?.data?.error || error.message || '未知错误'
+      const reason = adminActionErrorMessage(err)
       setQualityConfigFeedback({ type: 'error', title: '保存失败', detail: reason })
       setMessage(`质量筛选保存失败：${reason}`)
     } finally {
@@ -535,8 +536,16 @@ export default function AdminArticlesPage() {
   }
 
   const saveAIConfig = async () => {
-    await adminArticlesAPI.updateAIConfig(aiConfig)
-    setMessage('AI 配置已保存')
+    if (aiConfigSaving) return
+    setAIConfigSaving(true)
+    try {
+      await adminArticlesAPI.updateAIConfig(aiConfig)
+      setMessage('AI 配置已保存')
+    } catch (error) {
+      setMessage(adminActionErrorMessage(error))
+    } finally {
+      setAIConfigSaving(false)
+    }
   }
 
   return (
@@ -588,9 +597,10 @@ export default function AdminArticlesPage() {
           </button>
         ))}
       </div>
+      {taxonomyPending && <AdminRequestState state="updating" message={taxonomyPending} />}
 
       {tab === 'articles' && (
-        <section className="admin-article-panel">
+        <section className="admin-article-panel" aria-busy={articlesLoading || batchPending}>
           <SectionHeader
             icon={<CheckCircle2 size={18} />}
             title="审核队列"
@@ -658,29 +668,32 @@ export default function AdminArticlesPage() {
               <span>{selected.length > 0 ? `已选择 ${selected.length} 条` : '选择本页后执行批量操作'}</span>
             </label>
             <div>
-              <button className="admin-article-btn success" disabled={selected.length === 0} onClick={() => runBatch('publish')}>
+              <button className="admin-article-btn success" disabled={selected.length === 0 || batchPending} onClick={() => runBatch('publish')}>
                 <CheckCircle2 size={16} />
                 发布
               </button>
-              <button className="admin-article-btn" disabled={selected.length === 0} onClick={runBatchAI}>
+              <button className="admin-article-btn" disabled={selected.length === 0 || batchPending} onClick={runBatchAI}>
                 <Sparkles size={16} />
                 AI 分析
               </button>
-              <button className="admin-article-btn" disabled={selected.length === 0} onClick={() => runBatch('reject')}>
+              <button className="admin-article-btn" disabled={selected.length === 0 || batchPending} onClick={() => runBatch('reject')}>
                 <XCircle size={16} />
                 拒绝
               </button>
-              <button className="admin-article-btn" disabled={selected.length === 0} onClick={() => runBatch('take_down')}>
+              <button className="admin-article-btn" disabled={selected.length === 0 || batchPending} onClick={() => runBatch('take_down')}>
                 <Archive size={16} />
                 下架
               </button>
-              <button className="admin-article-btn danger" disabled={selected.length === 0} onClick={() => runBatch('delete')}>
+              <button className="admin-article-btn danger" disabled={selected.length === 0 || batchPending} onClick={() => runBatch('delete')}>
                 <Trash2 size={16} />
                 删除
               </button>
             </div>
           </div>
 
+          {articlesLoading && articles.length === 0 ? <AdminRequestState state="loading" message="正在加载资讯列表…" /> : articlesError && articles.length === 0 ? <AdminRequestState state="error" message={articlesError} onRetry={loadArticles} /> : <>
+          {articlesLoading && <AdminRequestState state="updating" message="正在更新资讯列表，当前显示上一结果…" />}
+          {articlesError && <AdminRequestState state="error" message={`${articlesError}；当前结果未更新`} onRetry={loadArticles} />}
           <ArticleTable
             articles={articles}
             selected={selected}
@@ -699,11 +712,12 @@ export default function AdminArticlesPage() {
             setLimit={value => resetArticlePage(() => setArticleLimit(value))}
             goPage={goArticlePage}
           />
+          </>}
         </section>
       )}
 
       {tab === 'collection' && (
-        <section className="admin-article-panel padded">
+        <section className="admin-article-panel padded" inert={Boolean(taxonomyPending)} aria-busy={Boolean(taxonomyPending)}>
           <SectionHeader
             icon={<Play size={18} />}
             title="采集中心"
@@ -920,7 +934,7 @@ export default function AdminArticlesPage() {
       )}
 
       {tab === 'content' && (
-        <section className="admin-article-panel padded">
+        <section className="admin-article-panel padded" inert={Boolean(taxonomyPending)} aria-busy={Boolean(taxonomyPending)}>
           <SectionHeader icon={<Settings size={18} />} title="内容配置" desc="维护文章分类、标签和资讯专用 AI 设置。" />
           <div className="admin-article-workbench-grid">
             <TaxonomyPanel
@@ -948,7 +962,7 @@ export default function AdminArticlesPage() {
                 <h2>资讯 AI 配置</h2>
                 <p>用于文章摘要、拆解和仿写角度分析，不影响命盘报告模型。</p>
               </div>
-              <button className="admin-article-btn primary" onClick={saveAIConfig}>保存 AI 配置</button>
+              <button className="admin-article-btn primary" onClick={saveAIConfig} disabled={aiConfigSaving}>{aiConfigSaving ? '保存中…' : '保存 AI 配置'}</button>
             </div>
             <label className="admin-article-field">
               <span>Prompt</span>
@@ -996,6 +1010,21 @@ function ArticleTable({ articles, selected, allCurrentPageSelected, toggleSelect
   toggleCurrentPageSelected: () => void
   loadArticles: () => void
 }) {
+  const { showToast } = useToast()
+  const [generatingID, setGeneratingID] = useState('')
+  const generateAI = async (id: string) => {
+    if (generatingID) return
+    setGeneratingID(id)
+    try {
+      await adminArticlesAPI.generateAI(id)
+      showToast('AI 分析已更新', 'success')
+      loadArticles()
+    } catch (error) {
+      showToast(adminActionErrorMessage(error), 'error')
+    } finally {
+      setGeneratingID('')
+    }
+  }
   return (
     <div className="admin-article-table">
       <div className="admin-article-table-head">
@@ -1038,9 +1067,9 @@ function ArticleTable({ articles, selected, allCurrentPageSelected, toggleSelect
             </div>
             <div className="admin-article-row-actions">
               <Link to={`/admin/articles/${article.id}`} title="查看采集数据">查看</Link>
-              <button onClick={() => adminArticlesAPI.generateAI(article.id).then(loadArticles)}>
+              <button disabled={Boolean(generatingID)} onClick={() => void generateAI(article.id)}>
                 <Bot size={16} />
-                AI
+                {generatingID === article.id ? '分析中…' : 'AI'}
               </button>
             </div>
           </div>

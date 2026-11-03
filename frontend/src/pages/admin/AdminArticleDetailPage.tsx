@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Archive, ArrowLeft, Bot, CheckCircle2, ExternalLink, LinkIcon, RefreshCw, Save, Trash2, XCircle } from 'lucide-react'
-import { adminArticlesAPI } from '../../lib/adminApi'
+import { adminActionErrorMessage, adminArticlesAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 import './AdminArticleDetailPage.css'
 
 interface AdminArticleRecord {
@@ -39,6 +40,8 @@ export default function AdminArticleDetailPage() {
   const { id } = useParams()
   const [article, setArticle] = useState<AdminArticleRecord | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const requestSerial = useRef(0)
   const [message, setMessage] = useState('')
   const [bodyDraft, setBodyDraft] = useState('')
   const [fetchUrl, setFetchUrl] = useState('')
@@ -55,17 +58,20 @@ export default function AdminArticleDetailPage() {
 
   const loadArticle = (showLoading = true) => {
     if (!id) return
+    const serial = ++requestSerial.current
     if (showLoading) setLoading(true)
+    setLoadError('')
     adminArticlesAPI.detail(id)
-      .then(res => applyArticle(res.data.article))
-      .finally(() => setLoading(false))
+      .then(res => { if (serial === requestSerial.current) applyArticle(res.data.article) })
+      .catch((err: unknown) => { if (serial === requestSerial.current) setLoadError(err instanceof Error ? err.message : '资讯加载失败') })
+      .finally(() => { if (serial === requestSerial.current) setLoading(false) })
   }
 
   useEffect(() => {
-    if (!id) return
-    adminArticlesAPI.detail(id)
-      .then(res => applyArticle(res.data.article))
-      .finally(() => setLoading(false))
+    loadArticle()
+    return () => { requestSerial.current += 1 }
+    // 路由 id 变化时重新读取详情。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   const generateAI = async () => {
@@ -77,7 +83,7 @@ export default function AdminArticleDetailPage() {
       setMessage('AI 分析已更新')
       loadArticle(false)
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'AI 分析失败')
+      setMessage(adminActionErrorMessage(err))
     } finally {
       setActionSaving(false)
     }
@@ -99,7 +105,7 @@ export default function AdminArticleDetailPage() {
         setMessage('当前状态不支持该操作')
       }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : '状态更新失败')
+      setMessage(adminActionErrorMessage(err))
     } finally {
       setActionSaving(false)
     }
@@ -118,7 +124,7 @@ export default function AdminArticleDetailPage() {
       applyArticle(res.data.article)
       setMessage('正文已保存')
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : '正文保存失败')
+      setMessage(adminActionErrorMessage(err))
     } finally {
       setBodySaving(false)
     }
@@ -137,21 +143,21 @@ export default function AdminArticleDetailPage() {
       applyArticle(res.data.article)
       setMessage('正文已补抓并保存')
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : '正文补抓失败')
+      setMessage(adminActionErrorMessage(err))
     } finally {
       setBodySaving(false)
     }
   }
 
   if (loading) {
-    return <div className="admin-article-detail-page"><div className="admin-article-detail-loading">加载中...</div></div>
+    return <div className="admin-article-detail-page"><AdminRequestState state="loading" message="正在加载资讯详情…" /></div>
   }
 
   if (!article) {
     return (
       <div className="admin-article-detail-page">
         <Link className="admin-article-back" to="/admin/articles"><ArrowLeft size={16} /> 返回资讯列表</Link>
-        <div className="admin-article-detail-empty">资讯不存在或已删除。</div>
+        {loadError ? <AdminRequestState state="error" message={loadError} onRetry={() => loadArticle()} /> : <AdminRequestState state="empty" message="资讯不存在或已删除" />}
       </div>
     )
   }

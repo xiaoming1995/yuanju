@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Activity, CheckCircle, Clock, TrendingUp, List, XCircle } from 'lucide-react'
 import { adminAILogsAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 interface AILog {
   id: string
@@ -28,23 +29,36 @@ export default function AdminAILogsPage() {
   const [page, setPage] = useState(1)
   const [statusFilter, setStatusFilter] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [listRevision, setListRevision] = useState(0)
   const [summary, setSummary] = useState<DayStat[]>([])
+  const [summaryLoading, setSummaryLoading] = useState(true)
+  const [summaryError, setSummaryError] = useState('')
+  const [summaryRevision, setSummaryRevision] = useState(0)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const pageSize = 20
 
   useEffect(() => {
+    let active = true
     adminAILogsAPI.list(page, statusFilter)
       .then(r => {
+        if (!active) return
         setLogs(r.data.logs || [])
         setTotal(r.data.total || 0)
       })
-      .finally(() => setLoading(false))
-  }, [page, statusFilter])
+      .catch((e: unknown) => { if (active) setError(e instanceof Error ? e.message : '日志加载失败') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [page, statusFilter, listRevision])
 
   useEffect(() => {
-    adminAILogsAPI.summary().then(r => setSummary(r.data.summary || []))
-  }, [])
+    let active = true
+    adminAILogsAPI.summary().then(r => { if (active) setSummary(r.data.summary || []) })
+      .catch((e: unknown) => { if (active) setSummaryError(e instanceof Error ? e.message : '统计加载失败') })
+      .finally(() => { if (active) setSummaryLoading(false) })
+    return () => { active = false }
+  }, [summaryRevision])
 
   const totalAll = summary.reduce((s, d) => s + d.total, 0)
   const totalSuccess = summary.reduce((s, d) => s + d.success_count, 0)
@@ -56,8 +70,11 @@ export default function AdminAILogsPage() {
   const totalPages = Math.ceil(total / pageSize)
 
   const handleFilter = (f: string) => {
+    setLoading(true)
+    setError('')
     setStatusFilter(f)
     setPage(1)
+    setListRevision(n => n + 1)
   }
 
   return (
@@ -67,7 +84,7 @@ export default function AdminAILogsPage() {
       </h1>
 
       {/* 统计卡片 */}
-      <div className="admin-stats-grid" style={{ marginBottom: 24 }}>
+      {summaryLoading ? <AdminRequestState state="loading" message="正在加载调用统计…" /> : summaryError ? <AdminRequestState state="error" message={summaryError} onRetry={() => { setSummaryLoading(true); setSummaryError(''); setSummaryRevision(n => n + 1) }} /> : summary.length === 0 ? <AdminRequestState state="empty" message="近 7 天暂无调用统计" /> : <div className="admin-stats-grid" style={{ marginBottom: 24 }}>
         <div className="admin-stat-card">
           <div style={{ marginBottom: 12, display: 'flex' }}><Activity size={28} color="var(--admin-accent)" /></div>
           <div className="admin-stat-value">{totalAll}</div>
@@ -84,6 +101,7 @@ export default function AdminAILogsPage() {
           <div className="admin-stat-label">日均响应耗时</div>
         </div>
       </div>
+      }
 
       {/* 近7天趋势 */}
       {summary.length > 0 && (
@@ -127,7 +145,7 @@ export default function AdminAILogsPage() {
       )}
 
       {/* 筛选栏 */}
-      <div className="admin-card">
+      <div className="admin-card" aria-busy={loading}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           {[
             { val: '', label: '全部', icon: null },
@@ -161,11 +179,16 @@ export default function AdminAILogsPage() {
         </div>
 
         {/* 日志表格 */}
-        {loading ? (
-          <div className="admin-loading">加载中...</div>
+        {loading && logs.length === 0 ? (
+          <AdminRequestState state="loading" message="正在加载调用日志…" />
+        ) : error && logs.length === 0 ? (
+          <AdminRequestState state="error" message={error} onRetry={() => { setLoading(true); setError(''); setListRevision(n => n + 1) }} />
         ) : logs.length === 0 ? (
-          <div style={{ textAlign: 'center', color: 'var(--admin-text-faint)', padding: '40px 0' }}>暂无记录</div>
+          <AdminRequestState state="empty" message="当前条件下暂无调用日志" />
         ) : (
+          <>
+          {loading && <AdminRequestState state="updating" message="正在更新日志，当前显示上一结果…" />}
+          {error && <AdminRequestState state="error" message={`${error}；当前结果未更新`} onRetry={() => { setLoading(true); setError(''); setListRevision(n => n + 1) }} />}
           <table className="admin-table">
             <thead>
               <tr>
@@ -236,6 +259,7 @@ export default function AdminAILogsPage() {
               ))}
             </tbody>
           </table>
+          </>
         )}
 
         {/* 分页器 */}
@@ -243,7 +267,7 @@ export default function AdminAILogsPage() {
           <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
             <button
               disabled={page === 1}
-              onClick={() => setPage(p => p - 1)}
+              onClick={() => { setLoading(true); setError(''); setPage(p => p - 1) }}
               style={{
                 padding: '6px 14px', borderRadius: 8, border: 'none',
                 background: page === 1 ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)',
@@ -255,7 +279,7 @@ export default function AdminAILogsPage() {
             </span>
             <button
               disabled={page === totalPages}
-              onClick={() => setPage(p => p + 1)}
+              onClick={() => { setLoading(true); setError(''); setPage(p => p + 1) }}
               style={{
                 padding: '6px 14px', borderRadius: 8, border: 'none',
                 background: page === totalPages ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)',

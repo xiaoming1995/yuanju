@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"time"
@@ -67,14 +68,36 @@ func CreateCompatibilityEvidence(readingID string, evidence model.CompatibilityE
 }
 
 func CreateCompatibilityReport(readingID, content, modelName string, contentStructured *json.RawMessage) (*model.AICompatibilityReport, error) {
+	return CreateCompatibilityReportWithChannel(readingID, content, modelName, contentStructured, "web")
+}
+
+func CreateCompatibilityReportWithChannel(readingID, content, modelName string, contentStructured *json.RawMessage, channel string) (*model.AICompatibilityReport, error) {
+	tx, err := database.DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
 	r := &model.AICompatibilityReport{}
-	err := database.DB.QueryRow(
+	err = tx.QueryRow(
 		`INSERT INTO ai_compatibility_reports (reading_id, content, content_structured, model)
 		 VALUES ($1, $2, $3, $4)
 		 RETURNING id, reading_id, content, content_structured, model, created_at`,
 		readingID, content, contentStructured, modelName,
 	).Scan(&r.ID, &r.ReadingID, &r.Content, &r.ContentStructured, &r.Model, &r.CreatedAt)
-	return r, err
+	if err != nil {
+		return nil, err
+	}
+	var userID string
+	if err := tx.QueryRow(`SELECT user_id FROM compatibility_readings WHERE id=$1`, readingID).Scan(&userID); err != nil {
+		return nil, err
+	}
+	if err := RecordUserActivityTx(context.Background(), tx, userID, "compatibility_report_generated", channel, &r.ID); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 func GetLatestCompatibilityReport(readingID string) (*model.AICompatibilityReport, error) {

@@ -64,6 +64,9 @@ func CreateUserWithWeChatIdentity(ctx context.Context, appID, openID string) (*m
 	if err != nil {
 		return nil, false, err
 	}
+	if err := RecordUserActivityTx(ctx, tx, userID, "register", "miniapp", nil); err != nil {
+		return nil, false, err
+	}
 	if err := tx.Commit(); err != nil {
 		return nil, false, err
 	}
@@ -170,6 +173,9 @@ func MergeMiniappIntoWebUser(ctx context.Context, miniappID, webID, appID string
 	}
 
 	statements := []string{
+		`UPDATE user_activity_events SET user_id=$2 WHERE user_id=$1`,
+		`UPDATE user_chart_query_history SET user_id=$2 WHERE user_id=$1`,
+		`UPDATE users AS web SET last_login_channel=CASE WHEN miniapp.last_login_at IS NOT NULL AND (web.last_login_at IS NULL OR miniapp.last_login_at > web.last_login_at) THEN miniapp.last_login_channel ELSE web.last_login_channel END, last_login_at=GREATEST(web.last_login_at, miniapp.last_login_at), last_active_at=GREATEST(web.last_active_at, miniapp.last_active_at), chart_query_count=web.chart_query_count+miniapp.chart_query_count FROM users AS miniapp WHERE web.id=$2 AND miniapp.id=$1`,
 		`UPDATE bazi_charts SET user_id=$2 WHERE user_id=$1`,
 		`UPDATE compatibility_readings SET user_id=$2 WHERE user_id=$1`,
 		`UPDATE token_usage_logs SET user_id=$2 WHERE user_id=$1`,
@@ -215,6 +221,9 @@ func MergeMiniappIntoWebUser(ctx context.Context, miniappID, webID, appID string
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return ErrWeChatIdentityConflict
 		}
+		return err
+	}
+	if err := RecordUserActivityTx(ctx, tx, webID, "account_linked", "miniapp", nil); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM users WHERE id=$1`, miniappID); err != nil {

@@ -57,3 +57,18 @@ func TestAdminDeleteUserRequiresAdminAuth(t *testing.T) {
 		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
 	}
 }
+
+func TestAdminUserActivityEndpointsRequireAdminAuth(t *testing.T) {
+	configs.AppConfig.AdminJWTSecret = "test-admin-secret"
+	r := gin.New()
+	admin := r.Group("/api/admin", middleware.AdminAuth())
+	admin.GET("/users/:id", AdminGetUserDetail)
+	admin.GET("/users/:id/events", AdminGetUserEvents)
+	for _, path := range []string{"/api/admin/users/00000000-0000-0000-0000-000000000001", "/api/admin/users/00000000-0000-0000-0000-000000000001/events"} {
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, path, nil))
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("%s: expected 401, got %d", path, w.Code)
+		}
+	}
+}

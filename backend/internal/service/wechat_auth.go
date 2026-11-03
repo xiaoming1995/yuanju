@@ -101,8 +101,14 @@ func LoginWithWeChatCode(ctx context.Context, code string, exchange WeChatCodeEx
 	if user.DisabledAt != nil {
 		return nil, "", false, ErrWeChatAccountDisabled
 	}
-	token, err := generateJWT(user)
-	return user, token, isNewUser, err
+	token, err := generateJWTForChannel(user, "miniapp")
+	if err != nil {
+		return nil, "", false, err
+	}
+	if err := repository.RecordUserActivity(ctx, user.ID, "login", "miniapp", nil); err != nil {
+		return nil, "", false, err
+	}
+	return user, token, isNewUser, nil
 }
 
 func BindWeChatCode(ctx context.Context, userID, code string, exchange WeChatCodeExchangeFunc) (*model.User, error) {
@@ -142,6 +148,11 @@ func LinkWebAccount(ctx context.Context, miniappUserID, email, password string) 
 			return nil, "", err
 		}
 	}
-	token, err := generateJWT(webUser)
+	if miniappUserID == webUser.ID {
+		if err := repository.RecordUserActivity(ctx, webUser.ID, "account_linked", "miniapp", nil); err != nil {
+			return nil, "", err
+		}
+	}
+	token, err := generateJWTForChannel(webUser, "miniapp")
 	return webUser, token, err
 }

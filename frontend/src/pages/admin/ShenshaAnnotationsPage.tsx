@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BookOpen } from 'lucide-react'
 import { adminShenshaAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 interface ShenshaAnnotation {
   id: string
@@ -36,9 +37,12 @@ export default function ShenshaAnnotationsPage() {
 
   const load = async () => {
     setLoading(true)
+    setError('')
     try {
       const res = await adminShenshaAPI.list()
       setItems(res.data.data || [])
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '神煞注解加载失败')
     } finally {
       setLoading(false)
     }
@@ -86,9 +90,12 @@ export default function ShenshaAnnotationsPage() {
       </h1>
 
       {loading ? (
-        <div className="admin-loading">加载中…</div>
+        <AdminRequestState state="loading" message="正在加载神煞注解…" />
+      ) : error && !items.length ? (
+        <AdminRequestState state="error" message={error} onRetry={() => void load()} />
       ) : (
         <div className="admin-card">
+          {error && <AdminRequestState state="error" message={`${error}；当前列表未更新`} onRetry={() => void load()} />}
           <table className="admin-table" style={{ width: '100%' }}>
             <thead>
               <tr>

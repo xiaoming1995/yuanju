@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Bot, CheckCircle } from 'lucide-react'
-import { adminLLMAPI } from '../../lib/adminApi'
+import { adminActionErrorMessage, adminLLMAPI } from '../../lib/adminApi'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useToast } from '../../components/ui/useToast'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 interface Provider {
   id: string; name: string; type: string; base_url: string
@@ -26,22 +27,27 @@ export default function AdminLLMPage() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [presetTypes, setPresetTypes] = useState<PresetType[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Provider | null>(null)
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [testingId, setTestingId] = useState<string | null>(null)
+  const [activatingId, setActivatingId] = useState<string | null>(null)
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({})
   const [selectedPresetName, setSelectedPresetName] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Provider | null>(null)
   const [deletePending, setDeletePending] = useState(false)
 
   const load = () => {
+    setLoading(true)
+    setLoadError('')
     adminLLMAPI.list().then(r => {
       setProviders(r.data.providers || [])
       setPresetTypes(r.data.predefined || [])
-    }).finally(() => setLoading(false))
+    }).catch((e: unknown) => setLoadError(e instanceof Error ? e.message : 'Provider 加载失败'))
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
@@ -104,18 +110,22 @@ export default function AdminLLMPage() {
       showToast(editing ? 'Provider 已更新' : 'Provider 已添加', 'success')
       load()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '保存失败')
+      setError(adminActionErrorMessage(e))
     } finally { setSaving(false) }
   }
 
   const handleActivate = async (id: string) => {
+    if (activatingId) return
+    setActivatingId(id)
     setProviders(ps => ps.map(p => ({ ...p, active: p.id === id })))
     try {
       await adminLLMAPI.activate(id)
       showToast('Provider 已激活', 'success')
-    } catch {
-      showToast('激活失败，已恢复列表状态', 'error')
+    } catch (e) {
+      showToast(adminActionErrorMessage(e), 'error')
       load()
+    } finally {
+      setActivatingId(null)
     }
   }
 
@@ -128,7 +138,7 @@ export default function AdminLLMPage() {
       setDeleteTarget(null)
       load()
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : '删除失败', 'error')
+      showToast(adminActionErrorMessage(e), 'error')
     } finally {
       setDeletePending(false)
     }
@@ -142,7 +152,7 @@ export default function AdminLLMPage() {
       showToast(res.data.ok ? 'Provider 测试通过' : `Provider 测试失败：${res.data.error || '连接异常'}`, res.data.ok ? 'success' : 'error')
     } catch (e: unknown) {
       setTestResults(prev => ({ ...prev, [id]: { ok: false, error: e instanceof Error ? e.message : '测试失败' } }))
-      showToast(e instanceof Error ? e.message : '测试失败', 'error')
+      showToast(adminActionErrorMessage(e), 'error')
     } finally {
       setTestingId(null)
     }
@@ -159,8 +169,10 @@ export default function AdminLLMPage() {
         <button id="btn-add-provider" className="admin-btn admin-btn-primary" onClick={openCreate}>+ 添加 Provider</button>
       </div>
 
-      {loading ? <div className="admin-loading">加载中...</div> : (
+      {loading && !providers.length ? <AdminRequestState state="loading" message="正在加载 Provider…" /> : loadError && !providers.length ? <AdminRequestState state="error" message={loadError} onRetry={load} /> : (
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+          {loading && <AdminRequestState state="updating" message="正在更新 Provider 列表，当前显示上一结果…" />}
+          {loadError && <AdminRequestState state="error" message={`${loadError}；当前结果未更新`} onRetry={load} />}
           <table className="admin-table">
             <thead>
               <tr>
@@ -206,7 +218,7 @@ export default function AdminLLMPage() {
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {!p.active && (
                         <button className="admin-btn admin-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}
-                          onClick={() => handleActivate(p.id)}>激活</button>
+                          disabled={Boolean(activatingId)} onClick={() => handleActivate(p.id)}>{activatingId === p.id ? '激活中…' : '激活'}</button>
                       )}
                       <button
                         className="admin-btn admin-btn-ghost"

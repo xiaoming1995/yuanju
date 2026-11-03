@@ -38,7 +38,7 @@ func UpdateProfileNickname(c *gin.Context) {
 		return
 	}
 	userID := getUserIDStr(c)
-	if err := repository.UpdateUserNickname(c.Request.Context(), userID, nickname); err != nil {
+	if err := repository.UpdateUserNickname(c.Request.Context(), userID, nickname, userActivityChannel(c)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存昵称失败"})
 		return
 	}
@@ -93,7 +93,7 @@ func UploadProfileAvatar(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存头像失败"})
 		return
 	}
-	previous, err := repository.UpdateUserAvatar(c.Request.Context(), userID, relPath)
+	previous, err := repository.UpdateUserAvatar(c.Request.Context(), userID, relPath, userActivityChannel(c))
 	if err != nil {
 		_ = os.Remove(absPath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新头像失败"})

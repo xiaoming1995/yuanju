@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Landmark, Pencil, Plus, Trash2 } from 'lucide-react'
 import {
   adminMingGeHistoricalFiguresAPI,
+  adminActionErrorMessage,
   type AdminMingGeHistoricalFigure,
   type AdminMingGeHistoricalFigureInput,
 } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 import './AdminMingGeHistoricalFiguresPage.css'
 
 const emptyForm: AdminMingGeHistoricalFigureInput = {
@@ -45,9 +47,12 @@ export default function AdminMingGeHistoricalFiguresPage() {
   const [editing, setEditing] = useState<AdminMingGeHistoricalFigure | null>(null)
   const [form, setForm] = useState<AdminMingGeHistoricalFigureInput>(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [archivingID, setArchivingID] = useState('')
   const [error, setError] = useState('')
 
   const load = async () => {
+    setLoading(true)
+    setError('')
     try {
       const response = await adminMingGeHistoricalFiguresAPI.list()
       setFigures(response.data.data || [])
@@ -98,20 +103,24 @@ export default function AdminMingGeHistoricalFiguresPage() {
       setLoading(true)
       await load()
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : '保存失败')
+      setError(adminActionErrorMessage(requestError))
     } finally {
       setSaving(false)
     }
   }
 
   const handleArchive = async (figure: AdminMingGeHistoricalFigure) => {
+    if (archivingID) return
     if (!window.confirm(`归档「${figure.figure_name}」？归档后将不再在排盘页展示。`)) return
+    setArchivingID(figure.id)
     try {
       await adminMingGeHistoricalFiguresAPI.archive(figure.id)
       setLoading(true)
       await load()
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : '归档失败')
+      setError(adminActionErrorMessage(requestError))
+    } finally {
+      setArchivingID('')
     }
   }
 
@@ -125,8 +134,8 @@ export default function AdminMingGeHistoricalFiguresPage() {
         <button className="admin-btn admin-btn-primary" onClick={openCreate}><Plus size={16} /> 添加映照</button>
       </div>
 
-      {error && !showEditor && <div className="admin-error">{error}</div>}
-      {loading ? <div className="admin-loading">加载中...</div> : (
+      {error && !showEditor && figures.length > 0 && <div className="admin-error">{error}</div>}
+      {loading ? <AdminRequestState state="loading" message="正在加载映照资料…" /> : error && !figures.length ? <AdminRequestState state="error" message={error} onRetry={() => void load()} /> : (
         <div className="admin-card admin-historical-figures-table-wrap">
           <table className="admin-table">
             <thead>
@@ -146,7 +155,7 @@ export default function AdminMingGeHistoricalFiguresPage() {
                   <td><span className={`badge admin-historical-status status-${figure.review_status}`}>{figure.review_status}</span></td>
                   <td className="admin-historical-actions">
                     <button className="admin-icon-button" title="编辑" onClick={() => openEdit(figure)}><Pencil size={15} /></button>
-                    {figure.review_status !== 'archived' && <button className="admin-icon-button is-danger" title="归档" onClick={() => void handleArchive(figure)}><Trash2 size={15} /></button>}
+                    {figure.review_status !== 'archived' && <button className="admin-icon-button is-danger" title={archivingID === figure.id ? '归档中' : '归档'} disabled={Boolean(archivingID)} onClick={() => void handleArchive(figure)}><Trash2 size={15} /></button>}
                   </td>
                 </tr>
               ))}

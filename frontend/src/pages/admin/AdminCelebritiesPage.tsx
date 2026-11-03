@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Users, CheckCircle, Sparkles, XCircle } from 'lucide-react'
-import { adminCelebritiesAPI } from '../../lib/adminApi'
+import { adminActionErrorMessage, adminCelebritiesAPI } from '../../lib/adminApi'
+import { AdminRequestState } from '../../components/AdminRequestState'
 
 interface Celebrity {
   id: string
@@ -17,10 +18,12 @@ const initialForm = { name: '', gender: '男', traits: '', career: '', active: t
 export default function AdminCelebritiesPage() {
   const [celebs, setCelebs] = useState<Celebrity[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Celebrity | null>(null)
   const [form, setForm] = useState(initialForm)
   const [saving, setSaving] = useState(false)
+  const [rowPendingID, setRowPendingID] = useState('')
   const [error, setError] = useState('')
   const [showAIModal, setShowAIModal] = useState(false)
   const [aiGenerating, setAIGenerating] = useState(false)
@@ -29,9 +32,12 @@ export default function AdminCelebritiesPage() {
   const [aiError, setAiError] = useState('')
 
   const load = () => {
+    setLoading(true)
+    setLoadError('')
     adminCelebritiesAPI.list().then(r => {
       setCelebs(r.data.data || [])
-    }).finally(() => setLoading(false))
+    }).catch((e: unknown) => setLoadError(e instanceof Error ? e.message : '名人库加载失败'))
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => { load() }, [])
@@ -73,6 +79,8 @@ export default function AdminCelebritiesPage() {
   }
 
   const toggleActive = async (c: Celebrity) => {
+    if (rowPendingID) return
+    setRowPendingID(c.id)
     try {
       await adminCelebritiesAPI.update(c.id, {
         name: c.name,
@@ -83,14 +91,20 @@ export default function AdminCelebritiesPage() {
       })
       load()
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '切换失败')
+      alert(adminActionErrorMessage(e))
+    } finally {
+      setRowPendingID('')
     }
   }
 
   const handleDelete = async (c: Celebrity) => {
+    if (rowPendingID) return
     if (!confirm(`确定删除名人 "${c.name}"？`)) return
+    setRowPendingID(c.id)
     try { await adminCelebritiesAPI.delete(c.id); load() } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : '删除失败')
+      alert(adminActionErrorMessage(e))
+    } finally {
+      setRowPendingID('')
     }
   }
 
@@ -108,8 +122,10 @@ export default function AdminCelebritiesPage() {
         </div>
       </div>
 
-      {loading ? <div className="admin-loading">加载中...</div> : (
+      {loading && !celebs.length ? <AdminRequestState state="loading" message="正在加载名人库…" /> : loadError && !celebs.length ? <AdminRequestState state="error" message={loadError} onRetry={load} /> : (
         <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+          {loading && <AdminRequestState state="updating" message="正在更新名人库，当前显示上一结果…" />}
+          {loadError && <AdminRequestState state="error" message={`${loadError}；当前结果未更新`} onRetry={load} />}
           <table className="admin-table">
             <thead>
               <tr>
@@ -143,11 +159,11 @@ export default function AdminCelebritiesPage() {
                   <td>
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="admin-btn admin-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}
-                        onClick={() => toggleActive(c)}>{c.active ? '下线' : '上线'}</button>
+                        disabled={Boolean(rowPendingID)} onClick={() => toggleActive(c)}>{rowPendingID === c.id ? '处理中…' : c.active ? '下线' : '上线'}</button>
                       <button className="admin-btn admin-btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }}
                         onClick={() => openEdit(c)}>编辑</button>
                       <button className="admin-btn admin-btn-danger" style={{ padding: '4px 10px', fontSize: 12 }}
-                        onClick={() => handleDelete(c)}>删除</button>
+                        disabled={Boolean(rowPendingID)} onClick={() => handleDelete(c)}>{rowPendingID === c.id ? '处理中…' : '删除'}</button>
                     </div>
                   </td>
                 </tr>

@@ -808,7 +808,7 @@ func buildBaziPrompt(r *bazi.BaziResult) string {
 }
 
 // GenerateAIReport 生成 AI 报告（始终调 LLM，生成后覆盖存库）
-func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (*model.AIReport, error) {
+func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string, channels ...string) (*model.AIReport, error) {
 	// 构建 Prompt 并调用 AI
 	prompt := buildBaziPrompt(result)
 	rawContent, modelName, providerID, durationMs, usage, aiErr := callAIWithSystem(prompt)
@@ -856,7 +856,11 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (
 	content := briefContent + "\n\n---\n*本报告由 AI 辅助生成，内容仅供参考，不构成任何决策建议。*"
 
 	// 保存报告（同时写入 content 和 content_structured）
-	report, err := repository.CreateReport(chartID, content, modelName, contentStructured)
+	channel := "web"
+	if len(channels) > 0 {
+		channel = channels[0]
+	}
+	report, err := repository.CreateReportWithChannel(chartID, content, modelName, contentStructured, channel)
 	if err != nil {
 		return nil, err
 	}
@@ -864,7 +868,7 @@ func GenerateAIReport(chartID string, result *bazi.BaziResult, userID *string) (
 }
 
 // GenerateAIReportStream 流式生成 AI 报告
-func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *string, onData func(string) error, onThinking func() error) error {
+func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *string, onData func(string) error, onThinking func() error, channels ...string) error {
 	t0 := time.Now()
 
 	// 构建 Prompt
@@ -909,7 +913,13 @@ func GenerateAIReportStream(chartID string, result *bazi.BaziResult, userID *str
 		briefContent = rawContent
 	}
 	content := briefContent + "\n\n---\n*本报告由 AI 辅助生成，内容仅供参考，不构成任何决策建议。*"
-	_, _ = repository.CreateReport(chartID, content, modelName, contentStructured)
+	channel := "web"
+	if len(channels) > 0 {
+		channel = channels[0]
+	}
+	if _, err := repository.CreateReportWithChannel(chartID, content, modelName, contentStructured, channel); err != nil {
+		return err
+	}
 
 	return nil
 }

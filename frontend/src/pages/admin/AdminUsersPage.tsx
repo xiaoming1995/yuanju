@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
-import { adminMiniappRegistrationSettingsAPI, adminRegistrationSettingsAPI, adminStatsAPI, adminUsersAPI } from '../../lib/adminApi'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { adminActionErrorMessage, adminMiniappRegistrationSettingsAPI, adminRegistrationSettingsAPI, adminStatsAPI, adminUsersAPI } from '../../lib/adminApi'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useToast } from '../../components/ui/useToast'
+import { AdminUserPagination } from './AdminUserPagination'
+import { AdminRequestState } from '../../components/AdminRequestState'
+import './AdminUserActivity.css'
 
 interface User {
   id: string
@@ -11,9 +15,27 @@ interface User {
   source: 'self_registered' | 'admin_created' | string
   created_at: string
   chart_count: number
+  chart_query_count: number
   disabled_at?: string | null
   compat_count?: number
+  last_login_at?: string | null
+  last_login_channel?: string
+  last_active_at?: string | null
 }
+
+interface UserDetail extends User { ai_requests_this_month: number }
+interface ActivityEvent { id: string; event_type: string; channel: string; object_id?: string | null; created_at: string }
+interface AdminAuditEvent { id: string; admin_id: string; admin_name: string; action: string; created_at: string }
+const eventLabels: Record<string, string> = {
+  register: '注册账号', login: '登录', account_linked: '绑定网页账号', chart_created: '创建排盘',
+  compatibility_created: '创建合盘', bazi_report_generated: '生成八字报告',
+  compatibility_report_generated: '生成合盘报告', nickname_updated: '修改昵称', avatar_updated: '更新头像',
+}
+const auditLabels: Record<string, string> = { created: '后台创建账号', disabled: '禁用账号', enabled: '解禁账号', password_reset: '重置密码' }
+const formatTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '暂无记录'
+const formatDate = (value: string) => new Date(value).toLocaleDateString('zh-CN')
+const formatClock = (value: string) => new Date(value).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+const defaultFilters = { source: '', status: '', activity: '', sort: 'created_desc' }
 
 const initialForm = { email: '', nickname: '', password: '' }
 
@@ -27,8 +49,22 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [total, setTotal] = useState(0)
   const [query, setQuery] = useState('')
+  const [appliedQuery, setAppliedQuery] = useState('')
+  const [filters, setFilters] = useState(defaultFilters)
+  const [selectedID, setSelectedID] = useState<string | null>(null)
+  const [detail, setDetail] = useState<UserDetail | null>(null)
+  const [events, setEvents] = useState<ActivityEvent[]>([])
+  const [adminEvents, setAdminEvents] = useState<AdminAuditEvent[]>([])
+  const [eventsPage, setEventsPage] = useState(1)
+  const [eventsTotal, setEventsTotal] = useState(0)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailError, setDetailError] = useState('')
+  const [detailRevision, setDetailRevision] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState('')
+  const requestSerial = useRef(0)
   const [registration_enabled, setRegistrationEnabled] = useState(false)
+  const [settingsLoading, setSettingsLoading] = useState(true)
   const [registrationSaving, setRegistrationSaving] = useState(false)
   const [miniappRegistrationEnabled, setMiniappRegistrationEnabled] = useState(false)
   const [miniappRegistrationSaving, setMiniappRegistrationSaving] = useState(false)
@@ -39,23 +75,37 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('')
 
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [actionSaving, setActionSaving] = useState(false)
 
-  const load = useCallback((q: string, pageNum: number) => {
+  const load = useCallback((q: string, pageNum: number, nextFilters = filters) => {
+    const serial = ++requestSerial.current
     setLoading(true)
-    adminStatsAPI.users(pageNum, q)
-      .then(r => { setUsers(r.data.users || []); setTotal(r.data.total || 0) })
-      .finally(() => setLoading(false))
-  }, [])
+    setListError('')
+    adminStatsAPI.users(pageNum, q, nextFilters, pageSize)
+      .then(r => {
+        if (serial !== requestSerial.current) return
+        const nextTotal = r.data.total || 0
+        setTotal(nextTotal)
+        const lastPage = Math.max(1, Math.ceil(nextTotal / pageSize))
+        if (pageNum > lastPage) { setPage(lastPage); return }
+        setUsers(r.data.users || [])
+      })
+      .catch((e: unknown) => { if (serial === requestSerial.current) setListError(e instanceof Error ? e.message : '用户列表加载失败') })
+      .finally(() => { if (serial === requestSerial.current) setLoading(false) })
+  }, [filters, pageSize])
 
   const loadSettings = () => {
-    adminRegistrationSettingsAPI.get()
+    setSettingsLoading(true)
+    setSettingsMsg('')
+    const web = adminRegistrationSettingsAPI.get()
       .then(r => setRegistrationEnabled(r.data.registration_enabled))
       .catch(() => setSettingsMsg('注册设置读取失败'))
-    adminMiniappRegistrationSettingsAPI.get()
+    const miniapp = adminMiniappRegistrationSettingsAPI.get()
       .then(r => setMiniappRegistrationEnabled(r.data.miniapp_registration_enabled))
       .catch(() => setSettingsMsg('小程序注册设置读取失败'))
+    void Promise.allSettled([web, miniapp]).then(() => setSettingsLoading(false))
   }
 
   useEffect(() => {
@@ -63,12 +113,30 @@ export default function AdminUsersPage() {
   }, [])
 
   useEffect(() => {
-    load(query, page)
-  }, [page]) // eslint-disable-line react-hooks/exhaustive-deps
+    load(appliedQuery, page, filters)
+  }, [page, appliedQuery, filters, load])
+
+  useEffect(() => {
+    if (!selectedID) return
+    let active = true
+    setDetailLoading(true)
+    setDetailError('')
+    Promise.all([adminUsersAPI.detail(selectedID), adminUsersAPI.events(selectedID, eventsPage)])
+      .then(([userResponse, eventResponse]) => {
+        if (!active) return
+        setDetail(userResponse.data.data)
+        setEvents(eventResponse.data.events || [])
+        setAdminEvents(eventResponse.data.admin_events || [])
+        setEventsTotal(eventResponse.data.total || 0)
+      })
+      .catch((e: unknown) => { if (active) setDetailError(e instanceof Error ? e.message : '用户详情加载失败') })
+      .finally(() => { if (active) setDetailLoading(false) })
+    return () => { active = false }
+  }, [selectedID, eventsPage, detailRevision, showToast])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    setPage(1); load(query, 1)
+    setPage(1); setAppliedQuery(query)
   }
 
   const toggleRegistration = async () => {
@@ -81,8 +149,8 @@ export default function AdminUsersPage() {
       setSettingsMsg('已保存')
       showToast(res.data.registration_enabled ? '已开启公开注册' : '已关闭公开注册', 'success')
     } catch (e: unknown) {
-      setSettingsMsg(e instanceof Error ? e.message : '保存失败')
-      showToast(e instanceof Error ? e.message : '保存失败', 'error')
+      setSettingsMsg(adminActionErrorMessage(e))
+      showToast(adminActionErrorMessage(e), 'error')
     } finally {
       setRegistrationSaving(false)
     }
@@ -97,7 +165,7 @@ export default function AdminUsersPage() {
       setSettingsMsg('已保存')
       showToast(res.data.miniapp_registration_enabled ? '已开启小程序新用户注册' : '已关闭小程序新用户注册', 'success')
     } catch (e: unknown) {
-      setSettingsMsg(e instanceof Error ? e.message : '保存失败')
+      setSettingsMsg(adminActionErrorMessage(e))
     } finally {
       setMiniappRegistrationSaving(false)
     }
@@ -125,9 +193,9 @@ export default function AdminUsersPage() {
       setShowModal(false)
       setForm(initialForm)
       showToast('用户已创建', 'success')
-      load(query, page)
+      load(appliedQuery, page)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '创建失败')
+      setError(adminActionErrorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -146,9 +214,10 @@ export default function AdminUsersPage() {
     try {
       await adminUsersAPI.resetPassword(resetTarget!.id, resetPwd)
       setResetTarget(null)
+      setDetailRevision(n => n + 1)
       showToast('已重置，请通过安全渠道告知用户新密码。', 'success')
     } catch (e: unknown) {
-      setResetErr(e instanceof Error ? e.message : '重置失败')
+      setResetErr(adminActionErrorMessage(e))
     } finally {
       setResetSaving(false)
     }
@@ -175,9 +244,11 @@ export default function AdminUsersPage() {
         showToast('用户已删除', 'success')
       }
       setPendingAction(null)
-      load(query, page)
+      if (pendingAction.type === 'delete' && selectedID === pendingAction.user.id) setSelectedID(null)
+      setDetailRevision(n => n + 1)
+      load(appliedQuery, page)
     } catch (e: unknown) {
-      showToast(e instanceof Error ? e.message : '操作失败', 'error')
+      showToast(adminActionErrorMessage(e), 'error')
     } finally {
       setActionSaving(false)
     }
@@ -187,115 +258,150 @@ export default function AdminUsersPage() {
   const userLabel = (user: User) => user.email || `${user.nickname || '微信用户'}（${user.id.slice(0, 8)}）`
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 className="admin-page-title" style={{ margin: 0 }}>用户列表</h1>
-        <span style={{ color: 'var(--admin-text-muted)', fontSize: 14 }}>共 {total} 名用户</span>
+    <div className="admin-users-page">
+      <div className="admin-users-heading">
+        <div><h1 className="admin-page-title">用户管理</h1><p>查看登录、活跃和关键行为记录</p></div>
+        <div className="admin-users-heading-actions"><span>共 {total} 名用户</span><button className="admin-btn admin-btn-primary" onClick={openCreate}>创建用户</button></div>
       </div>
 
-      <div className="admin-card" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ color: 'var(--admin-text)', fontWeight: 700, marginBottom: 4 }}>网页邮箱注册</div>
-            <div style={{ color: 'var(--admin-text-muted)', fontSize: 13 }}>
-              当前状态：{registration_enabled ? '允许网页访客自行注册' : '关闭网页注册，仅后台可创建邮箱用户'}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            {settingsMsg && <span style={{ color: settingsMsg === '已保存' ? 'var(--admin-success)' : 'var(--admin-danger)', fontSize: 13 }}>{settingsMsg}</span>}
-            <button className="admin-btn admin-btn-ghost" onClick={toggleRegistration} disabled={registrationSaving}>
-              {registrationSaving ? '保存中...' : registration_enabled ? '关闭公开注册' : '开启公开注册'}
-            </button>
-            <button className="admin-btn admin-btn-primary" onClick={openCreate}>创建用户</button>
-          </div>
+      <section className="admin-card admin-user-settings" aria-label="注册设置" aria-busy={settingsLoading || registrationSaving || miniappRegistrationSaving}>
+        <div className="admin-user-settings-heading"><strong>注册设置</strong>{settingsMsg && <span role="status" className={settingsMsg === '已保存' ? 'is-success' : 'is-error'}>{settingsMsg}</span>}</div>
+        {settingsLoading && <AdminRequestState state="updating" message="正在读取注册设置…" />}
+        {!settingsLoading && settingsMsg.includes('读取失败') && <button className="admin-btn admin-btn-ghost" onClick={loadSettings}>重试读取</button>}
+        <div className="admin-user-setting">
+          <div><strong>网页邮箱注册</strong><p>{registration_enabled ? '访客可自行注册邮箱账号' : '仅管理员可创建邮箱账号'}</p></div>
+          <div className="admin-user-setting-control"><span className={registration_enabled ? 'is-enabled' : ''}>{settingsLoading ? '读取中' : registration_enabled ? '已开启' : '已关闭'}</span><button className="admin-btn admin-btn-ghost" onClick={toggleRegistration} disabled={settingsLoading || registrationSaving || settingsMsg.includes('读取失败')}>
+            {registrationSaving ? '保存中...' : registration_enabled ? '关闭注册' : '开启注册'}
+          </button></div>
         </div>
-      </div>
-
-      <div className="admin-card" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ color: 'var(--admin-text)', fontWeight: 700, marginBottom: 4 }}>小程序微信注册</div>
-          <div style={{ color: 'var(--admin-text-muted)', fontSize: 13 }}>只控制首次微信建号；已绑定账号仍可登录，与网页邮箱注册开关独立。</div>
+        <div className="admin-user-setting">
+          <div><strong>小程序微信注册</strong><p>控制首次微信建号；已绑定账号仍可登录</p></div>
+          <div className="admin-user-setting-control"><span className={miniappRegistrationEnabled ? 'is-enabled' : ''}>{settingsLoading ? '读取中' : miniappRegistrationEnabled ? '已开启' : '已关闭'}</span><button className="admin-btn admin-btn-ghost" onClick={toggleMiniappRegistration} disabled={settingsLoading || miniappRegistrationSaving || settingsMsg.includes('读取失败')}>
+            {miniappRegistrationSaving ? '保存中...' : miniappRegistrationEnabled ? '关闭注册' : '开启注册'}
+          </button></div>
         </div>
-        <button className="admin-btn admin-btn-ghost" onClick={toggleMiniappRegistration} disabled={miniappRegistrationSaving}>
-          {miniappRegistrationSaving ? '保存中...' : miniappRegistrationEnabled ? '关闭小程序注册' : '开启小程序注册'}
-        </button>
-      </div>
+      </section>
 
-      <form onSubmit={handleSearch} className="admin-search-bar">
-        <input
-          id="admin-user-search"
-          className="admin-search-input"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="搜索邮箱、昵称或用户 ID..."
-        />
-        <button type="submit" className="admin-btn admin-btn-primary">搜索</button>
-        {query && (
-          <button type="button" className="admin-btn admin-btn-ghost"
-            onClick={() => { setQuery(''); setPage(1); load('', 1) }}>清除</button>
-        )}
-      </form>
+      <section className="admin-user-toolbar" aria-label="搜索和筛选用户">
+        <form onSubmit={handleSearch} className="admin-search-bar">
+          <input id="admin-user-search" className="admin-search-input" value={query}
+            onChange={e => setQuery(e.target.value)} placeholder="搜索邮箱、昵称或用户 ID" />
+          <button type="submit" className="admin-btn admin-btn-primary">搜索</button>
+          {query && <button type="button" className="admin-btn admin-btn-ghost"
+            onClick={() => { setQuery(''); setAppliedQuery(''); setPage(1) }}>清除</button>}
+        </form>
+        <div className="admin-user-filters" aria-label="用户筛选">
+          <label><span>来源</span><select value={filters.source} onChange={e => { setFilters(f => ({ ...f, source: e.target.value })); setPage(1) }}>
+            <option value="">全部来源</option><option value="self_registered">网页注册</option><option value="admin_created">后台创建</option><option value="miniapp_wechat">微信小程序</option>
+          </select></label>
+          <label><span>状态</span><select value={filters.status} onChange={e => { setFilters(f => ({ ...f, status: e.target.value })); setPage(1) }}>
+            <option value="">全部状态</option><option value="enabled">正常</option><option value="disabled">已禁用</option>
+          </select></label>
+          <label><span>活跃情况</span><select value={filters.activity} onChange={e => { setFilters(f => ({ ...f, activity: e.target.value })); setPage(1) }}>
+            <option value="">全部用户</option><option value="never">从未登录</option><option value="active7">近 7 天活跃</option><option value="active30">近 30 天活跃</option><option value="inactive30">30 天未活跃</option>
+          </select></label>
+          <label><span>排序</span><select value={filters.sort} onChange={e => { setFilters(f => ({ ...f, sort: e.target.value })); setPage(1) }}>
+            <option value="created_desc">最近注册</option><option value="last_login_desc">最近登录</option><option value="last_active_desc">最近活跃</option>
+          </select></label>
+        </div>
+      </section>
 
-      {loading ? <div className="admin-loading">加载中...</div> : (
-        <div className="admin-card" style={{ padding: 0, overflow: 'hidden' }}>
+      {loading && !users.length && !listError ? <AdminRequestState state="loading" message="正在加载用户列表…" /> : (
+        <div className="admin-card admin-user-list-card" id="admin-user-list" aria-busy={loading}>
+          {loading && <AdminRequestState state="updating" message="正在更新用户列表，当前显示上一结果…" />}
+          {listError && <AdminRequestState state="error" message={`${listError}；当前结果未更新`} onRetry={() => load(appliedQuery, page, filters)} />}
+          <div className="admin-user-list-heading">
+            <div><strong>用户记录</strong><span>点击用户名或累计查盘次数查看命盘记录；点击“用户详情”查看活动与管理操作</span></div>
+            <AdminUserPagination page={page} pageSize={pageSize} total={total} onPageChange={setPage}
+              onPageSizeChange={next => { setPage(1); setPageSize(next) }} />
+          </div>
+          <p className="admin-user-mobile-hint">左右滑动表格，查看登录与活跃信息</p>
+          <div className="admin-user-table-wrap">
           <table className="admin-table">
             <thead>
-              <tr><th>邮箱 / 用户 ID</th><th>昵称</th><th>来源</th><th>干支数</th><th>状态</th><th>注册时间</th><th>操作</th></tr>
+              <tr><th>用户</th><th>来源</th><th>累计查盘</th><th>状态</th><th>注册时间</th><th>最后登录</th><th>最近活跃</th><th>操作</th></tr>
             </thead>
             <tbody>
               {!users?.length && (
-                <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--admin-text-faint)', padding: 40 }}>
-                  暂无用户数据
+                <tr><td colSpan={8} className="admin-user-empty-row">
+                  没有符合条件的用户
                 </td></tr>
               )}
               {users?.map(u => (
                 <tr key={u.id}>
-                  <td style={{ color: 'var(--admin-text)' }}>{u.email || `未绑定邮箱 · ${u.id.slice(0, 8)}`}</td>
-                  <td style={{ color: 'var(--admin-text-secondary)' }}>{u.nickname || '—'}</td>
-                  <td style={{ color: u.source === 'admin_created' ? 'var(--admin-primary)' : 'var(--admin-text-muted)', fontSize: 13 }}>
-                    {sourceLabel(u.source)}
-                  </td>
+                  <td className="admin-user-identity"><Link className="admin-user-link" title={`查看 ${u.email || u.nickname || u.id} 的命盘记录`} to={`/admin/charts?user_id=${encodeURIComponent(u.id)}`}>{u.email || `未绑定邮箱 · ${u.id.slice(0, 8)}`}</Link><span>{u.nickname || '未设置昵称'}</span></td>
+                  <td><span className={`admin-user-source ${u.source === 'miniapp_wechat' ? 'is-miniapp' : u.source === 'admin_created' ? 'is-admin' : ''}`}>{sourceLabel(u.source)}</span></td>
                   <td>
-                    <span style={{
-                      background: u.chart_count > 0 ? 'rgba(var(--admin-primary-rgb), 0.15)' : 'transparent',
-                      color: u.chart_count > 0 ? 'var(--admin-primary)' : 'var(--admin-text-faint)',
-                      padding: '2px 8px', borderRadius: 12, fontSize: 13
-                    }}>{u.chart_count}</span>
+                    <Link className={`admin-user-query-link${u.chart_query_count === 0 ? ' is-empty' : ''}`}
+                      to={`/admin/charts?user_id=${encodeURIComponent(u.id)}`}
+                      aria-label={`查看 ${u.email || u.nickname || u.id} 的 ${u.chart_query_count} 次命盘查询记录`}>
+                      <span>{u.chart_query_count}</span><span aria-hidden="true">›</span>
+                    </Link>
                   </td>
                   <td>
                     {u.disabled_at
                       ? <StatusBadge tone="danger">已禁用</StatusBadge>
                       : <StatusBadge tone="success">正常</StatusBadge>}
                   </td>
-                  <td style={{ color: 'var(--admin-text-faint)', fontSize: 13 }}>
-                    {new Date(u.created_at).toLocaleDateString('zh-CN')}
+                  <td className="admin-user-date">
+                    {formatDate(u.created_at)}
                   </td>
-                  <td style={{ whiteSpace: 'nowrap' }}>
-                    {u.email && <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
-                      onClick={() => openReset(u)}>重置密码</button>}
-                    <button className="admin-btn admin-btn-ghost" style={{ marginRight: 6 }}
-                      onClick={() => toggleDisabled(u)}>{u.disabled_at ? '解禁' : '禁用'}</button>
-                    <button className="admin-btn admin-btn-ghost" style={{ color: 'var(--admin-danger)' }}
-                      onClick={() => removeUser(u)}>删除</button>
+                  <td className="admin-user-time">{u.last_login_at ? <><strong title={formatTime(u.last_login_at)}>{formatDate(u.last_login_at)}</strong><small>{formatClock(u.last_login_at)} · {u.last_login_channel === 'miniapp' ? '微信小程序' : '网页'}</small></> : <span className="admin-user-no-data">从未登录</span>}</td>
+                  <td className="admin-user-time">{u.last_active_at ? <><strong title={formatTime(u.last_active_at)}>{formatDate(u.last_active_at)}</strong><small>{formatClock(u.last_active_at)}</small></> : <span className="admin-user-no-data">暂无记录</span>}</td>
+                  <td className="admin-user-row-action">
+                    <button className="admin-btn admin-btn-ghost" onClick={() => { setDetail(null); setSelectedID(u.id); setEventsPage(1) }}>用户详情</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
+          <AdminUserPagination page={page} pageSize={pageSize} total={total}
+            onPageChange={next => { setPage(next); document.getElementById('admin-user-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} />
         </div>
       )}
 
-      {(() => {
-        const totalPages = Math.ceil((total || 0) / 20) || 1
-        if (totalPages <= 1) return null
-        return (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 20 }}>
-            <button disabled={page === 1} onClick={() => setPage(p => p - 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page === 1 ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)', color: page === 1 ? 'var(--admin-text-faint)' : 'var(--admin-text-secondary)', cursor: page === 1 ? 'not-allowed' : 'pointer' }}>上一页</button>
-            <span style={{ lineHeight: '32px', fontSize: 13, color: 'var(--admin-text-faint)', margin: '0 8px' }}>第 {page} / {totalPages} 页</span>
-            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: page >= totalPages ? 'var(--admin-bg-muted)' : 'var(--admin-bg-soft)', color: page >= totalPages ? 'var(--admin-text-faint)' : 'var(--admin-text-secondary)', cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}>下一页</button>
-          </div>
-        )
-      })()}
+      {selectedID && (
+        <div className="admin-user-detail-backdrop" onClick={e => { if (e.target === e.currentTarget) setSelectedID(null) }}>
+          <section className="admin-user-detail" role="dialog" aria-modal="true" aria-label="用户详情">
+            <header className="admin-user-detail-header">
+              <h2>用户详情</h2><button className="admin-btn admin-btn-ghost" onClick={() => setSelectedID(null)}>关闭</button>
+            </header>
+            {detailLoading && !detail ? <AdminRequestState state="loading" message="正在加载用户详情…" /> : detailError && !detail ? <AdminRequestState state="error" message={detailError} onRetry={() => setDetailRevision(n => n + 1)} /> : detail && <>
+              <div className="admin-user-summary">
+                <div><small>用户</small><strong>{detail.email || detail.nickname || detail.id}</strong></div>
+                <div><small>来源</small><strong>{sourceLabel(detail.source)}</strong></div>
+                <div><small>最后登录</small><strong>{detail.last_login_at ? `${formatTime(detail.last_login_at)} · ${detail.last_login_channel === 'miniapp' ? '微信小程序' : '网页'}` : '从未登录'}</strong></div>
+                <div><small>最近活跃</small><strong>{formatTime(detail.last_active_at)}</strong></div>
+                <div><small>累计查盘次数</small><strong>{detail.chart_query_count}</strong></div>
+                <div><small>现存排盘 / 合盘</small><strong>{detail.chart_count} / {detail.compat_count || 0}</strong></div>
+                <div><small>本月 AI 调用</small><strong>{detail.ai_requests_this_month}</strong></div>
+              </div>
+              <p className="admin-user-retention-note">计数启用时按现存排盘记录回填；此前已删除的排盘无法追溯。</p>
+              <div className="admin-user-detail-actions">
+                <Link className="admin-btn admin-btn-primary" to={`/admin/charts?user_id=${encodeURIComponent(detail.id)}`}>查看命盘记录</Link>
+                {detail.email && <button className="admin-btn admin-btn-ghost" onClick={() => openReset(detail)}>重置密码</button>}
+                <button className="admin-btn admin-btn-ghost" onClick={() => toggleDisabled(detail)}>{detail.disabled_at ? '解禁用户' : '禁用用户'}</button>
+                <button className="admin-btn admin-btn-ghost" style={{ color: 'var(--admin-danger)' }} onClick={() => removeUser(detail)}>删除用户</button>
+              </div>
+              <h3>活动记录</h3>
+              <p className="admin-user-retention-note">仅展示近 90 天的活动明细；最后登录和最近活跃时间会继续保留。</p>
+              {events.length === 0 ? <p className="admin-user-empty">暂无记录</p> : <ol className="admin-user-events">
+                {events.map(event => <li key={event.id}><span>{eventLabels[event.event_type] || event.event_type}</span><small>{event.channel === 'miniapp' ? '微信小程序' : '网页'} · {formatTime(event.created_at)}</small></li>)}
+              </ol>}
+              {eventsTotal > 20 && <div className="admin-user-event-pages">
+                <button className="admin-btn admin-btn-ghost" disabled={eventsPage <= 1} onClick={() => setEventsPage(p => p - 1)}>上一页</button>
+                <span>第 {eventsPage} / {Math.ceil(eventsTotal / 20)} 页</span>
+                <button className="admin-btn admin-btn-ghost" disabled={eventsPage >= Math.ceil(eventsTotal / 20)} onClick={() => setEventsPage(p => p + 1)}>下一页</button>
+              </div>}
+              <h3>管理员操作</h3>
+              {adminEvents.length === 0 ? <p className="admin-user-empty">暂无记录</p> : <ol className="admin-user-events">
+                {adminEvents.map(event => <li key={event.id}><span>{auditLabels[event.action] || event.action}</span><small>管理员 {event.admin_name || event.admin_id.slice(0, 8)} · {formatTime(event.created_at)}</small></li>)}
+              </ol>}
+            </>}
+          </section>
+        </div>
+      )}
 
       {showModal && (
         <div className="admin-modal-overlay" onClick={e => e.target === e.currentTarget && setShowModal(false)}>

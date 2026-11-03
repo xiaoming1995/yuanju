@@ -51,14 +51,16 @@ type RollupReport struct {
 // ---- 依赖捆绑 ----
 
 type CleanupDeps struct {
-	AIReports     TableCleaner
-	Polished      TableCleaner
-	Liunian       TableCleaner
-	PastEvents    TableCleaner
-	DayunSummary  TableCleaner
-	CompatReports TableCleaner
-	RequestLogs   TableCleaner
-	TokenRollup   TokenRollupFn
+	AIReports      TableCleaner
+	Polished       TableCleaner
+	Liunian        TableCleaner
+	PastEvents     TableCleaner
+	DayunSummary   TableCleaner
+	CompatReports  TableCleaner
+	RequestLogs    TableCleaner
+	UserActivity   TableCleaner
+	AdminUserAudit TableCleaner
+	TokenRollup    TokenRollupFn
 }
 
 // ---- Service ----
@@ -131,6 +133,14 @@ func (s *CleanupService) RunOnce(ctx context.Context) RunReport {
 	for _, t := range tables {
 		deleted, err := t.fn(ctx, cutoff)
 		rep.Tables = append(rep.Tables, TableResult{Name: t.name, Deleted: deleted, Err: err})
+	}
+	if s.deps.UserActivity != nil {
+		deleted, err := s.deps.UserActivity(ctx, s.clock.Now().AddDate(0, 0, -90))
+		rep.Tables = append(rep.Tables, TableResult{Name: "user_activity_events", Deleted: deleted, Err: err})
+	}
+	if s.deps.AdminUserAudit != nil {
+		deleted, err := s.deps.AdminUserAudit(ctx, s.clock.Now().AddDate(0, 0, -180))
+		rep.Tables = append(rep.Tables, TableResult{Name: "admin_user_audit_events", Deleted: deleted, Err: err})
 	}
 
 	if rollup, err := s.deps.TokenRollup(ctx); err != nil {
