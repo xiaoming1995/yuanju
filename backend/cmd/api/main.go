@@ -69,6 +69,9 @@ func main() {
 	if err := os.MkdirAll(filepath.Join(configs.AppConfig.UploadDir, "user-avatars"), 0755); err != nil {
 		log.Fatalf("create user avatar directory: %v", err)
 	}
+	if err := os.MkdirAll(filepath.Join(configs.AppConfig.UploadDir, "official-account-qr"), 0755); err != nil {
+		log.Fatalf("create official account QR directory: %v", err)
+	}
 
 	// 种子数据：将 .env 中已有的 API Key 写入 llm_providers
 	seed.SeedLLMProviders()
@@ -124,6 +127,7 @@ func main() {
 	// files under UploadDir/<other-subdir> and they must not be served publicly.
 	r.Static("/static/uploads/brand-logos", filepath.Join(configs.AppConfig.UploadDir, "brand-logos"))
 	r.Static("/static/uploads/user-avatars", filepath.Join(configs.AppConfig.UploadDir, "user-avatars"))
+	r.Static("/static/uploads/official-account-qr", filepath.Join(configs.AppConfig.UploadDir, "official-account-qr"))
 
 	// 健康检查
 	r.GET("/health", func(c *gin.Context) {
@@ -133,6 +137,7 @@ func main() {
 	// API 路由组
 	api := r.Group("/api")
 	{
+		api.GET("/miniapp/official-account-guide", handler.GetPublicOfficialAccountGuide)
 		api.GET("/calendar/day", handler.GetCalendarDay)
 		api.GET("/calendar/range", handler.GetCalendarRange)
 		// 普通用户认证路由
@@ -240,6 +245,9 @@ func main() {
 				adminAuth.PUT("/settings/registration", handler.AdminUpdateRegistrationSetting)
 				adminAuth.GET("/settings/miniapp-registration", handler.AdminGetMiniappRegistrationSetting)
 				adminAuth.PUT("/settings/miniapp-registration", handler.AdminUpdateMiniappRegistrationSetting)
+				adminAuth.GET("/settings/official-account-guide", handler.AdminGetOfficialAccountGuide)
+				adminAuth.PUT("/settings/official-account-guide", handler.AdminSaveOfficialAccountGuide)
+				adminAuth.POST("/settings/official-account-guide/qr", handler.AdminUploadOfficialAccountQR)
 				adminAuth.GET("/charts", handler.AdminListCharts)
 				adminAuth.GET("/charts/:chart_id", handler.AdminGetChartDetail)
 				adminAuth.GET("/compatibility/readings", handler.AdminListCompatReadings)

@@ -1,82 +1,111 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell mine-page">
-  <button wx:if="{{!loggedIn}}" class="account-row account-row-login" hover-class="account-row-login-pressed" disabled="{{loggingIn}}" bindtap="openLogin">
-    <view class="avatar"><view class="avatar-head"></view><view class="avatar-shoulders"></view></view>
-    <view class="account-copy"><text>{{loggingIn ? '正在登录…' : '微信一键登录'}}</text><text>点击登录，首次使用自动创建账号</text></view>
-    <view class="login-entry-action"><text>登录</text><text class="row-arrow">›</text></view>
+  <view wx:if="{{profileLoading && !loggedIn}}" class="mine-state surface-card">正在读取个人资料…</view>
+  <view wx:elif="{{profileError}}" class="mine-state surface-card">
+    <text>个人资料暂时无法读取</text>
+    <text class="mine-state-note">{{profileError}}</text>
+    <button class="mine-state-action" bindtap="loadProfile">重新加载</button>
+  </view>
+  <button wx:elif="{{!loggedIn}}" class="account-row account-row-login surface-card" hover-class="tap-pressed" disabled="{{loggingIn}}" bindtap="openLogin">
+    <view class="avatar avatar-guest"><view class="avatar-head"></view><view class="avatar-shoulders"></view></view>
+    <view class="account-copy"><text>{{loggingIn ? '正在登录…' : '微信一键登录'}}</text><text>登录后保存排盘与个人资料</text></view>
+    <text class="account-action">登录 ›</text>
   </button>
-  <view wx:else class="account-row account-row-logged {{navigationKey === 'profile' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openProfile">
+  <view wx:else class="account-row account-row-logged surface-card {{navigationKey === 'profile' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openProfile" role="button">
     <view class="avatar avatar-logged"><image wx:if="{{userAvatarUrl}}" class="avatar-image" src="{{userAvatarUrl}}" mode="aspectFill" /><text wx:else>缘</text></view>
-    <view class="account-copy"><text>{{user.nickname || '微信用户'}}</text><text>{{user.email || '微信小程序账号 · 点击可修改资料'}}</text></view>
-    <text class="row-arrow">›</text>
-  </view>
-
-  <view wx:if="{{!loggedIn}}" class="brand-banner">
-    <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
-    <text class="brand-title">命 · 修身</text>
-    <text class="brand-subtitle">以天地之数为钥，开启国学之门</text>
-  </view>
-  <view wx:elif="{{personalChartLoading}}" class="brand-banner resume-banner"><text class="resume-kicker">本人命盘</text><text class="resume-title">正在读取绑定状态…</text></view>
-  <view wx:elif="{{personalChart}}" class="brand-banner resume-banner {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalChart">
-    <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
-    <text class="resume-kicker">本人命盘 · 已手动绑定</text>
-    <text class="resume-title">{{personalChart.name}}</text>
-    <view class="resume-pillars"><text wx:for="{{personalChart.columns}}" wx:for-item="pillar" wx:key="text">{{pillar.text}}</text></view>
-    <view class="resume-bottom"><text>{{personalChart.date}}</text><text>查看干支 ›</text></view>
-  </view>
-  <view wx:else class="brand-banner resume-banner {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalBanner">
-    <view class="banner-pattern leaf-one"></view><view class="banner-pattern leaf-two"></view><view class="banner-pattern leaf-three"></view>
-    <text class="resume-kicker">本人命盘</text>
-    <text class="resume-title">{{personalChartError ? '暂时无法读取绑定状态' : '尚未设置'}}</text>
-    <view class="resume-unbound-note">{{personalChartError || '从历史记录中自行选择一份本人排盘，登录和新建排盘不会自动绑定。'}}</view>
-    <view class="resume-bottom"><text></text><text>{{personalChartError ? '点击重试 ›' : '去选择 ›'}}</text></view>
+    <view class="account-copy"><text>{{user.nickname || '缘聚用户'}}</text><text>{{user.email || '微信账号'}}</text></view>
+    <text class="account-action">编辑 ›</text>
   </view>
 
   <block wx:if="{{loggedIn}}">
-    <view class="chart-summary surface-card {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openHistory">
-      <view class="chart-summary-icon">▣</view>
-      <view class="chart-summary-copy"><text>我的干支记录</text><text>查看已保存的历史</text></view>
-      <text class="chart-summary-count">{{chartCount}} 份 ›</text>
+    <view class="mine-chart-card surface-card">
+      <text class="mine-chart-kicker">本人命盘</text>
+      <view wx:if="{{personalChartLoading}}" class="mine-chart-content">
+        <text class="mine-chart-title">正在读取绑定状态…</text>
+        <text class="mine-chart-note">请稍候</text>
+      </view>
+      <view wx:elif="{{personalChart}}" class="mine-chart-content {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalChart" role="button">
+        <text class="mine-chart-title">{{personalChart.name}}</text>
+        <view class="mine-chart-pillars"><text wx:for="{{personalChart.columns}}" wx:for-item="pillar" wx:key="text">{{pillar.text}}</text></view>
+        <view class="mine-chart-bottom"><text>{{personalChart.date}}</text><text>查看命盘 ›</text></view>
+      </view>
+      <view wx:elif="{{personalChartError}}" class="mine-chart-content" hover-class="tap-pressed" bindtap="openPersonalBanner" role="button">
+        <text class="mine-chart-title">暂时无法读取绑定状态</text>
+        <text class="mine-chart-note">{{personalChartError}}</text>
+        <text class="mine-chart-link">重新读取 ›</text>
+      </view>
+      <view wx:elif="{{chartCount > 0}}" class="mine-chart-content {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openPersonalBanner" role="button">
+        <text class="mine-chart-title">尚未设置本人命盘</text>
+        <text class="mine-chart-note">从历史排盘中选择自己的命盘，设置后可查看个人每日参考。</text>
+        <text class="mine-chart-link">去选择 ›</text>
+      </view>
+      <view wx:else class="mine-chart-content">
+        <text class="mine-chart-title">尚未设置本人命盘</text>
+        <text class="mine-chart-note">创建一份自己的排盘后，可在历史记录中设为本人命盘。</text>
+      </view>
     </view>
 
-    <view class="recent-charts surface-card">
-      <view class="recent-charts-head"><text>最近干支</text><text class="{{navigationKey === 'history' ? 'is-opening' : ''}}" bindtap="openHistory">查看全部 ›</text></view>
-      <view wx:if="{{!recentCharts.length}}" class="recent-chart-empty">暂无干支记录</view>
-      <view class="recent-chart {{navigationKey === 'history' ? 'is-opening' : ''}}" wx:for="{{recentCharts}}" wx:key="id" data-id="{{item.id}}" hover-class="tap-pressed" bindtap="openRecentChart">
-        <view><text class="recent-chart-name">{{item.name}}</text><text class="recent-chart-date">{{item.date}}</text></view>
-        <view class="recent-chart-pillars"><text wx:for="{{item.columns}}" wx:for-item="pillar" wx:key="text" class="tone-{{pillar.tone}}">{{pillar.text}}</text></view>
-        <text class="recent-chart-arrow">›</text>
+    <view class="mine-records surface-card">
+      <view class="mine-records-head">
+        <text class="mine-records-title">我的排盘</text>
+        <text class="mine-records-count">{{chartCount}}份</text>
+        <text class="mine-records-all {{navigationKey === 'history' ? 'is-opening' : ''}}" bindtap="openHistory" role="button">查看全部 ›</text>
+      </view>
+      <view wx:if="{{recentCharts.length}}" class="mine-record-list">
+        <view class="mine-record {{navigationKey === 'history' ? 'is-opening' : ''}}" wx:for="{{recentCharts}}" wx:key="id" data-id="{{item.id}}" hover-class="tap-pressed" bindtap="openRecentChart" role="button">
+          <view class="mine-record-copy"><text>{{item.name}}</text><text>{{item.date}}</text></view>
+          <text class="mine-chevron">›</text>
+        </view>
+      </view>
+      <view wx:else class="mine-record-empty">
+        <text>还没有保存排盘</text>
+        <text class="mine-record-create" bindtap="openCreateChart" role="button">去创建排盘 ›</text>
       </view>
     </view>
   </block>
 
-  <view class="tool-card surface-card">
-    <view class="section-heading">常用工具</view>
-    <view class="tool-grid">
-      <view class="tool-item" data-title="分享好友" bindtap="openTool"><view class="tool-icon share">➜</view><text>分享好友</text></view>
-      <view class="tool-item" data-title="联系我们" bindtap="openTool"><view class="tool-icon contact">◉</view><text>联系我们</text></view>
-      <view class="tool-item" data-title="公众号" bindtap="openTool"><view class="tool-icon channel">➤</view><text>公众号</text></view>
-      <view class="tool-item" data-title="意见反馈" bindtap="openTool"><view class="tool-icon feedback">✎</view><text>意见反馈</text></view>
-    </view>
+  <view wx:if="{{!loggedIn && !profileLoading && !profileError}}" class="mine-guest-note surface-card">
+    <text>从一份自己的排盘开始</text>
+    <text>登录后可以保存记录，并手动设置本人命盘。</text>
   </view>
 
+  <view class="mine-settings-title">设置与帮助</view>
   <view class="settings-card surface-card">
-    <view wx:if="{{loggedIn && !user.email}}" class="settings-row" bindtap="toggleWebBinding"><text class="settings-icon">◇</text><text class="settings-label">绑定已有网页账号</text><text class="row-arrow">›</text></view>
-    <view wx:if="{{loggedIn && user.email}}" class="settings-row"><text class="settings-icon">✓</text><text class="settings-label">已绑定网页账号</text><text class="settings-bound-email">{{user.email}}</text></view>
-    <view class="settings-row {{navigationKey === 'history' ? 'is-opening' : ''}}" hover-class="tap-pressed" bindtap="openHistory"><text class="settings-icon">▣</text><text class="settings-label">查询历史</text><text class="row-arrow">›</text></view>
-    <view class="settings-row" bindtap="openPrivacy"><text class="settings-icon">◇</text><text class="settings-label">隐私政策</text><text class="row-arrow">›</text></view>
-    <view class="settings-row" bindtap="clearDemo"><text class="settings-icon">ⓘ</text><text class="settings-label">了解演示数据</text><text class="row-arrow">›</text></view>
-    <view class="settings-row" bindtap="openAbout"><text class="settings-icon">ⓘ</text><text class="settings-label">关于我们</text><text class="row-arrow">›</text></view>
+    <view wx:if="{{loggedIn && !user.email}}" class="settings-row" hover-class="tap-pressed" bindtap="toggleWebBinding" role="button"><text class="settings-label">绑定已有网页账号</text><text class="mine-chevron">›</text></view>
+    <view wx:if="{{loggedIn && user.email}}" class="settings-row settings-row-bound"><text class="settings-label">已绑定网页账号</text><text class="settings-bound-email">{{user.email}}</text></view>
+    <view class="settings-row" hover-class="tap-pressed" bindtap="openPrivacy" role="button"><text class="settings-label">隐私说明</text><text class="mine-chevron">›</text></view>
+    <view class="settings-row" hover-class="tap-pressed" bindtap="openAbout" role="button"><text class="settings-label">关于缘聚</text><text class="mine-chevron">›</text></view>
   </view>
 
   <view wx:if="{{loggedIn && bindingVisible && !user.email}}" class="surface-card web-binding-card">
     <view class="web-binding-title">绑定已有网页账号</view>
-    <view class="web-binding-note">验证网页账号后，两端干支和历史会合并，网页账号将成为主账号。</view>
+    <view class="web-binding-note">验证网页账号后，两端历史会合并，网页账号将成为主账号。</view>
     <input class="note-input" type="text" placeholder="网页账号邮箱" value="{{email}}" bindinput="onEmailInput" />
     <input class="note-input" password="true" placeholder="网页账号密码" value="{{password}}" bindinput="onPasswordInput" />
     <button class="primary-button" loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="bindWebAccount">确认绑定并合并历史</button>
   </view>
 
-  <button wx:if="{{loggedIn}}" class="logout-preview" bindtap="logoutPreview">退出登录</button>
-  <view class="mine-footnote"><text>账号、排盘和本人每日参考连接后端；月历标签及择日参考仍为演示。</text></view>
+  <view wx:if="{{officialAccountGuide}}" class="official-account-card surface-card" hover-class="tap-pressed" bindtap="openOfficialAccountGuide" role="button">
+    <view class="official-account-card-top">
+      <text class="official-account-card-eyebrow">关注公众号</text>
+      <text class="official-account-card-action">查看二维码 ›</text>
+    </view>
+    <text class="official-account-card-name">{{officialAccountGuide.name}}</text>
+    <text class="official-account-card-description">{{officialAccountGuide.description}}</text>
+  </view>
+
+  <button wx:if="{{loggedIn}}" class="mine-logout" bindtap="logoutPreview">退出登录</button>
+</view>
+
+<view wx:if="{{officialAccountOpen && officialAccountGuide}}" class="official-account-overlay" bindtap="closeOfficialAccountGuide">
+  <view class="official-account-sheet" catchtap="stopOfficialAccountTap">
+    <view class="official-account-handle"></view>
+    <text class="official-account-sheet-title">{{officialAccountGuide.name}}</text>
+    <text class="official-account-sheet-note">{{officialAccountGuide.description}}</text>
+    <image wx:if="{{!officialAccountQRFailed}}" class="official-account-qr" src="{{officialAccountGuide.qrUrl}}" mode="aspectFit" show-menu-by-longpress="{{true}}" bindtap="previewOfficialAccountQR" binderror="officialAccountImageError" />
+    <view wx:else class="official-account-qr-error">二维码暂时无法显示，请复制微信号搜索</view>
+    <text class="official-account-wechat-id">微信号：{{officialAccountGuide.wechat_id}}</text>
+    <button class="official-account-copy" bindtap="copyOfficialAccountID">复制微信号</button>
+    <button class="official-account-close" bindtap="closeOfficialAccountGuide">关闭</button>
+  </view>
 </view>

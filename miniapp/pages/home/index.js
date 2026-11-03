@@ -62,7 +62,12 @@ Page({
     this.setData({
       calendarPreview: calendarPreview(),
     })
-    if (globalData.previewHistoryNext) {
+    if (globalData.previewQueryNext) {
+      globalData.previewQueryNext = false
+      globalData.previewHistoryNext = false
+      globalData.previewHistoryDetailId = null
+      this.setData({ mode: 'query' })
+    } else if (globalData.previewHistoryNext) {
       globalData.previewHistoryNext = false
       this.setData({ mode: 'history' })
       if (globalData.previewHistoryDetailId) {

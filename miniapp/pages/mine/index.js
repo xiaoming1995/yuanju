@@ -4,22 +4,57 @@ const navigation = require('../../utils/navigation_feedback')
 
 Page({
   data: {
-    loggedIn: false, loggingIn: false, user: null,
+    loggedIn: false, loggingIn: false, profileLoading: false, profileError: '', user: null,
     email: '', password: '', bindingVisible: false, chartCount: 0, recentCharts: [],
     personalChart: null, personalChartError: '', personalChartLoading: false,
     userAvatarUrl: '',
+    officialAccountGuide: null, officialAccountOpen: false, officialAccountQRFailed: false,
   },
-  onShow() { navigation.pageVisible(this, 'pages/mine/index'); return this.loadProfile() },
+  onShow() {
+    navigation.pageVisible(this, 'pages/mine/index')
+    this.loadOfficialAccountGuide()
+    return this.loadProfile()
+  },
   onReady() { navigation.pageReady(this, 'pages/mine/index') },
   onHide() { navigation.pageHidden(this) },
   onUnload() { navigation.pageGone(this) },
 
+  async loadOfficialAccountGuide() {
+    const seq = this._guideLoadSeq = (this._guideLoadSeq || 0) + 1
+    this.setData({ officialAccountGuide: null, officialAccountOpen: false, officialAccountQRFailed: false })
+    try {
+      const response = await api.officialAccountGuide()
+      if (seq !== this._guideLoadSeq) return false
+      const guide = response && response.data
+      const qrUrl = api.officialAccountQRUrl(guide && guide.qr_path)
+      if (!guide || !guide.enabled || !guide.name || !guide.wechat_id || !guide.description || !qrUrl) return false
+      this.setData({ officialAccountGuide: { ...guide, qrUrl } })
+      return true
+    } catch (_) { return false }
+  },
+  openOfficialAccountGuide() {
+    if (this.data.officialAccountGuide) this.setData({ officialAccountOpen: true, officialAccountQRFailed: false })
+  },
+  closeOfficialAccountGuide() { this.setData({ officialAccountOpen: false }) },
+  stopOfficialAccountTap() {},
+  officialAccountImageError() { this.setData({ officialAccountQRFailed: true }) },
+  previewOfficialAccountQR() {
+    const guide = this.data.officialAccountGuide
+    if (!guide || this.data.officialAccountQRFailed) return
+    wx.previewImage({ current: guide.qrUrl, urls: [guide.qrUrl] })
+  },
+  copyOfficialAccountID() {
+    const guide = this.data.officialAccountGuide
+    if (!guide) return
+    wx.setClipboardData({ data: guide.wechat_id, fail: () => wx.showToast({ title: '复制失败，请重试', icon: 'none' }) })
+  },
+
   async loadProfile() {
     const loadSeq = this._profileLoadSeq = (this._profileLoadSeq || 0) + 1
     const currentToken = api.token()
-    if (!currentToken) { this.setData({ loggedIn: false, user: null, userAvatarUrl: '',
+    if (!currentToken) { this.setData({ loggedIn: false, profileLoading: false, profileError: '', user: null, userAvatarUrl: '',
       chartCount: 0, recentCharts: [], personalChart: null, personalChartError: '', personalChartLoading: false }); return false }
-    this.setData({ personalChart: null, personalChartError: '', personalChartLoading: true })
+    this.setData({ profileLoading: !this.data.loggedIn, profileError: '', personalChart: null, personalChartError: '', personalChartLoading: true })
     try {
       const bindingRequest = api.personalChart().then(value => ({ value }), error => ({ error }))
       const response = await api.profile()
@@ -28,7 +63,7 @@ Page({
       const history = (profile.recent_charts || []).map(toHistory)
       const user = profile.user
       const avatarUrl = api.assetUrl(user.avatar_url) || ''
-      this.setData({ loggedIn: true, user: profile.user, chartCount: profile.stats.chart_count,
+      this.setData({ loggedIn: true, profileLoading: false, profileError: '', user: profile.user, chartCount: profile.stats.chart_count,
         recentCharts: history.slice(0, 2),
         userAvatarUrl: avatarUrl.startsWith('http://') ? '' : avatarUrl })
       api.avatarDisplayUrl(user.avatar_url).then(displayUrl => {
@@ -43,10 +78,11 @@ Page({
       return true
     } catch (err) {
       if (this._profileLoadSeq !== loadSeq) return false
-      if (!api.token()) this.setData({ loggedIn: false, user: null, userAvatarUrl: '',
-        chartCount: 0, recentCharts: [], personalChart: null, personalChartError: '', personalChartLoading: false })
-      else this.setData({ personalChartLoading: false, personalChartError: err.message })
-      wx.showToast({ title: err.message, icon: 'none' })
+      const stillAuthenticated = api.token() === currentToken
+      if (!stillAuthenticated && api.token()) return false
+      this.setData({ loggedIn: false, profileLoading: false, profileError: stillAuthenticated ? (err.message || '个人资料读取失败') : '',
+        user: null, userAvatarUrl: '', chartCount: 0, recentCharts: [], personalChart: null,
+        personalChartError: '', personalChartLoading: false })
       return false
     }
   },
@@ -85,7 +121,11 @@ Page({
       url: `/pages/profile/index${onboarding === true ? '?onboarding=1' : ''}`, key: 'profile' })
   },
   openPersonalChart() { if (this.data.personalChart) this.openRecentChart({ currentTarget: { dataset: { id: this.data.personalChart.id } } }) },
-  openPersonalBanner() { if (this.data.personalChartError) return this.loadProfile(); this.openHistory() },
+  openPersonalBanner() {
+    if (this.data.personalChartError) return this.loadProfile()
+    if (!this.data.chartCount) return this.openCreateChart()
+    this.openHistory()
+  },
   openRecentChart(event) {
     if (this.data.navigationKey) return
     getApp().globalData.previewHistoryDetailId = event.currentTarget.dataset.id
@@ -93,15 +133,20 @@ Page({
   },
   logoutPreview() {
     api.logout()
-    this.setData({ loggedIn: false, user: null, userAvatarUrl: '', chartCount: 0, recentCharts: [], personalChart: null, personalChartError: '', personalChartLoading: false })
+    this._profileLoadSeq = (this._profileLoadSeq || 0) + 1
+    this.setData({ loggedIn: false, profileLoading: false, profileError: '', user: null, userAvatarUrl: '',
+      chartCount: 0, recentCharts: [], personalChart: null, personalChartError: '', personalChartLoading: false,
+      email: '', password: '', bindingVisible: false })
     wx.showToast({ title: '已退出登录', icon: 'none' })
   },
   openHistory() {
     getApp().globalData.previewHistoryNext = true
     navigation.navigate(this, { method: 'switchTab', url: '/pages/home/index', key: 'history' })
   },
-  openTool(event) { wx.showToast({ title: `${event.currentTarget.dataset.title}尚未接入`, icon: 'none' }) },
-  openPrivacy() { wx.showModal({ title: '隐私说明', content: '登录及干支记录会提交到配置的后端服务。请在正式发布前提供完整隐私政策。', showCancel: false }) },
-  clearDemo() { wx.showModal({ title: '演示数据', content: '月历标签与择日参考仍使用随包示例；主动绑定本人命盘后，每日干支参考由后端计算。', showCancel: false }) },
+  openCreateChart() {
+    getApp().globalData.previewQueryNext = true
+    navigation.navigate(this, { method: 'switchTab', url: '/pages/home/index', key: 'query' })
+  },
+  openPrivacy() { wx.showModal({ title: '隐私说明', content: '登录及干支记录会提交到配置的后端服务。正式隐私政策尚未在小程序内提供。', showCancel: false }) },
   openAbout() { wx.showModal({ title: '关于缘聚', content: '提供干支排盘、日历宜忌、个人参考与历史记录。', showCancel: false }) },
 })

@@ -38,6 +38,7 @@ const AdminMingGeHistoricalFiguresPage = lazy(() => import('./pages/admin/AdminM
 const PromptSettings = lazy(() => import('./pages/admin/PromptSettings'))
 const AlgoConfigPage = lazy(() => import('./pages/admin/AlgoConfigPage'))
 const CleanupConfigPage = lazy(() => import('./pages/admin/CleanupConfigPage'))
+const OfficialAccountGuidePage = lazy(() => import('./pages/admin/OfficialAccountGuidePage'))
 const TokenUsagePage = lazy(() => import('./pages/admin/TokenUsagePage'))
 const ShenshaAnnotationsPage = lazy(() => import('./pages/admin/ShenshaAnnotationsPage'))
 const AdminArticlesPage = lazy(() => import('./pages/admin/AdminArticlesPage'))
@@ -114,6 +115,7 @@ export default function App() {
                 <Route path="prompts" element={<PromptSettings />} />
                 <Route path="algo-config" element={<AlgoConfigPage />} />
                 <Route path="cleanup-config" element={<CleanupConfigPage />} />
+                <Route path="official-account-guide" element={<OfficialAccountGuidePage />} />
                 <Route path="token-usage" element={<TokenUsagePage />} />
                 <Route path="shensha-annotations" element={<ShenshaAnnotationsPage />} />
                 <Route path="articles" element={<AdminArticlesPage />} />

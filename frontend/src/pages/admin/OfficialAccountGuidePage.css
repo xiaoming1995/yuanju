@@ -1,0 +1,11 @@
+.official-account-admin { max-width: 820px; }
+.official-account-admin-card { padding: 28px; margin-top: 22px; }
+.official-account-switch { display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; }
+.official-account-switch input { width: 18px; height: 18px; accent-color: #9a742e; }
+.official-account-admin-card > .admin-form-hint { margin: 8px 0 26px; }
+.official-account-admin-card .admin-form-input { width: 100%; max-width: 560px; }
+.official-account-qr-preview { display: flex; align-items: center; gap: 16px; margin-top: 16px; color: #6c777b; font-size: 13px; }
+.official-account-qr-preview img { width: 126px; height: 126px; object-fit: contain; background: white; border: 1px solid #e8e4dc; border-radius: 12px; }
+.official-account-admin-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 28px; }
+.official-account-admin-actions [role="status"] { color: #775119; }
+@media (max-width: 600px) { .official-account-admin-card { padding: 20px; } .official-account-admin-actions { align-items: flex-start; flex-direction: column; } }

@@ -108,6 +108,24 @@ export const adminRegistrationSettingsAPI = {
     adminApi.put<{ registration_enabled: boolean }>('/api/admin/settings/registration', data),
 }
 
+export interface OfficialAccountGuide {
+  enabled: boolean
+  name: string
+  wechat_id: string
+  description: string
+  qr_path: string
+}
+
+export const adminOfficialAccountGuideAPI = {
+  get: () => adminApi.get<{ data: OfficialAccountGuide }>('/api/admin/settings/official-account-guide'),
+  update: (guide: OfficialAccountGuide) => adminApi.put<{ data: OfficialAccountGuide }>('/api/admin/settings/official-account-guide', guide),
+  uploadQR: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return adminApi.post<{ data: { qr_path: string } }>('/api/admin/settings/official-account-guide/qr', form)
+  },
+}
+
 export const adminMiniappRegistrationSettingsAPI = {
   get: () => adminApi.get<{ miniapp_registration_enabled: boolean }>('/api/admin/settings/miniapp-registration'),
   update: (data: { miniapp_registration_enabled: boolean }) =>

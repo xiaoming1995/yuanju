@@ -171,3 +171,63 @@ test('Mine shows the explicitly bound chart rather than the newest history recor
     navigation.navigate = previous.navigate
   }
 })
+
+test('failed profile refresh hides stale account data and can retry', async () => {
+  const api = require('../utils/api')
+  const previous = { token: api.token, profile: api.profile, personalChart: api.personalChart }
+  let fail = false
+  api.token = () => 'current-user'
+  api.profile = async () => {
+    if (fail) throw new Error('网络暂不可用')
+    return { data: { user: { id: 'u1', nickname: '小明', avatar_url: '' }, stats: { chart_count: 2 }, recent_charts: [] } }
+  }
+  api.personalChart = async () => ({ chart: null })
+  let definition
+  global.Page = value => { definition = value }
+  global.wx = { showToast() {} }
+  try {
+    delete require.cache[require.resolve('../pages/mine/index')]
+    require('../pages/mine/index')
+    const page = { ...definition, data: { ...definition.data }, setData(patch) { Object.assign(this.data, patch) } }
+    assert.equal(await page.loadProfile(), true)
+    fail = true
+    assert.equal(await page.loadProfile(), false)
+    assert.equal(page.data.user, null)
+    assert.equal(page.data.chartCount, 0)
+    assert.deepEqual(page.data.recentCharts, [])
+    assert.equal(page.data.profileError, '网络暂不可用')
+    fail = false
+    assert.equal(await page.loadProfile(), true)
+    assert.equal(page.data.profileError, '')
+    assert.equal(page.data.user.nickname, '小明')
+  } finally {
+    Object.assign(api, previous)
+  }
+})
+
+test('logout clears visible account data and the web binding form', () => {
+  const api = require('../utils/api')
+  const previous = api.logout
+  let loggedOut = false
+  api.logout = () => { loggedOut = true }
+  let definition
+  global.Page = value => { definition = value }
+  global.wx = { showToast() {} }
+  try {
+    delete require.cache[require.resolve('../pages/mine/index')]
+    require('../pages/mine/index')
+    const page = { ...definition, data: { ...definition.data }, setData(patch) { Object.assign(this.data, patch) } }
+    page.setData({ loggedIn: true, user: { id: 'u1' }, chartCount: 2, recentCharts: [{ id: 'c1' }],
+      personalChart: { id: 'c1' }, bindingVisible: true, email: 'web@example.com', password: 'secret' })
+    page.logoutPreview()
+    assert.equal(loggedOut, true)
+    assert.equal(page.data.loggedIn, false)
+    assert.equal(page.data.user, null)
+    assert.deepEqual(page.data.recentCharts, [])
+    assert.equal(page.data.personalChart, null)
+    assert.equal(page.data.bindingVisible, false)
+    assert.equal(page.data.password, '')
+  } finally {
+    api.logout = previous
+  }
+})

@@ -1,74 +1,158 @@
-.mine-page { padding-top: 16rpx; }
-.account-row { display: flex; align-items: center; height: 130rpx; padding: 0 8rpx; }
-.account-row-login { box-sizing: border-box; width: 100%; min-height: 142rpx; margin: 8rpx 0 0; padding: 20rpx 24rpx; border: 1rpx solid #eee7d9; border-radius: 24rpx; background: #fff; box-shadow: 0 12rpx 36rpx rgba(38, 44, 40, 0.05); line-height: 1.4; text-align: left; }
-.account-row-login::after { border: 0; }
-.account-row-login-pressed { background: #fbf6ed; transform: scale(0.99); }
-.account-row-login .account-copy { min-width: 0; }
-.account-row-login .account-copy > text:last-child { font-size: 21rpx; }
-.login-entry-action { display: flex; flex-shrink: 0; align-items: center; gap: 5rpx; margin-left: 12rpx; color: #a67524; font-size: 22rpx; font-weight: 600; white-space: nowrap; }
-.login-entry-action .row-arrow { color: #ba8831; font-size: 32rpx; font-weight: 400; }
-.avatar { position: relative; width: 92rpx; height: 92rpx; flex-shrink: 0; overflow: hidden; border: 4rpx solid #fff; border-radius: 50%; background: linear-gradient(145deg, #e7e8ea, #f9f9f9); box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05); }
-.avatar-head { position: absolute; top: 24rpx; left: 29rpx; width: 30rpx; height: 30rpx; border-radius: 50%; background: #c9cbcd; }
-.avatar-shoulders { position: absolute; bottom: -7rpx; left: 16rpx; width: 58rpx; height: 37rpx; border-radius: 50% 50% 0 0; background: #c9cbcd; }
-.avatar-logged { display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg, #e1b24d, #c88e23); color: #fff; }
-.avatar-logged .avatar-head, .avatar-logged .avatar-shoulders { display: none; }
-.avatar-logged text { font-size: 37rpx; font-weight: 700; }
+.mine-page {
+  padding-top: 24rpx;
+  padding-bottom: calc(64rpx + env(safe-area-inset-bottom));
+}
+
+.account-row {
+  display: flex;
+  min-height: 132rpx;
+  align-items: center;
+  gap: 20rpx;
+  padding: 20rpx 28rpx;
+  border-radius: 22rpx;
+}
+
+.account-row-login {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.avatar {
+  position: relative;
+  display: flex;
+  width: 88rpx;
+  height: 88rpx;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.avatar-guest { background: #f1eee8; }
+.avatar-head { position: absolute; top: 20rpx; width: 29rpx; height: 29rpx; border-radius: 50%; background: #bdc1c2; }
+.avatar-shoulders { position: absolute; bottom: -5rpx; width: 57rpx; height: 36rpx; border-radius: 50% 50% 0 0; background: #bdc1c2; }
+.avatar-logged { background: #efe5cf; color: #8b6426; font-size: 37rpx; font-weight: 700; }
 .avatar-image { width: 100%; height: 100%; }
-.account-copy { display: flex; flex: 1; flex-direction: column; gap: 9rpx; margin-left: 23rpx; }
-.account-copy > text:first-child { font-size: 30rpx; font-weight: 700; }
-.account-copy > text:last-child { color: #5f6b74; font-size: 24rpx; }
-.account-row-logged .account-copy { min-width: 0; gap: 6rpx; }
-.login-demo-badge { display: inline-block; margin-left: 8rpx; padding: 4rpx 9rpx; border-radius: 9rpx; background: #f8eed7; color: #aa741c; font-size: 18rpx; font-weight: 600; vertical-align: middle; }
-.row-arrow { color: #9fa8b1; font-size: 36rpx; }
-.brand-banner { position: relative; display: flex; height: 202rpx; flex-direction: column; justify-content: center; margin-top: 17rpx; overflow: hidden; padding: 0 37rpx; border-radius: 21rpx; background: linear-gradient(130deg, #262b2e, #111719); color: #fff; }
-.brand-title { color: #f9d580; font-size: 39rpx; font-weight: 700; letter-spacing: 4rpx; }
-.brand-subtitle { margin-top: 10rpx; color: #e5e7e8; font-size: 23rpx; }
-.banner-pattern { position: absolute; right: -9rpx; width: 45rpx; height: 120rpx; border-radius: 100% 0 100% 0; background: rgba(145, 151, 151, 0.12); transform: rotate(40deg); }
-.leaf-one { top: 9rpx; right: 14rpx; }
-.leaf-two { top: 25rpx; right: 64rpx; transform: rotate(63deg); }
-.leaf-three { top: 63rpx; right: 8rpx; transform: rotate(17deg); }
-.resume-banner { height: 226rpx; justify-content: flex-start; padding-top: 24rpx; }
-.resume-kicker { color: #d3af64; font-size: 20rpx; }
-.resume-title { margin-top: 9rpx; color: #fff; font-size: 31rpx; font-weight: 700; }
-.resume-pillars { display: flex; gap: 14rpx; margin-top: 11rpx; }
-.resume-pillars text { padding: 5rpx 10rpx; border: 1rpx solid rgba(236, 205, 138, 0.25); border-radius: 9rpx; color: #f5d180; font-size: 22rpx; }
-.resume-bottom { display: flex; justify-content: space-between; margin-top: 12rpx; color: #c2c9ca; font-size: 20rpx; }
-.resume-bottom text:last-child { color: #f4d17d; font-weight: 700; }
-.resume-unbound-note { margin-top: 12rpx; color: #c2c9ca; font-size: 22rpx; line-height: 1.45; }
-.chart-summary { display: flex; align-items: center; gap: 17rpx; margin-top: 22rpx; padding: 21rpx 23rpx; }
-.chart-summary-icon { display: flex; width: 57rpx; height: 57rpx; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 16rpx; background: #f9efd9; color: #be8723; font-size: 29rpx; }
-.chart-summary-copy { display: flex; flex: 1; flex-direction: column; gap: 5rpx; }
-.chart-summary-copy text:first-child { color: #32383c; font-size: 25rpx; font-weight: 700; }
-.chart-summary-copy text:last-child { color: #8b949e; font-size: 20rpx; }
-.chart-summary-count { color: #b98221; font-size: 24rpx; font-weight: 700; }
-.recent-charts { margin-top: 22rpx; padding: 0 24rpx; }
-.recent-charts-head { display: flex; height: 67rpx; align-items: center; justify-content: space-between; }
-.recent-charts-head text:first-child { color: #2b3033; font-size: 26rpx; font-weight: 700; }
-.recent-charts-head text:last-child { color: #b1802c; font-size: 20rpx; }
-.recent-chart { position: relative; padding: 15rpx 28rpx 18rpx 0; border-top: 1rpx solid #f0eee9; }
-.recent-chart > view:first-child { display: flex; align-items: baseline; gap: 14rpx; }
-.recent-chart-name { color: #32383c; font-size: 24rpx; font-weight: 700; }
-.recent-chart-date { color: #5f6b74; font-size: 23rpx; }
-.recent-chart-empty { padding: 20rpx 0 25rpx; border-top: 1rpx solid #f0eee9; color: #5f6b74; font-size: 24rpx; }
-.recent-chart-pillars { display: flex; gap: 17rpx; margin-top: 9rpx; font-size: 23rpx; font-weight: 700; }
-.recent-chart-arrow { position: absolute; right: 0; top: 35rpx; color: #adb5bb; font-size: 31rpx; }
-.tool-card { margin-top: 28rpx; padding: 6rpx 22rpx 22rpx; }
-.tool-card .section-heading { margin: 17rpx 0 20rpx; }
-.tool-grid { display: flex; justify-content: space-between; }
-.tool-item { display: flex; width: 25%; flex-direction: column; align-items: center; gap: 10rpx; color: #4f5c65; font-size: 23rpx; white-space: nowrap; }
-.tool-icon { display: flex; width: 79rpx; height: 79rpx; align-items: center; justify-content: center; border-radius: 23rpx; font-size: 46rpx; font-weight: 700; }
-.tool-icon.share { background: #f1efff; color: #a55de5; }
-.tool-icon.contact { background: #eaf9f3; color: #328de8; }
-.tool-icon.channel { background: #fff4ec; color: #288ee7; }
-.tool-icon.feedback { background: #f6f0ff; color: #d59522; }
-.settings-card { margin-top: 25rpx; padding: 4rpx 24rpx; }
-.settings-row { display: flex; height: 84rpx; align-items: center; border-bottom: 1rpx solid #f0f0f0; }
+
+.account-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 7rpx;
+}
+
+.account-copy > text:first-child {
+  display: block;
+  overflow: hidden;
+  color: #262b29;
+  font-size: 30rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-copy > text:last-child {
+  display: block;
+  overflow: hidden;
+  color: #6c777b;
+  font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-action { flex-shrink: 0; color: #936820; font-size: 24rpx; font-weight: 600; }
+
+.mine-chart-card, .mine-records, .settings-card {
+  border-radius: 22rpx;
+  box-shadow: 0 5rpx 24rpx rgba(40, 42, 41, 0.04);
+}
+
+.mine-chart-card {
+  min-height: 220rpx;
+  margin-top: 22rpx;
+  padding: 25rpx 28rpx 24rpx;
+  background: #fbf8f1;
+  border: 1rpx solid #efe7d8;
+}
+
+.mine-chart-kicker {
+  display: inline-block;
+  color: #8b6426;
+  font-size: 22rpx;
+  font-weight: 600;
+}
+
+.mine-chart-content { display: flex; min-height: 138rpx; flex-direction: column; justify-content: center; }
+.mine-chart-title { display: block; margin-top: 12rpx; color: #2b302e; font-size: 30rpx; font-weight: 700; overflow-wrap: anywhere; }
+.mine-chart-note { display: block; margin-top: 9rpx; color: #657075; font-size: 23rpx; line-height: 1.5; overflow-wrap: anywhere; }
+.mine-chart-pillars { display: flex; flex-wrap: wrap; gap: 11rpx; margin-top: 15rpx; }
+.mine-chart-pillars text { padding: 6rpx 12rpx; border: 1rpx solid #e4d4b7; border-radius: 11rpx; color: #74521c; font-size: 22rpx; }
+.mine-chart-bottom { display: flex; min-width: 0; align-items: flex-end; justify-content: space-between; gap: 14rpx; margin-top: 16rpx; }
+.mine-chart-bottom text:first-child { min-width: 0; color: #6c777b; font-size: 22rpx; overflow-wrap: anywhere; }
+.mine-chart-bottom text:last-child, .mine-chart-link { flex-shrink: 0; color: #936820; font-size: 23rpx; font-weight: 600; }
+.mine-chart-link { align-self: flex-end; margin-top: 17rpx; }
+
+.mine-records { margin-top: 22rpx; padding: 0 28rpx; }
+.mine-records-head { display: flex; min-height: 92rpx; align-items: center; gap: 14rpx; }
+.mine-records-title { min-width: 0; flex: 1; color: #262b29; font-size: 29rpx; font-weight: 700; }
+.mine-records-count { flex-shrink: 0; color: #788186; font-size: 22rpx; }
+.mine-records-all { flex-shrink: 0; color: #936820; font-size: 23rpx; font-weight: 600; }
+.mine-record { display: flex; min-height: 112rpx; align-items: center; gap: 16rpx; border-top: 1rpx solid #efeeea; }
+.mine-record-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 7rpx; }
+.mine-record-copy text:first-child { display: block; overflow: hidden; color: #32383c; font-size: 25rpx; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.mine-record-copy text:last-child { color: #788186; font-size: 22rpx; }
+.mine-chevron { flex-shrink: 0; color: #9da5aa; font-size: 33rpx; font-weight: 400; }
+.mine-record-empty { display: flex; min-height: 112rpx; align-items: center; justify-content: space-between; gap: 12rpx; border-top: 1rpx solid #efeeea; color: #6c777b; font-size: 23rpx; }
+.mine-record-create { flex-shrink: 0; color: #936820; font-weight: 600; }
+
+.mine-settings-title { margin: 35rpx 4rpx 17rpx; color: #303633; font-size: 27rpx; font-weight: 700; }
+.settings-card { padding: 0 28rpx; }
+.settings-row { display: flex; min-height: 92rpx; align-items: center; gap: 16rpx; border-bottom: 1rpx solid #efeeea; }
 .settings-row:last-child { border-bottom: 0; }
-.settings-icon { width: 50rpx; color: #87909a; font-size: 28rpx; }
-.settings-label { flex: 1; color: #414d57; font-size: 24rpx; }
-.settings-bound-email { max-width: 280rpx; overflow: hidden; color: #87909a; font-size: 20rpx; text-overflow: ellipsis; white-space: nowrap; }
-.web-binding-card { margin-top: 20rpx; padding: 26rpx; }
-.web-binding-title { color: #32383c; font-size: 27rpx; font-weight: 700; }
-.web-binding-note { margin: 14rpx 0 20rpx; color: #5f6b74; font-size: 22rpx; line-height: 1.6; }
-.logout-preview { display: flex; height: 76rpx; align-items: center; justify-content: center; margin-top: 24rpx; border: 1rpx solid #e9e3d7; border-radius: 38rpx; background: #fff; color: #9a732f; font-size: 24rpx; }
-.mine-footnote { display: flex; align-items: center; justify-content: center; gap: 9rpx; margin-top: 24rpx; color: #5f6b74; font-size: 23rpx; }
+.settings-label { min-width: 0; flex: 1; color: #414a4b; font-size: 24rpx; }
+.settings-bound-email { max-width: 52%; overflow: hidden; color: #788186; font-size: 21rpx; text-overflow: ellipsis; white-space: nowrap; }
+
+.mine-logout { width: 100%; min-height: 84rpx; margin: 26rpx 0 0; padding: 0; background: transparent; color: #788186; font-size: 23rpx; font-weight: 400; }
+
+.official-account-card {
+  margin-top: 24rpx;
+  padding: 26rpx 28rpx 28rpx;
+  border: 1rpx solid #eee6d8;
+  border-radius: 22rpx;
+  background: #fdfbf7;
+  box-shadow: 0 5rpx 24rpx rgba(40, 42, 41, 0.04);
+}
+.official-account-card-top { display: flex; align-items: center; justify-content: space-between; gap: 16rpx; }
+.official-account-card-eyebrow { color: #936820; font-size: 21rpx; font-weight: 600; letter-spacing: 2rpx; }
+.official-account-card-action { flex-shrink: 0; color: #936820; font-size: 22rpx; font-weight: 600; }
+.official-account-card-name { display: block; margin-top: 15rpx; color: #2b302e; font-size: 29rpx; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.official-account-card-description { display: block; margin-top: 7rpx; color: #697377; font-size: 23rpx; line-height: 1.5; overflow-wrap: anywhere; }
+.official-account-overlay { position: fixed; inset: 0; z-index: 120; display: flex; align-items: flex-end; background: rgba(26, 29, 28, .48); }
+.official-account-sheet { width: 100%; padding: 14rpx 36rpx calc(34rpx + env(safe-area-inset-bottom)); border-radius: 32rpx 32rpx 0 0; background: #fff; text-align: center; }
+.official-account-handle { width: 58rpx; height: 7rpx; margin: 0 auto 28rpx; border-radius: 8rpx; background: #d6d8d6; }
+.official-account-sheet-title { display: block; color: #252b29; font-size: 31rpx; font-weight: 700; overflow-wrap: anywhere; }
+.official-account-sheet-note { display: block; margin-top: 8rpx; color: #788186; font-size: 23rpx; line-height: 1.5; overflow-wrap: anywhere; }
+.official-account-qr { display: block; width: 360rpx; height: 360rpx; margin: 30rpx auto 16rpx; background: #fff; }
+.official-account-qr-error { display: flex; width: 360rpx; height: 220rpx; align-items: center; justify-content: center; margin: 30rpx auto 16rpx; padding: 20rpx; border: 1rpx solid #eae7e1; border-radius: 16rpx; color: #788186; font-size: 23rpx; line-height: 1.5; }
+.official-account-wechat-id { display: block; color: #3c4441; font-size: 24rpx; overflow-wrap: anywhere; }
+.official-account-copy { width: 100%; height: 78rpx; margin-top: 24rpx; border-radius: 39rpx; background: #fbf2dc; color: #775119; font-size: 27rpx; font-weight: 600; }
+.official-account-close { width: 100%; height: 74rpx; margin-top: 10rpx; background: transparent; color: #788186; font-size: 23rpx; }
+
+.mine-guest-note { display: flex; flex-direction: column; gap: 9rpx; margin-top: 22rpx; padding: 28rpx; border-radius: 22rpx; }
+.mine-guest-note text:first-child { color: #32383c; font-size: 26rpx; font-weight: 600; }
+.mine-guest-note text:last-child { color: #6c777b; font-size: 23rpx; line-height: 1.5; }
+
+.mine-state { display: flex; min-height: 132rpx; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10rpx; padding: 26rpx 28rpx; border-radius: 22rpx; color: #32383c; font-size: 25rpx; }
+.mine-state-note { color: #6c777b; font-size: 22rpx; line-height: 1.5; overflow-wrap: anywhere; }
+.mine-state-action { min-height: 70rpx; margin: 5rpx 0 0; padding: 0 20rpx; border-radius: 35rpx; background: #fbf2dc; color: #775119; font-size: 23rpx; }
+
+.web-binding-card { margin-top: 20rpx; padding: 26rpx 28rpx; border-radius: 22rpx; }
+.web-binding-title { color: #32383c; font-size: 26rpx; font-weight: 700; }
+.web-binding-note { margin: 12rpx 0 20rpx; color: #657075; font-size: 22rpx; line-height: 1.5; }
+.web-binding-card .note-input { display: block; width: 100%; height: 78rpx; margin-bottom: 15rpx; padding: 0 20rpx; border: 1rpx solid #e6e3dc; border-radius: 13rpx; background: #faf9f7; color: #2b302e; font-size: 25rpx; }
+.web-binding-card .primary-button { margin-top: 6rpx; }

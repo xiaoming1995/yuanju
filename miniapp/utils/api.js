@@ -80,6 +80,11 @@ function assetUrl(path) {
   return (config.apiBaseUrl || '').replace(/\/$/, '') + path
 }
 
+function officialAccountQRUrl(path) {
+  if (!/^\/static\/uploads\/official-account-qr\/[0-9a-fA-F-]{36}\.(?:png|jpg|webp)$/.test(path || '')) return ''
+  return (config.apiBaseUrl || '').replace(/\/$/, '') + path
+}
+
 function avatarDisplayUrl(path) {
   const url = assetUrl(path)
   const base = (config.apiBaseUrl || '').replace(/\/$/, '')
@@ -126,7 +131,8 @@ function uploadAvatar(filePath) {
 }
 
 module.exports = {
-  token, request, wechatLogin, linkWebAccount, assetUrl, avatarDisplayUrl, uploadAvatar,
+  token, request, wechatLogin, linkWebAccount, assetUrl, avatarDisplayUrl, uploadAvatar, officialAccountQRUrl,
+  officialAccountGuide: () => request('GET', '/miniapp/official-account-guide'),
   me: () => request('GET', '/auth/me', null, true),
   profile: () => request('GET', '/user/profile', null, true),
   updateNickname: nickname => request('PUT', '/user/profile/nickname', { nickname }, true),

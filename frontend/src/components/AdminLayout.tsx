@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
-import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen, SlidersHorizontal, BarChart2, Star, Trash2, Heart, Newspaper, Landmark, Menu, X } from 'lucide-react'
+import { Hexagon, LayoutDashboard, Bot, Users, FileText, BookOpen, SlidersHorizontal, BarChart2, Star, Trash2, Heart, Newspaper, Landmark, Menu, X, QrCode } from 'lucide-react'
 import { useAdminAuth } from '../contexts/AdminAuthContext'
 import './AdminLayout.css'
 
@@ -66,6 +66,9 @@ export default function AdminLayout() {
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><BarChart2 size={18} /></span> Token 用量
           </NavLink>
           <div className="admin-nav-group">系统配置</div>
+          <NavLink to="/admin/official-account-guide" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
+            <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><QrCode size={18} /></span> 公众号引导
+          </NavLink>
           <NavLink to="/admin/algo-config" className={({isActive}) => isActive ? 'admin-nav-item active' : 'admin-nav-item'}>
             <span style={{ display: 'flex', alignItems: 'center', marginRight: 10 }}><SlidersHorizontal size={18} /></span> 算法参数配置
           </NavLink>

@@ -120,6 +120,35 @@ test('mine to history tab clears loading when the cached home tab appears', () =
   assert.equal(home.data.mode, 'history')
 })
 
+test('empty Mine record action opens the query form even when Home was showing history', () => {
+  const { app, calls, wxApi } = environment()
+  const home = loadPage('../pages/home/index', app, wxApi)
+  home.setData({ mode: 'history' })
+  const mine = loadPage('../pages/mine/index', app, wxApi)
+  mine.openCreateChart()
+  assert.equal(calls.at(-1).method, 'switchTab')
+  mine.onHide()
+  home.onShow()
+  home.onReady()
+  assert.equal(home.data.mode, 'query')
+  home.onHide()
+})
+
+test('unbound Mine chart directs users without records to the query form', () => {
+  const { app, calls, wxApi } = environment()
+  const home = loadPage('../pages/home/index', app, wxApi)
+  home.setData({ mode: 'history' })
+  const mine = loadPage('../pages/mine/index', app, wxApi)
+  mine.setData({ chartCount: 0, personalChartError: '' })
+  mine.openPersonalBanner()
+  assert.equal(calls.at(-1).method, 'switchTab')
+  mine.onHide()
+  home.onShow()
+  home.onReady()
+  assert.equal(home.data.mode, 'query')
+  home.onHide()
+})
+
 test('a second history card tap does not replace the first pending destination', () => {
   const { app, calls, wxApi } = environment()
   const mine = loadPage('../pages/mine/index', app, wxApi)
