@@ -26,6 +26,10 @@ test('history view keeps server chart ID and entered date', () => {
     year_gan: '戊', year_zhi: '戌', month_gan: '丁', month_zhi: '巳',
     day_gan: '壬', day_zhi: '辰', hour_gan: '乙', hour_zhi: '巳' })
   assert.equal(view.id, 'server-id')
+  assert.equal(view.name, '孩子')
   assert.equal(view.date, '2018-05-12 10:00')
+  assert.equal(view.columns[0].gan, '戊')
+  assert.equal(view.columns[0].zhi, '戌')
   assert.equal(view.columns[0].text, '戊戌')
+  assert.deepEqual(view.columns.map(column => column.key), ['year', 'month', 'day', 'hour'])
 })

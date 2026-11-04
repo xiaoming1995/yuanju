@@ -8,7 +8,13 @@ function toHistory(chart) {
     id: chart.id,
     name: chart.display_name || '我的干支',
     date: `${chart.birth_year}-${String(chart.birth_month).padStart(2, '0')}-${String(chart.birth_day).padStart(2, '0')} ${String(chart.birth_hour).padStart(2, '0')}:00`,
-    columns: keys.map(key => ({ text: `${chart[`${key}_gan`]}${chart[`${key}_zhi`]}`, tone: 'neutral' })),
+    columns: keys.map(key => ({
+      key,
+      gan: chart[`${key}_gan`],
+      zhi: chart[`${key}_zhi`],
+      text: `${chart[`${key}_gan`]}${chart[`${key}_zhi`]}`,
+      tone: 'neutral',
+    })),
   }
 }
 

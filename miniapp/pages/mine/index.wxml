@@ -19,16 +19,16 @@
   </view>
 
   <block wx:if="{{loggedIn}}">
-    <view class="mine-chart-card surface-card" hover-class="{{personalChart ? 'tap-pressed' : 'none'}}" bindtap="openPersonalChart" role="button">
+    <view class="mine-chart-card surface-card {{personalChart ? 'mine-chart-card--bound' : ''}}" hover-class="{{personalChart ? 'tap-pressed' : 'none'}}" bindtap="openPersonalChart" role="button">
       <view class="mine-chart-heading"><text class="mine-chart-kicker">本人命盘</text><text wx:if="{{personalChart}}" class="mine-chart-view">查看详情 ›</text></view>
       <view wx:if="{{personalChartLoading}}" class="mine-chart-content">
         <text class="mine-chart-title">正在读取绑定状态…</text>
         <text class="mine-chart-note">请稍候</text>
       </view>
-      <view wx:elif="{{personalChart}}" class="mine-chart-content {{navigationKey === 'result' ? 'is-opening' : ''}}">
-        <text class="mine-chart-title">{{personalChart.name}}</text>
-        <view class="mine-chart-pillars"><view class="mine-chart-pillar" wx:for="{{personalChart.columns}}" wx:for-item="pillar" wx:for-index="pillarIndex" wx:key="text"><text class="mine-chart-pillar-label">{{pillarIndex === 0 ? '年' : pillarIndex === 1 ? '月' : pillarIndex === 2 ? '日' : '时'}}</text><text class="mine-chart-pillar-value">{{pillar.text}}</text></view></view>
-        <view class="mine-chart-footer"><text class="mine-chart-date">{{personalChart.date}}</text><view class="mine-chart-edit" catchtap="openCreateChart" role="button">修改资料</view></view>
+      <view wx:elif="{{personalChart}}" class="mine-chart-content mine-chart-content--bound {{navigationKey === 'result' ? 'is-opening' : ''}}">
+        <text wx:if="{{personalChart.name !== '我的干支'}}" class="mine-chart-custom-name">{{personalChart.name}}</text>
+        <view class="mine-chart-pillars"><view class="mine-chart-pillar {{pillarIndex === 2 ? 'is-day' : ''}}" wx:for="{{personalChart.columns}}" wx:for-item="pillar" wx:for-index="pillarIndex" wx:key="key"><text class="mine-chart-pillar-label">{{pillarIndex === 0 ? '年柱' : pillarIndex === 1 ? '月柱' : pillarIndex === 2 ? '日柱' : '时柱'}}</text><text class="mine-chart-pillar-value">{{pillar.gan}}</text><text class="mine-chart-pillar-value">{{pillar.zhi}}</text></view></view>
+        <view class="mine-chart-footer"><view class="mine-chart-date"><text class="mine-chart-date-label">出生 · </text><text>{{personalChart.date}}</text></view><view class="mine-chart-edit" catchtap="openCreateChart" role="button">修改资料</view></view>
       </view>
       <view wx:elif="{{personalChartError}}" class="mine-chart-content" hover-class="tap-pressed" bindtap="openPersonalBanner" role="button">
         <text class="mine-chart-title">暂时无法读取绑定状态</text>
