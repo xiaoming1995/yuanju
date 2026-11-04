@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const api = require('../../utils/api')
 const { toHistory } = require('../../utils/chart_view')
 const { personalThemes, personalDirectionRows } = require('../../utils/personal_day_view')
@@ -48,6 +49,7 @@ Page({
   },
 
   onShow() {
+    fontSize.apply(this)
     navigation.pageVisible(this, 'pages/home/index')
     const globalData = getApp().globalData
     if (globalData.previewHistoryNext) {

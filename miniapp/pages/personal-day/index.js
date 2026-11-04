@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const calendarData = require('../../data/calendar')
 const api = require('../../utils/api')
 const { chart } = require('../../data/demo')
@@ -107,6 +108,7 @@ Page({
   toggleActivityEvidence() { this.setData({ showActivityEvidence: !this.data.showActivityEvidence }) },
 
   onShow() {
+    fontSize.apply(this)
     navigation.pageVisible(this, 'pages/personal-day/index')
   },
 

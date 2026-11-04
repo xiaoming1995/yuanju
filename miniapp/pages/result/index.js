@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const { toResult } = require('../../utils/chart_view')
 const { toHistory } = require('../../utils/chart_view')
 const api = require('../../utils/api')
@@ -48,6 +49,7 @@ Page({
   },
 
   onShow() {
+    fontSize.apply(this)
     this._hidden = false
     navigation.pageVisible(this, 'pages/result/index')
     if (this._shownOnce) this.loadDetail()

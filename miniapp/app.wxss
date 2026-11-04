@@ -3,7 +3,7 @@ page {
   background: #fbf8f0;
   color: #262b29;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 28rpx;
+  font-size: 30rpx;
 }
 
 view, text, button, input, picker-view, picker-view-column {
@@ -31,7 +31,7 @@ button::after {
   border-radius: 30rpx;
   background: #fbf2dc;
   color: #775119;
-  font-size: 23rpx;
+  font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx));
   font-weight: 600;
   white-space: nowrap;
   box-shadow: 0 6rpx 18rpx rgba(40, 42, 41, 0.09);
@@ -55,6 +55,8 @@ button::after {
   position: relative;
   z-index: 0;
   min-height: 100vh;
+  font-size: 30rpx;
+  font-size: calc(30rpx + var(--yj-font-step, 0rpx));
   padding: 20rpx 28rpx 40rpx;
   border-left: 1rpx solid #d6b876;
   border-right: 1rpx solid #d6b876;
@@ -92,7 +94,7 @@ button::after {
   align-items: center;
   gap: 12rpx;
   margin: 24rpx 0 16rpx;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 700;
   color: #242a2d;
 }
@@ -123,7 +125,7 @@ button::after {
   border-radius: 44rpx;
   background: #fbf2dc;
   color: #775119;
-  font-size: 29rpx;
+  font-size: 29rpx; font-size: calc(29rpx + var(--yj-font-step, 0rpx));
   font-weight: 700;
   line-height: 1;
 }
@@ -135,7 +137,7 @@ button::after {
   border-radius: 12rpx;
   background: #fbf2dc;
   color: #71500c;
-  font-size: 23rpx;
+  font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx));
   font-weight: 600;
   white-space: nowrap;
 }

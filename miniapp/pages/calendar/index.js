@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const calendarData = require('../../data/calendar')
 const api = require('../../utils/api')
 const { getJianChuInfo } = require('../../data/jianchu')
@@ -90,6 +91,7 @@ Page({
   },
 
   onShow() {
+    fontSize.apply(this)
     navigation.pageVisible(this, 'pages/calendar/index')
     const selectedKey = getApp().globalData.previewCalendarNext
     if (!selectedKey) {

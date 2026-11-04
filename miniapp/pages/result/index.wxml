@@ -1,5 +1,5 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
-<view class="page-shell result-page">
+<view class="page-shell result-page" style="--yj-font-step: {{fontStep || 0}}rpx">
   <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <view wx:if="{{loading}}" class="result-state surface-card">正在读取本人命盘…</view>
   <view wx:elif="{{loadError}}" class="result-state surface-card"><text>{{loadError}}</text><button bindtap="loadDetail">重新加载</button></view>

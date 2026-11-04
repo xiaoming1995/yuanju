@@ -1,5 +1,5 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
-<view class="page-shell home-page {{mode === 'home' ? 'daily-home-page' : ''}}">
+<view class="page-shell home-page {{mode === 'home' ? 'daily-home-page' : ''}}" style="--yj-font-step: {{fontStep || 0}}rpx">
   <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <view wx:if="{{mode === 'history'}}" class="history-page-header">
     <view class="history-back" data-mode="home" bindtap="switchMode" role="button"><text class="history-back-arrow">←</text><text>返回首页</text></view>
@@ -70,7 +70,7 @@
   </block>
 </view>
 
-<view wx:if="{{detail}}" class="overlay detail-overlay">
+<view wx:if="{{detail}}" class="overlay detail-overlay" style="--yj-font-step: {{fontStep || 0}}rpx">
   <view class="overlay-backdrop" bindtap="closeHistoryDetail"></view>
   <view class="history-dialog surface-card">
     <view class="dialog-head"><text>{{detail.name}}</text><text bindtap="closeHistoryDetail">×</text></view>

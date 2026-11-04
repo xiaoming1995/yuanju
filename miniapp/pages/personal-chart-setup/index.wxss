@@ -1,13 +1,13 @@
 .setup-page { padding-top: 28rpx; padding-bottom: 50rpx; }
 .setup-card { padding: 32rpx 28rpx; border-radius: 22rpx; }
-.setup-title { display: block; color: #282d2b; font-size: 34rpx; font-weight: 700; }
-.setup-hint { display: block; margin: 12rpx 0 25rpx; color: #6c777b; font-size: 23rpx; line-height: 1.5; }
-.setup-state { padding: 20rpx 0; color: #6c777b; font-size: 24rpx; }
+.setup-title { display: block; color: #282d2b; font-size: 34rpx; font-size: calc(34rpx + var(--yj-font-step, 0rpx)); font-weight: 700; }
+.setup-hint { display: block; margin: 12rpx 0 25rpx; color: #6c777b; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); line-height: 1.5; }
+.setup-state { padding: 20rpx 0; color: #6c777b; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); }
 .setup-state button { margin-top: 18rpx; color: #805a20; }
-.setup-label { display: block; margin: 25rpx 0 10rpx; color: #48514d; font-size: 24rpx; font-weight: 600; }
-.setup-field { display: flex; align-items: center; justify-content: space-between; height: 82rpx; padding: 0 22rpx; border: 1rpx solid #e6e3dc; border-radius: 13rpx; background: #faf9f7; color: #2b302e; font-size: 27rpx; }
+.setup-label { display: block; margin: 25rpx 0 10rpx; color: #48514d; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); font-weight: 600; }
+.setup-field { display: flex; align-items: center; justify-content: space-between; height: 82rpx; padding: 0 22rpx; border: 1rpx solid #e6e3dc; border-radius: 13rpx; background: #faf9f7; color: #2b302e; font-size: 27rpx; font-size: calc(27rpx + var(--yj-font-step, 0rpx)); }
 .setup-field text { color: #828985; }
 .setup-genders { display: flex; gap: 16rpx; }
-.setup-gender { display: flex; flex: 1; align-items: center; justify-content: center; height: 76rpx; border: 1rpx solid #e6e3dc; border-radius: 13rpx; color: #606965; font-size: 26rpx; }
+.setup-gender { display: flex; flex: 1; align-items: center; justify-content: center; height: 76rpx; border: 1rpx solid #e6e3dc; border-radius: 13rpx; color: #606965; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); }
 .setup-gender.selected { border-color: #b99452; background: #fbf8f1; color: #775119; font-weight: 700; }
 .setup-save { margin-top: 34rpx; }

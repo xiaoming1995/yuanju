@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const api = require('../../utils/api')
 const navigation = require('../../utils/navigation_feedback')
 
@@ -7,7 +8,10 @@ Page({
   data: { loading: true, loadError: '', saving: false, hasPersonalChart: false,
     birthDate: '1990-01-01', hourIndex: 0, gender: 'male', hours },
   onLoad() { this.loadPersonalChart() },
-  onShow() { navigation.pageVisible(this, 'pages/personal-chart-setup/index') },
+  onShow() {
+    fontSize.apply(this)
+    navigation.pageVisible(this, 'pages/personal-chart-setup/index')
+  },
   onReady() { navigation.pageReady(this, 'pages/personal-chart-setup/index') },
   onHide() { navigation.pageHidden(this) },
   onUnload() { navigation.pageGone(this) },

@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const api = require('../../utils/api')
 const navigation = require('../../utils/navigation_feedback')
 
@@ -12,6 +13,7 @@ Page({
     return this.loadProfile()
   },
   onShow() {
+    fontSize.apply(this)
     this._profileHidden = false
     navigation.pageVisible(this, 'pages/profile/index')
     this.updateLeaveWarning()

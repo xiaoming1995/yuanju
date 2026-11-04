@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const api = require('../../utils/api')
 const { ACTIVITIES, defaultDateRange, validateDateRange, analyzeActivityRange } = require('../../data/real_date_selection')
 const navigation = require('../../utils/navigation_feedback')
@@ -29,6 +30,7 @@ Page({
   },
 
   onShow() {
+    fontSize.apply(this)
     navigation.pageVisible(this, 'pages/moving-date/index')
     return this.refreshBinding()
   },

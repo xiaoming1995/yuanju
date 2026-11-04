@@ -1,5 +1,5 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
-<view class="page-shell personal-page">
+<view class="page-shell personal-page" style="--yj-font-step: {{fontStep || 0}}rpx">
   <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <block wx:if="{{realMode}}">
     <view class="personal-hero surface-card">

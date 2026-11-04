@@ -1,3 +1,4 @@
+const fontSize = require('../../utils/font_size')
 const api = require('../../utils/api')
 const { toHistory } = require('../../utils/chart_view')
 const navigation = require('../../utils/navigation_feedback')
@@ -11,6 +12,7 @@ Page({
     officialAccountGuide: null, officialAccountOpen: false, officialAccountQRFailed: false,
   },
   onShow() {
+    fontSize.apply(this)
     navigation.pageVisible(this, 'pages/mine/index')
     this.loadOfficialAccountGuide()
     return this.loadProfile()
@@ -102,6 +104,15 @@ Page({
     finally { this.setData({ loggingIn: false }) }
   },
   toggleWebBinding() { this.setData({ bindingVisible: !this.data.bindingVisible, password: '' }) },
+  chooseFontSize() {
+    wx.showActionSheet({
+      itemList: fontSize.LABELS.map((label, index) => `${label}${fontSize.MODES[index] === this.data.fontMode ? ' ✓' : ''}`),
+      success: ({ tapIndex }) => {
+        const mode = fontSize.MODES[tapIndex]
+        if (mode && fontSize.setMode(mode)) fontSize.apply(this)
+      },
+    })
+  },
   async bindWebAccount() {
     if (this.data.loggingIn) return
     if (!this.data.email || !this.data.password) { wx.showToast({ title: '请填写网页账号和密码', icon: 'none' }); return }

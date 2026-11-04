@@ -1,5 +1,5 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
-<view class="page-shell mine-page">
+<view class="page-shell mine-page" style="--yj-font-step: {{fontStep || 0}}rpx">
   <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <view wx:if="{{profileLoading && !loggedIn}}" class="mine-state surface-card">正在读取个人资料…</view>
   <view wx:elif="{{profileError}}" class="mine-state surface-card">
@@ -57,6 +57,7 @@
 
   <view class="mine-settings-title">设置与帮助</view>
   <view class="settings-card surface-card">
+    <view class="settings-row" hover-class="tap-pressed" bindtap="chooseFontSize" role="button"><text class="settings-label">字体大小</text><text class="settings-value">{{fontModeLabel || '跟随微信'}}</text><text class="mine-chevron">›</text></view>
     <view wx:if="{{loggedIn && !user.email}}" class="settings-row" hover-class="tap-pressed" bindtap="toggleWebBinding" role="button"><text class="settings-label">绑定已有网页账号</text><text class="mine-chevron">›</text></view>
     <view wx:if="{{loggedIn && user.email}}" class="settings-row settings-row-bound"><text class="settings-label">已绑定网页账号</text><text class="settings-bound-email">{{user.email}}</text></view>
     <view class="settings-row" hover-class="tap-pressed" bindtap="openPrivacy" role="button"><text class="settings-label">隐私说明</text><text class="mine-chevron">›</text></view>
@@ -83,7 +84,7 @@
   <button wx:if="{{loggedIn}}" class="mine-logout" bindtap="logoutPreview">退出登录</button>
 </view>
 
-<view wx:if="{{officialAccountOpen && officialAccountGuide}}" class="official-account-overlay" bindtap="closeOfficialAccountGuide">
+<view wx:if="{{officialAccountOpen && officialAccountGuide}}" class="official-account-overlay" style="--yj-font-step: {{fontStep || 0}}rpx" bindtap="closeOfficialAccountGuide">
   <view class="official-account-sheet" catchtap="stopOfficialAccountTap">
     <view class="official-account-handle"></view>
     <text class="official-account-sheet-title">{{officialAccountGuide.name}}</text>
