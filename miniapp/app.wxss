@@ -1,4 +1,6 @@
 page {
+  --yj-panel-border: #d3af73;
+  --yj-panel-radius: 26rpx;
   min-height: 100%;
   background: #fbf8f0;
   color: #262b29;
@@ -93,25 +95,30 @@ button::after {
   display: flex;
   align-items: center;
   gap: 12rpx;
-  margin: 24rpx 0 16rpx;
-  font-size: 30rpx;
+  margin: 30rpx 0 16rpx;
+  font-size: 27rpx;
+  font-size: calc(27rpx + var(--yj-font-step, 0rpx));
   font-weight: 700;
-  color: #242a2d;
+  color: #3e281b;
 }
 
 .section-heading::before {
-  display: block;
-  width: 8rpx;
-  height: 30rpx;
-  border-radius: 8rpx;
-  background: #d49b2c;
-  content: "";
+  display: none;
 }
 
 .surface-card {
-  background: #fff;
-  border-radius: 28rpx;
-  box-shadow: 0 10rpx 38rpx rgba(40, 42, 41, 0.055);
+  background: #fffdf8;
+  border: 1rpx solid var(--yj-panel-border);
+  border-radius: var(--yj-panel-radius);
+  box-shadow: 0 5rpx 24rpx rgba(40, 42, 41, 0.04);
+}
+
+.paper-feature-hero {
+  border: 1rpx solid var(--yj-panel-border);
+  border-radius: var(--yj-panel-radius);
+  background: linear-gradient(135deg, #fffdf8, #f9f5e9);
+  color: #3e281b;
+  box-shadow: 0 6rpx 0 #f3e9d6, 0 12rpx 19rpx rgba(103, 70, 26, 0.1);
 }
 
 .primary-button {

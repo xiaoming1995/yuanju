@@ -1,7 +1,7 @@
 <view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
 <view class="page-shell moving-page" style="--yj-font-step: {{fontStep || 0}}rpx">
   <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
-  <view class="moving-hero surface-card">
+  <view class="moving-hero paper-feature-hero">
     <view class="hero-top"><text class="hero-kicker">择日 · 通用宜忌</text></view>
     <view class="hero-title">择日参考</view>
     <view class="hero-copy">选事项、看日期；结果仅按通用宜忌筛选。</view>

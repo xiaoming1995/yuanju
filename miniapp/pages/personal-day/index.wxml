@@ -2,7 +2,7 @@
 <view class="page-shell personal-page" style="--yj-font-step: {{fontStep || 0}}rpx">
   <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image><image class="paper-backdrop-mountains" src="/assets/home-ink-mountains.png" mode="widthFix"></image></view>
   <block wx:if="{{realMode}}">
-    <view class="personal-hero surface-card">
+    <view class="personal-hero paper-feature-hero">
       <view class="hero-top"><text class="hero-kicker">每日干支参考 · {{realDay ? '本人命盘' : '通用日期'}}</text><text class="demo-tag">{{realDay ? '真实排盘' : (realLoading ? '检查中' : '未绑定')}}</text></view>
       <view class="hero-date">{{dateLabel}}</view>
       <view wx:if="{{calendarDay}}" class="hero-lunar">农历{{calendarDay.lunar_full}} · {{calendarDay.year_gan_zhi}}年 {{calendarDay.month_gan_zhi}}月 {{calendarDay.day_gan_zhi}}日</view>
@@ -40,12 +40,12 @@
       </view>
       <view class="personal-verdict surface-card"><view class="section-heading">当日干支与本人命盘</view><view class="verdict-line"><text class="verdict-badge verdict-{{realDay.status}}">{{realDay.label}}</text><text>{{realDay.day_gan_zhi}}日</text></view><view class="verdict-summary">{{realDay.summary}}</view><view wx:if="{{realDirections.length}}" class="direction-list"><view wx:for="{{realDirections}}" wx:key="name"><text>{{item.name}}</text><text>{{item.direction}}</text></view></view></view>
       <view class="personal-verdict surface-card"><view class="section-heading">方位与色彩参考</view><block wx:if="{{realDay.luck && realDay.luck.available}}"><view class="luck-level">{{realDay.luck.level === 'qualified' ? '有条件参考' : (realDay.luck.level === 'baseline' ? '命盘基础参考' : '今日喜用对应')}}</view><view class="direction-list"><view><text>参考方位</text><text>{{realDay.luck.direction}}</text></view><view><text>参考颜色</text><text>{{realDay.luck.color}}</text></view></view><view class="verdict-summary">{{realDay.luck.reason}}</view></block><view wx:else class="verdict-summary">{{realDay.luck ? realDay.luck.reason : '方位与颜色参考暂不可用。'}}</view></view>
-      <view class="personal-evidence surface-card"><view class="section-heading">判断依据</view><view class="fuyi-line"><text>扶抑喜用：{{realDay.favorable || '依据不足'}}</text><text>扶抑忌神：{{realDay.adverse || '依据不足'}}</text></view><view wx:if="{{realDay.evidence.length}}" class="evidence-list"><view wx:for="{{realDay.evidence}}" wx:key="*this"><text class="evidence-dot"></text><text>{{item}}</text></view></view><view wx:else class="evidence-empty">当前资料不足，没有形成个人关系判断。</view><view class="evidence-foot">依据版本：{{realDay.rule_version}}。日支仅按主气五行展示。</view></view>
+      <view class="personal-evidence surface-card"><view class="section-heading">判断依据</view><view class="fuyi-line"><text>扶抑喜用：{{realDay.favorable || '依据不足'}}</text><text>扶抑忌神：{{realDay.adverse || '依据不足'}}</text></view><view wx:if="{{realDay.evidence.length}}" class="evidence-list"><view wx:for="{{realDay.evidence}}" wx:key="*this"><text class="evidence-dot"></text><text>{{item}}</text></view></view><view wx:else class="evidence-empty">当前资料不足，没有形成个人关系判断。</view><view class="evidence-foot">日支仅按主气五行展示。</view></view>
       <view class="personal-boundary">以上内容仅供参考，不能据此预测具体事件，也不构成投资、医疗或其他重大决策依据。</view>
     </block>
   </block>
   <block wx:else>
-  <view class="personal-hero surface-card">
+  <view class="personal-hero paper-feature-hero">
     <view class="hero-top"><text class="hero-kicker">每日干支参考 · 前端演示</text><text class="demo-tag">演示数据</text></view>
     <view class="hero-date">{{dateLabel}}</view>
     <view class="hero-lunar">农历{{lunarFull}}<text wx:if="{{jieQi}}"> · {{jieQi}}</text></view>

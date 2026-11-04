@@ -9,13 +9,14 @@
   align-items: center;
   gap: 20rpx;
   padding: 20rpx 28rpx;
-  border-radius: 22rpx;
+  border-radius: var(--yj-panel-radius);
+  background: #fffdf8;
 }
 
 .account-row-login {
   width: 100%;
   margin: 0;
-  border: 0;
+  border: 1rpx solid var(--yj-panel-border);
   line-height: 1.4;
   text-align: left;
 }
@@ -68,7 +69,7 @@
 .account-action { flex-shrink: 0; color: #936820; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); font-weight: 600; }
 
 .mine-chart-card, .settings-card {
-  border-radius: 22rpx;
+  border-radius: var(--yj-panel-radius);
   box-shadow: 0 5rpx 24rpx rgba(40, 42, 41, 0.04);
 }
 
@@ -77,7 +78,7 @@
   margin-top: 22rpx;
   padding: 29rpx 30rpx 24rpx;
   background: #fffdfa;
-  border: 1rpx solid #ece8df;
+  border: 1rpx solid var(--yj-panel-border);
   box-shadow: 0 6rpx 24rpx rgba(40, 42, 41, 0.035);
 }
 
@@ -105,7 +106,7 @@
 .mine-chevron { flex-shrink: 0; color: #9da5aa; font-size: 33rpx; font-size: calc(33rpx + var(--yj-font-step, 0rpx)); font-weight: 400; }
 
 .mine-settings-title { margin: 35rpx 4rpx 17rpx; color: #303633; font-size: 27rpx; font-size: calc(27rpx + var(--yj-font-step, 0rpx)); font-weight: 700; }
-.settings-card { padding: 0 28rpx; }
+.settings-card { padding: 0 28rpx; background: #fffdf8; }
 .settings-row { display: flex; min-height: 92rpx; align-items: center; gap: 16rpx; padding: 12rpx 0; border-bottom: 1rpx solid #efeeea; }
 .settings-row:last-child { border-bottom: 0; }
 .settings-label { min-width: 0; flex: 1; color: #414a4b; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); }
@@ -117,8 +118,8 @@
 .official-account-card {
   margin-top: 24rpx;
   padding: 26rpx 28rpx 28rpx;
-  border: 1rpx solid #eee6d8;
-  border-radius: 22rpx;
+  border: 1rpx solid var(--yj-panel-border);
+  border-radius: var(--yj-panel-radius);
   background: #fdfbf7;
   box-shadow: 0 5rpx 24rpx rgba(40, 42, 41, 0.04);
 }
@@ -128,7 +129,7 @@
 .official-account-card-name { display: block; margin-top: 15rpx; color: #2b302e; font-size: 29rpx; font-size: calc(29rpx + var(--yj-font-step, 0rpx)); font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
 .official-account-card-description { display: block; margin-top: 7rpx; color: #697377; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); line-height: 1.5; overflow-wrap: anywhere; }
 .official-account-overlay { position: fixed; inset: 0; z-index: 120; display: flex; align-items: flex-end; background: rgba(26, 29, 28, .48); }
-.official-account-sheet { width: 100%; padding: 14rpx 36rpx calc(34rpx + env(safe-area-inset-bottom)); border-radius: 32rpx 32rpx 0 0; background: #fff; text-align: center; }
+.official-account-sheet { width: 100%; padding: 14rpx 36rpx calc(34rpx + env(safe-area-inset-bottom)); border-radius: 32rpx 32rpx 0 0; background: #fffdf8; text-align: center; }
 .official-account-handle { width: 58rpx; height: 7rpx; margin: 0 auto 28rpx; border-radius: 8rpx; background: #d6d8d6; }
 .official-account-sheet-title { display: block; color: #252b29; font-size: 31rpx; font-size: calc(31rpx + var(--yj-font-step, 0rpx)); font-weight: 700; overflow-wrap: anywhere; }
 .official-account-sheet-note { display: block; margin-top: 8rpx; color: #788186; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); line-height: 1.5; overflow-wrap: anywhere; }
@@ -138,15 +139,15 @@
 .official-account-copy { width: 100%; height: 78rpx; margin-top: 24rpx; border-radius: 39rpx; background: #fbf2dc; color: #775119; font-size: 27rpx; font-size: calc(27rpx + var(--yj-font-step, 0rpx)); font-weight: 600; }
 .official-account-close { width: 100%; height: 74rpx; margin-top: 10rpx; background: transparent; color: #788186; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); }
 
-.mine-guest-note { display: flex; flex-direction: column; gap: 9rpx; margin-top: 22rpx; padding: 28rpx; border-radius: 22rpx; }
+.mine-guest-note { display: flex; flex-direction: column; gap: 9rpx; margin-top: 22rpx; padding: 28rpx; border-radius: var(--yj-panel-radius); }
 .mine-guest-note text:first-child { color: #32383c; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); font-weight: 600; }
 .mine-guest-note text:last-child { color: #6c777b; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); line-height: 1.5; }
 
-.mine-state { display: flex; min-height: 132rpx; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10rpx; padding: 26rpx 28rpx; border-radius: 22rpx; color: #32383c; font-size: 27rpx; font-size: calc(27rpx + var(--yj-font-step, 0rpx)); }
+.mine-state { display: flex; min-height: 132rpx; flex-direction: column; align-items: flex-start; justify-content: center; gap: 10rpx; padding: 26rpx 28rpx; border-radius: var(--yj-panel-radius); color: #32383c; font-size: 27rpx; font-size: calc(27rpx + var(--yj-font-step, 0rpx)); }
 .mine-state-note { color: #6c777b; font-size: 25rpx; font-size: calc(25rpx + var(--yj-font-step, 0rpx)); line-height: 1.5; overflow-wrap: anywhere; }
 .mine-state-action { min-height: 70rpx; margin: 5rpx 0 0; padding: 0 20rpx; border-radius: 35rpx; background: #fbf2dc; color: #775119; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); }
 
-.web-binding-card { margin-top: 20rpx; padding: 26rpx 28rpx; border-radius: 22rpx; }
+.web-binding-card { margin-top: 20rpx; padding: 26rpx 28rpx; border-radius: var(--yj-panel-radius); }
 .web-binding-title { color: #32383c; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); font-weight: 700; }
 .web-binding-note { margin: 12rpx 0 20rpx; color: #657075; font-size: 25rpx; font-size: calc(25rpx + var(--yj-font-step, 0rpx)); line-height: 1.5; }
 .web-binding-card .note-input { display: block; width: 100%; height: 78rpx; margin-bottom: 15rpx; padding: 0 20rpx; border: 1rpx solid #e6e3dc; border-radius: 13rpx; background: #faf9f7; color: #2b302e; font-size: 27rpx; font-size: calc(27rpx + var(--yj-font-step, 0rpx)); }
