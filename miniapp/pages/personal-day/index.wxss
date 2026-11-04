@@ -64,6 +64,7 @@
 .activity-head { display: flex; justify-content: space-between; gap: 15rpx; font-size: 25rpx; font-weight: 700; }
 .activity-head > text:last-child { color: #bc8523; font-size: 22rpx; }
 .activity-detail { margin-top: 10rpx; color: #7b858c; font-size: 21rpx; line-height: 1.55; }
+.activity-action { margin-top: 9rpx; color: #4d6257; font-size: 22rpx; line-height: 1.55; overflow-wrap: anywhere; }
 .activity-source { margin-top: 7rpx; color: #a27730; font-size: 19rpx; }
 .activity-evidence { margin-top: 7rpx; color: #7b858c; font-size: 20rpx; line-height: 1.5; overflow-wrap: anywhere; }
 .guidance-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }

@@ -15,6 +15,7 @@ type PersonalDayGuidance struct {
 	Sources     []string `json:"sources"`
 	SourceLabel string   `json:"source_label"`
 	Evidence    []string `json:"evidence"`
+	Actions     []string `json:"actions,omitempty"`
 }
 
 type personalDayActivityContext struct {

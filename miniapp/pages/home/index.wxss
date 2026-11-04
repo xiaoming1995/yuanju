@@ -101,6 +101,7 @@
 .today-guidance-level.level-review { background: #fbedd5; color: #8b5f16; }
 .today-personal-source { display: block; margin-top: 7rpx; color: #987345; font-size: 20rpx; overflow-wrap: anywhere; }
 .today-personal-summary { display: block; margin-top: 7rpx; color: #5a5147; font-size: 22rpx; line-height: 1.5; overflow-wrap: anywhere; }
+.today-personal-action { display: block; margin-top: 7rpx; color: #476455; font-size: 21rpx; line-height: 1.5; overflow-wrap: anywhere; }
 .today-verdict { margin-top: 18rpx; padding-top: 18rpx; border-top: 1rpx solid #eee6d7; color: #5a5147; font-size: 22rpx; line-height: 1.5; }
 .today-verdict-title { display: block; margin-bottom: 9rpx; color: #79572d; font-size: 21rpx; font-weight: 600; }
 .today-verdict > view { display: flex; flex-wrap: wrap; align-items: center; gap: 9rpx; }

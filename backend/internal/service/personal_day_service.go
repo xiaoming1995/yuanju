@@ -48,6 +48,7 @@ type PersonalDayResult struct {
 	Evidence         []string              `json:"evidence"`
 	Activities       []PersonalDayActivity `json:"activities"`
 	ActivityGuidance []PersonalDayGuidance `json:"activity_guidance"`
+	ThemeGuidance    []PersonalDayGuidance `json:"theme_guidance"`
 	Luck             PersonalDayLuck       `json:"luck"`
 	RuleVersion      string                `json:"rule_version"`
 	Favorable        string                `json:"favorable"`
@@ -178,8 +179,9 @@ func BuildPersonalDay(date string, chart *bazi.BaziResult) (*PersonalDayResult, 
 		YearGanZhi: lunar.GetYearInGanZhiByLiChun(), MonthGanZhi: lunar.GetMonthInGanZhi(),
 		DayGanZhi: ganZhi, DayGan: gan, DayZhi: zhi, Status: "insufficient", Label: "依据不足",
 		Summary:  "当前命盘缺少有效的扶抑喜忌，暂不提供个人事项判断。",
-		Evidence: []string{}, Activities: []PersonalDayActivity{}, RuleVersion: "personal-day-v4",
-		Luck: PersonalDayLuck{Reason: "命盘喜忌依据不足，暂无明确参考。"},
+		Evidence: []string{}, Activities: []PersonalDayActivity{}, RuleVersion: "personal-day-v7",
+		ThemeGuidance: []PersonalDayGuidance{},
+		Luck:          PersonalDayLuck{Reason: "命盘喜忌依据不足，暂无明确参考。"},
 	}
 	yi, ji := lunar.GetDayYi(), lunar.GetDayJi()
 	output.CalendarYi, output.CalendarJi = dayListLabels(yi), dayListLabels(ji)
@@ -230,6 +232,7 @@ func BuildPersonalDay(date string, chart *bazi.BaziResult) (*PersonalDayResult, 
 	activity.clash = clash
 	activity.conflictElements = conflictElements
 	output.ActivityGuidance = buildPersonalDayGuidance(activity)
+	output.ThemeGuidance = buildPersonalDayThemes(chart, activity)
 	switch {
 	case climateConflict:
 		output.Status, output.Label, output.Summary = "mixed", "关系复杂", "扶抑与调候方向不同，需看完整命盘依据。"

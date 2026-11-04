@@ -1,6 +1,6 @@
 const api = require('../../utils/api')
 const { toHistory } = require('../../utils/chart_view')
-const { personalHints, personalDirectionRows } = require('../../utils/personal_day_view')
+const { personalThemes, personalDirectionRows } = require('../../utils/personal_day_view')
 const navigation = require('../../utils/navigation_feedback')
 
 function chinaTodayKey() {
@@ -37,7 +37,7 @@ Page({
     calendarLoading: false,
     calendarError: '',
     personalDay: null,
-    personalGuidance: [],
+    personalThemes: [],
     personalDirections: [],
     personalLoading: false,
     personalError: '',
@@ -83,7 +83,7 @@ Page({
     const requestId = (this._todayRequestId || 0) + 1
     this._todayRequestId = requestId
     this.setData({ calendarPreview: preview, calendarDay: null, calendarLoading: true, calendarError: '',
-      personalDay: null, personalGuidance: [], personalDirections: [], personalLoading: Boolean(api.token()),
+      personalDay: null, personalThemes: [], personalDirections: [], personalLoading: Boolean(api.token()),
       personalError: '', personalState: api.token() ? 'loading' : 'unbound' })
     this.loadTodayCalendar(date, requestId)
     if (api.token()) this.loadTodayPersonal(date, requestId, api.token())
@@ -120,7 +120,7 @@ Page({
       if (this._todayRequestId !== requestId || api.token() !== token || chinaTodayKey() !== date) return
       const day = dayResponse.data
       if (!day || day.date !== date) throw new Error('个人每日资料不完整')
-      this.setData({ personalDay: day, personalGuidance: personalHints(day),
+      this.setData({ personalDay: day, personalThemes: personalThemes(day),
         personalDirections: personalDirectionRows(day), personalState: 'ready' })
     } catch (err) {
       if (this._todayRequestId !== requestId) return

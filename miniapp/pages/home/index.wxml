@@ -24,18 +24,19 @@
     </view>
 
     <view class="today-section today-personal-card surface-card">
-      <view class="today-heading"><text>本人事项提示</text><view class="today-heading-rule"></view><text>本人命盘</text></view>
+      <view class="today-heading"><text>本人每日主题</text><view class="today-heading-rule"></view><text>本人命盘</text></view>
       <view wx:if="{{personalLoading}}" class="today-status">正在读取个人参考…</view>
       <view wx:elif="{{personalState === 'unbound'}}" class="today-status">尚未配置本人命盘。<text class="today-inline-link" bindtap="openPersonalSetup">去「我的」设置 ›</text></view>
       <view wx:elif="{{personalState === 'error'}}" class="today-status">{{personalError || '个人参考暂不可用'}}<text class="today-inline-link" bindtap="refreshToday">重试 ›</text></view>
-      <view wx:elif="{{personalGuidance.length}}" class="today-personal-list">
-        <view wx:for="{{personalGuidance}}" wx:key="id" class="today-personal">
+      <view wx:elif="{{personalThemes.length}}" class="today-personal-list">
+        <view wx:for="{{personalThemes}}" wx:key="id" class="today-personal">
           <view class="today-personal-title"><text>{{item.title}}</text><text class="today-guidance-level level-{{item.level}}">{{item.label}}</text></view>
           <text class="today-personal-source">依据：{{item.source_label}}</text>
           <text class="today-personal-summary">{{item.summary}}</text>
+          <text wx:if="{{item.actions && item.actions.length}}" class="today-personal-action">建议：{{item.actions[0]}}</text>
         </view>
       </view>
-      <view wx:else class="today-status">{{personalDay && personalDay.status === 'insufficient' ? personalDay.summary : '今天暂无特别的本人事项提示。'}}</view>
+      <view wx:else class="today-status">{{personalDay && !personalDay.theme_guidance ? '今日主题参考暂不可用。' : '今日暂无特别提示。'}}</view>
       <block wx:if="{{personalDay}}">
         <view class="today-verdict"><text class="today-verdict-title">当日干支关系 · {{personalDay.day_gan_zhi}}日</text><view><text class="today-verdict-label status-{{personalDay.status}}">{{personalDay.label}}</text><text>{{personalDay.summary}}</text></view></view>
         <view wx:if="{{personalDirections.length}}" class="today-directions"><view wx:for="{{personalDirections}}" wx:key="name"><text>{{item.name}}</text><text>{{item.direction}}</text></view></view>

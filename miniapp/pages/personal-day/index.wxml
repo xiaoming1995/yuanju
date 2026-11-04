@@ -26,20 +26,20 @@
     </view>
     <block wx:else>
       <view class="personal-profile surface-card"><view class="profile-icon">命</view><view class="profile-copy"><text>{{realDay.chart_name}}</text><text>日柱{{realDay.chart_day}} · 已主动绑定</text></view></view>
-      <view wx:if="{{realDay.activity_guidance && realDay.activity_guidance.length}}" class="personal-activities surface-card">
-        <view class="guidance-section-head"><view class="section-heading">本人事项提示</view><text wx:if="{{personalHints.length}}" bindtap="toggleActivityEvidence">{{showActivityEvidence ? '收起依据' : '查看依据 ›'}}</text></view>
-        <view wx:if="{{!personalHints.length}}" class="evidence-empty">所选日期暂无特别的本人事项提示。</view>
-        <view class="activity-row" wx:for="{{personalHints}}" wx:key="id">
+      <view class="personal-activities surface-card">
+        <view class="guidance-section-head"><view class="section-heading">本人每日主题</view><text wx:if="{{personalThemes.length}}" bindtap="toggleActivityEvidence">{{showActivityEvidence ? '收起依据' : '查看依据 ›'}}</text></view>
+        <view wx:if="{{!personalThemes.length}}" class="evidence-empty">{{realDay.theme_guidance ? '所选日期暂无特别提示。' : '今日主题参考暂不可用。'}}</view>
+        <view class="activity-row" wx:for="{{personalThemes}}" wx:key="id">
           <view class="activity-head"><text>{{item.title}}</text><text class="guidance-level level-{{item.level}}">{{item.label}}</text></view>
           <view class="activity-source">依据：{{item.source_label}}</view>
           <view class="activity-detail">{{item.summary}}</view>
+          <view class="activity-action" wx:for="{{item.actions}}" wx:for-item="action" wx:key="*this">{{action}}</view>
           <block wx:if="{{showActivityEvidence}}"><view class="activity-evidence" wx:for="{{item.evidence}}" wx:for-item="evidence" wx:key="*this">{{evidence}}</view></block>
         </view>
       </view>
       <view class="personal-verdict surface-card"><view class="section-heading">当日干支与本人命盘</view><view class="verdict-line"><text class="verdict-badge verdict-{{realDay.status}}">{{realDay.label}}</text><text>{{realDay.day_gan_zhi}}日</text></view><view class="verdict-summary">{{realDay.summary}}</view><view wx:if="{{realDirections.length}}" class="direction-list"><view wx:for="{{realDirections}}" wx:key="name"><text>{{item.name}}</text><text>{{item.direction}}</text></view></view></view>
       <view class="personal-verdict surface-card"><view class="section-heading">方位与色彩参考</view><block wx:if="{{realDay.luck && realDay.luck.available}}"><view class="luck-level">{{realDay.luck.level === 'qualified' ? '有条件参考' : (realDay.luck.level === 'baseline' ? '命盘基础参考' : '今日喜用对应')}}</view><view class="direction-list"><view><text>参考方位</text><text>{{realDay.luck.direction}}</text></view><view><text>参考颜色</text><text>{{realDay.luck.color}}</text></view></view><view class="verdict-summary">{{realDay.luck.reason}}</view></block><view wx:else class="verdict-summary">{{realDay.luck ? realDay.luck.reason : '方位与颜色参考暂不可用。'}}</view></view>
       <view class="personal-evidence surface-card"><view class="section-heading">判断依据</view><view class="fuyi-line"><text>扶抑喜用：{{realDay.favorable || '依据不足'}}</text><text>扶抑忌神：{{realDay.adverse || '依据不足'}}</text></view><view wx:if="{{realDay.evidence.length}}" class="evidence-list"><view wx:for="{{realDay.evidence}}" wx:key="*this"><text class="evidence-dot"></text><text>{{item}}</text></view></view><view wx:else class="evidence-empty">当前资料不足，没有形成个人关系判断。</view><view class="evidence-foot">依据版本：{{realDay.rule_version}}。日支仅按主气五行展示。</view></view>
-      <view wx:if="{{realDay.activities.length && !(realDay.activity_guidance && realDay.activity_guidance.length)}}" class="personal-activities surface-card"><view class="section-heading">事项提醒</view><view class="activity-row" wx:for="{{realDay.activities}}" wx:key="id"><view class="activity-head"><text>{{item.title}}</text><text>{{item.tip}}</text></view><view class="activity-detail">{{item.detail}}</view></view></view>
       <view class="personal-boundary">以上内容仅供参考，不能据此预测具体事件，也不构成投资、医疗或其他重大决策依据。</view>
     </block>
   </block>

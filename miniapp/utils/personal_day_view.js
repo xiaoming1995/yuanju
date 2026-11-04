@@ -1,7 +1,8 @@
-function personalHints(day) {
-  if (!day || !Array.isArray(day.activity_guidance)) return []
-  return day.activity_guidance.filter(item => Array.isArray(item.sources) &&
-    item.sources.includes('personal_chart') && ['candidate', 'review'].includes(item.level))
+function personalThemes(day) {
+  if (!day || !Array.isArray(day.theme_guidance)) return []
+  return day.theme_guidance.filter(item => ['noble', 'finance', 'romance', 'wellbeing'].includes(item.id) &&
+    Array.isArray(item.sources) && item.sources.includes('personal_chart') &&
+    ['candidate', 'review', 'neutral'].includes(item.level) && Array.isArray(item.evidence) && item.evidence.length)
 }
 
 function personalDirectionRows(day) {
@@ -13,4 +14,4 @@ function personalDirectionRows(day) {
   ]
 }
 
-module.exports = { personalHints, personalDirectionRows }
+module.exports = { personalThemes, personalDirectionRows }

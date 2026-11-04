@@ -5,7 +5,7 @@ const { buildPersonalDay } = require('../../data/personal_day')
 const { getJianChuInfo, jianChuNames } = require('../../data/jianchu')
 const { ACTIVITIES, classifyActivityDate } = require('../../data/moving_date')
 const navigation = require('../../utils/navigation_feedback')
-const { personalHints, personalDirectionRows } = require('../../utils/personal_day_view')
+const { personalThemes, personalDirectionRows } = require('../../utils/personal_day_view')
 
 const previewDate = '2026-10-22'
 
@@ -43,7 +43,7 @@ Page({
     calendarLoading: false,
     calendarError: '',
     realDay: null,
-    personalHints: [],
+    personalThemes: [],
     realDirections: [],
     showActivityEvidence: false,
     realLoading: false,
@@ -80,7 +80,7 @@ Page({
 
   async loadRealDay(date) {
     const currentToken = api.token()
-    this.setData({ realMode: true, realLoading: true, realDay: null, personalHints: [], realDirections: [], showActivityEvidence: false, realError: '' })
+    this.setData({ realMode: true, realLoading: true, realDay: null, personalThemes: [], realDirections: [], showActivityEvidence: false, realError: '' })
     try {
       const response = await api.personalChart()
       if (api.token() !== currentToken) return
@@ -90,7 +90,7 @@ Page({
       }
       const dayResponse = await api.personalDay(date)
       if (api.token() !== currentToken) return
-      this.setData({ realDay: dayResponse.data, personalHints: personalHints(dayResponse.data), realDirections: personalDirectionRows(dayResponse.data) })
+      this.setData({ realDay: dayResponse.data, personalThemes: personalThemes(dayResponse.data), realDirections: personalDirectionRows(dayResponse.data) })
     } catch (err) {
       if (api.token() === currentToken) this.setData({ realError: err.message })
     } finally { if (api.token() === currentToken) this.setData({ realLoading: false }) }
