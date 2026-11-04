@@ -35,7 +35,7 @@ test('personal chart setup keeps hour precision', () => {
   assert.equal(page.data.hours[page.data.hourIndex], '01:00')
 })
 
-test('long date groups reveal seven days at a time and reset for another activity', async () => {
+test('long date groups reveal five days at a time and reset for another activity', async () => {
   require('../config').apiBaseUrl = 'https://api.test.example'
   const app = { globalData: { previewDayProfileEnabled: true } }
   const page = loadPage('../pages/moving-date/index', app, { getStorageSync() { return '' }, request(options) {
@@ -49,18 +49,19 @@ test('long date groups reveal seven days at a time and reset for another activit
   await page.onLoad()
   page.setData({ startDate: '2026-10-22', endDate: '2026-12-22' })
   await page.refreshResults()
-  const longSection = page.data.sections.find(section => section.days.length > 7)
+  const longSection = page.data.sections.find(section => section.days.length > 5)
   assert.ok(longSection)
-  assert.equal(longSection.visibleDays.length, 7)
+  assert.equal(longSection.visibleDays.length, 5)
   page.showMore({ currentTarget: { dataset: { section: longSection.id } } })
-  assert.equal(page.data.sections.find(section => section.id === longSection.id).visibleDays.length, 14)
+  assert.equal(page.data.sections.find(section => section.id === longSection.id).visibleDays.length, 10)
   while (page.data.sections.find(section => section.id === longSection.id).hasMore) {
     page.showMore({ currentTarget: { dataset: { section: longSection.id } } })
   }
   const expanded = page.data.sections.find(section => section.id === longSection.id)
   assert.equal(expanded.visibleDays.length, expanded.days.length)
   await page.changeActivity({ currentTarget: { dataset: { activity: 'marriage' } } })
-  assert.ok(page.data.sections.every(section => section.visibleDays.length <= 7))
+  assert.ok(page.data.sections.every(section => section.visibleDays.length <= 5))
+  assert.equal(page.data.activeSectionId, 'yi')
   assert.equal(page.data.total, 62)
 })
 

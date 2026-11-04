@@ -54,11 +54,10 @@
 }
 
 .today-hero { position: relative; padding: 8rpx 8rpx 33rpx; }
-.daily-home-page .paper-backdrop-plum { left: -28rpx; width: 430rpx; opacity: 0.76; }
-.today-hero-top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; min-height: 87rpx; }
-.today-wordmark { color: #45291a; font-size: 50rpx; font-weight: 700; letter-spacing: 7rpx; text-shadow: 0 3rpx 1rpx #e8d6b3; }
-.home-section-link { position: absolute; right: 0; display: flex; align-items: center; min-height: 66rpx; padding: 0 17rpx; border: 1rpx solid #37664e; border-radius: 40rpx; background: rgba(255, 253, 247, 0.8); color: #315e46; font-size: 22rpx; white-space: nowrap; box-shadow: 0 4rpx 8rpx rgba(77, 90, 71, 0.07); }
-.today-date { display: flex; flex-direction: column; align-items: center; gap: 9rpx; margin-top: 28rpx; text-align: center; }
+.daily-home-page .paper-backdrop-plum { top: 18rpx; left: 24rpx; width: 430rpx; opacity: 0.76; }
+.today-hero-top { position: relative; z-index: 1; display: flex; align-items: center; justify-content: flex-end; min-height: 66rpx; }
+.home-section-link { display: flex; align-items: center; min-height: 66rpx; padding: 0 17rpx; border: 1rpx solid #37664e; border-radius: 40rpx; background: rgba(255, 253, 247, 0.8); color: #315e46; font-size: 22rpx; white-space: nowrap; box-shadow: 0 4rpx 8rpx rgba(77, 90, 71, 0.07); }
+.today-date { display: flex; flex-direction: column; align-items: center; gap: 9rpx; margin-top: 16rpx; text-align: center; }
 .today-date text:first-child { color: #352419; font-size: 46rpx; font-weight: 700; line-height: 1.28; }
 .today-date text:last-child { color: #866e50; font-size: 23rpx; }
 .today-pillars { position: relative; display: flex; align-items: stretch; margin-top: 26rpx; padding: 17rpx 15rpx; border: 1rpx solid #c9a669; border-radius: 40rpx; background: linear-gradient(90deg, #f7f5e9, #fff9ea, #f0f5e9); box-shadow: 0 5rpx 12rpx rgba(104, 75, 28, 0.09); }
@@ -126,7 +125,6 @@
 
 @media (max-width: 360px) {
   .today-date text:first-child { font-size: 36rpx; }
-  .today-wordmark { font-size: 42rpx; }
   .today-pillar-value { font-size: 23rpx; }
   .today-almanac { flex-direction: column; }
   .today-almanac > view:last-child { padding-left: 5rpx; border-left: 0; border-top: 1rpx solid #e9d8b8; }

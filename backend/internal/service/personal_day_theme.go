@@ -48,7 +48,7 @@ func buildPersonalDayThemes(chart *bazi.BaziResult, ctx personalDayActivityConte
 	}
 
 	if tianYiDay(chart.DayGan, ctx.dayZhi) || tianYiDay(chart.YearGan, ctx.dayZhi) {
-		item := newGuidance("noble", "贵人运")
+		item := newGuidance("noble", "人际往来")
 		item.Level, item.Label, item.SourceLabel = "candidate", "宜", "本人命盘"
 		item.Sources = []string{"personal_chart"}
 		item.Summary = "适合主动沟通、请教或推进协作。"
@@ -67,7 +67,7 @@ func buildPersonalDayThemes(chart *bazi.BaziResult, ctx personalDayActivityConte
 		}
 		themes = append(themes, item)
 	} else {
-		item := newGuidance("noble", "贵人运")
+		item := newGuidance("noble", "人际往来")
 		item.Level, item.Label, item.SourceLabel = "neutral", "平", "本人命盘"
 		item.Sources = []string{"personal_chart"}
 		item.Summary = "今日未见特别的贵人信号，交流协作照常安排。"
@@ -76,7 +76,7 @@ func buildPersonalDayThemes(chart *bazi.BaziResult, ctx personalDayActivityConte
 		themes = append(themes, item)
 	}
 
-	finance := domainGuidance(ctx, "finance", "投资运")
+	finance := domainGuidance(ctx, "finance", "财星参考")
 	if finance.Level == "candidate" || finance.Level == "review" {
 		if finance.Level == "candidate" {
 			finance.Summary = "可安排投资研究与财务规划；不代表买卖时机。"
@@ -92,7 +92,7 @@ func buildPersonalDayThemes(chart *bazi.BaziResult, ctx personalDayActivityConte
 	themes = append(themes, finance)
 
 	if taoHuaDay(chart.YearZhi, ctx.dayZhi) || taoHuaDay(chart.DayZhi, ctx.dayZhi) || dayBranchLiuHe(chart.DayZhi, ctx.dayZhi) {
-		item := newGuidance("romance", "桃花运")
+		item := newGuidance("romance", "桃花缘分")
 		item.Level, item.Label, item.SourceLabel = "candidate", "宜", "本人命盘"
 		item.Sources = []string{"personal_chart"}
 		item.Summary = "可考虑安排见面或社交，保持自然交流。"
@@ -122,7 +122,7 @@ func buildPersonalDayThemes(chart *bazi.BaziResult, ctx personalDayActivityConte
 		}
 		themes = append(themes, item)
 	} else {
-		item := newGuidance("romance", "桃花运")
+		item := newGuidance("romance", "桃花缘分")
 		item.Level, item.Label, item.SourceLabel = "neutral", "平", "本人命盘"
 		item.Sources = []string{"personal_chart"}
 		item.Summary = "今日未见特别的桃花或相合信号，社交见面按实际安排。"
@@ -132,7 +132,7 @@ func buildPersonalDayThemes(chart *bazi.BaziResult, ctx personalDayActivityConte
 	}
 
 	if ctx.ganDirection == "adverse" && ctx.zhiDirection == "adverse" {
-		item := newGuidance("wellbeing", "健康运")
+		item := newGuidance("wellbeing", "作息节奏")
 		item.Level, item.Label, item.SourceLabel = "review", "慎", "本人命盘"
 		item.Sources = []string{"personal_chart"}
 		item.Summary = "今日干支均落入忌神，作息和活动安排宜从容一些。"
@@ -140,7 +140,7 @@ func buildPersonalDayThemes(chart *bazi.BaziResult, ctx personalDayActivityConte
 		item.Evidence = append(item.Evidence, "当日日干和日支主气均落入本人扶抑忌神。")
 		themes = append(themes, item)
 	} else {
-		item := newGuidance("wellbeing", "健康运")
+		item := newGuidance("wellbeing", "作息节奏")
 		item.Level, item.Label, item.SourceLabel = "neutral", "平", "本人命盘"
 		item.Sources = []string{"personal_chart"}
 		item.Summary = "未触发双忌神身心提醒，按平常节奏安排作息。"

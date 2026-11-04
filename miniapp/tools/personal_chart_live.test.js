@@ -87,10 +87,10 @@ test('home and detail show the same personal items, directions, and luck', async
       { id: 'work', title: '工作事务', label: '宜', level: 'candidate', source_label: '本人命盘', sources: ['personal_chart'], summary: '宜安排工作事务。' },
     ],
     theme_guidance: [
-      { id: 'noble', title: '贵人运', label: '宜', level: 'candidate', source_label: '本人命盘', sources: ['personal_chart'], summary: '可沟通协作。', evidence: ['天乙贵人'], actions: ['列出问题。'] },
-      { id: 'finance', title: '投资运', label: '慎', level: 'review', source_label: '本人命盘', sources: ['personal_chart'], summary: '核对预算。', evidence: ['财星为忌'], actions: ['核对预算。'] },
-      { id: 'romance', title: '桃花运', label: '平', level: 'neutral', source_label: '本人命盘', sources: ['personal_chart'], summary: '按实际安排。', evidence: ['未命中桃花'], actions: ['自然交流。'] },
-      { id: 'wellbeing', title: '健康运', label: '平', level: 'neutral', source_label: '本人命盘', sources: ['personal_chart'], summary: '按平常节奏安排作息。', evidence: ['未触发双忌神规则'], actions: ['按需要休息。'] },
+      { id: 'noble', title: '人际往来', label: '宜', level: 'candidate', source_label: '本人命盘', sources: ['personal_chart'], summary: '可沟通协作。', evidence: ['天乙贵人'], actions: ['列出问题。'] },
+      { id: 'finance', title: '财星参考', label: '慎', level: 'review', source_label: '本人命盘', sources: ['personal_chart'], summary: '核对预算。', evidence: ['财星为忌'], actions: ['核对预算。'] },
+      { id: 'romance', title: '桃花缘分', label: '平', level: 'neutral', source_label: '本人命盘', sources: ['personal_chart'], summary: '按实际安排。', evidence: ['未命中桃花'], actions: ['自然交流。'] },
+      { id: 'wellbeing', title: '作息节奏', label: '平', level: 'neutral', source_label: '本人命盘', sources: ['personal_chart'], summary: '按平常节奏安排作息。', evidence: ['未触发双忌神规则'], actions: ['按需要休息。'] },
     ],
     luck: { available: true, level: 'qualified', element: '水', direction: '北方', color: '蓝黑色系', reason: '今日水属喜用，但另一干支五行属忌神，仅为局部参考。' },
     evidence: [], activities: [],
@@ -111,6 +111,7 @@ test('home and detail show the same personal items, directions, and luck', async
   await new Promise(resolve => setImmediate(resolve))
   assert.deepEqual(home.data.personalThemes, detail.data.personalThemes)
   assert.equal(home.data.personalThemes.length, 4)
+  assert.deepEqual(home.data.personalThemes.map(item => item.title), ['人际往来', '财星参考', '桃花缘分', '作息节奏'])
   assert.deepEqual(home.data.personalDirections, detail.data.realDirections)
   assert.deepEqual(home.data.personalDay.luck, detail.data.realDay.luck)
   assert.equal(home.data.personalDay.luck.level, 'qualified')
@@ -174,7 +175,7 @@ test('real daily detail keeps activity evidence and directional fields together'
       { id: 'work', level: 'insufficient', sources: ['personal_chart'], source_label: '本人命盘', evidence: [] },
     ],
     theme_guidance: [
-      { id: 'finance', title: '投资运', level: 'candidate', sources: ['personal_chart'], source_label: '本人命盘', evidence: ['喜用同向'], actions: ['核对预算。'] },
+      { id: 'finance', title: '财星参考', level: 'candidate', sources: ['personal_chart'], source_label: '本人命盘', evidence: ['喜用同向'], actions: ['核对预算。'] },
     ],
     evidence: [], activities: [],
   }

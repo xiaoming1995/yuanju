@@ -2,7 +2,7 @@ const api = require('../../utils/api')
 const { ACTIVITIES, defaultDateRange, validateDateRange, analyzeActivityRange } = require('../../data/real_date_selection')
 const navigation = require('../../utils/navigation_feedback')
 const { showAlmanacTerm } = require('../../data/almanac_terms')
-const INITIAL_VISIBLE_DAYS = 7
+const INITIAL_VISIBLE_DAYS = 5
 
 function withVisibleDays(sections) {
   return sections.map(section => ({
@@ -18,7 +18,7 @@ Page({
     activityOptions: ACTIVITIES.map(item => ({ id: item.id, label: item.label, selected: item.id === 'moving' })),
     startDate: '', endDate: '', minDate: '1900-01-01', maxDate: '2100-12-31',
     rangeError: '', resultError: '', resultUpdating: false, sections: [], total: 0, candidateCount: 0,
-    expandedDate: '', personalChart: null,
+    customRangeVisible: false, activeSectionId: 'yi', expandedDate: '', personalChart: null,
   },
 
   onLoad() {
@@ -55,6 +55,13 @@ Page({
 
   changeStartDate(event) { return this.refreshResults({ startDate: event.detail.value }) },
   changeEndDate(event) { return this.refreshResults({ endDate: event.detail.value }) },
+  toggleCustomRange() { this.setData({ customRangeVisible: !this.data.customRangeVisible }) },
+
+  changeSection(event) {
+    const id = event.currentTarget.dataset.section
+    if (!this.data.sections.some(section => section.id === id) || id === this.data.activeSectionId) return
+    this.setData({ activeSectionId: id, expandedDate: '' })
+  },
 
   changeActivity(event) {
     const activity = ACTIVITIES.find(item => item.id === event.currentTarget.dataset.activity)
@@ -68,6 +75,7 @@ Page({
     const requestId = this._requestId = (this._requestId || 0) + 1
     const rangeError = validateDateRange(next.startDate, next.endDate)
     this.setData({ ...overrides, rangeError, resultError: '', resultUpdating: !rangeError,
+      activeSectionId: 'yi',
       sections: [], total: 0, candidateCount: 0, expandedDate: '' })
     if (rangeError) return
     try {

@@ -27,6 +27,11 @@ func TestPersonalDayThemesSpecificSignalsAndBoundaries(t *testing.T) {
 	if len(items) != 4 || items[0].ID != "noble" || items[1].ID != "finance" || items[2].ID != "romance" || items[3].ID != "wellbeing" {
 		t.Fatalf("want four ordered themes; got %+v", items)
 	}
+	for i, title := range []string{"人际往来", "财星参考", "桃花缘分", "作息节奏"} {
+		if items[i].Title != title {
+			t.Fatalf("theme %d title = %q, want %q", i, items[i].Title, title)
+		}
+	}
 	finance, romance, health, noble := themeByID(items, "finance"), themeByID(items, "romance"), themeByID(items, "wellbeing"), themeByID(items, "noble")
 	if finance == nil || finance.Label != "慎" || romance == nil || romance.Label != "慎" || health == nil || health.Label != "平" || noble == nil || noble.Label != "平" {
 		t.Fatalf("unexpected theme levels: %+v", items)

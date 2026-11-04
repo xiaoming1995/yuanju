@@ -4,7 +4,7 @@
   <view class="moving-hero surface-card">
     <view class="hero-top"><text class="hero-kicker">择日 · 通用宜忌</text></view>
     <view class="hero-title">择日参考</view>
-    <view class="hero-copy">选事项和日期范围，查看传统宜忌中对应的原始标签。结果是通用日期资料，具体安排仍需核对。</view>
+    <view class="hero-copy">选事项、看日期；结果仅按通用宜忌筛选。</view>
   </view>
 
   <view class="activity-card surface-card">
@@ -16,17 +16,20 @@
   </view>
 
   <view class="filter-card surface-card">
-    <view class="filter-heading"><view class="section-heading">选择日期范围</view><text>最多 90 天</text></view>
-    <view class="range-row">
-      <picker class="range-picker" mode="date" value="{{startDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="changeStartDate">
-        <view class="range-field"><text>开始日期</text><text>{{startDate || '请选择'}}</text></view>
-      </picker>
-      <text class="range-separator">—</text>
-      <picker class="range-picker" mode="date" value="{{endDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="changeEndDate">
-        <view class="range-field"><text>结束日期</text><text>{{endDate || '请选择'}}</text></view>
-      </picker>
+    <view class="filter-heading"><view class="section-heading">日期范围</view><button class="range-toggle" bindtap="toggleCustomRange">{{customRangeVisible ? '收起' : '自定义范围'}}</button></view>
+    <view class="range-summary">{{startDate || '请选择'}} 至 {{endDate || '请选择'}}</view>
+    <view wx:if="{{customRangeVisible}}" class="custom-range">
+      <view class="range-row">
+        <picker class="range-picker" mode="date" value="{{startDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="changeStartDate">
+          <view class="range-field"><text>开始日期</text><text>{{startDate || '请选择'}}</text></view>
+        </picker>
+        <text class="range-separator">—</text>
+        <picker class="range-picker" mode="date" value="{{endDate}}" start="{{minDate}}" end="{{maxDate}}" bindchange="changeEndDate">
+          <view class="range-field"><text>结束日期</text><text>{{endDate || '请选择'}}</text></view>
+        </picker>
+      </view>
+      <view class="range-hint">最多 90 天；支持 1900—2100 年内的有效日期，起止日期均计入。</view>
     </view>
-    <view class="range-hint">支持 1900—2100 年内的有效日期；起止日期均计入筛选。</view>
   </view>
 
   <view wx:if="{{rangeError}}" class="range-error surface-card">{{rangeError}}</view>
@@ -35,32 +38,40 @@
 
   <block wx:else>
     <view class="result-summary surface-card">
-      <view><text class="result-kicker">{{activity.label}} · 通用宜忌筛选</text><text class="result-count">{{candidateCount}}<text> 天有相关宜</text></text></view>
-      <text class="result-total">共查看 {{total}} 天</text>
+      <view><text class="result-kicker">{{activity.label}} · 通用宜忌</text><text class="result-count">{{candidateCount}}<text> 天有相关宜</text></text></view>
+      <text class="result-total">查看 {{total}} 天</text>
     </view>
-    <view wx:if="{{candidateCount === 0}}" class="empty-priority surface-card">这段时间没有列出「{{activity.label}}」相关宜的日期；其他日期及原因仍可逐日核对。</view>
+
+    <view class="result-tabs" role="tablist">
+      <button wx:for="{{sections}}" wx:key="id" class="result-tab {{activeSectionId === item.id ? 'is-active' : ''}}" data-section="{{item.id}}" bindtap="changeSection" aria-label="{{item.label}} {{item.days.length}} 天">
+        <text>{{item.label}}</text><text class="tab-count">{{item.days.length}}</text>
+      </button>
+    </view>
 
     <block wx:for="{{sections}}" wx:for-item="section" wx:key="id">
-      <view wx:if="{{section.days.length}}" class="result-section">
-        <view class="section-bar"><text class="section-title">{{section.label}}</text><text class="section-count">{{section.days.length}} 天</text></view>
+      <view wx:if="{{section.id === activeSectionId}}" class="result-section">
+        <view wx:if="{{!section.days.length}}" class="group-empty surface-card">这段时间没有{{section.label}}的日期，可切换查看其他分组。</view>
         <view class="moving-day surface-card group-{{section.id}}" wx:for="{{section.visibleDays}}" wx:for-item="day" wx:key="date">
-          <view class="day-header" data-date="{{day.date}}" hover-class="tap-pressed" bindtap="openDay"><view><text class="day-date">{{day.date}}</text><text class="day-lunar">{{day.lunarFull}}</text></view><text class="day-arrow">{{expandedDate === day.date ? '⌃' : '›'}}</text></view>
-          <view class="day-meta"><text>{{day.dayGanZhi}}日</text><text>通用日期资料</text></view>
-          <view class="day-tags"><text class="yi-tag">相关宜：{{day.yiText}}</text><text class="ji-tag">相关忌：{{day.jiText}}</text></view>
-          <view class="day-reason">{{day.reason}}</view>
+          <view class="day-header" data-date="{{day.date}}" hover-class="tap-pressed" bindtap="openDay">
+            <view class="day-overview"><view class="day-date-line"><text class="day-date">{{day.date}}</text><text class="day-lunar">{{day.lunarFull}}</text></view><text class="day-match">{{section.id === 'yi' ? '命中宜：' + day.yiText : section.id === 'ji' ? '命中忌：' + day.jiText : '通用宜忌未列相关标签'}}</text></view>
+            <text class="day-arrow">{{expandedDate === day.date ? '⌃' : '›'}}</text>
+          </view>
           <view wx:if="{{expandedDate === day.date}}" class="day-details">
-            <view class="day-detail-heading">完整通用宜忌</view>
+            <view class="day-detail-heading">筛选依据 · 通用日期资料</view>
+            <view class="day-meta"><text>{{day.dayGanZhi}}日</text></view>
+            <view class="day-tags"><text class="yi-tag">相关宜：{{day.yiText}}</text><text class="ji-tag">相关忌：{{day.jiText}}</text></view>
+            <view class="day-reason">{{day.reason}}</view>
+            <view class="full-heading">完整通用宜忌</view>
             <view class="full-tags"><text class="full-tag-label is-yi">宜</text><view class="full-tag-items"><text wx:for="{{day.allYi}}" wx:for-item="label" wx:key="*this" class="almanac-term" data-term="{{label}}" data-kind="宜" catchtap="showAlmanacTerm" role="button" aria-label="查看宜项{{label}}的解释">{{label}}</text><text wx:if="{{!day.allYi.length}}">无记录</text></view></view>
             <view class="full-tags"><text class="full-tag-label is-ji">忌</text><view class="full-tag-items"><text wx:for="{{day.allJi}}" wx:for-item="label" wx:key="*this" class="almanac-term" data-term="{{label}}" data-kind="忌" catchtap="showAlmanacTerm" role="button" aria-label="查看忌项{{label}}的解释">{{label}}</text><text wx:if="{{!day.allJi.length}}">无记录</text></view></view>
             <view class="almanac-help">点按词语查看解释</view>
             <button wx:if="{{personalChart}}" class="personal-link {{navigationKey === day.date ? 'is-opening' : ''}}" data-date="{{day.date}}" bindtap="openPersonalDay">查看本人每日参考 ›</button>
-            <view wx:else class="personal-hint">绑定本人命盘后，可另行查看该日个人参考。</view>
           </view>
         </view>
-        <button wx:if="{{section.hasMore}}" class="show-more" data-section="{{section.id}}" bindtap="showMore">继续显示 7 天 · 已显示 {{section.visibleDays.length}} / {{section.days.length}}</button>
+        <button wx:if="{{section.hasMore}}" class="show-more" data-section="{{section.id}}" bindtap="showMore">继续显示 5 天 · 已显示 {{section.visibleDays.length}} / {{section.days.length}}</button>
       </view>
     </block>
   </block>
 
-  <view class="moving-note">事项按上方标明的传统标签筛选；通用宜忌不包含时辰、参与人及现实条件的核对，也不提供投资买卖时机。</view>
+  <view class="moving-note">通用宜忌仅供日期参考；具体安排还需核对时辰、参与人和现实条件。</view>
 </view>

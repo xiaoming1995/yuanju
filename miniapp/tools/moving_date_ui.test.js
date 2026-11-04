@@ -65,6 +65,46 @@ test('unbound users see real general dates without a sample switch', async () =>
   assert.equal(page.data.personalChart, null)
   assert.equal(typeof page.startPreview, 'undefined')
   assert.equal(page.data.sections[0].days[0].allYi[0], '入宅')
+  assert.equal(page.data.customRangeVisible, false)
+  assert.equal(page.data.activeSectionId, 'yi')
+  assert.equal(page.data.sections[0].visibleDays.length, 5)
+})
+
+test('custom range can be collapsed without changing the selected dates', async () => {
+  const { wxApi } = environment()
+  const page = loadPage('../pages/moving-date/index', wxApi)
+  await page.onLoad()
+  page.toggleCustomRange()
+  assert.equal(page.data.customRangeVisible, true)
+  await page.changeEndDate({ detail: { value: page.data.startDate } })
+  assert.equal(page.data.total, 1)
+  page.toggleCustomRange()
+  assert.equal(page.data.customRangeVisible, false)
+  assert.equal(page.data.endDate, page.data.startDate)
+  assert.equal(page.data.total, 1)
+})
+
+test('result tabs switch existing groups without a request and clear the open date', async () => {
+  const { wxApi } = environment()
+  let requests = 0
+  const originalRequest = wxApi.request
+  wxApi.request = options => { requests += 1; originalRequest(options) }
+  const page = loadPage('../pages/moving-date/index', wxApi)
+  await page.onLoad()
+  await page.changeActivity({ currentTarget: { dataset: { activity: 'opening' } } })
+  assert.equal(page.data.activeSectionId, 'yi')
+  assert.equal(page.data.candidateCount, 0)
+  assert.equal(page.data.sections.find(section => section.id === 'ji').days.length, 30)
+  const beforeSwitch = requests
+  page.changeSection({ currentTarget: { dataset: { section: 'ji' } } })
+  assert.equal(requests, beforeSwitch)
+  assert.equal(page.data.activeSectionId, 'ji')
+  const date = page.data.sections.find(section => section.id === 'ji').days[0].date
+  page.openDay({ currentTarget: { dataset: { date } } })
+  assert.equal(page.data.expandedDate, date)
+  page.changeSection({ currentTarget: { dataset: { section: 'unlisted' } } })
+  assert.equal(page.data.expandedDate, '')
+  assert.equal(requests, beforeSwitch)
 })
 
 test('changing activity recomputes general results while keeping range', async () => {
