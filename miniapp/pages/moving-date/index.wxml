@@ -50,8 +50,9 @@
           <view class="day-reason">{{day.reason}}</view>
           <view wx:if="{{expandedDate === day.date}}" class="day-details">
             <view class="day-detail-heading">完整通用宜忌</view>
-            <view class="full-tags"><text class="full-tag-label is-yi">宜</text><view class="full-tag-items"><text wx:for="{{day.allYi}}" wx:for-item="label" wx:key="*this">{{label}}</text><text wx:if="{{!day.allYi.length}}">无记录</text></view></view>
-            <view class="full-tags"><text class="full-tag-label is-ji">忌</text><view class="full-tag-items"><text wx:for="{{day.allJi}}" wx:for-item="label" wx:key="*this">{{label}}</text><text wx:if="{{!day.allJi.length}}">无记录</text></view></view>
+            <view class="full-tags"><text class="full-tag-label is-yi">宜</text><view class="full-tag-items"><text wx:for="{{day.allYi}}" wx:for-item="label" wx:key="*this" class="almanac-term" data-term="{{label}}" data-kind="宜" catchtap="showAlmanacTerm" role="button" aria-label="查看宜项{{label}}的解释">{{label}}</text><text wx:if="{{!day.allYi.length}}">无记录</text></view></view>
+            <view class="full-tags"><text class="full-tag-label is-ji">忌</text><view class="full-tag-items"><text wx:for="{{day.allJi}}" wx:for-item="label" wx:key="*this" class="almanac-term" data-term="{{label}}" data-kind="忌" catchtap="showAlmanacTerm" role="button" aria-label="查看忌项{{label}}的解释">{{label}}</text><text wx:if="{{!day.allJi.length}}">无记录</text></view></view>
+            <view class="almanac-help">点按词语查看解释</view>
             <button wx:if="{{personalChart}}" class="personal-link {{navigationKey === day.date ? 'is-opening' : ''}}" data-date="{{day.date}}" bindtap="openPersonalDay">查看本人每日参考 ›</button>
             <view wx:else class="personal-hint">绑定本人命盘后，可另行查看该日个人参考。</view>
           </view>

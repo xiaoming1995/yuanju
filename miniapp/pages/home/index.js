@@ -2,6 +2,7 @@ const api = require('../../utils/api')
 const { toHistory } = require('../../utils/chart_view')
 const { personalThemes, personalDirectionRows } = require('../../utils/personal_day_view')
 const navigation = require('../../utils/navigation_feedback')
+const { showAlmanacTerm } = require('../../data/almanac_terms')
 
 function chinaTodayKey() {
   return new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)
@@ -22,6 +23,7 @@ function calendarPreview() {
 }
 
 Page({
+  showAlmanacTerm,
   data: {
     mode: 'home',
     history: [],

@@ -86,6 +86,8 @@
 .today-almanac > view > view { display: flex; min-width: 0; flex-wrap: wrap; gap: 5rpx 12rpx; }
 .today-almanac > view > view text { max-width: 100%; color: #2e5940; font-size: 22rpx; line-height: 1.6; overflow-wrap: anywhere; }
 .today-almanac > view:last-child > view text { color: #a44d40; }
+.today-almanac .almanac-term { display: inline-flex; min-height: 40rpx; align-items: center; padding: 2rpx 4rpx; border-bottom: 1rpx dotted currentColor; }
+.almanac-help { margin-top: 14rpx; color: #8f806d; font-size: 19rpx; line-height: 1.5; }
 .today-mark { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 43rpx; height: 43rpx; border-radius: 45% 55% 48% 52%; color: #fff; font-size: 22rpx; font-weight: 700; box-shadow: 0 3rpx 4rpx rgba(80, 66, 42, 0.14); }
 .today-mark.is-yi { background: #427452; }
 .today-mark.is-ji { background: #c85e4c; }

@@ -11,8 +11,9 @@
       <view class="section-heading">黄历宜忌 <text>通用日期资料</text></view>
       <view wx:if="{{calendarLoading}}" class="evidence-empty">正在读取该日宜忌…</view>
       <view wx:elif="{{calendarDay}}">
-        <view class="almanac-row"><text class="almanac-mark is-yi">宜</text><view class="almanac-items"><text wx:for="{{calendarDay.yi}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.yi.length}}" class="almanac-empty">无记录</text></view></view>
-        <view class="almanac-row"><text class="almanac-mark is-ji">忌</text><view class="almanac-items"><text wx:for="{{calendarDay.ji}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.ji.length}}" class="almanac-empty">无记录</text></view></view>
+        <view class="almanac-row"><text class="almanac-mark is-yi">宜</text><view class="almanac-items"><text wx:for="{{calendarDay.yi}}" wx:key="*this" class="almanac-term" data-term="{{item}}" data-kind="宜" bindtap="showAlmanacTerm" role="button" aria-label="查看宜项{{item}}的解释">{{item}}</text><text wx:if="{{!calendarDay.yi.length}}" class="almanac-empty">无记录</text></view></view>
+        <view class="almanac-row"><text class="almanac-mark is-ji">忌</text><view class="almanac-items"><text wx:for="{{calendarDay.ji}}" wx:key="*this" class="almanac-term" data-term="{{item}}" data-kind="忌" bindtap="showAlmanacTerm" role="button" aria-label="查看忌项{{item}}的解释">{{item}}</text><text wx:if="{{!calendarDay.ji.length}}" class="almanac-empty">无记录</text></view></view>
+        <view class="almanac-help">点按词语查看解释</view>
       </view>
       <view wx:else class="evidence-empty">{{calendarError || '该日宜忌暂不可用'}}</view>
     </view>

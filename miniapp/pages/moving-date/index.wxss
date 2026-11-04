@@ -55,6 +55,8 @@
 .full-tag-label.is-ji { background: #fbf0ed; color: #8b463a; }
 .full-tag-items { display: flex; min-width: 0; flex-wrap: wrap; gap: 8rpx; color: #58636a; font-size: 22rpx; line-height: 1.5; }
 .full-tag-items > text { overflow-wrap: anywhere; }
+.full-tag-items > .almanac-term { display: inline-flex; min-height: 44rpx; align-items: center; padding: 2rpx 6rpx; border-bottom: 1rpx dotted #a6b4aa; }
+.almanac-help { margin-top: 12rpx; color: #8b949d; font-size: 19rpx; }
 .personal-link { margin: 20rpx 0 0; border-radius: 15rpx; background: #fbf2dc; color: #775119; font-size: 23rpx; }
 .personal-hint { margin-top: 18rpx; color: #89959a; font-size: 21rpx; line-height: 1.5; }
 .show-more { display: flex; align-items: center; justify-content: center; min-height: 80rpx; margin-top: 13rpx; border: 1rpx solid #e7dbc7; border-radius: 18rpx; background: #fff; color: #775119; font-size: 24rpx; }

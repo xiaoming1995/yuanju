@@ -6,6 +6,7 @@ const { getJianChuInfo, jianChuNames } = require('../../data/jianchu')
 const { ACTIVITIES, classifyActivityDate } = require('../../data/moving_date')
 const navigation = require('../../utils/navigation_feedback')
 const { personalThemes, personalDirectionRows } = require('../../utils/personal_day_view')
+const { showAlmanacTerm } = require('../../data/almanac_terms')
 
 const previewDate = '2026-10-22'
 
@@ -31,6 +32,7 @@ function dateDetails(date, activityId) {
 }
 
 Page({
+  showAlmanacTerm,
   data: {
     enabled: false,
     chartDate: chart.input.dateTime,

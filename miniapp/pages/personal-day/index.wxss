@@ -10,6 +10,8 @@
 .almanac-items { display: flex; min-width: 0; flex-wrap: wrap; gap: 8rpx; }
 .almanac-items > text { padding: 4rpx 10rpx; border-radius: 8rpx; background: #f7f7f4; color: #465158; font-size: 21rpx; line-height: 1.4; }
 .almanac-items > .almanac-empty { color: #89939b; }
+.almanac-items > .almanac-term { display: inline-flex; min-height: 44rpx; align-items: center; border-bottom: 1rpx dotted #a6b4aa; }
+.almanac-help { margin-top: 10rpx; color: #8b949d; font-size: 19rpx; }
 .hero-top { display: flex; justify-content: space-between; align-items: center; gap: 12rpx; }
 .hero-kicker { color: #e3b65c; font-size: 22rpx; letter-spacing: 2rpx; }
 .hero-date { margin-top: 27rpx; font-size: 39rpx; font-weight: 700; }

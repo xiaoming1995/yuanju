@@ -1,6 +1,7 @@
 const api = require('../../utils/api')
 const { ACTIVITIES, defaultDateRange, validateDateRange, analyzeActivityRange } = require('../../data/real_date_selection')
 const navigation = require('../../utils/navigation_feedback')
+const { showAlmanacTerm } = require('../../data/almanac_terms')
 const INITIAL_VISIBLE_DAYS = 7
 
 function withVisibleDays(sections) {
@@ -11,6 +12,7 @@ function withVisibleDays(sections) {
 }
 
 Page({
+  showAlmanacTerm,
   data: {
     activityId: 'moving', activity: ACTIVITIES[0],
     activityOptions: ACTIVITIES.map(item => ({ id: item.id, label: item.label, selected: item.id === 'moving' })),

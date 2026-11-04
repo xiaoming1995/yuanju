@@ -17,10 +17,11 @@
       <view class="today-heading"><text>黄历宜忌</text><view class="today-heading-rule"></view><text>通用日期资料</text></view>
       <view wx:if="{{calendarLoading}}" class="today-status">正在读取今日宜忌…</view>
       <view wx:elif="{{calendarDay}}" class="today-almanac">
-        <view><text class="today-mark is-yi">宜</text><view><text wx:for="{{calendarDay.yi}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.yi.length}}">无记录</text></view></view>
-        <view><text class="today-mark is-ji">忌</text><view><text wx:for="{{calendarDay.ji}}" wx:key="*this">{{item}}</text><text wx:if="{{!calendarDay.ji.length}}">无记录</text></view></view>
+        <view><text class="today-mark is-yi">宜</text><view><text wx:for="{{calendarDay.yi}}" wx:key="*this" class="almanac-term" data-term="{{item}}" data-kind="宜" bindtap="showAlmanacTerm" role="button" aria-label="查看宜项{{item}}的解释">{{item}}</text><text wx:if="{{!calendarDay.yi.length}}">无记录</text></view></view>
+        <view><text class="today-mark is-ji">忌</text><view><text wx:for="{{calendarDay.ji}}" wx:key="*this" class="almanac-term" data-term="{{item}}" data-kind="忌" bindtap="showAlmanacTerm" role="button" aria-label="查看忌项{{item}}的解释">{{item}}</text><text wx:if="{{!calendarDay.ji.length}}">无记录</text></view></view>
       </view>
       <view wx:else class="today-status">{{calendarError || '今日宜忌暂不可用'}}</view>
+      <view wx:if="{{calendarDay}}" class="almanac-help">点按词语查看解释</view>
     </view>
 
     <view class="today-section today-personal-card surface-card">
