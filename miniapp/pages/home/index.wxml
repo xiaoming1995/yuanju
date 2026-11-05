@@ -11,6 +11,10 @@
       <view class="today-hero-top"><text class="home-section-link {{navigationKey === 'calendar' ? 'is-opening' : ''}}" bindtap="openCalendar">查看日历 ›</text></view>
       <view class="today-date"><text>{{calendarPreview.date}}</text><text>农历{{calendarPreview.lunar || (calendarLoading ? '读取中' : '暂不可用')}}</text></view>
       <view class="today-pillars"><view><text class="today-pillar-value">{{calendarPreview.yearGanZhi}}年</text><text class="today-pillar-label">年柱</text></view><view><text class="today-pillar-value">{{calendarPreview.monthGanZhi}}月</text><text class="today-pillar-label">月柱</text></view><view><text class="today-pillar-value">{{calendarPreview.dayGanZhi}}日</text><text class="today-pillar-label">日柱</text></view></view>
+      <view wx:if="{{dailyEncouragement}}" class="daily-encouragement tone-{{dailyEncouragement.tone}}" hover-class="tap-pressed" bindtap="openTodayDetail" role="button" aria-label="{{dailyEncouragement.text}}，查看依据">
+        <text class="daily-encouragement-text">{{dailyEncouragement.text}}</text>
+        <text class="daily-encouragement-link">查看依据 ›</text>
+      </view>
     </view>
 
     <view class="today-section today-question-card surface-card">

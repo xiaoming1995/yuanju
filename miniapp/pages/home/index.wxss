@@ -69,6 +69,12 @@
 .today-pillar-value { color: #452c18; font-size: 27rpx; font-size: calc(27rpx + var(--yj-font-step, 0rpx)); font-weight: 600; white-space: nowrap; }
 .today-pillar-label { color: #967f64; font-size: 22rpx; font-size: calc(22rpx + var(--yj-font-step, 0rpx)); }
 
+.daily-encouragement { display: flex; flex-direction: column; gap: 7rpx; min-width: 0; margin-top: 22rpx; padding: 20rpx 24rpx; border: 1rpx solid #dce6d5; border-radius: 16rpx; background: #eef3e8; color: #34563f; }
+.daily-encouragement.tone-neutral { border-color: #e7e0d2; background: #f8f5ec; color: #675a40; }
+.daily-encouragement.tone-caution { border-color: #eadfcf; background: #faf3e9; color: #775638; }
+.daily-encouragement-text { font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); font-weight: 600; line-height: 1.55; overflow-wrap: anywhere; }
+.daily-encouragement-link { align-self: flex-end; min-height: 44rpx; color: inherit; font-size: 23rpx; font-size: calc(23rpx + var(--yj-font-step, 0rpx)); line-height: 44rpx; }
+
 .home-page .today-section { position: relative; margin-bottom: 25rpx; padding: 31rpx 29rpx 33rpx; border: 1rpx solid var(--yj-panel-border); border-radius: var(--yj-panel-radius); background: #fffdf8; box-shadow: 0 6rpx 0 #f3e9d6, 0 12rpx 19rpx rgba(103, 70, 26, 0.12); }
 .today-section::before { position: absolute; top: 14rpx; right: 19rpx; color: #bd995b; content: '✥'; font-size: 26rpx; font-size: calc(26rpx + var(--yj-font-step, 0rpx)); line-height: 1; }
 .today-section::after { position: absolute; top: 7rpx; right: 7rpx; bottom: 7rpx; left: 7rpx; border: 1rpx solid rgba(211, 175, 115, 0.45); border-radius: 19rpx; content: ''; pointer-events: none; }

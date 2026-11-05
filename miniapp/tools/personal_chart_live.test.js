@@ -36,10 +36,10 @@ test('home shows same real today for general and personal data outside demo year
     request(options) {
       calls.push(options.url)
       const data = options.url.includes('/personal-chart')
-        ? { chart: { id: 'owned-chart', display_name: '自己的排盘' } }
+        ? { chart: { id: 'owned-chart', display_name: '自己的排盘', gender: 'male' } }
         : options.url.includes('/calendar/day?')
           ? { data: { date: '2028-01-01', day_gan_zhi: '甲子', yi: ['祭祀'], ji: ['开市'] } }
-          : { data: { date: '2028-01-01', day_gan_zhi: '甲子', status: 'mixed', label: '关系复杂', summary: '查看依据', evidence: [], activities: [] } }
+          : { data: { date: '2028-01-01', chart_id: 'owned-chart', day_gan_zhi: '甲子', status: 'mixed', label: '关系复杂', summary: '查看依据', evidence: ['日干与日支主气方向相反。'], activities: [] } }
       options.success({ statusCode: 200, data })
     },
   }
@@ -50,6 +50,7 @@ test('home shows same real today for general and personal data outside demo year
   assert.equal(home.data.calendarPreview.key, '2028-01-01')
   assert.equal(home.data.calendarDay.date, '2028-01-01')
   assert.equal(home.data.personalDay.date, '2028-01-01')
+  assert.equal(home.data.dailyEncouragement, null)
   assert.equal(home.data.calendarPreview.dayGanZhi, '甲子')
   assert.ok(calls.some(url => url.endsWith('/personal-day?date=2028-01-01')))
   } finally { Date.now = previousNow }
@@ -72,6 +73,33 @@ test('home keeps unbound state separate from public almanac', async () => {
   assert.deepEqual(home.data.calendarDay.yi, ['祭祀'])
   assert.equal(home.data.personalState, 'unbound')
   assert.equal(home.data.personalDay, null)
+  assert.equal(home.data.dailyEncouragement, null)
+})
+
+test('home keeps the greeting neutral when all four visible themes are flat', async () => {
+  config.apiBaseUrl = 'https://api.test.example'
+  const date = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const themes = ['noble', 'finance', 'romance', 'wellbeing'].map(id => ({
+    id, level: 'neutral', sources: ['personal_chart'], evidence: ['未触发特别规则'],
+  }))
+  const home = page('../pages/home/index', { globalData: {} }, {
+    getStorageSync: () => 'jwt',
+    request(options) {
+      const data = options.url.endsWith('/personal-chart')
+        ? { chart: { id: 'mine', gender: 'male' } }
+        : options.url.includes('/calendar/day?')
+          ? { data: { date, yi: [], ji: [] } }
+          : { data: { date, chart_id: 'mine', status: 'undetermined', label: '日干偏合',
+            stem_direction: 'favorable', branch_direction: 'neutral', evidence: ['日干属喜用'], theme_guidance: themes } }
+      options.success({ statusCode: 200, data })
+    },
+  })
+  home.refreshToday()
+  await new Promise(resolve => setImmediate(resolve))
+  await new Promise(resolve => setImmediate(resolve))
+  assert.deepEqual(home.data.personalThemes.map(item => item.level), ['neutral', 'neutral', 'neutral', 'neutral'])
+  assert.equal(home.data.dailyEncouragement.tone, 'neutral')
+  assert.match(home.data.dailyEncouragement.text, /今天适合稳稳发挥/)
 })
 
 test('home and detail show the same personal items, directions, and luck', async () => {
@@ -93,12 +121,12 @@ test('home and detail show the same personal items, directions, and luck', async
       { id: 'wellbeing', title: '作息节奏', label: '平', level: 'neutral', source_label: '本人命盘', sources: ['personal_chart'], summary: '按平常节奏安排作息。', evidence: ['未触发双忌神规则'], actions: ['按需要休息。'] },
     ],
     luck: { available: true, level: 'qualified', element: '水', direction: '北方', color: '蓝黑色系', reason: '今日水属喜用，但另一干支五行属忌神，仅为局部参考。' },
-    evidence: [], activities: [],
+    evidence: ['日干与日支主气方向相反。'], activities: [],
   }
   const wxApi = {
     getStorageSync: () => 'jwt',
     request(options) {
-      const data = options.url.endsWith('/personal-chart') ? { chart: { id: 'mine' } }
+      const data = options.url.endsWith('/personal-chart') ? { chart: { id: 'mine', gender: 'female' } }
         : options.url.includes('/calendar/day?') ? { data: { date, yi: ['出行'], ji: [] } } : { data: day }
       options.success({ statusCode: 200, data })
     },
@@ -116,6 +144,7 @@ test('home and detail show the same personal items, directions, and luck', async
   assert.deepEqual(home.data.personalDay.luck, detail.data.realDay.luck)
   assert.equal(home.data.personalDay.luck.level, 'qualified')
   assert.equal(home.data.personalDay.summary, detail.data.realDay.summary)
+  assert.match(home.data.dailyEncouragement.text, /^靓女，今天按自己的节奏来/)
 })
 
 test('home ignores an earlier personal response after the account changes', async () => {
@@ -138,6 +167,7 @@ test('home ignores an earlier personal response after the account changes', asyn
   pending[0].success({ statusCode: 200, data: { chart: { id: 'old-chart' } } })
   await new Promise(resolve => setImmediate(resolve))
   assert.equal(home.data.personalDay, null)
+  assert.equal(home.data.dailyEncouragement, null)
   assert.equal(home.data.personalState, 'unbound')
 })
 

@@ -2,6 +2,7 @@ const fontSize = require('../../utils/font_size')
 const api = require('../../utils/api')
 const { toHistory } = require('../../utils/chart_view')
 const { personalThemes, personalDirectionRows } = require('../../utils/personal_day_view')
+const { dailyEncouragement } = require('../../utils/daily_encouragement')
 const navigation = require('../../utils/navigation_feedback')
 const { showAlmanacTerm } = require('../../data/almanac_terms')
 
@@ -40,6 +41,7 @@ Page({
     calendarLoading: false,
     calendarError: '',
     personalDay: null,
+    dailyEncouragement: null,
     personalThemes: [],
     personalDirections: [],
     personalLoading: false,
@@ -87,7 +89,7 @@ Page({
     const requestId = (this._todayRequestId || 0) + 1
     this._todayRequestId = requestId
     this.setData({ calendarPreview: preview, calendarDay: null, calendarLoading: true, calendarError: '',
-      personalDay: null, personalThemes: [], personalDirections: [], personalLoading: Boolean(api.token()),
+      personalDay: null, dailyEncouragement: null, personalThemes: [], personalDirections: [], personalLoading: Boolean(api.token()),
       personalError: '', personalState: api.token() ? 'loading' : 'unbound' })
     this.loadTodayCalendar(date, requestId)
     if (api.token()) this.loadTodayPersonal(date, requestId, api.token())
@@ -124,12 +126,14 @@ Page({
       if (this._todayRequestId !== requestId || api.token() !== token || chinaTodayKey() !== date) return
       const day = dayResponse.data
       if (!day || day.date !== date) throw new Error('个人每日资料不完整')
-      this.setData({ personalDay: day, personalThemes: personalThemes(day),
+      if (day.chart_id && response.chart.id && day.chart_id !== response.chart.id) throw new Error('本人命盘已更新，请重试')
+      const themes = personalThemes(day)
+      this.setData({ personalDay: day, dailyEncouragement: dailyEncouragement(day, response.chart, themes), personalThemes: themes,
         personalDirections: personalDirectionRows(day), personalState: 'ready' })
     } catch (err) {
       if (this._todayRequestId !== requestId) return
-      if (api.token() !== token) { this.setData({ personalState: 'unbound', personalDay: null }); return }
-      this.setData({ personalError: err.message, personalState: err.code === 'personal_chart_unbound' ? 'unbound' : 'error' })
+      if (api.token() !== token) { this.setData({ personalState: 'unbound', personalDay: null, dailyEncouragement: null }); return }
+      this.setData({ personalError: err.message, dailyEncouragement: null, personalState: err.code === 'personal_chart_unbound' ? 'unbound' : 'error' })
     } finally { if (this._todayRequestId === requestId) this.setData({ personalLoading: false }) }
   },
 
