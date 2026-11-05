@@ -78,6 +78,17 @@ export const adminLLMAPI = {
     adminApi.post(`/api/admin/llm-providers/${id}/test`, {}),
 }
 
+export const adminTodayQuestionsAPI = {
+  list: (params: { page: number; limit: number; from?: string; to?: string; status?: string; user?: string }) =>
+    adminApi.get('/api/admin/today-questions', { params }),
+  detail: (id: string) =>
+    adminApi.get(`/api/admin/today-questions/${encodeURIComponent(id)}`),
+  settings: () =>
+    adminApi.get<{ data: { daily_limit: number } }>('/api/admin/today-questions/settings'),
+  updateSettings: (daily_limit: number) =>
+    adminApi.put<{ data: { daily_limit: number } }>('/api/admin/today-questions/settings', { daily_limit }),
+}
+
 export const adminStatsAPI = {
   overview: () => adminApi.get('/api/admin/stats'),
   ai: () => adminApi.get('/api/admin/stats/ai'),
@@ -100,6 +111,27 @@ export const adminUsersAPI = {
     adminApi.put(`/api/admin/users/${id}/disable`, { disabled }),
   remove: (id: string) =>
     adminApi.delete(`/api/admin/users/${id}`),
+  todayQuestionCredits: (id: string) =>
+    adminApi.get<{ data: TodayQuestionCreditAccount }>(`/api/admin/users/${encodeURIComponent(id)}/today-question-credits`),
+  grantTodayQuestionCredits: (id: string, amount: number, reason: string, idempotencyKey: string) =>
+    adminApi.post<{ data: TodayQuestionCreditEntry }>(`/api/admin/users/${encodeURIComponent(id)}/today-question-credits/grants`,
+      { amount, reason, idempotency_key: idempotencyKey }),
+}
+
+export interface TodayQuestionCreditEntry {
+  id: string
+  kind: 'grant' | 'spend' | 'refund'
+  delta: number
+  balance_after: number
+  reason: string
+  admin_id?: string
+  request_id?: string
+  created_at: string
+}
+
+export interface TodayQuestionCreditAccount {
+  balance: number
+  entries: TodayQuestionCreditEntry[]
 }
 
 export const adminRegistrationSettingsAPI = {

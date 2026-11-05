@@ -145,6 +145,7 @@ module.exports = {
   setPersonalChart: chartId => request('PUT', '/user/personal-chart', { chart_id: chartId }, true),
   clearPersonalChart: () => request('DELETE', '/user/personal-chart', null, true),
   personalDay: date => request('GET', `/user/personal-day?date=${encodeURIComponent(date)}`, null, true),
+  todayQuestion: input => request('POST', '/user/today-question', input, true),
   calendarDay: date => request('GET', `/calendar/day?date=${encodeURIComponent(date)}`),
   calendarRange: (start, end) => request('GET', `/calendar/range?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`),
   logout: () => {

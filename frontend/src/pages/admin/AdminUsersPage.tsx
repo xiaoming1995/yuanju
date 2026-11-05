@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { adminActionErrorMessage, adminMiniappRegistrationSettingsAPI, adminRegistrationSettingsAPI, adminStatsAPI, adminUsersAPI } from '../../lib/adminApi'
+import type { TodayQuestionCreditAccount } from '../../lib/adminApi'
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { useToast } from '../../components/ui/useToast'
@@ -21,6 +22,16 @@ interface User {
   last_login_at?: string | null
   last_login_channel?: string
   last_active_at?: string | null
+  today_question?: {
+    date: string
+    daily_limit: number
+    used: number
+    free_used: number
+    processing: number
+    free_processing: number
+    credit_balance: number
+    remaining: number
+  }
 }
 
 interface UserDetail extends User { ai_requests_this_month: number }
@@ -78,6 +89,15 @@ export default function AdminUsersPage() {
   const [pageSize, setPageSize] = useState(10)
   const [pendingAction, setPendingAction] = useState<PendingAction>(null)
   const [actionSaving, setActionSaving] = useState(false)
+  const [grantTarget, setGrantTarget] = useState<User | null>(null)
+  const [grantAccount, setGrantAccount] = useState<TodayQuestionCreditAccount | null>(null)
+  const [grantLoading, setGrantLoading] = useState(false)
+  const [grantAmount, setGrantAmount] = useState('1')
+  const [grantReason, setGrantReason] = useState('')
+  const [grantKey, setGrantKey] = useState('')
+  const [grantError, setGrantError] = useState('')
+  const [grantSuccess, setGrantSuccess] = useState('')
+  const [grantSaving, setGrantSaving] = useState(false)
 
   const load = useCallback((q: string, pageNum: number, nextFilters = filters) => {
     const serial = ++requestSerial.current
@@ -257,6 +277,51 @@ export default function AdminUsersPage() {
   const sourceLabel = (source: string) => source === 'admin_created' ? '后台创建' : source === 'miniapp_wechat' ? '微信小程序' : '网页注册'
   const userLabel = (user: User) => user.email || `${user.nickname || '微信用户'}（${user.id.slice(0, 8)}）`
 
+  const openGrant = (user: User) => {
+    setGrantTarget(user)
+    setGrantAccount(null)
+    setGrantAmount('1')
+    setGrantReason('')
+    setGrantKey(crypto.randomUUID())
+    setGrantError('')
+    setGrantSuccess('')
+  }
+
+  useEffect(() => {
+    if (!grantTarget) return
+    let active = true
+    setGrantLoading(true)
+    adminUsersAPI.todayQuestionCredits(grantTarget.id)
+      .then(response => { if (active) setGrantAccount(response.data.data) })
+      .catch(error => { if (active) setGrantError(adminActionErrorMessage(error)) })
+      .finally(() => { if (active) setGrantLoading(false) })
+    return () => { active = false }
+  }, [grantTarget])
+
+  const submitGrant = async () => {
+    if (!grantTarget || grantSaving) return
+    const amount = Number(grantAmount)
+    const reason = grantReason.trim()
+    if (!Number.isInteger(amount) || amount < 1 || amount > 1000) { setGrantError('请输入 1—1000 的整数'); return }
+    if (!reason || Array.from(reason).length > 200) { setGrantError('请填写 1—200 字的发放原因'); return }
+    setGrantError('')
+    setGrantSaving(true)
+    try {
+      const response = await adminUsersAPI.grantTodayQuestionCredits(grantTarget.id, amount, reason, grantKey)
+      showToast(`已为 ${userLabel(grantTarget)} 增加 ${amount} 次，当前额外余额 ${response.data.data.balance_after} 次`, 'success')
+      setGrantAccount(current => ({ balance: response.data.data.balance_after, entries: [response.data.data, ...(current?.entries || [])].slice(0, 20) }))
+      setGrantSuccess(`已增加 ${amount} 次，当前余额 ${response.data.data.balance_after} 次`)
+      setGrantAmount('1')
+      setGrantReason('')
+      setGrantKey(crypto.randomUUID())
+      load(appliedQuery, page, filters)
+    } catch (error: unknown) {
+      setGrantError(adminActionErrorMessage(error))
+    } finally {
+      setGrantSaving(false)
+    }
+  }
+
   return (
     <div className="admin-users-page">
       <div className="admin-users-heading">
@@ -319,11 +384,11 @@ export default function AdminUsersPage() {
           <div className="admin-user-table-wrap">
           <table className="admin-table">
             <thead>
-              <tr><th>用户</th><th>来源</th><th>累计查盘</th><th>状态</th><th>注册时间</th><th>最后登录</th><th>最近活跃</th><th>操作</th></tr>
+              <tr><th>用户</th><th>来源</th><th>累计查盘</th><th>今日问事</th><th>状态</th><th>注册时间</th><th>最后登录</th><th>最近活跃</th><th>操作</th></tr>
             </thead>
             <tbody>
               {!users?.length && (
-                <tr><td colSpan={8} className="admin-user-empty-row">
+                <tr><td colSpan={9} className="admin-user-empty-row">
                   没有符合条件的用户
                 </td></tr>
               )}
@@ -338,6 +403,13 @@ export default function AdminUsersPage() {
                       <span>{u.chart_query_count}</span><span aria-hidden="true">›</span>
                     </Link>
                   </td>
+                  <td className="admin-user-today-question" title={u.today_question ? `北京时间 ${u.today_question.date}` : ''}>
+                    {u.today_question ? <>
+                      <strong>已用 {u.today_question.used} · 剩余 {u.today_question.remaining}</strong>
+                      <small>免费已用 {u.today_question.free_used}/{u.today_question.daily_limit} · 额外 {u.today_question.credit_balance}</small>
+                      {u.today_question.processing > 0 && <small className="is-processing">处理中 {u.today_question.processing}</small>}
+                    </> : <span className="admin-user-no-data">暂无数据</span>}
+                  </td>
                   <td>
                     {u.disabled_at
                       ? <StatusBadge tone="danger">已禁用</StatusBadge>
@@ -350,6 +422,7 @@ export default function AdminUsersPage() {
                   <td className="admin-user-time">{u.last_active_at ? <><strong title={formatTime(u.last_active_at)}>{formatDate(u.last_active_at)}</strong><small>{formatClock(u.last_active_at)}</small></> : <span className="admin-user-no-data">暂无记录</span>}</td>
                   <td className="admin-user-row-action">
                     <button className="admin-btn admin-btn-ghost" onClick={() => { setDetail(null); setSelectedID(u.id); setEventsPage(1) }}>用户详情</button>
+                    <button className="admin-btn admin-btn-ghost" onClick={() => openGrant(u)}>增加次数</button>
                   </td>
                 </tr>
               ))}
@@ -431,6 +504,33 @@ export default function AdminUsersPage() {
               <button className="admin-btn admin-btn-primary" onClick={handleCreate} disabled={saving}>
                 {saving ? '创建中...' : '创建'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {grantTarget && (
+        <div className="admin-modal-overlay" onClick={e => { if (e.target === e.currentTarget && !grantSaving) setGrantTarget(null) }}>
+          <div className="admin-modal admin-credit-modal" role="dialog" aria-modal="true" aria-label="增加今日问事次数">
+            <div className="admin-modal-title">增加今日问事次数</div>
+            <p className="admin-credit-target">用户：<strong>{userLabel(grantTarget)}</strong></p>
+            <p className="admin-credit-balance">额外次数余额：<strong>{grantLoading ? '读取中…' : grantAccount ? `${grantAccount.balance} 次` : '读取失败'}</strong></p>
+            <p className="admin-credit-help">一次性增加，余额跨日保留。每天的免费次数会先使用。</p>
+            {grantError && <div className="admin-error" role="alert">{grantError}</div>}
+            {grantSuccess && <p className="admin-credit-success" role="status">{grantSuccess}</p>}
+            <div className="admin-form-group">
+              <label className="admin-form-label" htmlFor="grant-today-question-amount">增加次数</label>
+              <input id="grant-today-question-amount" className="admin-form-input" type="number" min="1" max="1000" step="1" value={grantAmount}
+                onChange={e => { setGrantAmount(e.target.value); setGrantKey(crypto.randomUUID()); setGrantError(''); setGrantSuccess('') }} disabled={grantSaving} />
+            </div>
+            <div className="admin-form-group">
+              <label className="admin-form-label" htmlFor="grant-today-question-reason">发放原因</label>
+              <input id="grant-today-question-reason" className="admin-form-input" maxLength={200} value={grantReason} placeholder="例如：活动补偿"
+                onChange={e => { setGrantReason(e.target.value); setGrantKey(crypto.randomUUID()); setGrantError(''); setGrantSuccess('') }} disabled={grantSaving} />
+            </div>
+            <div className="admin-modal-actions">
+              <button className="admin-btn admin-btn-ghost" onClick={() => setGrantTarget(null)} disabled={grantSaving}>取消</button>
+              <button className="admin-btn admin-btn-primary" onClick={submitGrant} disabled={grantSaving || grantLoading || !grantAccount}>{grantSaving ? '发放中…' : '确认增加'}</button>
             </div>
           </div>
         </div>

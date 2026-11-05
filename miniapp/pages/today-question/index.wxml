@@ -1,0 +1,35 @@
+<view wx:if="{{navigationVisible}}" class="navigation-status"><view class="navigation-spinner"></view><text>正在打开…</text></view>
+<view class="page-shell today-question-page" style="--yj-font-step: {{fontStep || 0}}rpx">
+  <view class="paper-backdrop" aria-hidden="true"><image class="paper-backdrop-plum" src="/assets/home-plum-branch.png" mode="widthFix"></image></view>
+  <view class="question-hero paper-feature-hero">
+    <text class="question-kicker">本人命盘 · 仅限今天</text>
+    <text class="question-title">今日问事</text>
+    <text class="question-date">北京时间 {{dateLabel}}</text>
+    <text class="question-intro">说说今天要做的一件事，看看命理参考与实际准备建议。</text>
+  </view>
+  <view wx:if="{{state === 'loading'}}" class="question-state surface-card">正在读取本人命盘…</view>
+  <view wx:elif="{{state === 'login' || state === 'unbound'}}" class="question-state surface-card">
+    <text>{{state === 'login' ? '登录后可以使用本人命盘提问。' : '请先设置本人命盘，再询问今天的事。'}}</text>
+    <button class="primary-button" bindtap="openSetup">{{state === 'login' ? '去登录' : '去设置本人命盘'}}</button>
+  </view>
+  <view wx:elif="{{state === 'error'}}" class="question-state surface-card"><text>{{error || '本人命盘暂不可用'}}</text><button class="primary-button" bindtap="loadBinding">重试</button></view>
+  <view wx:else class="question-form surface-card">
+    <view class="question-section-heading">今天想问什么？</view>
+    <textarea class="question-input" maxlength="200" disabled="{{submitting}}" value="{{question}}" bindinput="onQuestionInput" placeholder="例如：今天下午二面，担心临场表达" />
+    <view class="question-length">{{question.length}} / 200 字</view>
+    <button class="question-submit" disabled="{{submitting}}" loading="{{submitting}}" bindtap="submit">{{submitting ? '正在分析…' : '查看参考建议'}}</button>
+    <text class="question-note">仅分析今天；不给成功率数字或结果保证。</text>
+  </view>
+  <view wx:if="{{error && state === 'ready'}}" class="question-error" role="alert">{{error}}</view>
+  <view wx:if="{{answer}}" class="question-answer surface-card" aria-live="polite">
+    <view class="question-answer-top"><text>今日参考</text><text class="question-level">{{answer.indirect ? '整体参考 · ' : ''}}{{answer.level}}</text></view>
+    <text class="question-summary">{{answer.summary}}</text>
+    <view wx:if="{{answer.layers.length}}" class="question-evidence-group"><text class="question-evidence-title">当日命理背景</text><view class="question-layers"><view wx:for="{{answer.layers}}" wx:key="name"><text>{{item.name}}</text><text>{{item.gan_zhi}}</text></view></view></view>
+    <view wx:if="{{answer.relations && answer.relations.length}}" class="question-evidence-group"><text class="question-evidence-title">干支冲合核对</text><view wx:for="{{answer.relations}}" wx:key="id" class="question-evidence"><text>{{item.layer}} · {{item.source}}</text><text>{{item.text}}</text></view></view>
+    <view wx:if="{{answer.support.length}}" class="question-evidence-group"><text class="question-evidence-title">{{answer.indirect ? '整体有利参考' : '有利依据'}}</text><view wx:for="{{answer.support}}" wx:key="id" class="question-evidence"><text>{{item.layer}} · {{item.source}}</text><text>{{item.text}}</text></view></view>
+    <view wx:if="{{answer.caution.length}}" class="question-evidence-group"><text class="question-evidence-title">{{answer.indirect ? '整体留意参考' : '需要留意'}}</text><view wx:for="{{answer.caution}}" wx:key="id" class="question-evidence"><text>{{item.layer}} · {{item.source}}</text><text>{{item.text}}</text></view></view>
+    <view wx:if="{{answer.unknown.length}}" class="question-evidence-group"><text class="question-evidence-title">未覆盖的依据</text><text wx:for="{{answer.unknown}}" wx:key="*this" class="question-unknown">{{item}}</text></view>
+    <view wx:if="{{answer.advice.length}}" class="question-evidence-group"><text class="question-evidence-title">准备建议</text><text wx:for="{{answer.advice}}" wx:key="*this" class="question-advice">{{item}}</text></view>
+    <text class="question-boundary">{{answer.boundary}}</text>
+  </view>
+</view>

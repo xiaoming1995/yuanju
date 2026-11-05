@@ -13,6 +13,12 @@
       <view class="today-pillars"><view><text class="today-pillar-value">{{calendarPreview.yearGanZhi}}年</text><text class="today-pillar-label">年柱</text></view><view><text class="today-pillar-value">{{calendarPreview.monthGanZhi}}月</text><text class="today-pillar-label">月柱</text></view><view><text class="today-pillar-value">{{calendarPreview.dayGanZhi}}日</text><text class="today-pillar-label">日柱</text></view></view>
     </view>
 
+    <view class="today-section today-question-card surface-card">
+      <view class="today-heading"><text>今日问事</text><view class="today-heading-rule"></view><text>本人命盘 · 仅限今天</text></view>
+      <view class="today-question-copy">今天有重要安排？说说你想做的事，结合本人命盘与今日干支，看看有利程度和准备建议。</view>
+      <view class="today-question-action {{navigationKey === 'today-question' ? 'is-opening' : ''}}" bindtap="openTodayQuestion" role="button">问问今天这件事 ›</view>
+    </view>
+
     <view class="today-section today-almanac-card surface-card">
       <view class="today-heading"><text>黄历宜忌</text><view class="today-heading-rule"></view><text>通用日期资料</text></view>
       <view wx:if="{{calendarLoading}}" class="today-status">正在读取今日宜忌…</view>

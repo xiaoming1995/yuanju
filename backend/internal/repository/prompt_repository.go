@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"yuanju/internal/model"
 	"yuanju/pkg/database"
 )
@@ -83,14 +84,24 @@ func InsertCanonical(module, version, content, hash, description string) error {
 
 // UpdateCanonicalContent 把已存在的（未自定义）行升级到 canonical 新版本。
 // 不动 is_customized 字段（调用方应已确认该行 is_customized=false）。
-func UpdateCanonicalContent(module, version, content, hash string) error {
-	_, err := database.DB.Exec(
+func UpdateCanonicalContent(module, version, content, hash, expectedHash string) error {
+	result, err := database.DB.Exec(
 		`UPDATE ai_prompts
 		 SET content = $2, version = $3, canonical_hash = $4, updated_at = NOW()
-		 WHERE module = $1`,
-		module, content, version, hash,
+		 WHERE module = $1 AND is_customized = false AND canonical_hash = $5`,
+		module, content, version, hash, expectedHash,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows != 1 {
+		return fmt.Errorf("canonical prompt %s changed before update", module)
+	}
+	return nil
 }
 
 // SetCustomized 翻转某模块的 is_customized 标记。

@@ -216,6 +216,26 @@ func RollupClosedMonthsAndDelete() (RollupReport, error) {
 	}
 	defer func() { _ = tx.Rollback() }() // 提交后是 no-op
 
+	// Preserve per-request audit detail before monthly rollup removes source rows.
+	// The shared token log remains the source while it exists; after deletion the
+	// question record holds a snapshot and its FK is set to NULL.
+	var hasQuestionAudit bool
+	if err := tx.QueryRow(`SELECT to_regclass('public.today_question_requests') IS NOT NULL`).Scan(&hasQuestionAudit); err != nil {
+		return rep, err
+	}
+	if hasQuestionAudit {
+		if _, err := tx.Exec(`UPDATE today_question_requests q SET
+		prompt_tokens=t.prompt_tokens, completion_tokens=t.completion_tokens,
+		total_tokens=t.total_tokens, reasoning_tokens=t.reasoning_tokens,
+		cache_hit_tokens=t.cache_hit_tokens, cache_miss_tokens=t.cache_miss_tokens,
+		ai_user_prompt=COALESCE(NULLIF(q.ai_user_prompt,''),t.input_content,''),
+		ai_output=COALESCE(NULLIF(q.ai_output,''),t.output_content,'')
+		FROM token_usage_logs t
+		WHERE q.token_usage_id=t.id AND t.created_at < date_trunc('month', NOW())`); err != nil {
+			return rep, err
+		}
+	}
+
 	const insertSQL = `
 INSERT INTO token_usage_logs_monthly (
     user_id, model, year_month,

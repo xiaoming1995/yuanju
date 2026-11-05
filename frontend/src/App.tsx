@@ -30,6 +30,7 @@ const AdminDashboardPage = lazy(() => import('./pages/admin/AdminDashboardPage')
 const AdminLLMPage = lazy(() => import('./pages/admin/AdminLLMPage'))
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'))
 const AdminAILogsPage = lazy(() => import('./pages/admin/AdminAILogsPage'))
+const AdminTodayQuestionsPage = lazy(() => import('./pages/admin/AdminTodayQuestionsPage'))
 const AdminChartsPage = lazy(() => import('./pages/admin/AdminChartsPage'))
 const AdminChartDetailPage = lazy(() => import('./pages/admin/AdminChartDetailPage'))
 const AdminCompatPage = lazy(() => import('./pages/admin/AdminCompatPage'))
@@ -112,6 +113,7 @@ export default function App() {
                 <Route path="charts/:chartId" element={<AdminChartDetailPage />} />
                 <Route path="compatibility" element={<AdminCompatPage />} />
                 <Route path="ai-logs" element={<AdminAILogsPage />} />
+                <Route path="today-questions" element={<AdminTodayQuestionsPage />} />
                 <Route path="prompts" element={<PromptSettings />} />
                 <Route path="algo-config" element={<AlgoConfigPage />} />
                 <Route path="cleanup-config" element={<CleanupConfigPage />} />

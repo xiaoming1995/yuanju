@@ -12,19 +12,32 @@ type fakeStore struct {
 	rows      map[string]*model.AIPrompt
 	inserts   []string
 	updates   []string
-	getErr    map[string]error  // module → error to return from GetPromptByModule
-	insertErr map[string]error  // module → error to return from InsertCanonical
-	updateErr map[string]error  // module → error to return from UpdateCanonicalContent
+	getErr    map[string]error // module → error to return from GetPromptByModule
+	insertErr map[string]error // module → error to return from InsertCanonical
+	updateErr map[string]error // module → error to return from UpdateCanonicalContent
 	// dbErr, if non-nil, is returned by GetPromptByModule for all modules.
 	dbErr error
 }
 
 func newFakeStore() *fakeStore {
+	today := MustGet("today_question")
 	return &fakeStore{
-		rows:      map[string]*model.AIPrompt{},
+		rows:      map[string]*model.AIPrompt{"today_question": {Module: "today_question", Version: today.Version, Content: today.Content, CanonicalHash: today.Hash}},
 		getErr:    map[string]error{},
 		insertErr: map[string]error{},
 		updateErr: map[string]error{},
+	}
+}
+
+func TestSyncCanonical_InsertsTodayQuestion(t *testing.T) {
+	store := newFakeStore()
+	delete(store.rows, "today_question")
+	store.rows["compatibility"] = &model.AIPrompt{Module: "compatibility"}
+	if err := syncCanonicalWith(store); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.inserts) != 1 || store.inserts[0] != "today_question" {
+		t.Fatalf("today question prompt missing: %v", store.inserts)
 	}
 }
 
@@ -47,9 +60,12 @@ func (f *fakeStore) InsertCanonical(m, v, c, h, d string) error {
 	return nil
 }
 
-func (f *fakeStore) UpdateCanonicalContent(m, v, c, h string) error {
+func (f *fakeStore) UpdateCanonicalContent(m, v, c, h, expectedHash string) error {
 	if err := f.updateErr[m]; err != nil {
 		return err
+	}
+	if f.rows[m] == nil || f.rows[m].IsCustomized || f.rows[m].CanonicalHash != expectedHash {
+		return errors.New("canonical prompt changed before update")
 	}
 	f.updates = append(f.updates, m)
 	old := f.rows[m]
@@ -67,6 +83,27 @@ func (f *fakeStore) UpdateCanonicalContent(m, v, c, h string) error {
 		UpdatedAt:     old.UpdatedAt,
 	}
 	return nil
+}
+
+func TestSyncCanonicalUpgradesOnlyUntouchedTodayQuestionPrompt(t *testing.T) {
+	store := newFakeStore()
+	oldContent := "old factory today question prompt"
+	store.rows["today_question"] = &model.AIPrompt{Module: "today_question", Version: "v1-evidence-only", Content: oldContent, CanonicalHash: HashContent(oldContent)}
+	if err := syncCanonicalWith(store); err != nil {
+		t.Fatal(err)
+	}
+	if len(store.updates) != 1 || store.updates[0] != "today_question" || store.rows["today_question"].Version != MustGet("today_question").Version {
+		t.Fatalf("factory prompt not upgraded: updates=%v row=%+v", store.updates, store.rows["today_question"])
+	}
+	store.updates = nil
+	store.rows["today_question"] = &model.AIPrompt{Module: "today_question", Version: "v2-insufficient-ai-advice", Content: "admin edited", CanonicalHash: HashContent("old factory"), IsCustomized: false}
+	if err := syncCanonicalWith(store); err != nil || len(store.updates) != 0 {
+		t.Fatalf("drifted prompt overwritten: updates=%v err=%v", store.updates, err)
+	}
+	store.rows["today_question"] = &model.AIPrompt{Module: "today_question", Version: "v1-evidence-only", Content: oldContent, CanonicalHash: HashContent(oldContent), IsCustomized: true}
+	if err := syncCanonicalWith(store); err != nil || len(store.updates) != 0 {
+		t.Fatalf("customized prompt overwritten: updates=%v err=%v", store.updates, err)
+	}
 }
 
 // TestSyncCanonical_InsertsMissingModule verifies that a module absent from

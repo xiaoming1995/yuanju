@@ -7,6 +7,7 @@
     "pages/personal-chart-setup/index",
     "pages/result/index",
     "pages/personal-day/index",
+    "pages/today-question/index",
     "pages/moving-date/index"
   ],
   "window": {

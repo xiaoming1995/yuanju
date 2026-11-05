@@ -57,7 +57,7 @@ func main() {
 		log.Printf("[migrate] startup unexpected error: %v", err)
 	}
 
-	// Prompt 注册表对齐：把代码侧 Canonical 写入 ai_prompts 表（未自定义行 sync 到当前版本）。
+	// Prompt 注册表对齐：补种缺失模块，并升级未改动的今日问事旧出厂提示词。
 	if err := prompt.SyncCanonical(database.DB); err != nil {
 		log.Printf("[prompt-sync] startup error: %v", err)
 	}
@@ -194,6 +194,7 @@ func main() {
 			user.PUT("/personal-chart", handler.SetPersonalChart)
 			user.DELETE("/personal-chart", handler.ClearPersonalChart)
 			user.GET("/personal-day", handler.GetPersonalDay)
+			user.POST("/today-question", handler.PostTodayQuestion)
 			user.PUT("/profile/nickname", handler.RequireUserID, handler.UpdateProfileNickname)
 			user.POST("/profile/avatar", handler.RequireUserID, handler.UploadProfileAvatar)
 			user.GET("/export-brand", handler.RequireUserID, handler.GetExportBrand)
@@ -239,6 +240,8 @@ func main() {
 				adminAuth.GET("/users", handler.AdminGetUsers)
 				adminAuth.GET("/users/:id", handler.AdminGetUserDetail)
 				adminAuth.GET("/users/:id/events", handler.AdminGetUserEvents)
+				adminAuth.GET("/users/:id/today-question-credits", handler.AdminGetTodayQuestionCredits)
+				adminAuth.POST("/users/:id/today-question-credits/grants", handler.AdminGrantTodayQuestionCredits)
 				adminAuth.POST("/users", handler.AdminCreateUser)
 				adminAuth.POST("/users/:id/reset-password", handler.AdminResetUserPassword)
 				adminAuth.PUT("/users/:id/disable", handler.AdminSetUserDisabled)
@@ -260,6 +263,10 @@ func main() {
 				// AI 调用日志
 				adminAuth.GET("/ai-logs", handler.AdminListAILogs)
 				adminAuth.GET("/ai-logs/summary", handler.AdminGetAILogsSummary)
+				adminAuth.GET("/today-questions", handler.AdminListTodayQuestions)
+				adminAuth.GET("/today-questions/settings", handler.AdminGetTodayQuestionSettings)
+				adminAuth.PUT("/today-questions/settings", handler.AdminUpdateTodayQuestionSettings)
+				adminAuth.GET("/today-questions/:id", handler.AdminGetTodayQuestion)
 
 				// Token 用量统计
 				adminAuth.GET("/token-usage/summary", handler.AdminGetTokenUsageSummary)

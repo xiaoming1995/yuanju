@@ -219,6 +219,10 @@ Page({
     navigation.navigate(this, { method: 'navigateTo', url: `/pages/personal-day/index?date=${this.data.calendarPreview.key}`, key: 'personal' })
   },
 
+  openTodayQuestion() {
+    navigation.navigate(this, { method: 'navigateTo', url: '/pages/today-question/index', key: 'today-question' })
+  },
+
   openHistory() {
     this.setData({ mode: 'history' })
     this.loadHistory(1)

@@ -45,18 +45,19 @@
 .admin-user-page-size select { min-height: 32px; padding: 4px 8px; border: 1px solid var(--admin-border); border-radius: 7px; background: var(--admin-bg-soft); color: var(--admin-text-secondary); font: inherit; }
 .admin-user-mobile-hint { display: none; }
 .admin-user-table-wrap { overflow-x: auto; }
-.admin-user-table-wrap .admin-table { min-width: 960px; table-layout: fixed; }
+.admin-user-table-wrap .admin-table { min-width: 1240px; table-layout: fixed; }
 .admin-user-table-wrap .admin-table th { padding: 12px 16px; background: var(--admin-bg-soft); color: var(--admin-text-muted); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .admin-user-table-wrap .admin-table td { height: 64px; padding: 10px 16px; vertical-align: middle; }
 .admin-user-table-wrap .admin-table tbody tr:last-child td { border-bottom: 0; }
-.admin-user-table-wrap .admin-table th:nth-child(1) { width: 26%; }
-.admin-user-table-wrap .admin-table th:nth-child(2) { width: 11%; }
-.admin-user-table-wrap .admin-table th:nth-child(3) { width: 9%; white-space: nowrap; }
-.admin-user-table-wrap .admin-table th:nth-child(4) { width: 9%; }
-.admin-user-table-wrap .admin-table th:nth-child(5) { width: 11%; }
-.admin-user-table-wrap .admin-table th:nth-child(6) { width: 15%; }
+.admin-user-table-wrap .admin-table th:nth-child(1) { width: 20%; }
+.admin-user-table-wrap .admin-table th:nth-child(2) { width: 9%; }
+.admin-user-table-wrap .admin-table th:nth-child(3) { width: 8%; white-space: nowrap; }
+.admin-user-table-wrap .admin-table th:nth-child(4) { width: 17%; }
+.admin-user-table-wrap .admin-table th:nth-child(5) { width: 7%; }
+.admin-user-table-wrap .admin-table th:nth-child(6) { width: 9%; }
 .admin-user-table-wrap .admin-table th:nth-child(7) { width: 11%; }
-.admin-user-table-wrap .admin-table th:nth-child(8) { width: 8%; }
+.admin-user-table-wrap .admin-table th:nth-child(8) { width: 7%; }
+.admin-user-table-wrap .admin-table th:nth-child(9) { width: 12%; }
 .admin-user-table-wrap .admin-table .badge { white-space: nowrap; }
 .admin-user-identity { min-width: 0; }
 .admin-user-identity .admin-user-link { display: block; max-width: 100%; overflow: hidden; color: var(--admin-text); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
@@ -77,8 +78,19 @@
 .admin-user-time strong { color: var(--admin-text-secondary); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .admin-user-time small { margin-top: 4px; color: var(--admin-text-muted); font-size: 11px; white-space: nowrap; }
 .admin-user-no-data { color: var(--admin-text-faint); font-size: 13px; }
+.admin-user-today-question strong, .admin-user-today-question small { display: block; white-space: nowrap; }
+.admin-user-today-question strong { color: var(--admin-text-secondary); font-size: 13px; font-weight: 600; }
+.admin-user-today-question small { margin-top: 4px; color: var(--admin-text-muted); font-size: 11px; }
+.admin-user-today-question small.is-processing { color: var(--admin-primary); }
 .admin-user-row-action { white-space: nowrap; }
+.admin-user-row-action .admin-btn + .admin-btn { margin-left: 4px; }
 .admin-user-row-action .admin-btn { padding: 7px; font-size: 12px; }
+.admin-credit-modal { max-width: 480px; }
+.admin-credit-target, .admin-credit-balance, .admin-credit-help { margin: 0 0 12px; color: var(--admin-text-secondary); font-size: 13px; overflow-wrap: anywhere; }
+.admin-credit-balance strong { color: var(--admin-primary); }
+.admin-credit-help { color: var(--admin-text-muted); font-size: 12px; }
+.admin-credit-success { margin: 0 0 12px; color: var(--admin-success); font-size: 13px; }
+.admin-credit-modal .admin-form-group + .admin-form-group { margin-top: 14px; }
 .admin-user-empty-row { height: 150px !important; color: var(--admin-text-muted) !important; text-align: center; }
 
 .admin-user-detail-backdrop { position: fixed; inset: 0; z-index: 900; display: flex; justify-content: flex-end; background: rgba(20, 32, 45, .42); }
@@ -118,7 +130,7 @@
   .admin-user-list-heading > div:first-child { display: block; }
   .admin-user-list-heading > div:first-child span { display: block; margin-top: 4px; }
   .admin-user-mobile-hint { display: block; margin: 0; padding: 8px 15px; color: var(--admin-text-muted); font-size: 12px; }
-  .admin-user-table-wrap .admin-table { min-width: 960px; }
+  .admin-user-table-wrap .admin-table { min-width: 1240px; }
   .admin-user-detail { padding: 0 16px 20px; }
   .admin-user-detail-header { margin: 0 -16px 18px; padding: 16px; }
   .admin-user-summary { grid-template-columns: 1fr; }

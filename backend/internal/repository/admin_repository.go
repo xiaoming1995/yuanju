@@ -203,18 +203,19 @@ func GetAIStatsByProvider() ([]AIProviderStat, error) {
 
 // AdminUserRow 后台用户列表行
 type AdminUserRow struct {
-	ID               string     `json:"id"`
-	Email            string     `json:"email"`
-	Nickname         string     `json:"nickname"`
-	Source           string     `json:"source"`
-	CreatedAt        string     `json:"created_at"`
-	DisabledAt       *time.Time `json:"disabled_at"`
-	ChartCount       int        `json:"chart_count"`
-	ChartQueryCount  int64      `json:"chart_query_count"`
-	CompatCount      int        `json:"compat_count"`
-	LastLoginAt      *time.Time `json:"last_login_at"`
-	LastLoginChannel string     `json:"last_login_channel"`
-	LastActiveAt     *time.Time `json:"last_active_at"`
+	ID               string                  `json:"id"`
+	Email            string                  `json:"email"`
+	Nickname         string                  `json:"nickname"`
+	Source           string                  `json:"source"`
+	CreatedAt        string                  `json:"created_at"`
+	DisabledAt       *time.Time              `json:"disabled_at"`
+	ChartCount       int                     `json:"chart_count"`
+	ChartQueryCount  int64                   `json:"chart_query_count"`
+	CompatCount      int                     `json:"compat_count"`
+	LastLoginAt      *time.Time              `json:"last_login_at"`
+	LastLoginChannel string                  `json:"last_login_channel"`
+	LastActiveAt     *time.Time              `json:"last_active_at"`
+	TodayQuestion    AdminTodayQuestionUsage `json:"today_question"`
 }
 
 // ListAdminUsers 分页查询用户列表（含累计查盘、现存排盘和合盘数），支持邮箱、昵称和 ID 搜索。
@@ -277,6 +278,15 @@ func ListAdminUsersFiltered(page, pageSize int, q, source, status, activity, sor
 			return nil, 0, err
 		}
 		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, 0, err
+	}
+	if err := populateAdminTodayQuestionUsage(users); err != nil {
+		return nil, 0, err
 	}
 	return users, total, nil
 }

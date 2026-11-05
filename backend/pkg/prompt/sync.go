@@ -13,7 +13,7 @@ import (
 type syncStore interface {
 	GetPromptByModule(module string) (*model.AIPrompt, error)
 	InsertCanonical(module, version, content, hash, description string) error
-	UpdateCanonicalContent(module, version, content, hash string) error
+	UpdateCanonicalContent(module, version, content, hash, expectedHash string) error
 }
 
 // realStore wires syncStore to the repository package functions.
@@ -27,8 +27,8 @@ func (realStore) InsertCanonical(m, v, c, h, d string) error {
 	return repository.InsertCanonical(m, v, c, h, d)
 }
 
-func (realStore) UpdateCanonicalContent(m, v, c, h string) error {
-	return repository.UpdateCanonicalContent(m, v, c, h)
+func (realStore) UpdateCanonicalContent(m, v, c, h, expectedHash string) error {
+	return repository.UpdateCanonicalContent(m, v, c, h, expectedHash)
 }
 
 // SyncCanonical aligns DB rows to the in-memory Canonical registry.
@@ -38,7 +38,7 @@ func (realStore) UpdateCanonicalContent(m, v, c, h string) error {
 // Decision per module:
 //
 //	DB 无该模块 → InsertCanonical（补种初始值）
-//	DB 已存在   → noop（维护版神圣，永不覆盖；升级靠后台手动「采用」）
+//	DB 已存在   → noop；仅 today_question 的已知旧出厂版且正文未漂移时升级
 //
 // Errors are logged per-module; a failing module never blocks startup.
 func SyncCanonical(db *sql.DB) error {
@@ -62,9 +62,17 @@ func syncCanonicalWith(store syncStore) error {
 			}
 			log.Printf("[prompt-sync] module=%s action=insert version=%s hash=%s", module, def.Version, shortHash(def.Hash))
 
+		case module == "today_question" && !row.IsCustomized &&
+			(row.Version == "v1-evidence-only" || row.Version == "v2-insufficient-ai-advice") &&
+			row.CanonicalHash != "" && HashContent(row.Content) == row.CanonicalHash:
+			if err := store.UpdateCanonicalContent(module, def.Version, def.Content, def.Hash, row.CanonicalHash); err != nil {
+				log.Printf("[prompt-sync] module=%s action=skip reason=update_error err=%v", module, err)
+				continue
+			}
+			log.Printf("[prompt-sync] module=%s action=upgrade version=%s", module, def.Version)
+
 		default:
-			// 维护版神圣：已存在的行永不被出厂版自动覆盖。
-			// 升级靠后台手动「采用出厂新版」；漂移由 DriftStatus 在读取时暴露。
+			// 管理员维护版及其他模块继续依赖后台手动「采用出厂新版」。
 			log.Printf("[prompt-sync] module=%s action=noop reason=row_exists version=%s", module, row.Version)
 		}
 	}
